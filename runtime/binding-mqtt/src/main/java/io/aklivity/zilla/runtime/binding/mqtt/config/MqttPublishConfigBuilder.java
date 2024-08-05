@@ -25,7 +25,8 @@ public class MqttPublishConfigBuilder<T> extends ConfigBuilder<T, MqttPublishCon
 
     private String topic;
 
-    public MqttPublishConfigBuilder(Function<MqttPublishConfig, T> mapper)
+    MqttPublishConfigBuilder(
+        Function<MqttPublishConfig, T> mapper)
     {
         this.mapper = mapper;
     }

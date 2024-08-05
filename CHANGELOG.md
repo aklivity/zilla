@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.88...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.89...HEAD)
+
+**Implemented enhancements:**
+
+- Support `extract-headers` kafka message transform [\#1175](https://github.com/aklivity/zilla/issues/1175)
+- Simplify `sse` support in AsyncAPI specs [\#1151](https://github.com/aklivity/zilla/issues/1151)
+
+**Fixed bugs:**
+
+- Support topic pattern wildcards in `mqtt-kafka` clients [\#1178](https://github.com/aklivity/zilla/issues/1178)
+- Connecting to Aiven Kafka over TLS Throws an `java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty` Error [\#1115](https://github.com/aklivity/zilla/issues/1115)
+
+## [0.9.89](https://github.com/aklivity/zilla/tree/0.9.89) (2024-07-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.88...0.9.89)
 
 **Implemented enhancements:**
 
@@ -18,6 +32,16 @@
 
 - custom metadata populated by grpc-server missing  [\#1155](https://github.com/aklivity/zilla/issues/1155)
 - Avro validation returns 204 and produces blank message [\#1143](https://github.com/aklivity/zilla/issues/1143)
+- Fix WS large message bug [\#725](https://github.com/aklivity/zilla/pull/725) ([bmaidics](https://github.com/bmaidics))
+
+**Merged pull requests:**
+
+- Kafka debug log fix [\#1163](https://github.com/aklivity/zilla/pull/1163) ([ankitk-me](https://github.com/ankitk-me))
+- grpc: mutable byte arrays to non-static instance fields [\#1160](https://github.com/aklivity/zilla/pull/1160) ([ankitk-me](https://github.com/ankitk-me))
+- Avro validation bug fix [\#1157](https://github.com/aklivity/zilla/pull/1157) ([ankitk-me](https://github.com/ankitk-me))
+- custom metadata populated by grpc-server missing fix [\#1156](https://github.com/aklivity/zilla/pull/1156) ([ankitk-me](https://github.com/ankitk-me))
+- Support karapace-schema-registry, schema-registry and apicurio-registry catalogs [\#1134](https://github.com/aklivity/zilla/pull/1134) ([jfallows](https://github.com/jfallows))
+- grpc custom metadata passthrough implementation [\#1097](https://github.com/aklivity/zilla/pull/1097) ([ankitk-me](https://github.com/ankitk-me))
 
 ## [0.9.88](https://github.com/aklivity/zilla/tree/0.9.88) (2024-07-15)
 

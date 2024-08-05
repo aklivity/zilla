@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -22,6 +24,8 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 public final class MqttKafkaWithConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaWithConfigBuilder<T>>
 {
     private final Function<WithConfig, T> mapper;
+
+    private long compositeId = NO_COMPOSITE_ID;
     private String messages;
 
     MqttKafkaWithConfigBuilder(
@@ -37,6 +41,13 @@ public final class MqttKafkaWithConfigBuilder<T> extends ConfigBuilder<T, MqttKa
         return (Class<MqttKafkaWithConfigBuilder<T>>) getClass();
     }
 
+    public MqttKafkaWithConfigBuilder<T> compositeId(
+        long compositeId)
+    {
+        this.compositeId = compositeId;
+        return this;
+    }
+
     public MqttKafkaWithConfigBuilder<T> messages(
         String messages)
     {
@@ -46,6 +57,6 @@ public final class MqttKafkaWithConfigBuilder<T> extends ConfigBuilder<T, MqttKa
     @Override
     public T build()
     {
-        return mapper.apply(new MqttKafkaWithConfig(messages));
+        return mapper.apply(new MqttKafkaWithConfig(compositeId, messages));
     }
 }

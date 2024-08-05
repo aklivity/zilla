@@ -34,8 +34,10 @@ public class MqttKafkaWithConfig extends WithConfig
     }
 
     MqttKafkaWithConfig(
+        long compositeId,
         String messages)
     {
+        super(compositeId);
         this.messages = messages;
     }
 }

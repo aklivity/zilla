@@ -34,7 +34,7 @@ public class AsyncapiServerConfig
         return new AsyncapiServerConfigBuilder<>(mapper);
     }
 
-    public AsyncapiServerConfig(
+    AsyncapiServerConfig(
         String host,
         String url,
         String pathname)

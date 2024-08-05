@@ -37,7 +37,7 @@ public final class HttpKafkaWithProduceConfig
 
     private final List<Matcher> asyncMatchers;
 
-    public HttpKafkaWithProduceConfig(
+    HttpKafkaWithProduceConfig(
         String topic,
         KafkaAckMode acks,
         String key,

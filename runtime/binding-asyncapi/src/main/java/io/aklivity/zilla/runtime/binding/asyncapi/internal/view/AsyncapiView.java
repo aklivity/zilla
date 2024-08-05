@@ -14,55 +14,99 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import static java.util.Objects.requireNonNull;
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiCompositeId.compositeId;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
-import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Predicate;
 
+import org.agrona.collections.MutableInteger;
+
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiView
 {
-    private final Asyncapi asyncapi;
+    public final String label;
+    public final long compositeId;
+    public final List<AsyncapiServerView> servers;
+    public final Map<String, AsyncapiChannelView> channels;
+    public final Map<String, AsyncapiOperationView> operations;
+    public final AsyncapiComponentsView components;
 
-    public int[] resolvePortsForScheme(
-        String scheme)
+    public boolean hasProtocol(
+        String protocol)
     {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
+        return hasProtocol(protocol::equals);
     }
 
-    public URI findFirstServerUrlWithScheme(
-        String scheme)
+    public boolean hasProtocol(
+        Predicate<String> protocol)
     {
-        requireNonNull(scheme);
-        URI result = null;
-        for (String key : asyncapi.servers.keySet())
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncapi.servers.get(key));
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
+        return servers.stream().map(s -> s.protocol).anyMatch(protocol);
+    }
+
+    public boolean hasOperationBindingsHttp()
+    {
+        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsHttp);
+    }
+
+    public boolean hasOperationBindingsSse()
+    {
+        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsSse);
     }
 
     public static AsyncapiView of(
-        Asyncapi asyncapi)
+        Asyncapi model)
     {
-        return new AsyncapiView(asyncapi);
+        return of(0, null, model, List.of());
+    }
+
+    public static AsyncapiView of(
+        int index,
+        String label,
+        Asyncapi model,
+        List<AsyncapiServerConfig> configs)
+    {
+        return new AsyncapiView(index, label, model, configs);
     }
 
     private AsyncapiView(
-        Asyncapi asyncapi)
+        int id,
+        String label,
+        Asyncapi asyncapi,
+        List<AsyncapiServerConfig> configs)
     {
-        this.asyncapi = asyncapi;
+        this.label = label;
+        this.compositeId = compositeId(id, 0);
+
+        AsyncapiResolver resolver = new AsyncapiResolver(asyncapi);
+
+        this.servers = asyncapi.servers != null
+            ? asyncapi.servers.entrySet().stream()
+                .flatMap(e -> configs.stream().map(c -> new AsyncapiServerView(resolver, e.getKey(), e.getValue(), c)))
+                .toList()
+            : null;
+
+        this.channels = asyncapi.channels != null
+            ? asyncapi.channels.entrySet().stream()
+                .map(e -> new AsyncapiChannelView(resolver, e.getKey(), e.getValue()))
+                .collect(toMap(c -> c.name, identity()))
+            : null;
+
+        MutableInteger opIndex = new MutableInteger(1);
+        this.operations = asyncapi.operations != null
+            ? new TreeMap<>(asyncapi.operations).entrySet().stream()
+                .collect(toMap(Map.Entry::getKey,
+                    e -> new AsyncapiOperationView(this, compositeId(id, opIndex.value++), resolver, e.getKey(), e.getValue())))
+            : null;
+
+        this.components = asyncapi.components != null
+            ? new AsyncapiComponentsView(resolver, asyncapi.components)
+            : null;
     }
 }

@@ -26,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.specs.binding.sse.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseDataExFW;
@@ -39,6 +40,12 @@ public final class SseFunctions
     public static SseBeginExBuilder beginEx()
     {
         return new SseBeginExBuilder();
+    }
+
+    @Function
+    public static SseBeginExMatcherBuilder matchBeginEx()
+    {
+        return new SseBeginExMatcherBuilder();
     }
 
     @Function
@@ -104,76 +111,20 @@ public final class SseFunctions
             return this;
         }
 
+        public SseBeginExBuilder lastIdAsRawBytes(
+            byte[] lastId)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(lastId);
+            beginExRW.lastId(buffer, 0, buffer.capacity());
+            return this;
+        }
+
         public byte[] build()
         {
             final SseBeginExFW beginEx = beginExRW.build();
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class SseDataExBuilder
-    {
-        private final SseDataExFW.Builder dataExRW;
-
-        private SseDataExBuilder()
-        {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.dataExRW = new SseDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public SseDataExBuilder typeId(
-            int typeId)
-        {
-            dataExRW.typeId(typeId);
-            return this;
-        }
-
-        public SseDataExBuilder timestamp(
-            long timestamp)
-        {
-            dataExRW.timestamp(timestamp);
-            return this;
-        }
-
-        public SseDataExBuilder id(
-            String id)
-        {
-            dataExRW.id(id);
-            return this;
-        }
-
-        public SseDataExBuilder idAsRawBytes(
-            byte[] id)
-        {
-            final DirectBuffer buffer = DIRECT_BUFFER.get();
-            buffer.wrap(id);
-            dataExRW.id(buffer, 0, buffer.capacity());
-            return this;
-        }
-
-        public SseDataExBuilder type(
-            String type)
-        {
-            dataExRW.type(type);
-            return this;
-        }
-
-        public SseDataExBuilder typeAsRawBytes(
-            byte[] type)
-        {
-            final DirectBuffer buffer = DIRECT_BUFFER.get();
-            buffer.wrap(type);
-            dataExRW.type(buffer, 0, buffer.capacity());
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final SseDataExFW dataEx = dataExRW.build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
         }
     }
@@ -292,6 +243,192 @@ public final class SseFunctions
             final SseDataExFW dataEx)
         {
             return type == null || type.equals(dataEx.type());
+        }
+    }
+
+
+    public static final class SseDataExBuilder
+    {
+        private final SseDataExFW.Builder dataExRW;
+
+        private SseDataExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.dataExRW = new SseDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public SseDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public SseDataExBuilder timestamp(
+            long timestamp)
+        {
+            dataExRW.timestamp(timestamp);
+            return this;
+        }
+
+        public SseDataExBuilder id(
+            String id)
+        {
+            dataExRW.id(id);
+            return this;
+        }
+
+        public SseDataExBuilder idAsRawBytes(
+            byte[] id)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(id);
+            dataExRW.id(buffer, 0, buffer.capacity());
+            return this;
+        }
+
+        public SseDataExBuilder type(
+            String type)
+        {
+            dataExRW.type(type);
+            return this;
+        }
+
+        public SseDataExBuilder typeAsRawBytes(
+            byte[] type)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(type);
+            dataExRW.type(buffer, 0, buffer.capacity());
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final SseDataExFW dataEx = dataExRW.build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class SseBeginExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final SseBeginExFW beginExRO = new SseBeginExFW();
+
+        private Integer typeId;
+        private String16FW scheme;
+        private String16FW authority;
+        private String16FW path;
+        private String8FW lastId;
+
+        public SseBeginExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public SseBeginExMatcherBuilder scheme(
+            String scheme)
+        {
+            this.scheme = new String16FW(scheme);
+            return this;
+        }
+
+        public SseBeginExMatcherBuilder authority(
+            String authority)
+        {
+            this.authority = new String16FW(authority);
+            return this;
+        }
+
+        public SseBeginExMatcherBuilder path(
+            String path)
+        {
+            this.path = new String16FW(path);
+            return this;
+        }
+
+        public SseBeginExMatcherBuilder lastId(
+            String lastId)
+        {
+            this.lastId = new String8FW(lastId);
+            return this;
+        }
+
+        public SseBeginExMatcherBuilder lastIdAsRawBytes(
+            byte[] lastId)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(lastId);
+            this.lastId = new String8FW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1 + lastId.length]), 0, 1 + lastId.length)
+                    .set(buffer, 0, lastId.length)
+                    .build();
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private SseBeginExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final SseBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (beginEx != null &&
+                matchTypeId(beginEx) &&
+                matchScheme(beginEx) &&
+                matchAuthority(beginEx) &&
+                matchPath(beginEx) &&
+                matchLastId(beginEx))
+            {
+                byteBuf.position(byteBuf.position() + beginEx.sizeof());
+                return beginEx;
+            }
+
+            throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final SseBeginExFW beginEx)
+        {
+            return typeId == null || typeId == beginEx.typeId();
+        }
+
+        private boolean matchScheme(
+            final SseBeginExFW beginEx)
+        {
+            return scheme == null || scheme.equals(beginEx.scheme());
+        }
+
+        private boolean matchAuthority(
+            final SseBeginExFW beginEx)
+        {
+            return authority == null || authority.equals(beginEx.authority());
+        }
+
+        private boolean matchPath(
+            final SseBeginExFW beginEx)
+        {
+            return path == null || path.equals(beginEx.path());
+        }
+
+        private boolean matchLastId(
+            final SseBeginExFW beginEx)
+        {
+            return lastId == null || lastId.equals(beginEx.lastId());
         }
     }
 

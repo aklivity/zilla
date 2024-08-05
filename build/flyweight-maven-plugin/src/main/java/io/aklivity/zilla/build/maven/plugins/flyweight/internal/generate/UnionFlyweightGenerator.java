@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -957,7 +958,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
             AstByteOrder byteOrder)
         {
             Consumer<CodeBlock.Builder> defaultPriorField = priorFieldIfDefaulted == null ? null : this::defaultPriorField;
-            memberConstant.addParentMember(name);
+            memberConstant.addParentMember(name, typeName, defaultValue);
             memberMutator.addParentMember(name, type, typeName, unsignedType, unsignedTypeName,
                 usedAsSize, byteOrder, priorFieldIfDefaulted, defaultPriorField);
             buildMethod.addParentMember(name);
@@ -1016,12 +1017,22 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
             }
 
             public MemberConstantGenerator addParentMember(
-                String name)
+                String name,
+                TypeName typeName,
+                Object defaultValue)
             {
                 builder.addField(
                     FieldSpec.builder(int.class, index(name), PRIVATE, STATIC, FINAL)
                         .initializer(Integer.toString(nextIndex++))
                         .build());
+
+                if (typeName.isPrimitive() && defaultValue != null)
+                {
+                    builder.addField(
+                            FieldSpec.builder(typeName, defaultName(name), PUBLIC, STATIC, FINAL)
+                                .initializer(Objects.toString(defaultValue))
+                                .build());
+                }
                 return this;
             }
 

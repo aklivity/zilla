@@ -14,12 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
-public class AsyncapiCorrelationId
+public class AsyncapiCorrelationId extends AbstractAsyncapiResolvable
 {
     public String location;
-
-    @JsonbProperty("$ref")
-    public String ref;
 }

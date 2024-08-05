@@ -43,7 +43,7 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
@@ -484,7 +484,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final ConverterHandler convertValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
-        private final List<KafkaTopicHeaderType> headerTypes;
+        private final KafkaTopicTransformsConfig transforms;
 
         private long leaderId;
         private long initialId;
@@ -534,7 +534,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.convertValue = topicType.valueReader;
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
-            this.headerTypes = topicType.headers;
+            this.transforms = topicType.transforms;
         }
 
         private void onServerFanoutMemberOpening(
@@ -780,7 +780,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
-                    entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, headerTypes);
+                    entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, transforms);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -909,7 +909,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionOffset >= this.partitionOffset;
 
                 partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
-                    entryMark, valueMark, convertValue, verbose, headerTypes);
+                    entryMark, valueMark, convertValue, verbose, transforms);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

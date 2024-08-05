@@ -17,4 +17,18 @@ package io.aklivity.zilla.runtime.engine.config;
 
 public abstract class WithConfig
 {
+    public static final long NO_COMPOSITE_ID = 0L;
+
+    public final long compositeId;
+
+    protected WithConfig()
+    {
+        this(NO_COMPOSITE_ID);
+    }
+
+    protected WithConfig(
+        long compositeId)
+    {
+        this.compositeId = compositeId;
+    }
 }

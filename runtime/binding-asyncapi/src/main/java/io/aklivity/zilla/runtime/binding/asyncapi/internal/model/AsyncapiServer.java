@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 import java.util.List;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.AsyncapiServerBindings;
+
 public class AsyncapiServer
 {
     public String host;

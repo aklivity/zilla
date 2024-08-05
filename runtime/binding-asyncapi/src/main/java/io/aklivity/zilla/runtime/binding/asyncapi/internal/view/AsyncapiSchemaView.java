@@ -14,136 +14,51 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchemaItem>
+public final class AsyncapiSchemaView extends AsyncapiSchemaItemView
 {
-    private static final String ARRAY_TYPE = "array";
+    public final String type;
+    public final AsyncapiSchemaView items;
+    public final Map<String, AsyncapiSchemaView> properties;
+    public final List<String> required;
+    public final String format;
+    public final String description;
+    public final Integer minimum;
+    public final Integer maximum;
+    public final List<String> values;
+    public final AsyncapiSchemaView schema;
 
-    private final AsyncapiSchemaItem schema;
-    private final Map<String, AsyncapiSchemaItem> schemas;
-
-    public String getType()
+    AsyncapiSchemaView(
+        AsyncapiResolver resolver,
+        AsyncapiSchema model)
     {
-        String type = null;
-        if (schema instanceof AsyncapiSchema)
-        {
-            type = ((AsyncapiSchema) schema).type;
-        }
-        return type;
-    }
+        super(model);
 
-    public String refKey()
-    {
-        return key;
-    }
+        final AsyncapiSchema resolved = resolver.schemas.resolve(model);
 
-    public AsyncapiSchemaView getItems()
-    {
-        AsyncapiSchemaView view = null;
-        if (schema instanceof AsyncapiSchema)
-        {
-            AsyncapiSchema jsonSchema = (AsyncapiSchema) schema;
-            view = jsonSchema.items == null ? null : AsyncapiSchemaView.of(schemas, jsonSchema.items);
-        }
-        return view;
-    }
-
-    public Map<String, AsyncapiSchema> getProperties()
-    {
-        Map<String, AsyncapiSchema> jsonSchema = null;
-        if (schema instanceof AsyncapiSchema)
-        {
-            jsonSchema = ((AsyncapiSchema) schema).properties;
-        }
-        return jsonSchema;
-    }
-
-    public List<String> getRequired()
-    {
-        List<String> required = null;
-        if (schema instanceof AsyncapiSchema)
-        {
-            required = ((AsyncapiSchema) schema).required;
-        }
-
-        return required;
-    }
-
-    public Object getSchema()
-    {
-        Object schemaValue = null;
-        if (schema instanceof AsyncapiMultiFormatSchema)
-        {
-            schemaValue = ((AsyncapiMultiFormatSchema) schema).schema;
-        }
-        return schemaValue;
-    }
-
-    public static AsyncapiSchemaView of(
-        Map<String, AsyncapiSchemaItem> schemas,
-        AsyncapiSchemaItem asyncapiSchema)
-    {
-        return new AsyncapiSchemaView(schemas, asyncapiSchema);
-    }
-
-    private AsyncapiSchemaView(
-        Map<String, AsyncapiSchemaItem> schemas,
-        AsyncapiSchemaItem schema)
-    {
-        super(schemas, "#/components/schemas/(.+)");
-
-        if (schema.ref != null)
-        {
-            schema = resolveRef(schema.ref);
-        }
-        else if (schema instanceof AsyncapiSchema)
-        {
-            schema = resolveAsyncapiSchema((AsyncapiSchema) schema);
-        }
-        else if (schema instanceof AsyncapiMultiFormatSchema)
-        {
-            schema = resolveAsyncapiMultiFormatSchema((AsyncapiMultiFormatSchema) schema);
-        }
-
-        this.schemas = schemas;
-        this.schema = schema;
-    }
-
-    private AsyncapiSchema resolveAsyncapiSchema(
-        AsyncapiSchema schema)
-    {
-        if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
-        {
-            schema.items = (AsyncapiSchema) resolveRef(schema.items.ref);
-        }
-
-        if (schema.properties != null)
-        {
-            for (Map.Entry<String, AsyncapiSchema> item : schema.properties.entrySet())
-            {
-                AsyncapiSchema value = item.getValue();
-                if (value.ref != null)
-                {
-                    item.setValue((AsyncapiSchema) resolveRef(value.ref));
-                }
-            }
-        }
-        return schema;
-    }
-
-    private AsyncapiMultiFormatSchema resolveAsyncapiMultiFormatSchema(
-        AsyncapiMultiFormatSchema schema)
-    {
-        if (schema.ref != null)
-        {
-            schema = (AsyncapiMultiFormatSchema) resolveRef(schema.ref);
-        }
-        return schema;
+        this.type = resolved.type;
+        this.items = resolved.items != null
+            ? new AsyncapiSchemaView(resolver, resolved.items)
+            : null;
+        this.properties = resolved.properties != null
+            ? resolved.properties.entrySet().stream()
+                .collect(toMap(e -> e.getKey(), e -> new AsyncapiSchemaView(resolver, e.getValue())))
+            : null;
+        this.required = resolved.required;
+        this.format = resolved.format;
+        this.description = resolved.description;
+        this.minimum = resolved.minimum;
+        this.maximum = resolved.maximum;
+        this.values = resolved.values;
+        this.schema = resolved.schema != null
+            ? new AsyncapiSchemaView(resolver, resolved.schema)
+            : null;
     }
 }

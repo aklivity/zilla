@@ -14,37 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import java.util.Map;
-
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-public final class AsyncapiTraitView extends AsyncapiResolvable<AsyncapiTrait>
+public final class AsyncapiTraitView
 {
-    private final AsyncapiTrait trait;
+    public final AsyncapiSchemaView headers;
 
-    public String refKey()
+    AsyncapiTraitView(
+        AsyncapiResolver resolver,
+        AsyncapiTrait model)
     {
-        return key;
-    }
+        final AsyncapiTrait resolved = resolver.messageTraits.resolve(model);
 
-    public AsyncapiSchema commonHeaders()
-    {
-        return trait.headers;
-    }
-
-    public static AsyncapiTraitView of(
-        Map<String, AsyncapiTrait> traits,
-        AsyncapiTrait asyncapiTrait)
-    {
-        return new AsyncapiTraitView(traits, asyncapiTrait);
-    }
-
-    private AsyncapiTraitView(
-        Map<String, AsyncapiTrait> traits,
-        AsyncapiTrait trait)
-    {
-        super(traits, "#/components/messageTraits/(.+)");
-        this.trait = trait.ref == null ? trait : resolveRef(trait.ref);
+        this.headers = resolved.headers != null
+            ? new AsyncapiSchemaView(resolver, resolved.headers)
+            : null;
     }
 }

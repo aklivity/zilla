@@ -14,38 +14,38 @@
 # under the License.
 #
 
-connect "zilla://streams/asyncapi0"
+property httpAddress "zilla://streams/asyncapi0"
+
+connect ${httpAddress}
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(1)
-                             .operationId("createPet")
+                             .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/pets")
                                   .header(":authority", "localhost:8080")
+                                  .header(":path", "/pets")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "8")
+                                  .header("content-length", "44")
                                   .build())
                              .build()}
 connected
 
-write "{\"test\"}"
+write "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"
 write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPet")
-                             .extension(http:beginEx()
+                             .operationId("createPets")
+                             .extension(http:matchBeginEx()
                                  .typeId(zilla:id("http"))
-                                 .header(":status", "200")
-                                 .header("content-type", "application/json")
-                                 .header("content-length", "21")
+                                 .header(":status", "204")
                                  .build())
                              .build()}
 
-read "{\"message\": \"string\"}"
+read closed

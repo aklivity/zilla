@@ -20,6 +20,8 @@ public final class MqttAuthorizationConfig
     public final String name;
     public final MqttCredentialsConfig credentials;
 
+    public transient String qname;
+
     public MqttAuthorizationConfig(
         String name,
         MqttCredentialsConfig credentials)

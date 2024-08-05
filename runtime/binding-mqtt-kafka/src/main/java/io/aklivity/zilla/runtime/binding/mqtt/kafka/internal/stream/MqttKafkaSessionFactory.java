@@ -380,7 +380,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         if (willAvailable && coreIndex == 0)
         {
             Optional<MqttKafkaRouteConfig> route = binding.routes.stream().findFirst();
-            final long routeId = route.map(mqttKafkaRouteConfig -> mqttKafkaRouteConfig.id).orElse(0L);
+            final long routeId = route.map(r -> r.id).orElse(0L);
 
             binding.willProxy = new KafkaSignalStream(binding.id, routeId,
                 binding.sessionsTopic(), binding.messagesTopic(), binding.retainedTopic());

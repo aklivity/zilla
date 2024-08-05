@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.tls.config;
 
 import java.util.function.Function;
 
+import org.agrona.collections.IntArrayList;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
@@ -26,7 +28,7 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
 
     private String authority;
     private String alpn;
-    private int[] ports;
+    private IntArrayList ports;
 
     TlsConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -55,16 +57,28 @@ public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsCond
         return this;
     }
 
+    public TlsConditionConfigBuilder<T> port(
+        int port)
+    {
+        if (ports == null)
+        {
+            ports = new IntArrayList(1, -1);
+        }
+        ports.add(port);
+        return this;
+    }
+
     public TlsConditionConfigBuilder<T> ports(
         int[] ports)
     {
-        this.ports = ports;
+        this.ports = new IntArrayList(ports, ports.length, -1);
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new TlsConditionConfig(authority, alpn, ports));
+        final int[] portsArray = ports != null ? ports.toIntArray() : null;
+        return mapper.apply(new TlsConditionConfig(authority, alpn, portsArray));
     }
 }

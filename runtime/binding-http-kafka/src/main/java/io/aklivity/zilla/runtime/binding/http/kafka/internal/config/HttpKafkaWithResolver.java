@@ -128,6 +128,7 @@ public final class HttpKafkaWithResolver
         long authorization,
         HttpBeginExFW httpBeginEx)
     {
+        long compositeId = with.compositeId;
         HttpKafkaWithFetchConfig fetch = with.fetch.get();
 
         // TODO: hoist to constructor if constant
@@ -239,12 +240,14 @@ public final class HttpKafkaWithResolver
             merge = new HttpKafkaWithFetchMergeResult(contentType, header, separator, trailer);
         }
 
-        return new HttpKafkaWithFetchResult(topic, partitions, filters, etag, timeout, merge);
+        return new HttpKafkaWithFetchResult(compositeId, topic, partitions, filters, etag, timeout, merge);
     }
 
     public HttpKafkaWithProduceResult resolveProduce(
-        long authorization, HttpBeginExFW httpBeginEx)
+        long authorization,
+        HttpBeginExFW httpBeginEx)
     {
+        long compositeId = with.compositeId;
         HttpKafkaWithProduceConfig produce = with.produce.get();
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
@@ -438,7 +441,7 @@ public final class HttpKafkaWithResolver
         }
 
         return new HttpKafkaWithProduceResult(
-                options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
+                compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
                 idempotencyKey, async, hash, timeout);
     }
 }

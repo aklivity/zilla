@@ -53,6 +53,7 @@ public class HttpKafkaWithFetchResult
                 .latestOffset(KafkaOffsetType.LIVE.value())
                 .build();
 
+    private final long compositeId;
     private final String16FW topic;
     private final Array32FW<KafkaOffsetFW> partitions;
     private final List<HttpKafkaWithFetchFilterResult> filters;
@@ -61,6 +62,7 @@ public class HttpKafkaWithFetchResult
     private final HttpKafkaWithFetchMergeResult merge;
 
     HttpKafkaWithFetchResult(
+        long compositeId,
         String16FW topic,
         Array32FW<KafkaOffsetFW> partitions,
         List<HttpKafkaWithFetchFilterResult> filters,
@@ -68,12 +70,18 @@ public class HttpKafkaWithFetchResult
         long timeout,
         HttpKafkaWithFetchMergeResult merge)
     {
+        this.compositeId = compositeId;
         this.topic = topic;
         this.partitions = partitions;
         this.filters = filters;
         this.etag = etag;
         this.timeout = timeout;
         this.merge = merge;
+    }
+
+    public long compositeId()
+    {
+        return compositeId;
     }
 
     public String16FW topic()

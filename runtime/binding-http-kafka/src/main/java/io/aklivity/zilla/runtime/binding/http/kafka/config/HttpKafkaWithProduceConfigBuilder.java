@@ -79,6 +79,11 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
         return this;
     }
 
+    public HttpKafkaWithProduceAsyncHeaderConfigBuilder<HttpKafkaWithProduceConfigBuilder<T>> async()
+    {
+        return HttpKafkaWithProduceAsyncHeaderConfig.builder(this::async);
+    }
+
     public HttpKafkaWithProduceConfigBuilder<T> async(
         HttpKafkaWithProduceAsyncHeaderConfig header)
     {

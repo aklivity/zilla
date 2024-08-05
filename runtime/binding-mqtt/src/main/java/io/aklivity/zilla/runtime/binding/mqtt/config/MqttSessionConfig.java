@@ -15,11 +15,26 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
 public class MqttSessionConfig
 {
     public final String clientId;
 
-    public MqttSessionConfig(
+    public static MqttSessionConfigBuilder<MqttSessionConfig> builder()
+    {
+        return new MqttSessionConfigBuilder<>(identity());
+    }
+
+    public static <T> MqttSessionConfigBuilder<T> builder(
+        Function<MqttSessionConfig, T> mapper)
+    {
+        return new MqttSessionConfigBuilder<>(mapper);
+    }
+
+    MqttSessionConfig(
         String clientId)
     {
         this.clientId = clientId;

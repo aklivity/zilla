@@ -16,17 +16,17 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.config;
 
 import java.util.Set;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 
 public class OpenapiAsyncapiSpecConfig
 {
     public final Set<OpenapiConfig> openapi;
-    public final Set<AsyncapiConfig> asyncapi;
+    public final Set<AsyncapiSpecificationConfig> asyncapi;
 
     public OpenapiAsyncapiSpecConfig(
         Set<OpenapiConfig> openapi,
-        Set<AsyncapiConfig> asyncapi)
+        Set<AsyncapiSpecificationConfig> asyncapi)
     {
         this.openapi = openapi;
         this.asyncapi = asyncapi;

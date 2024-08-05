@@ -32,10 +32,12 @@ public final class SseKafkaWithConfig extends WithConfig
     public final String eventId;
 
     SseKafkaWithConfig(
+        long compositeId,
         String topic,
         List<SseKafkaWithFilterConfig> filters,
         String eventId)
     {
+        super(compositeId);
         this.topic = topic;
         this.filters = Optional.ofNullable(filters);
         this.eventId = Objects.requireNonNull(eventId);

@@ -17,18 +17,15 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
-import java.util.Map;
-
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
@@ -41,9 +38,10 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_KEY = "key";
     private static final String EVENT_VALUE = "value";
     private static final String SUBJECT = "subject";
-    private static final String HEADERS_NAME = "headers";
+    private static final String TRANSFORMS_NAME = "transforms";
 
     private final ModelConfigAdapter converter = new ModelConfigAdapter();
+    private final KafkaTopicTransformsConfigAdapter transformsConverter = new KafkaTopicTransformsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -78,14 +76,9 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
         }
 
-        if (topic.headers != null && !topic.headers.isEmpty())
+        if (topic.transforms != null)
         {
-            JsonObjectBuilder headers = Json.createObjectBuilder();
-            for (KafkaTopicHeaderType header : topic.headers)
-            {
-                headers.add(header.name, header.path);
-            }
-            object.add(HEADERS_NAME, headers);
+            object.add(TRANSFORMS_NAME, transformsConverter.adaptToJson(topic.transforms));
         }
 
         return object.build();
@@ -138,15 +131,11 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             topicBuilder.value(converter.adaptFromJson(valueObject.build()));
         }
 
-        JsonObject headers = object.containsKey(HEADERS_NAME) ? object.getJsonObject(HEADERS_NAME) : null;
+        JsonArray transforms = object.containsKey(TRANSFORMS_NAME) ? object.getJsonArray(TRANSFORMS_NAME) : null;
 
-        if (headers != null)
+        if (transforms != null)
         {
-            for (Map.Entry<String, JsonValue> entry : headers.entrySet())
-            {
-                JsonString jsonString = (JsonString) entry.getValue();
-                topicBuilder.header(entry.getKey(), jsonString.getString());
-            }
+            topicBuilder.transforms(transformsConverter.adaptFromJson(transforms.getJsonObject(0)));
         }
 
         return topicBuilder.build();

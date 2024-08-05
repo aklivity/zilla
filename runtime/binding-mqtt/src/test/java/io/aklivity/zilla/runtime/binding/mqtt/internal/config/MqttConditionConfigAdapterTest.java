@@ -29,9 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPublishConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSessionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSubscribeConfig;
 
 public class MqttConditionConfigAdapterTest
 {
@@ -53,7 +50,7 @@ public class MqttConditionConfigAdapterTest
                 "\"session\":" +
                 "[" +
                     "{" +
-                        "\"client-id\": \"*\"" +
+                        "\"client-id\": \"client-1\"" +
                     "}" +
                 "]," +
                 "\"subscribe\":" +
@@ -80,7 +77,7 @@ public class MqttConditionConfigAdapterTest
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.sessions, not(nullValue()));
-        assertThat(condition.sessions.get(0).clientId, equalTo("*"));
+        assertThat(condition.sessions.get(0).clientId, equalTo("client-1"));
         assertThat(condition.subscribes, not(nullValue()));
         assertThat(condition.subscribes.get(0).topic, equalTo("reply/one"));
         assertThat(condition.subscribes.get(1).topic, equalTo("reply/two"));
@@ -94,17 +91,27 @@ public class MqttConditionConfigAdapterTest
     {
         MqttConditionConfig condition = MqttConditionConfig.builder()
             .inject(identity())
-            .session(new MqttSessionConfig("*"))
-            .subscribe(new MqttSubscribeConfig("reply/one"))
-            .subscribe(new MqttSubscribeConfig("reply/two"))
-            .publish(new MqttPublishConfig("command/one"))
-            .publish(new MqttPublishConfig("command/two"))
+            .session()
+                .clientId("client-1")
+                .build()
+            .subscribe()
+                .topic("reply/one")
+                .build()
+            .subscribe()
+                .topic("reply/two")
+                .build()
+            .publish()
+                .topic("command/one")
+                .build()
+            .publish()
+                .topic("command/two")
+                .build()
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"session\":[{\"client-id\":\"*\"}],\"subscribe\":[{\"topic\":\"reply/one\"}," +
+        assertThat(text, equalTo("{\"session\":[{\"client-id\":\"client-1\"}],\"subscribe\":[{\"topic\":\"reply/one\"}," +
             "{\"topic\":\"reply/two\"}],\"publish\":[{\"topic\":\"command/one\"},{\"topic\":\"command/two\"}]}"));
     }
 }

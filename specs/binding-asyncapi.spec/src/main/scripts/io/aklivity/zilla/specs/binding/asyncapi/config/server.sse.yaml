@@ -23,7 +23,7 @@ catalogs:
       id: 1
       subject: eventstore
       schema: |
-        asyncapi: 3.0.2-zilla
+        asyncapi: 3.0.0
         info:
           title: AsyncAPI Eventstore
           license:
@@ -32,7 +32,7 @@ catalogs:
         servers:
           plain:
             host: localhost:8080
-            protocol: sse
+            protocol: http
         defaultContentType: application/json
         
         channels:
@@ -41,7 +41,7 @@ catalogs:
             messages:
               event:
                 $ref: '#/components/messages/event'
-          showEventById:
+          eventsById:
             address: /events/{id}
             messages:
               event:
@@ -51,7 +51,10 @@ catalogs:
           getEvents:
             action: receive
             channel:
-              $ref: '#/channels/showEventById'
+              $ref: '#/channels/eventsById'
+            bindings:
+              x-zilla-sse:
+                 bindingVersion: latest
         
         components:
           schemas:

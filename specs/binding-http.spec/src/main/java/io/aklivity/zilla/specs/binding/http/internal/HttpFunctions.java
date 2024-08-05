@@ -282,6 +282,13 @@ public final class HttpFunctions
             return this;
         }
 
+        public HttpBeginExBuilder compositeId(
+            long compositeId)
+        {
+            beginExRW.compositeId(compositeId);
+            return this;
+        }
+
         public HttpBeginExBuilder header(
             String name,
             String value)
@@ -307,7 +314,15 @@ public final class HttpFunctions
 
         private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
 
+        private Long compositeId;
         private Integer typeId;
+
+        public HttpBeginExMatcherBuilder compositeId(
+            long compositeId)
+        {
+            this.compositeId = compositeId;
+            return this;
+        }
 
         public HttpBeginExMatcherBuilder typeId(
             int typeId)
@@ -350,6 +365,7 @@ public final class HttpFunctions
             final HttpBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
             if (beginEx != null &&
+                matchCompositeId(beginEx) &&
                 matchTypeId(beginEx) &&
                 matchHeaders(beginEx))
             {
@@ -358,6 +374,12 @@ public final class HttpFunctions
             }
 
             throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchCompositeId(
+            HttpBeginExFW beginEx)
+        {
+            return compositeId == null || compositeId == beginEx.compositeId();
         }
 
         private boolean matchHeaders(

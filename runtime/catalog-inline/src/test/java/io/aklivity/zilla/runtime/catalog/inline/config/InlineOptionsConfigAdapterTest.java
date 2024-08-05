@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.config;
 
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -82,15 +81,15 @@ public class InlineOptionsConfigAdapterTest
                     "}" +
                 "}";
 
-        InlineOptionsConfig catalog = (InlineOptionsConfig) new InlineOptionsConfigBuilder<>(identity())
-                .subjects()
-                    .subject("subject1")
-                        .version("latest")
-                        .schema("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}," +
-                                "\"status\":{\"type\":\"string\"}}," +
-                                "\"required\":[\"id\",\"status\"]}")
-                        .build()
-                .build();
+        InlineOptionsConfig catalog = InlineOptionsConfig.builder()
+            .schema()
+                .subject("subject1")
+                .version("latest")
+                .schema("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}," +
+                        "\"status\":{\"type\":\"string\"}}," +
+                        "\"required\":[\"id\",\"status\"]}")
+                .build()
+            .build();
 
         String json = jsonb.toJson(catalog);
 

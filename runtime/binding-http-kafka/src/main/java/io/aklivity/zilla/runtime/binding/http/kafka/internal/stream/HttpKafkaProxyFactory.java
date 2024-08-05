@@ -4340,6 +4340,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .compositeId(resolved.compositeId())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
                               .topic(resolved.topic())
@@ -4383,6 +4384,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .compositeId(resolved.compositeId())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(PRODUCE_ONLY))
                               .topic(resolved.topic())
@@ -4426,6 +4428,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .compositeId(resolved.compositeId())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
                               .topic(resolved.replyTo())

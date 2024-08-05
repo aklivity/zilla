@@ -23,32 +23,30 @@ accepted
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(1)
-                             .operationId("createPet")
-                             .extension(http:beginEx()
+                             .operationId("createPets")
+                             .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/pets")
                                   .header(":authority", "localhost:8080")
+                                  .header(":path", "/pets")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "8")
+                                  .header("content-length", "44")
                                   .build())
                              .build()}
 connected
 
-read "{\"test\"}"
+read "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"
 read closed
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPet")
+                             .operationId("createPets")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))
-                                 .header(":status", "200")
-                                 .header("content-type", "application/json")
-                                 .header("content-length", "21")
+                                 .header(":status", "204")
                                  .build())
                              .build()}
-
-write "{\"message\": \"string\"}"
 write flush
+
+write close

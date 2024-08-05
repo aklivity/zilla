@@ -24,6 +24,7 @@ scope core
 
         struct Extension
         {
+            int64 compositeId = 0;
             int32 typeId;
         }
 

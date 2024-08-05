@@ -16,14 +16,9 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
 import java.util.LinkedHashMap;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
-public class AsyncapiChannel
+public class AsyncapiChannel extends AbstractAsyncapiResolvable
 {
     public String address;
     public LinkedHashMap<String, AsyncapiMessage> messages;
     public LinkedHashMap<String, AsyncapiParameter> parameters;
-
-    @JsonbProperty("$ref")
-    public String ref;
 }

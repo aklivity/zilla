@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.proxy.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -1596,6 +1597,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             assert net.decodeSlot != NO_SLOT;
 
             final MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
+            net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
             net.decodeOffset += Integer.BYTES;
             net.decodeLimit = net.decodeOffset;
@@ -1665,6 +1668,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             assert net.decodeSlot != NO_SLOT;
 
             final MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
+            net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
             net.decodeOffset += Integer.BYTES;
             net.decodeLimit = net.decodeOffset;
@@ -1732,6 +1737,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             assert net.decodeSlot != NO_SLOT;
 
             MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
+            net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
             net.decodeOffset += Integer.BYTES;
             net.decodeLimit = net.decodeOffset;

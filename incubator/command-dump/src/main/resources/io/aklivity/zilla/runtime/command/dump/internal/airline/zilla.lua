@@ -1021,24 +1021,25 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
         ext_subtree:add(fields.stream_type_id, slice_stream_type_id)
         ext_subtree:add(fields.stream_type, stream_type)
 
+        local extension_offset = offset + 8 + 4;
         if stream_type_id == PROXY_ID then
-            handle_proxy_extension(buffer, offset + 4, ext_subtree)
+            handle_proxy_extension(buffer, extension_offset, ext_subtree)
         elseif stream_type_id == FILESYSTEM_ID then
-            handle_filesystem_extension(buffer, offset + 4, ext_subtree)
+            handle_filesystem_extension(buffer, extension_offset, ext_subtree)
         elseif stream_type_id == HTTP_ID then
-            handle_http_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_http_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == GRPC_ID then
-            handle_grpc_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_grpc_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == SSE_ID then
-            handle_sse_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_sse_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == WS_ID then
-            handle_ws_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_ws_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == MQTT_ID then
-            handle_mqtt_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_mqtt_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == KAFKA_ID then
-            handle_kafka_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_kafka_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         elseif stream_type_id == AMQP_ID then
-            handle_amqp_extension(buffer, offset + 4, ext_subtree, frame_type_id)
+            handle_amqp_extension(buffer, extension_offset, ext_subtree, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then

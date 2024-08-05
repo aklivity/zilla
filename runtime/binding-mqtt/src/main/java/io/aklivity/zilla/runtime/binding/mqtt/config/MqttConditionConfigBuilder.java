@@ -53,6 +53,11 @@ public final class MqttConditionConfigBuilder<T> extends ConfigBuilder<T, MqttCo
         return this;
     }
 
+    public MqttSessionConfigBuilder<MqttConditionConfigBuilder<T>> session()
+    {
+        return new MqttSessionConfigBuilder<>(this::session);
+    }
+
     public MqttConditionConfigBuilder<T> subscribe(
         MqttSubscribeConfig subscribe)
     {
