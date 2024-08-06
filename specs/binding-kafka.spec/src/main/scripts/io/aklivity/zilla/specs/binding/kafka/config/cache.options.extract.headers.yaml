@@ -53,7 +53,7 @@ bindings:
         - name: test
           transforms:
             - extract-headers:
-                correlation-id: ${message.value.correlationId}
+              correlation-id: ${message.value.correlationId}
           value:
             model: test
             capability: read

@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -131,11 +130,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             topicBuilder.value(converter.adaptFromJson(valueObject.build()));
         }
 
-        JsonArray transforms = object.containsKey(TRANSFORMS_NAME) ? object.getJsonArray(TRANSFORMS_NAME) : null;
-
-        if (transforms != null)
+        if (object.containsKey(TRANSFORMS_NAME))
         {
-            topicBuilder.transforms(transformsConverter.adaptFromJson(transforms.getJsonObject(0)));
+            topicBuilder.transforms(object.getJsonArray(TRANSFORMS_NAME).stream()
+                .map(JsonValue::asJsonObject)
+                .map(transformsConverter::adaptFromJson)
+                .findFirst().orElse(null));
         }
 
         return topicBuilder.build();
