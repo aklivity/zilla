@@ -71,7 +71,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
                                  .partition(0, 1, 1)
-                                 .key("12345")
+                                 .key("1234")
                                  .build()
                              .build()}
 read "Hello, world"

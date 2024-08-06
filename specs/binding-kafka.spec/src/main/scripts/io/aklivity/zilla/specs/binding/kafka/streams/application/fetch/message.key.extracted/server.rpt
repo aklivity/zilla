@@ -76,7 +76,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .fetch()
                                   .timestamp(newTimestamp)
                                   .partition(0, 1, 1)
-                                  .key("key1")
+                                  .key("1234  ")
                                   .build()
                               .build()}
 write "Hello, world"

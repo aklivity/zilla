@@ -75,7 +75,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                  .partition(0, 2, 8)
                                  .header("header1", "value1")
-                                 .header("correlation-id", "12345")
+                                 .header("correlation-id", "1234")
                                  .build()
                              .build()}
 read "Hello, world"
@@ -87,7 +87,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                  .partition(0, 3, 8)
                                  .header("header1", "value1")
-                                 .header("correlation-id", "12345")
+                                 .header("correlation-id", "1234")
                                  .build()
                              .build()}
 read "Hello, world"
