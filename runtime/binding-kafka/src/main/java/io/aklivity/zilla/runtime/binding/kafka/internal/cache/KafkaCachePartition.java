@@ -108,8 +108,6 @@ public final class KafkaCachePartition
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
@@ -118,6 +116,7 @@ public final class KafkaCachePartition
 
     private static final int SIZEOF_PADDING_LENGTH = Integer.BYTES;
 
+    private final KafkaCachePaddedKeyFW paddedKeyRO = new KafkaCachePaddedKeyFW();
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
@@ -126,6 +125,8 @@ public final class KafkaCachePartition
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Varint32FW varintRO = new Varint32FW();
+    private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);;
     private final String32FW.Builder stringRW = new String32FW.Builder()
         .wrap(new UnsafeBuffer(new byte[256]), 0, 256);;
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -606,50 +607,46 @@ public final class KafkaCachePartition
                             context.supplyLocalName(bindingId), topic, id, offset);
                     }
                 }
-                else if (transforms != null)
+                else if (transforms != null &&
+                    transforms.extractHeaders != null &&
+                    !transforms.extractHeaders.isEmpty())
                 {
-                    if (transforms.extractHeaders != null &&
-                        !transforms.extractHeaders.isEmpty())
+                    Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
+                        trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
+                    for (KafkaTopicHeaderType header : transforms.extractHeaders)
                     {
-                        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
-                            trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
-                        for (KafkaTopicHeaderType header : transforms.extractHeaders)
+                        String32FW name = stringRW.set(header.name, UTF_8).build();
+                        String path = header.path;
+                        builder.item(h ->
                         {
-                            String32FW name = stringRW.set(header.name, UTF_8).build();
-                            String path = header.path;
-                            builder.item(h ->
-                            {
-                                h.nameLen(name.length())
-                                    .name(name.value(), 0, name.length())
-                                    .valueLen(convertValue.extractedLength(path));
-                                convertValue.extracted(path, h::value);
-                            });
-                        }
-                        trailers = builder.build();
+                            h.nameLen(name.length())
+                                .name(name.value(), 0, name.length())
+                                .valueLen(convertValue.extractedLength(path));
+                            convertValue.extracted(path, h::value);
+                        });
                     }
-
-
-                    if (transforms.extractKey != null)
-                    {
-                        final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
-                        {
-                            final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
-                            final int convertedLength = convertedFile.readInt(convertedLengthAt);
-                            final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
-                            final int convertedPadding = convertedFile.readInt(convertedValueLimit);
-
-                            assert convertedPadding - length >= 0;
-
-                            convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                            convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
-                            convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
-                        };
-
-                        convertKey.extracted(transforms.extractKey, writeKey);
-                    }
-
+                    trailers = builder.build();
                 }
             }
+        }
+
+        if (convertKey != ConverterHandler.NONE &&
+            transforms.extractKey != null)
+        {
+            final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
+            {
+                final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
+                KafkaCachePaddedKeyFW paddedKey =
+                    logFile.readBytes(position, paddedKeyRO::wrap);
+                final int paddedKeySize = paddedKey.sizeof();
+                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+                final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
+                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
+                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
+            };
+
+            convertKey.extracted(transforms.extractKey, writeKey);
         }
 
         logFile.appendBytes(headers);
