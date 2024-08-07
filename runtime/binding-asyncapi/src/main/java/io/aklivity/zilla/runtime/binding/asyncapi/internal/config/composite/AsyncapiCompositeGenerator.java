@@ -360,7 +360,7 @@ public abstract class AsyncapiCompositeGenerator
                         {
                             if (m.payload != null)
                             {
-                                final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
+                                final String subject = "%s-%s-value".formatted(m.channel.name, m.name);
 
                                 options.schema()
                                     .subject(subject)

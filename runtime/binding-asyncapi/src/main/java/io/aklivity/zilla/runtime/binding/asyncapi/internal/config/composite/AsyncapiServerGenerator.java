@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
@@ -100,6 +101,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private final Map<String, NamespaceInjector> protocols;
             private final List<String> plain;
             private final List<String> secure;
+            private final Map<String, String> plainBySecure;
 
             private ServerBindingsHelper(
                 AsyncapiSchemaConfig schema)
@@ -112,6 +114,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     "mqtts", this::injectMqtt);
                 this.plain = List.of("http", "mqtt");
                 this.secure = List.of("https", "mqtts");
+                this.plainBySecure = Map.of(
+                    "https", "http",
+                    "mqtts", "mqtt"
+                );
             }
 
             @Override
@@ -134,7 +140,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .ports(Stream.of(schema)
                             .map(s -> s.asyncapi)
                             .flatMap(v -> v.servers.stream())
-                            .filter(s -> plain.contains(s.protocol))
                             .mapToInt(s -> s.port)
                             .distinct()
                             .toArray())
@@ -214,7 +219,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .when(TlsConditionConfig::builder)
                             .port(s.port)
                             .build()
-                        .exit(String.format("%s_server0", s.protocol))
+                        .exit(String.format("%s_server0", plainBySecure.get(s.protocol)))
                         .build());
 
                 return binding;
@@ -229,7 +234,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
-                    .filter(p -> p != null)
+                    .filter(Objects::nonNull)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
@@ -243,8 +248,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsSse)
-                    .count() != 0L)
+                    .anyMatch(AsyncapiOperationView::hasBindingsSse))
                 {
                     namespace.inject(this::injectSseServer);
                 }
@@ -336,7 +340,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 {
                     cataloged.schema()
                         .version("latest")
-                        .subject("%s-%s-payload".formatted(message.channel.name, message.name))
+                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
                         .build();
                 }
 
