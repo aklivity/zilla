@@ -18,6 +18,8 @@ import jakarta.json.bind.annotation.JsonbProperty;
 
 public class AbstractAsyncapiResolvable
 {
+    public String key;
+
     @JsonbProperty("$ref")
     public String ref;
 }

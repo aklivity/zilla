@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -200,10 +201,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
             }
 
-            private <C> NamespaceConfigBuilder<C> injectKafka(
+            private <C> NamespaceConfigBuilder<C>  injectKafka(
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                    .inject(this::injectKafkaCache)
                     .binding()
                         .name("kafka_client0")
                         .type("kafka")
@@ -276,7 +278,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .flatMap(v -> v.operations.values().stream())
                         .filter(o -> o.channel.hasMessages() || o.channel.hasParameters())
                         .flatMap(o -> Stream.of(o.channel, o.reply != null ? o.reply.channel : null))
-                        .filter(c -> c != null)
+                        .filter(Objects::nonNull)
                         .forEach(channel ->
                             topics.stream()
                                 .filter(t -> t.name.equals(channel.address))
@@ -286,6 +288,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                         .topic()
                                             .name(channel.address)
                                             .transforms()
+                                                .extractKey(topic.transforms.extractKey)
                                                 .extractHeaders(topic.transforms.extractHeaders)
                                                 .build()
                                             .inject(t -> injectKafkaTopicKey(t, channel))
@@ -311,9 +314,10 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                     .name("catalog0")
                                     .schema()
                                         .version("latest")
-                                        .subject(message.name)
+                                        .subject(message.bindings.kafka.key.name)
                                         .build()
-                                    .build());
+                                    .build()
+                                .build());
                 }
                 return topic;
             }

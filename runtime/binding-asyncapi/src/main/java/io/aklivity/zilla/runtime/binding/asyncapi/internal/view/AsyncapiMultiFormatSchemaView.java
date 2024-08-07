@@ -30,6 +30,7 @@ public class AsyncapiMultiFormatSchemaView extends AsyncapiSchemaItemView
 
         final AsyncapiMultiFormatSchema resolved = resolver.schemas.resolve(model);
 
+        this.name = resolved.key;
         this.schemaFormat = resolved.schemaFormat;
         this.schema = resolved.schema;
     }

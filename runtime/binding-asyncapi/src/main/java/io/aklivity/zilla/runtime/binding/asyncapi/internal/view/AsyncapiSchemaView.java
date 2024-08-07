@@ -43,13 +43,14 @@ public final class AsyncapiSchemaView extends AsyncapiSchemaItemView
 
         final AsyncapiSchema resolved = resolver.schemas.resolve(model);
 
+        this.name = model.key;
         this.type = resolved.type;
         this.items = resolved.items != null
             ? new AsyncapiSchemaView(resolver, resolved.items)
             : null;
         this.properties = resolved.properties != null
             ? resolved.properties.entrySet().stream()
-                .collect(toMap(e -> e.getKey(), e -> new AsyncapiSchemaView(resolver, e.getValue())))
+                .collect(toMap(Map.Entry::getKey, e -> new AsyncapiSchemaView(resolver, e.getValue())))
             : null;
         this.required = resolved.required;
         this.format = resolved.format;

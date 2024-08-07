@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public abstract class AsyncapiSchemaItemView
 {
+    public String name;
     public final AsyncapiSchemaItem model;
 
     public static AsyncapiSchemaItemView of(

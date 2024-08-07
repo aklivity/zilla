@@ -37,7 +37,20 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         T model)
     {
         final String key = resolveRef(model.ref);
-        return key != null ? resolvables.get(key) : model;
+
+        T resolved;
+
+        if (key != null)
+        {
+            resolved = resolvables.get(key);
+            resolved.key = key;
+        }
+        else
+        {
+            resolved = model;
+        }
+
+        return resolved;
     }
 
     public T resolve(

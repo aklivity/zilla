@@ -473,7 +473,7 @@ public abstract class AsyncapiCompositeGenerator
                     message.contentType != null &&
                     modelContentType.reset(message.contentType).matches())
                 {
-                    final String subject = "%s-%s-payload".formatted(message.channel.name, message.name);
+                    final String subject = "%s-%s-value".formatted(message.channel.name, message.name);
 
                     switch (modelContentType.group(1))
                     {
@@ -495,7 +495,7 @@ public abstract class AsyncapiCompositeGenerator
                                 .name("catalog0")
                                 .schema()
                                     .version("latest")
-                                    .subject(subject)
+                                    .subject(message.payload.name)
                                     .build()
                                 .build()
                             .build();
