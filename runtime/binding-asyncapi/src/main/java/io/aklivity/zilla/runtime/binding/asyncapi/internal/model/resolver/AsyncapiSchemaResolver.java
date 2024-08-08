@@ -38,12 +38,6 @@ public final class AsyncapiSchemaResolver
         return (T) resolver.resolve(model);
     }
 
-    public String resolveRef(
-        String ref)
-    {
-        return resolver.resolveRef(ref);
-    }
-
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>
     {
         private ResolverImpl(
