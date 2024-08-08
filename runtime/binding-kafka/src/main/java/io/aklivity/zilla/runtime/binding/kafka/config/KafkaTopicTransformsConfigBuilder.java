@@ -90,7 +90,6 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
         {
             this.extractHeaders.add(new KafkaTopicHeaderType(name,
                 String.format(INTERNAL_VALUE, matcher.group(2))));
-
         }
         else if (internalMatcher.reset(path).matches())
         {
@@ -103,6 +102,5 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     public T build()
     {
         return mapper.apply(new KafkaTopicTransformsConfig(extractKey, extractHeaders));
-
     }
 }
