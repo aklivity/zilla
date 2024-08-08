@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -143,7 +144,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
-                    .filter(p -> p != null)
+                    .filter(Objects::nonNull)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
@@ -153,10 +154,8 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 if (Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .filter(s -> secure.contains(s.protocol))
-                        .count() != 0L)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.servers.stream()).anyMatch(s -> secure.contains(s.protocol)))
                 {
                     namespace
                         .binding()
@@ -201,7 +200,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
             }
 
-            private <C> NamespaceConfigBuilder<C>  injectKafka(
+            private <C> NamespaceConfigBuilder<C> injectKafka(
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
@@ -268,34 +267,38 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 KafkaOptionsConfigBuilder<C> options)
             {
                 List<KafkaTopicConfig> topics = config.options.kafka != null
-                        ? config.options.kafka.topics
-                        : null;
+                    ? config.options.kafka.topics
+                    : null;
 
-                if (topics != null)
-                {
-                    Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.operations.values().stream())
-                        .filter(o -> o.channel.hasMessages() || o.channel.hasParameters())
-                        .flatMap(o -> Stream.of(o.channel, o.reply != null ? o.reply.channel : null))
-                        .filter(Objects::nonNull)
-                        .forEach(channel ->
-                            topics.stream()
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.channels.values().stream())
+                    .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
+                    .distinct()
+                    .forEach(channel ->
+                    {
+                        KafkaTopicConfigBuilder<KafkaOptionsConfigBuilder<C>> builder = options.topic();
+                        builder
+                            .name(channel.address)
+                            .inject(t -> injectKafkaTopicKey(t, channel))
+                            .inject(t -> injectKafkaTopicValue(t, channel));
+
+                        Optional<KafkaTopicConfig> topic = Optional.empty();
+                        if (topics != null)
+                        {
+                            topic = topics.stream()
                                 .filter(t -> t.name.equals(channel.address))
-                                .findFirst()
-                                .ifPresent(topic ->
-                                    options
-                                        .topic()
-                                            .name(channel.address)
-                                            .transforms()
-                                                .extractKey(topic.transforms.extractKey)
-                                                .extractHeaders(topic.transforms.extractHeaders)
-                                                .build()
-                                            .inject(t -> injectKafkaTopicKey(t, channel))
-                                            .inject(t -> injectKafkaTopicValue(t, channel))
-                                            .build()
-                                        .build()));
-                }
+                                .findFirst();
+                        }
+
+                        topic.ifPresent(kafkaTopicConfig -> builder
+                            .transforms()
+                            .extractKey(kafkaTopicConfig.transforms.extractKey)
+                            .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                            .build());
+
+                        builder.build();
+                    });
 
                 return options;
             }

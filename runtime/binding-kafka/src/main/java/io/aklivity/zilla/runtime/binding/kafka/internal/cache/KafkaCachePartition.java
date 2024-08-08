@@ -631,7 +631,7 @@ public final class KafkaCachePartition
         }
 
         if (convertKey != ConverterHandler.NONE &&
-            transforms.extractKey != null)
+            transforms != null && transforms.extractKey != null)
         {
             final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
             {
