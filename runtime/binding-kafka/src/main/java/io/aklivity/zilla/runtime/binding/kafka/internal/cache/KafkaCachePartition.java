@@ -467,7 +467,6 @@ public final class KafkaCachePartition
                 }
                 logFile.writeBytes(keyAt, newLength);
                 logFile.appendBytes(buffer, index, length);
-                logFile.appendInt(0);
             };
 
             OctetsFW value = key.value();
@@ -484,6 +483,7 @@ public final class KafkaCachePartition
                         context.supplyLocalName(bindingId), topic, id, offset);
                 }
             }
+            logFile.appendInt(0);
         }
         logFile.appendInt(valueLength);
 
@@ -820,7 +820,6 @@ public final class KafkaCachePartition
                     }
                     logFile.writeBytes(keyAt, newLength);
                     logFile.appendBytes(buffer, index, length);
-                    logFile.appendInt(0);
                 };
 
                 converted = convertKey.convert(traceId, bindingId,
@@ -830,6 +829,7 @@ public final class KafkaCachePartition
                 {
                     break write;
                 }
+                logFile.appendInt(0);
             }
             logFile.appendInt(valueLength);
 

@@ -37,20 +37,7 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         T model)
     {
         final String key = resolveRef(model.ref);
-
-        T resolved;
-
-        if (key != null)
-        {
-            resolved = resolvables.get(key);
-            resolved.key = key;
-        }
-        else
-        {
-            resolved = model;
-        }
-
-        return resolved;
+        return key != null ? resolvables.get(key) : model;
     }
 
     public T resolve(
@@ -59,7 +46,7 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         return resolvables.get(key);
     }
 
-    public final String resolveRef(
+    public String resolveRef(
         String ref)
     {
         return ref != null && matcher.reset(ref).matches() ? matcher.group(1) : null;

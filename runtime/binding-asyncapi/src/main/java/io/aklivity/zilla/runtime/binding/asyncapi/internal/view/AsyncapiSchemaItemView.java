@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public abstract class AsyncapiSchemaItemView
 {
-    public String name;
+    public final String name;
     public final AsyncapiSchemaItem model;
 
     public static AsyncapiSchemaItemView of(
@@ -45,8 +45,10 @@ public abstract class AsyncapiSchemaItemView
     }
 
     protected AsyncapiSchemaItemView(
+        String name,
         AsyncapiSchemaItem model)
     {
+        this.name = name;
         this.model = model;
     }
 }
