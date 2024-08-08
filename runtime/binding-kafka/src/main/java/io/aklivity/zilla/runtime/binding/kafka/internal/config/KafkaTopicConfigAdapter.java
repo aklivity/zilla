@@ -39,8 +39,8 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String SUBJECT = "subject";
     private static final String TRANSFORMS_NAME = "transforms";
 
-    private final ModelConfigAdapter converter = new ModelConfigAdapter();
-    private final KafkaTopicTransformsConfigAdapter transformsConverter = new KafkaTopicTransformsConfigAdapter();
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final KafkaTopicTransformsConfigAdapter transforms = new KafkaTopicTransformsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -63,21 +63,21 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            converter.adaptType(topic.key.model);
+            model.adaptType(topic.key.model);
 
-            object.add(EVENT_KEY, converter.adaptToJson(topic.key));
+            object.add(EVENT_KEY, model.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            converter.adaptType(topic.value.model);
+            model.adaptType(topic.value.model);
 
-            object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
+            object.add(EVENT_VALUE, model.adaptToJson(topic.value));
         }
 
         if (topic.transforms != null)
         {
-            object.add(TRANSFORMS_NAME, transformsConverter.adaptToJson(topic.transforms));
+            object.add(TRANSFORMS_NAME, transforms.adaptToJson(topic.transforms));
         }
 
         return object.build();
@@ -112,7 +112,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             key.forEach(keyObject::add);
             keyObject.add(SUBJECT, name + "-key");
 
-            topicBuilder.key(converter.adaptFromJson(keyObject.build()));
+            topicBuilder.key(model.adaptFromJson(keyObject.build()));
         }
 
         JsonValue value = object.containsKey(EVENT_VALUE)
@@ -127,14 +127,14 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             model.forEach(valueObject::add);
             valueObject.add(SUBJECT, name + "-value");
 
-            topicBuilder.value(converter.adaptFromJson(valueObject.build()));
+            topicBuilder.value(this.model.adaptFromJson(valueObject.build()));
         }
 
         if (object.containsKey(TRANSFORMS_NAME))
         {
             topicBuilder.transforms(object.getJsonArray(TRANSFORMS_NAME).stream()
                 .map(JsonValue::asJsonObject)
-                .map(transformsConverter::adaptFromJson)
+                .map(transforms::adaptFromJson)
                 .findFirst().orElse(null));
         }
 
