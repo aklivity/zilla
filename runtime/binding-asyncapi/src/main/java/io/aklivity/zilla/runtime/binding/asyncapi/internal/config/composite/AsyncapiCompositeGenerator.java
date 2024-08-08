@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaIt
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;

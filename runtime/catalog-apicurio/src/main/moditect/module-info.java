@@ -17,7 +17,7 @@ module io.aklivity.zilla.runtime.catalog.apicurio
     requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.catalog.apicurio.internal.config;
+    exports io.aklivity.zilla.runtime.catalog.apicurio.config;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioCatalogFactorySpi;
