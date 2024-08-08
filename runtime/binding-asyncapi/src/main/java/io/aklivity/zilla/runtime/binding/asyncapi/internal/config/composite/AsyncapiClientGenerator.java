@@ -317,7 +317,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                     .name("catalog0")
                                     .schema()
                                         .version("latest")
-                                        .subject(message.bindings.kafka.key.name)
+                                        .subject("%s-key".formatted(message.channel.address))
                                         .build()
                                     .build()
                                 .build());

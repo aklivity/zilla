@@ -26,14 +26,9 @@ public class AsyncapiMultiFormatSchemaView extends AsyncapiSchemaItemView
         AsyncapiResolver resolver,
         AsyncapiMultiFormatSchema model)
     {
-        this(resolver.schemas.resolveRef(model.ref), resolver.schemas.resolve(model));
-    }
+        super(model);
 
-    private AsyncapiMultiFormatSchemaView(
-        String name,
-        AsyncapiMultiFormatSchema resolved)
-    {
-        super(name, resolved);
+        final AsyncapiMultiFormatSchema resolved = resolver.schemas.resolve(model);
 
         this.schemaFormat = resolved.schemaFormat;
         this.schema = resolved.schema;
