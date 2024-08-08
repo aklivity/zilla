@@ -21,6 +21,7 @@ import java.util.function.Function;
 public class KafkaTopicTransformsConfig
 {
     public final String extractKey;
+
     public final List<KafkaTopicHeaderType> extractHeaders;
 
     public static KafkaTopicTransformsConfigBuilder<KafkaTopicTransformsConfig> builder()

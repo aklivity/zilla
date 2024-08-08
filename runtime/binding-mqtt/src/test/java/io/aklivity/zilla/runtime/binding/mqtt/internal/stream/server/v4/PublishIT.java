@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -238,6 +239,7 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions aklivity/zilla#1182")
     @Test
     @Configuration("server.yaml")
     @Specification({

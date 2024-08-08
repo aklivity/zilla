@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.90](https://github.com/aklivity/zilla/tree/0.9.90) (2024-08-05)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.89...0.9.90)
+
+**Implemented enhancements:**
+
+- Support `extract-headers` kafka message transform [\#1175](https://github.com/aklivity/zilla/issues/1175)
+- Simplify `sse` support in AsyncAPI specs [\#1151](https://github.com/aklivity/zilla/issues/1151)
+
+**Fixed bugs:**
+
+- Support topic pattern wildcards in `mqtt-kafka` clients [\#1178](https://github.com/aklivity/zilla/issues/1178)
+- Connecting to Aiven Kafka over TLS Throws an `java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty` Error [\#1115](https://github.com/aklivity/zilla/issues/1115)
+
+**Merged pull requests:**
+
+- Resolve server binding protocol type dissector … [\#1181](https://github.com/aklivity/zilla/pull/1181) ([jfallows](https://github.com/jfallows))
+- Apply minimum mqtt timeout constraint … [\#1180](https://github.com/aklivity/zilla/pull/1180) ([jfallows](https://github.com/jfallows))
+- Update MQTT wildcard processing for client topic patterns [\#1179](https://github.com/aklivity/zilla/pull/1179) ([jfallows](https://github.com/jfallows))
+- Support extract-headers kafka message transform [\#1177](https://github.com/aklivity/zilla/pull/1177) ([akrambek](https://github.com/akrambek))
+- Refactor asyncapi binding to simplify SSE asyncapi bindings extension [\#1171](https://github.com/aklivity/zilla/pull/1171) ([jfallows](https://github.com/jfallows))
+- Add validation for invalid path in http-kafka [\#1168](https://github.com/aklivity/zilla/pull/1168) ([bmaidics](https://github.com/bmaidics))
+- Bump alpine from 3.20.1 to 3.20.2 in /cloud/docker-image/src/main/docker [\#1165](https://github.com/aklivity/zilla/pull/1165) ([dependabot[bot]](https://github.com/apps/dependabot))
+- `tls` binding require `vault` and `keys` or `signers` in `options` [\#1159](https://github.com/aklivity/zilla/pull/1159) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.89](https://github.com/aklivity/zilla/tree/0.9.89) (2024-07-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.88...0.9.89)
