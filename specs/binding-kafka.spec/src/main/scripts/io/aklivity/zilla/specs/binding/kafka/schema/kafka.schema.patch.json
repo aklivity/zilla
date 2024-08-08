@@ -343,33 +343,81 @@
                         {
                             "title": "Transforms",
                             "type": "array",
-                            "items":
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties":
+                            "oneOf":
+                            [
                                 {
-                                    "extract-key":
-                                    {
-                                        "type": "string",
-                                        "additionalProperties": false
-                                    },
-                                    "extract-headers":
-                                    {
-                                        "type": "object",
-                                        "patternProperties":
+                                    "items":
+                                    [
                                         {
-                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
                                             {
-                                                "type": "string",
-                                                "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                "extract-headers":
+                                                {
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "type": "string",
+                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                },
+                                                "extract-key":
+                                                {
+                                                    "type": "string",
+                                                    "additionalProperties": false
+                                                }
                                             }
-                                        },
-                                        "additionalProperties": false
-                                    }
+                                        }
+                                    ]
                                 },
-                                "maxProperties": 1
-                            }
+                                {
+                                    "items":
+                                    [
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
+                                            {
+                                                "extract-headers":
+                                                {
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "type": "string",
+                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "items":
+                                    [
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
+                                            {
+                                                "extract-key":
+                                                {
+                                                    "type": "string",
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
                         },
                         "key":
                         {

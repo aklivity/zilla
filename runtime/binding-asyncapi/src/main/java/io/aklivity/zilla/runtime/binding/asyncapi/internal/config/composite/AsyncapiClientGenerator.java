@@ -25,6 +25,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import jakarta.json.bind.Jsonb;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
@@ -39,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -91,7 +94,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiSchemaConfig schema)
         {
             super(config, schema.apiLabel);
-            this.catalogs = new CatalogsHelper(schema);
+            this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
 
@@ -101,6 +104,37 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             return namespace
                     .inject(catalogs::injectAll)
                     .inject(bindings::injectAll);
+        }
+
+        private final class ClientCatalogsHelper extends CatalogsHelper
+        {
+            private ClientCatalogsHelper(
+                AsyncapiSchemaConfig schema)
+            {
+                super(schema);
+            }
+
+            @Override
+            protected <C> void injectInlineSubject(
+                Jsonb jsonb,
+                InlineOptionsConfigBuilder<C> options,
+                AsyncapiMessageView message)
+            {
+                super.injectInlineSubject(jsonb, options, message);
+
+                if (message.bindings != null &&
+                    message.bindings.kafka != null &&
+                    message.bindings.kafka.key != null)
+                {
+                    final String subject = "%s-key".formatted(message.channel.address);
+
+                    options.schema()
+                        .subject(subject)
+                        .version("latest")
+                        .schema(toSchemaJson(jsonb, message.bindings.kafka.key.model))
+                        .build();
+                }
+            }
         }
 
         private final class ClientBindingsHelper extends BindingsHelper
