@@ -360,7 +360,7 @@ public abstract class AsyncapiCompositeGenerator
                         {
                             if (m.payload != null)
                             {
-                                final String subject = "%s-%s-value".formatted(m.channel.name, m.name);
+                                final String subject = "%s-value".formatted(m.channel.address);
 
                                 options.schema()
                                     .subject(subject)
@@ -376,7 +376,7 @@ public abstract class AsyncapiCompositeGenerator
                                     final String name = header.getKey();
                                     final AsyncapiSchemaItemView schema = header.getValue();
 
-                                    final String subject = "%s-%s-header-%s".formatted(m.channel.name, m.name, name);
+                                    final String subject = "%s-header-%s".formatted(m.channel.address, name);
 
                                     options.schema()
                                         .subject(subject)
