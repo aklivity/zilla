@@ -46,7 +46,7 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         return resolvables.get(key);
     }
 
-    public String resolveRef(
+    public final String resolveRef(
         String ref)
     {
         return ref != null && matcher.reset(ref).matches() ? matcher.group(1) : null;
