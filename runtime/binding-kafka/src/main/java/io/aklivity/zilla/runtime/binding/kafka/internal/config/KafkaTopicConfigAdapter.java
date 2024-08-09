@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
