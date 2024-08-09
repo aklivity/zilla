@@ -42,18 +42,16 @@ public final class AsyncapiSchemaResolver
     public AsyncapiSchema resolve(
         AsyncapiSchema model)
     {
-        final AsyncapiSchema resolvable = (AsyncapiSchema) resolver.resolve(model);
+        final AsyncapiSchema resolved = (AsyncapiSchema) resolver.resolve(model);
 
-        AsyncapiSchema resolved = resolvable;
-
-        if (resolved.schema != null && resolved.schema.ref != null)
+        if (resolved.schema != null)
         {
-            resolved.schema = resolve(resolvable.schema);
+            resolved.schema = resolve(resolved.schema);
         }
 
-        if (resolved.items != null && resolved.items.ref != null)
+        if (resolved.items != null)
         {
-            resolved.items = resolve(resolvable.items);
+            resolved.items = resolve(resolved.items);
         }
 
         return resolved;
