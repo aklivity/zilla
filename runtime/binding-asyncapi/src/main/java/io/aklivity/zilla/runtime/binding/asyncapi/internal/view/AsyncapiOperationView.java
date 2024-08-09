@@ -79,9 +79,11 @@ public final class AsyncapiOperationView
         this.reply = resolved.reply != null
                 ? new AsyncapiReplyView(resolver, resolved.reply)
                 : null;
-        this.messages = channel.messages != null
-            ? channel.messages
-            : null;
+        this.messages = resolved.messages != null
+            ? resolved.messages.stream()
+                .map(m -> new AsyncapiMessageView(this, resolver, m))
+                .toList()
+            : channel.messages;
         this.security = resolved.security != null
                 ? resolved.security.stream()
                     .map(scheme -> new AsyncapiSecuritySchemeView(resolver, scheme))

@@ -36,6 +36,46 @@ public final class AsyncapiMessageView
     }
 
     AsyncapiMessageView(
+        AsyncapiResolver resolver,
+        String name,
+        AsyncapiMessage model)
+    {
+        this((AsyncapiChannelView) null, resolver, name, model);
+    }
+
+    AsyncapiMessageView(
+        AsyncapiOperationView operation,
+        AsyncapiResolver resolver,
+        AsyncapiMessage model)
+    {
+        this.channel = operation.channel;
+
+        final AsyncapiMessage resolved = resolver.operations.resolve(model);
+
+        this.name = model.ref;
+        this.headers = resolved.headers != null
+            ? new AsyncapiSchemaView(resolver, resolved.headers)
+            : null;
+        this.contentType = resolved.contentType != null
+            ? resolved.contentType
+            : resolver.defaultContentType;
+        this.payload = resolved.payload != null
+                ? AsyncapiSchemaItemView.of(resolver, resolved.payload)
+                : null;
+        this.traits = resolved.traits != null
+                ? resolved.traits.stream()
+                    .map(m -> new AsyncapiTraitView(resolver, m))
+                    .toList()
+                : null;
+        this.correlationId = resolved.correlationId != null
+                ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
+                : null;
+        this.bindings = resolved.bindings != null
+                ? new AsyncapiMessageBindingsView(resolver, resolved.bindings)
+                : null;
+    }
+
+    AsyncapiMessageView(
         AsyncapiChannelView channel,
         AsyncapiResolver resolver,
         String name,
