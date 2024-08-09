@@ -310,31 +310,30 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
                     .distinct()
                     .forEach(channel ->
-                    {
-                        KafkaTopicConfigBuilder<KafkaOptionsConfigBuilder<C>> builder = options.topic();
-                        builder
+                        options.topic()
                             .name(channel.address)
+                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
                             .inject(t -> injectKafkaTopicKey(t, channel))
-                            .inject(t -> injectKafkaTopicValue(t, channel));
-
-                        Optional<KafkaTopicConfig> topic = Optional.empty();
-                        if (topics != null)
-                        {
-                            topic = topics.stream()
-                                .filter(t -> t.name.equals(channel.address))
-                                .findFirst();
-                        }
-
-                        topic.ifPresent(kafkaTopicConfig -> builder
-                            .transforms()
-                            .extractKey(kafkaTopicConfig.transforms.extractKey)
-                            .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                            .inject(t -> injectKafkaTopicValue(t, channel))
                             .build());
 
-                        builder.build();
-                    });
-
                 return options;
+            }
+
+            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
+                KafkaTopicConfigBuilder<C> topic,
+                AsyncapiChannelView channel,
+                List<KafkaTopicConfig> topics)
+            {
+                Optional<KafkaTopicConfig> topicConfig = topics.stream()
+                    .filter(t -> t.name.equals(channel.address))
+                    .findFirst();
+                topicConfig.ifPresent(kafkaTopicConfig -> topic
+                            .transforms()
+                                .extractKey(kafkaTopicConfig.transforms.extractKey)
+                                .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                                .build());
+                return topic;
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(

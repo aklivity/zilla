@@ -21,11 +21,11 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.apicurio.registry.unretrievable.artifact.id
             name: CATALOG_APICURIO_REGISTRY_UNRETRIEVABLE_ARTIFACT_ID
             message: Unable to fetch artifact id 1.
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.apicurio.registry.retrieved.artifact.id
             name: CATALOG_APICURIO_REGISTRY_RETRIEVED_ARTIFACT_ID
             message: Successfully fetched artifact id 1.

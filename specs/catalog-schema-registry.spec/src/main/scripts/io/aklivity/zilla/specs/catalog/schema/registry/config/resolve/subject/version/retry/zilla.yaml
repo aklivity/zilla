@@ -21,15 +21,15 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.schema.registry.unretrievable.schema.subject.version
             name: CATALOG_SCHEMA_REGISTRY_UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION
             message: Unable to fetch schema for subject items-snapshots-value with version latest.
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.schema.registry.unretrievable.schema.subject.version.stale.schema
             name: CATALOG_SCHEMA_REGISTRY_UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA
             message: Unable to fetch schema for subject items-snapshots-value with version latest; using stale schema with id 9.
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.schema.registry.retrievable.schema.subject.version
             name: CATALOG_SCHEMA_REGISTRY_RETRIEVABLE_SCHEMA_SUBJECT_VERSION
             message: Successfully fetched schema for subject items-snapshots-value with version latest.
