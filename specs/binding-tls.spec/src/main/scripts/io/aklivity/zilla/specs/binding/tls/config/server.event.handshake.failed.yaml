@@ -22,7 +22,7 @@ telemetry:
             type: test
             options:
                 events:
-                    - qname: test.net0
+                    - qname: test:net0
                       id: binding.tls.handshake.failed
                       name: BINDING_TLS_HANDSHAKE_FAILED
                       message: The client and server could not negotiate the desired level of security.
