@@ -336,11 +336,11 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 CatalogedConfigBuilder<C> cataloged,
                 AsyncapiOperationView operation)
             {
-                for (AsyncapiMessageView message : operation.channel.messages)
+                for (AsyncapiMessageView message : operation.messages)
                 {
                     cataloged.schema()
+                        .subject("%s-value".formatted(message.channel.address))
                         .version("latest")
-                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
                         .build();
                 }
 
@@ -531,7 +531,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.channels.values().stream())
                     .filter(AsyncapiChannelView::hasMessages)
-                    .forEach(c -> c.messages.stream()
+                    .forEach(c -> c.messages
                         .forEach(m ->
                             options.topic()
                                 .name(c.address.replaceAll(REGEX_ADDRESS_PARAMETER, "#"))

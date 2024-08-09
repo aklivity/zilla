@@ -455,8 +455,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsSse)
-                    .count() != 0L)
+                    .anyMatch(AsyncapiOperationView::hasBindingsSse))
                 {
                     namespace
                         .binding()

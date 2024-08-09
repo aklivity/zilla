@@ -353,9 +353,8 @@ public abstract class AsyncapiCompositeGenerator
                     Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.operations.values().stream())
-                        .map(o -> o.channel)
-                        .filter(c -> c.messages != null)
-                        .flatMap(c -> c.messages.stream())
+                        .filter(o -> o.messages != null)
+                        .flatMap(o -> o.messages.stream())
                         .forEach(m -> injectInlineSubject(jsonb, options, m));
 
                     Stream.of(schema)
