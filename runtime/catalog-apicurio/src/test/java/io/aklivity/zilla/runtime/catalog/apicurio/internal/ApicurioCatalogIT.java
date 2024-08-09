@@ -32,7 +32,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
