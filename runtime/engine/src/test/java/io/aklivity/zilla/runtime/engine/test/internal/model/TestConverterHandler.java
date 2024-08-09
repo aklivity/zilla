@@ -67,7 +67,7 @@ public class TestConverterHandler implements ConverterHandler
     {
         if (matcher.reset(path).matches())
         {
-            extracted.put(matcher.group(1), new OctetsFW().wrap(new String16FW("12345").value(), 0, 5));
+            extracted.put(matcher.group(1), new OctetsFW().wrap(new String16FW("1234").value(), 0, 4));
         }
     }
 

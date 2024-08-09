@@ -551,6 +551,18 @@ public class CacheFetchIT
     }
 
     @Test
+    @Configuration("cache.options.extract.key.yaml")
+    @Specification({
+        "${app}/message.key.extracted/client",
+        "${app}/message.key/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithExtractedKey() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.header.and.header/client",

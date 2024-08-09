@@ -56,6 +56,8 @@ catalogs:
                 method: POST
             channel:
               $ref: '#/channels/pets'
+            messages:
+              - $ref: '#/channels/pets/messages/pet'
           listPets:
             action: receive
             bindings:

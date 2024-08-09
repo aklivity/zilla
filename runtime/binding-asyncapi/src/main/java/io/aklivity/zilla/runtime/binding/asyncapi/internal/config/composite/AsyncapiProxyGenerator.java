@@ -634,7 +634,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         final String httpMethod = httpOperation.bindings.http.method;
                         final String httpPath = httpChannel.address;
 
-                        boolean async = httpChannel.messages.stream()
+                        boolean async = httpOperation.messages.stream()
                             .anyMatch(m -> m.correlationId != null);
 
                         if (async)
@@ -796,9 +796,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                     produce.acks("in_sync_replicas").key(key);
 
-                    AsyncapiChannelView httpChannel = httpOperation.channel;
-
-                    httpChannel.messages.forEach(message ->
+                    httpOperation.messages.forEach(message ->
                     {
                         if (message.correlationId != null)
                         {

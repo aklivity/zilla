@@ -30,18 +30,24 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig
 
 public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<KafkaTopicTransformsConfig, JsonObject>
 {
+    private static final String EXTRACT_KEY_NAME = "extract-key";
     private static final String EXTRACT_HEADERS_NAME = "extract-headers";
 
     @Override
     public JsonObject adaptToJson(
-        KafkaTopicTransformsConfig topic)
+        KafkaTopicTransformsConfig transforms)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (topic.extractHeaders != null && !topic.extractHeaders.isEmpty())
+        if (transforms.extractKey != null)
+        {
+            object.add(EXTRACT_KEY_NAME, transforms.extractKey);
+        }
+
+        if (transforms.extractHeaders != null && !transforms.extractHeaders.isEmpty())
         {
             JsonObjectBuilder headers = Json.createObjectBuilder();
-            for (KafkaTopicHeaderType header : topic.extractHeaders)
+            for (KafkaTopicHeaderType header : transforms.extractHeaders)
             {
                 headers.add(header.name, header.path);
             }
@@ -56,6 +62,11 @@ public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<Kaf
         JsonObject object)
     {
         KafkaTopicTransformsConfigBuilder<KafkaTopicTransformsConfig> topicBuilder = KafkaTopicTransformsConfig.builder();
+
+        String extractKey = object.containsKey(EXTRACT_KEY_NAME)
+            ? object.getString(EXTRACT_KEY_NAME)
+            : null;
+        topicBuilder.extractKey(extractKey);
 
         JsonObject headers = object.containsKey(EXTRACT_HEADERS_NAME) ? object.getJsonObject(EXTRACT_HEADERS_NAME) : null;
 

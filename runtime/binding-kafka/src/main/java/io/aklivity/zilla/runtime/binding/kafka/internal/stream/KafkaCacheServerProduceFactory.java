@@ -1175,7 +1175,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     final short producerEpoch = nextEntry.producerEpoch();
                     final int sequence = nextEntry.sequence();
                     final KafkaAckMode ackMode = KafkaAckMode.valueOf(nextEntry.ackMode());
-                    final KafkaKeyFW key = nextEntry.key();
+                    final KafkaKeyFW key = nextEntry.paddedKey().key();
                     final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
                     final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
                     final OctetsFW value = nextEntry.value();

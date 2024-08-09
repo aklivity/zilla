@@ -57,9 +57,6 @@ read zilla:begin.ext ${kafka:beginEx()
                               .fetch()
                                   .topic("test")
                                   .partition(0, 1)
-                                  .filter()
-                                      .header("header1", "value1")
-                                      .build()
                                   .build()
                               .build()}
 
@@ -69,7 +66,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 1, 8)
+                                   .partition(0, 1, 1)
                                    .build()
                                .build()}
 write flush
@@ -78,21 +75,8 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .timestamp(newTimestamp)
-                                  .partition(0, 2, 8)
-                                  .header("header1", "value1")
-                                  .header("correlation-id", "1234")
-                                  .build()
-                              .build()}
-write "Hello, world"
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .timestamp(newTimestamp)
-                                  .partition(0, 3, 8)
-                                  .header("header1", "value1")
-                                  .header("correlation-id", "1234")
+                                  .partition(0, 1, 1)
+                                  .key("1234  ")
                                   .build()
                               .build()}
 write "Hello, world"

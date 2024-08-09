@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 
 public final class AsyncapiSchemaResolver
@@ -36,6 +37,30 @@ public final class AsyncapiSchemaResolver
         T model)
     {
         return (T) resolver.resolve(model);
+    }
+
+    public AsyncapiSchema resolve(
+        AsyncapiSchema model)
+    {
+        final AsyncapiSchema resolved = (AsyncapiSchema) resolver.resolve(model);
+
+        if (resolved.schema != null)
+        {
+            resolved.schema = resolve(resolved.schema);
+        }
+
+        if (resolved.items != null)
+        {
+            resolved.items = resolve(resolved.items);
+        }
+
+        return resolved;
+    }
+
+    public String resolveRef(
+        String ref)
+    {
+        return resolver.resolveRef(ref);
     }
 
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>

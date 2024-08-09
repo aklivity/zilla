@@ -20,6 +20,8 @@ import java.util.function.Function;
 
 public class KafkaTopicTransformsConfig
 {
+    public final String extractKey;
+
     public final List<KafkaTopicHeaderType> extractHeaders;
 
     public static KafkaTopicTransformsConfigBuilder<KafkaTopicTransformsConfig> builder()
@@ -34,8 +36,10 @@ public class KafkaTopicTransformsConfig
     }
 
     KafkaTopicTransformsConfig(
+        String extractKey,
         List<KafkaTopicHeaderType> extractHeaders)
     {
+        this.extractKey = extractKey;
         this.extractHeaders = extractHeaders;
     }
 }

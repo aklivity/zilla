@@ -32,11 +32,18 @@ scope internal
             int32 convertedPosition = -1;
             int32 deltaPosition = -1;
             int16 ackMode = -1;
-            kafka::KafkaKey key;
+            internal::cache::KafkaCachePaddedKey paddedKey;
             int32 valueLen;
             octets[valueLen] value = null;
             kafka::KafkaHeader[] headers;
             kafka::KafkaHeader[] trailers;
+            uint32 paddingLen;
+            octets[paddingLen] padding;
+        }
+
+        struct KafkaCachePaddedKey
+        {
+            kafka::KafkaKey key;
             uint32 paddingLen;
             octets[paddingLen] padding;
         }

@@ -1254,7 +1254,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long filters = cursor.filters;
             final long ownerId = nextEntry.ownerId();
             final int entryFlags = nextEntry.flags();
-            final KafkaKeyFW key = nextEntry.key();
+            final KafkaKeyFW key = nextEntry.paddedKey().key();
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
             final long ancestor = nextEntry.ancestor();

@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T, KafkaTopicTransformsConfigBuilder<T>>
 {
-    private static final String PATH = "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
+    private static final String PATH = "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
     private static final String INTERNAL_VALUE = "$.%s";
     private static final String INTERNAL_PATH = "^\\$\\..*$";
@@ -34,6 +34,7 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     private final Matcher matcher;
     private final Matcher internalMatcher;
     private final Function<KafkaTopicTransformsConfig, T> mapper;
+    private String extractKey;
     private List<KafkaTopicHeaderType> extractHeaders;
 
     KafkaTopicTransformsConfigBuilder(
@@ -50,6 +51,15 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     protected Class<KafkaTopicTransformsConfigBuilder<T>> thisType()
     {
         return (Class<KafkaTopicTransformsConfigBuilder<T>>) getClass();
+    }
+
+    public KafkaTopicTransformsConfigBuilder<T> extractKey(
+        String extractKey)
+    {
+        this.extractKey = extractKey != null && matcher.reset(extractKey).matches()
+            ? String.format(INTERNAL_VALUE, matcher.group(2))
+            : extractKey;
+        return this;
     }
 
     public KafkaTopicTransformsConfigBuilder<T> extractHeaders(
@@ -79,7 +89,7 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
         if (matcher.reset(path).matches())
         {
             this.extractHeaders.add(new KafkaTopicHeaderType(name,
-                String.format(INTERNAL_VALUE, matcher.group(1))));
+                String.format(INTERNAL_VALUE, matcher.group(2))));
         }
         else if (internalMatcher.reset(path).matches())
         {
@@ -91,6 +101,6 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaTopicTransformsConfig(extractHeaders));
+        return mapper.apply(new KafkaTopicTransformsConfig(extractKey, extractHeaders));
     }
 }
