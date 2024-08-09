@@ -339,7 +339,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 for (AsyncapiMessageView message : operation.messages)
                 {
                     cataloged.schema()
-                        .subject("%s-value".formatted(message.channel.address))
+                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
                         .version("latest")
                         .build();
                 }

@@ -390,10 +390,8 @@ public abstract class AsyncapiCompositeGenerator
             {
                 if (message.payload != null)
                 {
-                    final String subject = "%s-value".formatted(message.channel.address);
-
                     options.schema()
-                        .subject(subject)
+                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
                         .version("latest")
                         .schema(toSchemaJson(jsonb, message.payload.model))
                         .build();
