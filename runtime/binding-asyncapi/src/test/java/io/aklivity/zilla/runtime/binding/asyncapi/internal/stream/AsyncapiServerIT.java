@@ -42,9 +42,9 @@ public class AsyncapiServerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(ENGINE_VERBOSE, true)
-        .configure(ENGINE_VERBOSE_COMPOSITES, true)
+        .configure(ENGINE_DRAIN_ON_CLOSE, true)
+        .configure(ENGINE_VERBOSE, false)
+        .configure(ENGINE_VERBOSE_COMPOSITES, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
         .external("asyncapi0")
         .clean();
