@@ -190,10 +190,9 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 if (Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .filter(s -> secure.contains(s.protocol))
-                        .count() != 0L)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.servers.stream())
+                    .anyMatch(s -> secure.contains(s.protocol)))
                 {
                     namespace.binding()
                         .name("tls_server0")
