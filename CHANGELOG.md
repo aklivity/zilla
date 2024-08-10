@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.91](https://github.com/aklivity/zilla/tree/0.9.91) (2024-08-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.90...0.9.91)
+
+**Fixed bugs:**
+
+- `asyncapi` binding triggers zilla crash when used with `catalog::apicurio` [\#1185](https://github.com/aklivity/zilla/issues/1185)
+- Avro to JSON conversion problem with REST Proxy [\#1169](https://github.com/aklivity/zilla/issues/1169)
+
+**Merged pull requests:**
+
+- Support SKIP\_MANY only kafka headers sequence filter [\#1189](https://github.com/aklivity/zilla/pull/1189) ([jfallows](https://github.com/jfallows))
+- Enables `bindings:asyncapi` to use `catalog::apicurio` [\#1186](https://github.com/aklivity/zilla/pull/1186) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.90](https://github.com/aklivity/zilla/tree/0.9.90) (2024-08-05)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.89...0.9.90)
