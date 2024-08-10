@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.90...HEAD)
+
+**Fixed bugs:**
+
+- `asyncapi` binding triggers zilla crash when used with `catalog::apicurio` [\#1185](https://github.com/aklivity/zilla/issues/1185)
+- Avro to JSON conversion problem with REST Proxy [\#1169](https://github.com/aklivity/zilla/issues/1169)
+
 ## [0.9.90](https://github.com/aklivity/zilla/tree/0.9.90) (2024-08-05)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.89...0.9.90)
