@@ -714,6 +714,11 @@ public final class KafkaCacheCursorFactory
                     matchItemOffset = matchItem.limit();
                 }
 
+                if (conditions.isEmpty())
+                {
+                    conditions.add(new KafkaFilterCondition.None());
+                }
+
                 this.name = headersCopy.name();
                 this.matches = headersCopy.values();
                 this.and = new And(mask, conditions);
