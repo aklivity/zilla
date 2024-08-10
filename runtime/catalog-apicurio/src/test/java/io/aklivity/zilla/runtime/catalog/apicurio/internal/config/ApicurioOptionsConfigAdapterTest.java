@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
+
 public class ApicurioOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

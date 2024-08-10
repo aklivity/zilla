@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal.config;
+package io.aklivity.zilla.runtime.catalog.apicurio.config;
 
 import java.time.Duration;
 import java.util.function.Function;

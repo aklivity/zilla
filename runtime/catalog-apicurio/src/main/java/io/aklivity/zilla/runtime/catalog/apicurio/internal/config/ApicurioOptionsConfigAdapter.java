@@ -21,6 +21,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 

@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import static io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfigBuilder.CONTENT_ID;
+import static io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfigBuilder.LEGACY_ID_ENCODING;
 import static io.aklivity.zilla.runtime.catalog.apicurio.internal.CachedArtifactId.IN_PROGRESS;
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.CONTENT_ID;
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.LEGACY_ID_ENCODING;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
@@ -42,7 +42,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;

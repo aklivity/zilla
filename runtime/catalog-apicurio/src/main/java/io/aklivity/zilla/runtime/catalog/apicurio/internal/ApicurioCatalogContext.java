@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
 import java.util.concurrent.ConcurrentMap;
 
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
