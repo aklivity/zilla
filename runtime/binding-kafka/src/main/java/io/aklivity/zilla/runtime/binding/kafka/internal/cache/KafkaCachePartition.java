@@ -368,7 +368,7 @@ public final class KafkaCachePartition
     {
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
-            valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, verbose);
+            valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, transforms, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
             convertKey, convertValue, verbose, transforms);
@@ -391,6 +391,7 @@ public final class KafkaCachePartition
         OctetsFW payload,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
+        KafkaTopicTransformsConfig transforms,
         boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -485,6 +486,26 @@ public final class KafkaCachePartition
             }
             logFile.appendInt(0);
         }
+
+        if (convertKey != ConverterHandler.NONE &&
+            transforms != null && transforms.extractKey != null)
+        {
+            final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
+            {
+                final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
+                KafkaCachePaddedKeyFW paddedKey =
+                    logFile.readBytes(position, paddedKeyRO::wrap);
+                final int paddedKeySize = paddedKey.sizeof();
+                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+                final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
+                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
+                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
+            };
+
+            convertKey.extracted(transforms.extractKey, writeKey);
+        }
+
         logFile.appendInt(valueLength);
 
         valueMark.value = logFile.capacity();
@@ -628,25 +649,6 @@ public final class KafkaCachePartition
                     trailers = builder.build();
                 }
             }
-        }
-
-        if (convertKey != ConverterHandler.NONE &&
-            transforms != null && transforms.extractKey != null)
-        {
-            final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
-            {
-                final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
-                KafkaCachePaddedKeyFW paddedKey =
-                    logFile.readBytes(position, paddedKeyRO::wrap);
-                final int paddedKeySize = paddedKey.sizeof();
-                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
-                final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
-                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
-                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
-                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
-            };
-
-            convertKey.extracted(transforms.extractKey, writeKey);
         }
 
         logFile.appendBytes(headers);
