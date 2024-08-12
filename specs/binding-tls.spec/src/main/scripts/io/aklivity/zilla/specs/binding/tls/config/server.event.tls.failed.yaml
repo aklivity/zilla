@@ -22,7 +22,7 @@ telemetry:
             type: test
             options:
                 events:
-                    - qname: test.net0
+                    - qname: test:net0
                       id: binding.tls.tls.failed
                       name: BINDING_TLS_TLS_FAILED
                       message: There was a generic error detected by an SSL subsystem.

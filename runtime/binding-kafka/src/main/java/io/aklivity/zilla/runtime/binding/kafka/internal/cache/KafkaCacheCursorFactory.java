@@ -267,7 +267,7 @@ public final class KafkaCacheCursorFactory
                         final KafkaCacheFile deltaFile = segment.deltaFile();
                         final KafkaCacheDeltaFW delta = deltaFile.readBytes(deltaPosition, deltaRO::wrap);
                         final DirectBuffer entryBuffer = nextEntry.buffer();
-                        final KafkaKeyFW key = nextEntry.key();
+                        final KafkaKeyFW key = nextEntry.paddedKey().key();
                         final int entryOffset = nextEntry.offset();
                         final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
                         final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
@@ -277,6 +277,8 @@ public final class KafkaCacheCursorFactory
                         int writeLimit = 0;
                         writeBuffer.putBytes(writeLimit, entryBuffer, entryOffset, sizeofEntryHeader);
                         writeLimit += sizeofEntryHeader;
+                        writeBuffer.putInt(writeLimit, 0);
+                        writeLimit += Integer.BYTES;
                         writeBuffer.putBytes(writeLimit, delta.buffer(), delta.offset(), delta.sizeof());
                         writeLimit += delta.sizeof();
                         writeBuffer.putBytes(writeLimit, headers.buffer(), headers.offset(), headers.sizeof());
@@ -314,7 +316,7 @@ public final class KafkaCacheCursorFactory
             final KafkaCachePaddedValueFW converted = convertedFile.readBytes(convertedAt, convertedRO::wrap);
             final OctetsFW convertedValue = converted.value();
             final DirectBuffer entryBuffer = nextEntry.buffer();
-            final KafkaKeyFW key = nextEntry.key();
+            final KafkaKeyFW key = nextEntry.paddedKey().key();
             final int entryOffset = nextEntry.offset();
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
@@ -324,6 +326,8 @@ public final class KafkaCacheCursorFactory
             int writeLimit = 0;
             writeBuffer.putBytes(writeLimit, entryBuffer, entryOffset, sizeofEntryHeader);
             writeLimit += sizeofEntryHeader;
+            writeBuffer.putInt(writeLimit, 0);
+            writeLimit += Integer.BYTES;
             writeBuffer.putInt(writeLimit, convertedValue.sizeof());
             writeLimit += Integer.BYTES;
             writeBuffer.putBytes(writeLimit, convertedValue.buffer(), convertedValue.offset(), convertedValue.sizeof());
@@ -818,7 +822,7 @@ public final class KafkaCacheCursorFactory
             public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return test(cacheEntry.key());
+                return test(cacheEntry.paddedKey().key());
             }
         }
 

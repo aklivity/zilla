@@ -485,7 +485,7 @@ public class EngineWorker implements EngineContext, Agent
     public String supplyQName(
         long namespacedId)
     {
-        return String.format("%s.%s", labels.lookupLabel(NamespacedId.namespaceId(namespacedId)),
+        return String.format("%s:%s", labels.lookupLabel(NamespacedId.namespaceId(namespacedId)),
             labels.lookupLabel(NamespacedId.localId(namespacedId)));
     }
 

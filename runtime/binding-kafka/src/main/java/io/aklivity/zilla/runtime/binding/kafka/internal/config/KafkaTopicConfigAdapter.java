@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -40,8 +39,8 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String SUBJECT = "subject";
     private static final String TRANSFORMS_NAME = "transforms";
 
-    private final ModelConfigAdapter converter = new ModelConfigAdapter();
-    private final KafkaTopicTransformsConfigAdapter transformsConverter = new KafkaTopicTransformsConfigAdapter();
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final KafkaTopicTransformsConfigAdapter transforms = new KafkaTopicTransformsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -64,21 +63,21 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            converter.adaptType(topic.key.model);
+            model.adaptType(topic.key.model);
 
-            object.add(EVENT_KEY, converter.adaptToJson(topic.key));
+            object.add(EVENT_KEY, model.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            converter.adaptType(topic.value.model);
+            model.adaptType(topic.value.model);
 
-            object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
+            object.add(EVENT_VALUE, model.adaptToJson(topic.value));
         }
 
         if (topic.transforms != null)
         {
-            object.add(TRANSFORMS_NAME, transformsConverter.adaptToJson(topic.transforms));
+            object.add(TRANSFORMS_NAME, transforms.adaptToJson(topic.transforms));
         }
 
         return object.build();
@@ -113,7 +112,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             key.forEach(keyObject::add);
             keyObject.add(SUBJECT, name + "-key");
 
-            topicBuilder.key(converter.adaptFromJson(keyObject.build()));
+            topicBuilder.key(model.adaptFromJson(keyObject.build()));
         }
 
         JsonValue value = object.containsKey(EVENT_VALUE)
@@ -128,14 +127,20 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             model.forEach(valueObject::add);
             valueObject.add(SUBJECT, name + "-value");
 
-            topicBuilder.value(converter.adaptFromJson(valueObject.build()));
+            topicBuilder.value(this.model.adaptFromJson(valueObject.build()));
         }
 
-        JsonArray transforms = object.containsKey(TRANSFORMS_NAME) ? object.getJsonArray(TRANSFORMS_NAME) : null;
-
-        if (transforms != null)
+        if (object.containsKey(TRANSFORMS_NAME))
         {
-            topicBuilder.transforms(transformsConverter.adaptFromJson(transforms.getJsonObject(0)));
+            JsonObject transformsObject = object.getJsonArray(TRANSFORMS_NAME).stream()
+                .map(JsonValue::asJsonObject)
+                .reduce(Json.createObjectBuilder().build(), (obj1, obj2) ->
+                {
+                    JsonObjectBuilder builder = Json.createObjectBuilder(obj1);
+                    obj2.forEach(builder::add);
+                    return builder.build();
+                });
+            topicBuilder.transforms(transforms.adaptFromJson(transformsObject));
         }
 
         return topicBuilder.build();

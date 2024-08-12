@@ -23,6 +23,7 @@ public class AsyncapiOperation extends AbstractAsyncapiResolvable
     public AsyncapiChannel channel;
     public String action;
     public AsyncapiReply reply;
+    public List<AsyncapiMessage> messages;
     public List<AsyncapiSecurityScheme> security;
     public AsyncapiOperationBindings bindings;
 }

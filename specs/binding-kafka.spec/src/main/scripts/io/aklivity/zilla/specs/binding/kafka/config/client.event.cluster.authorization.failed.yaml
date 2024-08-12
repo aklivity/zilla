@@ -22,7 +22,7 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test.app0
+          - qname: test:app0
             id: binding.kafka.cluster.authorization.failed
             name: BINDING_KAFKA_CLUSTER_AUTHORIZATION_FAILED
             message: "DescribeConfigs (Version: 0)"

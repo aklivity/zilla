@@ -19,9 +19,13 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
+import jakarta.json.bind.Jsonb;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
@@ -37,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -89,7 +94,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiSchemaConfig schema)
         {
             super(config, schema.apiLabel);
-            this.catalogs = new CatalogsHelper(schema);
+            this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
 
@@ -99,6 +104,37 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             return namespace
                     .inject(catalogs::injectAll)
                     .inject(bindings::injectAll);
+        }
+
+        private final class ClientCatalogsHelper extends CatalogsHelper
+        {
+            private ClientCatalogsHelper(
+                AsyncapiSchemaConfig schema)
+            {
+                super(schema);
+            }
+
+            @Override
+            protected <C> void injectInlineSubject(
+                Jsonb jsonb,
+                InlineOptionsConfigBuilder<C> options,
+                AsyncapiMessageView message)
+            {
+                super.injectInlineSubject(jsonb, options, message);
+
+                if (message.bindings != null &&
+                    message.bindings.kafka != null &&
+                    message.bindings.kafka.key != null)
+                {
+                    final String subject = "%s-key".formatted(message.channel.address);
+
+                    options.schema()
+                        .subject(subject)
+                        .version("latest")
+                        .schema(toSchemaJson(jsonb, message.bindings.kafka.key.model))
+                        .build();
+                }
+            }
         }
 
         private final class ClientBindingsHelper extends BindingsHelper
@@ -142,7 +178,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
-                    .filter(p -> p != null)
+                    .filter(Objects::nonNull)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
@@ -152,10 +188,8 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 if (Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .filter(s -> secure.contains(s.protocol))
-                        .count() != 0L)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.servers.stream()).anyMatch(s -> secure.contains(s.protocol)))
                 {
                     namespace
                         .binding()
@@ -204,6 +238,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                    .inject(this::injectKafkaCache)
                     .binding()
                         .name("kafka_client0")
                         .type("kafka")
@@ -266,35 +301,39 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 KafkaOptionsConfigBuilder<C> options)
             {
                 List<KafkaTopicConfig> topics = config.options.kafka != null
-                        ? config.options.kafka.topics
-                        : null;
+                    ? config.options.kafka.topics
+                    : null;
 
-                if (topics != null)
-                {
-                    Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.operations.values().stream())
-                        .filter(o -> o.channel.hasMessages() || o.channel.hasParameters())
-                        .flatMap(o -> Stream.of(o.channel, o.reply != null ? o.reply.channel : null))
-                        .filter(c -> c != null)
-                        .forEach(channel ->
-                            topics.stream()
-                                .filter(t -> t.name.equals(channel.address))
-                                .findFirst()
-                                .ifPresent(topic ->
-                                    options
-                                        .topic()
-                                            .name(channel.address)
-                                            .transforms()
-                                                .extractHeaders(topic.transforms.extractHeaders)
-                                                .build()
-                                            .inject(t -> injectKafkaTopicKey(t, channel))
-                                            .inject(t -> injectKafkaTopicValue(t, channel))
-                                            .build()
-                                        .build()));
-                }
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.channels.values().stream())
+                    .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
+                    .distinct()
+                    .forEach(channel ->
+                        options.topic()
+                            .name(channel.address)
+                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
+                            .inject(t -> injectKafkaTopicKey(t, channel))
+                            .inject(t -> injectKafkaTopicValue(t, channel))
+                            .build());
 
                 return options;
+            }
+
+            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
+                KafkaTopicConfigBuilder<C> topic,
+                AsyncapiChannelView channel,
+                List<KafkaTopicConfig> topics)
+            {
+                Optional<KafkaTopicConfig> topicConfig = topics.stream()
+                    .filter(t -> t.name.equals(channel.address))
+                    .findFirst();
+                topicConfig.ifPresent(kafkaTopicConfig -> topic
+                            .transforms()
+                                .extractKey(kafkaTopicConfig.transforms.extractKey)
+                                .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                                .build());
+                return topic;
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(
@@ -311,9 +350,10 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                     .name("catalog0")
                                     .schema()
                                         .version("latest")
-                                        .subject(message.name)
+                                        .subject("%s-key".formatted(message.channel.address))
                                         .build()
-                                    .build());
+                                    .build()
+                                .build());
                 }
                 return topic;
             }
@@ -414,8 +454,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsSse)
-                    .count() != 0L)
+                    .anyMatch(AsyncapiOperationView::hasBindingsSse))
                 {
                     namespace
                         .binding()

@@ -30,6 +30,7 @@ public final class AsyncapiOperationView
     public final AsyncapiChannelView channel;
     public final String action;
     public final AsyncapiReplyView reply;
+    public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiSecuritySchemeView> security;
 
     public boolean hasBindingsHttp()
@@ -78,6 +79,11 @@ public final class AsyncapiOperationView
         this.reply = resolved.reply != null
                 ? new AsyncapiReplyView(resolver, resolved.reply)
                 : null;
+        this.messages = resolved.messages != null
+            ? resolved.messages.stream()
+                .map(m -> new AsyncapiMessageView(this, resolver, m))
+                .toList()
+            : channel.messages;
         this.security = resolved.security != null
                 ? resolved.security.stream()
                     .map(scheme -> new AsyncapiSecuritySchemeView(resolver, scheme))

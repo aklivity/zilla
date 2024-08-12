@@ -228,6 +228,7 @@ public class KafkaOptionsConfigAdapterTest
                     "\"name\": \"test\"," +
                     "\"transforms\":" +
                     "[" +
+                        "\"extract-key\": \"${message.key.id}\"," +
                         "\"extract-headers\":" +
                         "{" +
                             "\"correlation-id\": \"${message.value.correlationId}\"" +

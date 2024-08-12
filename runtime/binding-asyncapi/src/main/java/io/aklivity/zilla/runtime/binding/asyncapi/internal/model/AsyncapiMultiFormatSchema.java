@@ -14,13 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
 public class AsyncapiMultiFormatSchema extends AsyncapiSchemaItem
 {
     public String schemaFormat;
     public Object schema;
-
-    @JsonbProperty("$ref")
-    public String ref;
 }
