@@ -25,8 +25,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperati
 
 public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<AsyncapiOperation>
 {
-    private AsyncapiChannelResolver channels;
-    private AsyncapiMessageResolver messages;
+    private final AsyncapiChannelResolver channels;
+    private final AsyncapiMessageResolver messages;
     private final Matcher matcher;
 
     public AsyncapiOperationResolver(
