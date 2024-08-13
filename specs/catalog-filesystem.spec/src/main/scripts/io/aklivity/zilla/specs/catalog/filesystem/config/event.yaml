@@ -21,7 +21,7 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.filesystem.file.not.found
             name: CATALOG_FILESYSTEM_FILE_NOT_FOUND
             message: Unable to find file at (asyncapi/kafka.yaml) on the host filesystem.

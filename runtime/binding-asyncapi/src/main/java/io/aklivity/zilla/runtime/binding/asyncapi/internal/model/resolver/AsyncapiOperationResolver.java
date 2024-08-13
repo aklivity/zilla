@@ -14,16 +14,50 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 
 public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<AsyncapiOperation>
 {
+    private final AsyncapiChannelResolver channels;
+    private final AsyncapiMessageResolver messages;
+    private final Matcher matcher;
+
     public AsyncapiOperationResolver(
         Asyncapi model)
     {
         super(model.operations, Pattern.compile("#/operations/(.+)"));
+        this.channels = new AsyncapiChannelResolver(model);
+        this.messages = new AsyncapiMessageResolver(model);
+        this.matcher = Pattern.compile("#/channels/(.+)/messages/(.+)").matcher("");
+    }
+
+    public AsyncapiMessage resolve(
+        AsyncapiMessage model)
+    {
+        AsyncapiMessage resolvable = Stream.of(model)
+                .filter(m -> m.ref != null && matcher.reset(m.ref).matches())
+                .map(m -> channels.resolve(matcher.group(1)))
+                .filter(Objects::nonNull)
+                .map(c -> c.messages.get(matcher.group(2)))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(model);
+
+        return messages.resolve(resolvable);
+    }
+
+    public String resolveName(
+        String ref)
+    {
+        return matcher.reset(ref).matches()
+            ? matcher.group(2)
+            : ref;
     }
 }

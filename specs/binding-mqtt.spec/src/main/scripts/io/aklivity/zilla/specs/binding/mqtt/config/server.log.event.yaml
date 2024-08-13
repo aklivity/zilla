@@ -22,7 +22,7 @@ telemetry:
             type: test
             options:
                 events:
-                    - qname: test.net0
+                    - qname: test:net0
                       id: binding.mqtt.client.connected
                       name: BINDING_MQTT_CLIENT_CONNECTED
                       message: Session authorization (-) was successful for client id (client).

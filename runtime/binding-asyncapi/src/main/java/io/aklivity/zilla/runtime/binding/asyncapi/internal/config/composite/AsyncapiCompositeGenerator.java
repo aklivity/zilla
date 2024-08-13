@@ -233,9 +233,9 @@ public abstract class AsyncapiCompositeGenerator
             return value;
         }
 
-        protected final class CatalogsHelper
+        protected class CatalogsHelper
         {
-            private final AsyncapiSchemaConfig schema;
+            protected final AsyncapiSchemaConfig schema;
 
             protected CatalogsHelper(
                 AsyncapiSchemaConfig schema)
@@ -353,39 +353,9 @@ public abstract class AsyncapiCompositeGenerator
                     Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.operations.values().stream())
-                        .map(o -> o.channel)
-                        .filter(c -> c.messages != null)
-                        .flatMap(c -> c.messages.stream())
-                        .forEach(m ->
-                        {
-                            if (m.payload != null)
-                            {
-                                final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
-
-                                options.schema()
-                                    .subject(subject)
-                                    .version("latest")
-                                    .schema(toSchemaJson(jsonb, m.payload.model))
-                                    .build();
-                            }
-
-                            if (m.headers != null && m.headers.properties != null)
-                            {
-                                for (Map.Entry<String, AsyncapiSchemaView> header : m.headers.properties.entrySet())
-                                {
-                                    final String name = header.getKey();
-                                    final AsyncapiSchemaItemView schema = header.getValue();
-
-                                    final String subject = "%s-%s-header-%s".formatted(m.channel.name, m.name, name);
-
-                                    options.schema()
-                                        .subject(subject)
-                                        .version("latest")
-                                        .schema(toSchemaJson(jsonb, schema.model))
-                                        .build();
-                                }
-                            }
-                        });
+                        .filter(o -> o.messages != null)
+                        .flatMap(o -> o.messages.stream())
+                        .forEach(m -> injectInlineSubject(jsonb, options, m));
 
                     Stream.of(schema)
                         .map(s -> s.asyncapi)
@@ -413,7 +383,39 @@ public abstract class AsyncapiCompositeGenerator
                 return options;
             }
 
-            private static String toSchemaJson(
+            protected <C> void injectInlineSubject(
+                Jsonb jsonb,
+                InlineOptionsConfigBuilder<C> options,
+                AsyncapiMessageView message)
+            {
+                if (message.payload != null)
+                {
+                    options.schema()
+                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
+                        .version("latest")
+                        .schema(toSchemaJson(jsonb, message.payload.model))
+                        .build();
+                }
+
+                if (message.headers != null && message.headers.properties != null)
+                {
+                    for (Map.Entry<String, AsyncapiSchemaView> header : message.headers.properties.entrySet())
+                    {
+                        final String name = header.getKey();
+                        final AsyncapiSchemaItemView schema = header.getValue();
+
+                        final String subject = "%s-header-%s".formatted(message.channel.address, name);
+
+                        options.schema()
+                            .subject(subject)
+                            .version("latest")
+                            .schema(toSchemaJson(jsonb, schema.model))
+                            .build();
+                    }
+                }
+            }
+
+            protected static String toSchemaJson(
                 Jsonb jsonb,
                 AsyncapiSchemaItem schema)
             {
@@ -457,6 +459,15 @@ public abstract class AsyncapiCompositeGenerator
                 Consumer<ModelConfig> injector,
                 AsyncapiMessageView message)
             {
+                String subject = "%s-%s-value".formatted(message.channel.name, message.name);
+                injectPayloadModel(injector, message, subject);
+            }
+
+            protected final void injectPayloadModel(
+                Consumer<ModelConfig> injector,
+                AsyncapiMessageView message,
+                String subject)
+            {
                 ModelConfig model = null;
 
                 if (message.payload instanceof AsyncapiSchemaView schema &&
@@ -473,8 +484,6 @@ public abstract class AsyncapiCompositeGenerator
                     message.contentType != null &&
                     modelContentType.reset(message.contentType).matches())
                 {
-                    final String subject = "%s-%s-payload".formatted(message.channel.name, message.name);
-
                     switch (modelContentType.group(1))
                     {
                     case "json":

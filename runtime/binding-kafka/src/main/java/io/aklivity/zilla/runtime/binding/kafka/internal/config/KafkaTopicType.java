@@ -55,6 +55,7 @@ public class KafkaTopicType
         this.transforms = topicConfig.transforms;
         this.keyReader = Optional.ofNullable(topicConfig.key)
             .map(context::supplyReadConverter)
+            .map(this::key)
             .map(this::headers)
             .orElse(ConverterHandler.NONE);
         this.keyWriter = Optional.ofNullable(topicConfig.key)
@@ -62,6 +63,7 @@ public class KafkaTopicType
             .orElse(ConverterHandler.NONE);
         this.valueReader = Optional.ofNullable(topicConfig.value)
             .map(context::supplyReadConverter)
+            .map(this::key)
             .map(this::headers)
             .orElse(ConverterHandler.NONE);
         this.valueWriter = Optional.ofNullable(topicConfig.value)
@@ -73,6 +75,16 @@ public class KafkaTopicType
         String topic)
     {
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
+    }
+
+    private ConverterHandler key(
+        ConverterHandler handler)
+    {
+        if (transforms != null && transforms.extractKey != null)
+        {
+            handler.extract(transforms.extractKey);
+        }
+        return handler;
     }
 
     private ConverterHandler headers(

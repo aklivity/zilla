@@ -27,9 +27,9 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DELTA_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DESCENDANT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_FLAGS;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_KEY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OWNER_ID;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PADDED_KEY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_EPOCH;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
@@ -80,6 +80,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -115,14 +116,17 @@ public final class KafkaCachePartition
 
     private static final int SIZEOF_PADDING_LENGTH = Integer.BYTES;
 
+    private final KafkaCachePaddedKeyFW paddedKeyRO = new KafkaCachePaddedKeyFW();
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[FIELD_OFFSET_KEY]);
+    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[FIELD_OFFSET_PADDED_KEY]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Varint32FW varintRO = new Varint32FW();
+    private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);;
     private final String32FW.Builder stringRW = new String32FW.Builder()
         .wrap(new UnsafeBuffer(new byte[256]), 0, 256);;
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -364,10 +368,10 @@ public final class KafkaCachePartition
     {
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
-            valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, verbose);
+            valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, transforms, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
-            convertValue, verbose, transforms);
+            convertKey, convertValue, verbose, transforms);
     }
 
     public void writeEntryStart(
@@ -387,6 +391,7 @@ public final class KafkaCachePartition
         OctetsFW payload,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
+        KafkaTopicTransformsConfig transforms,
         boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -442,6 +447,7 @@ public final class KafkaCachePartition
         if (key.value() == null)
         {
             logFile.appendBytes(key);
+            logFile.appendInt(0);
         }
         else
         {
@@ -478,7 +484,28 @@ public final class KafkaCachePartition
                         context.supplyLocalName(bindingId), topic, id, offset);
                 }
             }
+            logFile.appendInt(0);
         }
+
+        if (convertKey != ConverterHandler.NONE &&
+            transforms != null && transforms.extractKey != null)
+        {
+            final ConverterHandler.FieldVisitor writeKey = (buffer, index, length) ->
+            {
+                final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
+                KafkaCachePaddedKeyFW paddedKey =
+                    logFile.readBytes(position, paddedKeyRO::wrap);
+                final int paddedKeySize = paddedKey.sizeof();
+                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+                final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
+                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
+                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
+            };
+
+            convertKey.extracted(transforms.extractKey, writeKey);
+        }
+
         logFile.appendInt(valueLength);
 
         valueMark.value = logFile.capacity();
@@ -543,6 +570,7 @@ public final class KafkaCachePartition
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
+        ConverterHandler convertKey,
         ConverterHandler convertValue,
         boolean verbose,
         KafkaTopicTransformsConfig transforms)
@@ -771,6 +799,7 @@ public final class KafkaCachePartition
             if (value == null)
             {
                 logFile.appendBytes(key);
+                logFile.appendInt(0);
             }
             else
             {
@@ -802,6 +831,7 @@ public final class KafkaCachePartition
                 {
                     break write;
                 }
+                logFile.appendInt(0);
             }
             logFile.appendInt(valueLength);
 
@@ -1076,7 +1106,7 @@ public final class KafkaCachePartition
                     if ((logEntry.flags() & CACHE_ENTRY_FLAGS_DIRTY) == 0)
                     {
                         final long logOffset = logEntry.offset$();
-                        final KafkaKeyFW key = logEntry.key();
+                        final KafkaKeyFW key = logEntry.paddedKey().key();
                         final ArrayFW<KafkaHeaderFW> headers = logEntry.headers();
                         final int deltaPosition = logEntry.deltaPosition();
                         final long keyHash = computeHash(key);
@@ -1170,7 +1200,7 @@ public final class KafkaCachePartition
                     assert cacheEntry != null;
                     if (!isAbortedEntry(cacheEntry) &&
                         !isControlEntry(cacheEntry) &&
-                        key.equals(cacheEntry.key()))
+                        key.equals(cacheEntry.paddedKey().key()))
                     {
                         ancestor = cacheEntry;
                         markDescendantAndDirty(ancestor, descendantOffset);

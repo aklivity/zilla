@@ -21,7 +21,7 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test.catalog0
+          - qname: test:catalog0
             id: catalog.karapace.schema.registry.unretrievable.schema.id
             name: CATALOG_KARAPACE_SCHEMA_REGISTRY_UNRETRIEVABLE_SCHEMA_ID
             message: Unable to fetch schema id 1.

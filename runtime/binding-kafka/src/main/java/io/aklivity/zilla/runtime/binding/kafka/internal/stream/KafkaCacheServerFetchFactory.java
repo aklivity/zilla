@@ -884,7 +884,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
                 partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp,
                     producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment, convertKey,
-                    convertValue, verbose);
+                    convertValue, transforms, verbose);
             }
 
             if (valueFragment != null)
@@ -909,7 +909,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionOffset >= this.partitionOffset;
 
                 partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
-                    entryMark, valueMark, convertValue, verbose, transforms);
+                    entryMark, valueMark, convertKey, convertValue, verbose, transforms);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

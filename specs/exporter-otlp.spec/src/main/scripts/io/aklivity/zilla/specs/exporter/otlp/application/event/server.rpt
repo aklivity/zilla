@@ -46,7 +46,7 @@ read
                             '"timeUnixNano":42000000,'
                             '"observedTimeUnixNano":42000000,'
                             '"body":{'
-                                '"stringValue":"test.net0 test event message"'
+                                '"stringValue":"test:net0 test event message"'
                             '},'
                             '"attributes":['
                                 '{'
