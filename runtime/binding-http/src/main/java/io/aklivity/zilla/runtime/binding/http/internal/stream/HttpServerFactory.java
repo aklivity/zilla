@@ -1274,13 +1274,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                 break;
 
             case "upgrade":
-                if (server.decoder != decodeHeadersOnly)
-                {
-                    error = ERROR_400_BAD_REQUEST;
-                }
-                else if ("h2c".equals(value))
+                if ("h2c".equals(value))
                 {
                     // TODO: h2c
+                }
+                else if (server.decoder != decodeHeadersOnly)
+                {
+                    error = ERROR_400_BAD_REQUEST;
                 }
                 else
                 {
