@@ -235,7 +235,7 @@ public abstract class AsyncapiCompositeGenerator
 
         protected class CatalogsHelper
         {
-            private final AsyncapiSchemaConfig schema;
+            protected final AsyncapiSchemaConfig schema;
 
             protected CatalogsHelper(
                 AsyncapiSchemaConfig schema)
@@ -459,6 +459,15 @@ public abstract class AsyncapiCompositeGenerator
                 Consumer<ModelConfig> injector,
                 AsyncapiMessageView message)
             {
+                String subject = "%s-%s-value".formatted(message.channel.name, message.name);
+                injectPayloadModel(injector, message, subject);
+            }
+
+            protected final void injectPayloadModel(
+                Consumer<ModelConfig> injector,
+                AsyncapiMessageView message,
+                String subject)
+            {
                 ModelConfig model = null;
 
                 if (message.payload instanceof AsyncapiSchemaView schema &&
@@ -475,8 +484,6 @@ public abstract class AsyncapiCompositeGenerator
                     message.contentType != null &&
                     modelContentType.reset(message.contentType).matches())
                 {
-                    final String subject = "%s-value".formatted(message.channel.address);
-
                     switch (modelContentType.group(1))
                     {
                     case "json":

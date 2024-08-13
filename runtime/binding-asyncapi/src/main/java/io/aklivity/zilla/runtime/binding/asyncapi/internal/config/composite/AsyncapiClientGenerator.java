@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -126,7 +127,17 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     message.bindings.kafka != null &&
                     message.bindings.kafka.key != null)
                 {
-                    final String subject = "%s-key".formatted(message.channel.address);
+                    Optional<AsyncapiServerView> serverRef = Stream.of(schema)
+                            .map(s -> s.asyncapi)
+                            .flatMap(v -> v.servers.stream())
+                            .filter(s -> s.bindings != null)
+                            .filter(s -> s.bindings.kafka != null)
+                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .findFirst();
+
+                    String subject = serverRef.isPresent()
+                        ? "%s-key".formatted(message.channel.address)
+                        : "%s-%s-key".formatted(message.channel.name, message.name);
 
                     options.schema()
                         .subject(subject)
@@ -342,6 +353,14 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 if (channel.hasMessages())
                 {
+                    Optional<AsyncapiServerView> serverRef = Stream.of(schema)
+                            .map(s -> s.asyncapi)
+                            .flatMap(v -> v.servers.stream())
+                            .filter(s -> s.bindings != null)
+                            .filter(s -> s.bindings.kafka != null)
+                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .findFirst();
+
                     channel.messages.stream()
                         .filter(m -> m.bindings != null && m.bindings.kafka != null && m.bindings.kafka.key != null)
                         .forEach(message ->
@@ -350,7 +369,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                     .name("catalog0")
                                     .schema()
                                         .version("latest")
-                                        .subject("%s-key".formatted(message.channel.address))
+                                        .subject(serverRef.isPresent()
+                                            ? "%s-key".formatted(message.channel.address)
+                                            : "%s-%s-key".formatted(message.channel.name, message.name))
                                         .build()
                                     .build()
                                 .build());
@@ -364,9 +385,20 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 if (channel.hasMessages())
                 {
-                    final AsyncapiMessageView message = channel.messages.get(0);
+                    Optional<AsyncapiServerView> serverRef = Stream.of(schema)
+                            .map(s -> s.asyncapi)
+                            .flatMap(v -> v.servers.stream())
+                            .filter(s -> s.bindings != null)
+                            .filter(s -> s.bindings.kafka != null)
+                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .findFirst();
 
-                    injectPayloadModel(topic::value, message);
+                    AsyncapiMessageView message = channel.messages.get(0);
+                    String subject = serverRef.isPresent()
+                        ? "%s-value".formatted(message.channel.address)
+                        : "%s-%s-value".formatted(message.channel.name, message.name);
+
+                    injectPayloadModel(topic::value, message, subject);
                 }
 
                 return topic;
