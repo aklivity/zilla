@@ -1651,6 +1651,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 streamsByInitialId.remove(s);
             });
             streams.clear();
+            signalerCorrelations.clear();
         }
 
         private void onConnectionSignal(
@@ -1808,11 +1809,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             doConnectionAbort(traceId);
             doConnectionReset(traceId);
 
-            streams.clear();
-            requests.clear();
-            responses.clear();
-            responseAcks.clear();
-            signalerCorrelations.clear();
+            cleanupStreams(traceId);
         }
 
         private void cleanupBudgetCreditorIfNecessary()
