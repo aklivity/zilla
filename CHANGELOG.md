@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.91...HEAD)
+
+**Implemented enhancements:**
+
+- Support `extract-key` kafka message transform [\#1176](https://github.com/aklivity/zilla/issues/1176)
+
 ## [0.9.91](https://github.com/aklivity/zilla/tree/0.9.91) (2024-08-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.90...0.9.91)
