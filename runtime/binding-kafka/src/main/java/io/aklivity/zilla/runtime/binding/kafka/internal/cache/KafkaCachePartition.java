@@ -124,7 +124,7 @@ public final class KafkaCachePartition
 
     private final Varint32FW varintRO = new Varint32FW();
     private final String32FW.Builder stringRW = new String32FW.Builder()
-        .wrap(new UnsafeBuffer(new byte[256]), 0, 256);;
+        .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =

@@ -800,14 +800,14 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
+                markEntryDirty(traceId, stream.partitionOffset);
                 flushClientFanInitialIfNecessary(traceId);
             }
             else
             {
                 error = ERROR_RECORD_LIST_TOO_LARGE;
+                markEntryDirty(traceId, stream.partitionOffset);
             }
-
-            markEntryDirty(traceId, stream.partitionOffset);
 
             if (error != NO_ERROR)
             {
