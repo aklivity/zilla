@@ -52,7 +52,7 @@ public final class AsyncapiMessageView
 
         final AsyncapiMessage resolved = resolver.operations.resolve(model);
 
-        this.name = model.ref;
+        this.name = resolver.operations.resolveName(model.ref);
         this.headers = resolved.headers != null
             ? new AsyncapiSchemaView(resolver, resolved.headers)
             : null;

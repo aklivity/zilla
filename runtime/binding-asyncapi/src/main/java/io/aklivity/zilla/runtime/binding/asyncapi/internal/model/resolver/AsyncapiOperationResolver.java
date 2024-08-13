@@ -52,4 +52,12 @@ public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<As
 
         return messages.resolve(resolvable);
     }
+
+    public String resolveName(
+        String ref)
+    {
+        return matcher.reset(ref).matches()
+            ? matcher.group(2)
+            : ref;
+    }
 }
