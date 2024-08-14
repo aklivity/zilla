@@ -21,6 +21,7 @@
     <module>binding-pgsql.spec</module>
 
     <module>binding-amqp</module>
+    <module>binding-pgsql</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -32,6 +33,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-pgsql</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

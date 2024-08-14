@@ -29,6 +29,7 @@
     "io.aklivity.zilla:binding-mqtt-kafka",
     "io.aklivity.zilla:binding-openapi",
     "io.aklivity.zilla:binding-openapi-asyncapi",
+    "io.aklivity.zilla:binding-pgsql",
     "io.aklivity.zilla:binding-proxy",
     "io.aklivity.zilla:binding-sse",
     "io.aklivity.zilla:binding-sse-kafka",
