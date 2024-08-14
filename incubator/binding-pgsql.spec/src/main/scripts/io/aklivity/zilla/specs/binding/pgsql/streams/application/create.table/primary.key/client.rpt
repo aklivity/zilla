@@ -31,10 +31,12 @@ read zilla:flush.ext ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .pgsqlCompleted()
                                 .tag("CREATE_TABLE")
+                                .build()
                               .build()}
 read zilla:flush.ext ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .pgsqlReady()
                                 .status(73)
+                                .build()
                               .build()}
 
