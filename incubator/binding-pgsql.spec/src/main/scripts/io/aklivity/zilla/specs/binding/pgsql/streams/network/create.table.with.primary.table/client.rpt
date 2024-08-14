@@ -23,11 +23,15 @@ connect "zilla://streams/net0"
 
 connected
 
-write 51                                # type
+write 51                                # type Q
       95                                # length
       "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
 
 
-read 43                                 # type
+read 43                                 # type C
      17                                 # length
      "CREATE_TABLE"                     # tag
+
+read 90                                 # type Z
+     5                                  # length
+     73                                 # tag

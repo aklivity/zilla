@@ -25,11 +25,14 @@ accepted
 
 connected
 
-read 51                                # type
+read 51                                # type Q
      95                                # length
      "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
 
-write 43                                 # type
+write 43                                 # type C
       17                                 # length
       "CREATE_TABLE"                     # tag
 
+write 90                                 # type Z
+      5                                  # length
+      73                                 # tag

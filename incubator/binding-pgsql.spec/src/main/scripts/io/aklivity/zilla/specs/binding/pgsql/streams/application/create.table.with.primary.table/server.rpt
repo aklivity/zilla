@@ -26,13 +26,13 @@ connected
 
 read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
-                              .pgsqlQuery()
+                              .query()
                               .build()}
 "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
 
 write zilla:flush.ext ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .pgsqlCompleted()
+                              .completed()
                                 .tag("CREATE_TABLE")
                                 .build()
                               .build()}
@@ -40,8 +40,8 @@ write flush
 
 write zilla:flush.ext ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .pgsqlReady()
-                                .status(73)
+                              .ready()
+                                .status("IDLE")
                                 .build()
                               .build()}
 write flush
