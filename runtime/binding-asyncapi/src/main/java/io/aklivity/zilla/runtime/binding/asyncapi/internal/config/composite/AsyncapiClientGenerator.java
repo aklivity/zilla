@@ -336,14 +336,17 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 AsyncapiChannelView channel,
                 List<KafkaTopicConfig> topics)
             {
-                Optional<KafkaTopicConfig> topicConfig = topics.stream()
-                    .filter(t -> t.name.equals(channel.address))
-                    .findFirst();
-                topicConfig.ifPresent(kafkaTopicConfig -> topic
-                            .transforms()
-                                .extractKey(kafkaTopicConfig.transforms.extractKey)
-                                .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                                .build());
+                if (topics != null)
+                {
+                    Optional<KafkaTopicConfig> topicConfig = topics.stream()
+                        .filter(t -> t.name.equals(channel.address))
+                        .findFirst();
+                    topicConfig.ifPresent(kafkaTopicConfig -> topic
+                        .transforms()
+                        .extractKey(kafkaTopicConfig.transforms.extractKey)
+                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                        .build());
+                }
                 return topic;
             }
 
