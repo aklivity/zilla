@@ -14,5 +14,53 @@
  */
 scope pgsql
 {
-	
+    scope stream
+    {
+        union PgsqlDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 68: pgsql::stream::PgsqlRowDataEx row;
+            case 81: pgsql::stream::PgsqlQueryDataEx query;
+        }
+
+        struct PgsqlQueryDataEx
+        {
+        }
+
+        struct PgsqlRowDataEx
+        {
+        }
+
+        union PgsqlFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 84: pgsql::stream::PgsqlTypeFlushEx type;
+            case 67: pgsql::stream::PgsqlCompletedFlushEx completion;
+            case 90: pgsql::stream::PgsqlReadyFlushEx ready;
+        }
+
+        struct PgsqlColumnInfo
+        {
+            string16 name;
+            int32 tableOid;
+            int16 index;
+            int32 typeOid;
+            int16 length;
+            int16 modifier; 
+            int16 text;
+        }
+
+        struct PgsqlTypeFlushEx
+        {
+            PgsqlColumnInfo[] columns;
+        }
+
+        struct PgsqlCompletedFlushEx
+        {
+            string16 tag;
+        }
+
+        struct PgsqlReadyFlushEx
+        {
+            int32 status;
+        }
+    }
 }
