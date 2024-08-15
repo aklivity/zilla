@@ -74,7 +74,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .deferred(102400 - 8192 + 512 + 512)
-                                  .timestamp(newTimestamp)
+                                  .timestamp(1716424650323)
                                   .build()
                               .build()}
 write zilla:data.ext ${kafka:dataEx()
