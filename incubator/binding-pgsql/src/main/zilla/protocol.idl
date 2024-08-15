@@ -18,9 +18,18 @@ scope protocol
 
     scope codec
     {
-        struct GrpcMessage
+        enum PgsqlType (uint8)
         {
-            uint8 flag;
+            QUERY (81),
+            ROW (68),
+            TYPE (84),
+            COMPLETION (67),
+            READY (90)
+        }
+
+        struct PgsqlMessage
+        {
+            PgsqlType type;
             int32 length;
         }
     }

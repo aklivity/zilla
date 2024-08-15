@@ -12,16 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-scope protocol
-{
-    option byteorder network;
+package io.aklivity.zilla.runtime.binding.pgsql.internal.stream;
 
-    scope codec
-    {
-        struct GrpcMessage
-        {
-            uint8 flag;
-            int32 length;
-        }
-    }
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public interface PgsqlStreamFactory extends BindingHandler
+{
+    void attach(
+        BindingConfig binding);
+
+    void detach(
+        long bindingId);
 }
