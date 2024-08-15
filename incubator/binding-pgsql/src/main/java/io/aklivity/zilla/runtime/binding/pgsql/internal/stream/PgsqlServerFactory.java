@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.EnumMap;
+import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -36,10 +37,11 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlType;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlTypeFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -67,11 +69,11 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
-    private final ChallengeFW challengeRO = new ChallengeFW();
 
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+
+    private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
 
     private final PgsqlMessageFW messageRO = new PgsqlMessageFW();
 
@@ -172,7 +174,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     originId,
                     routedId,
                     initialId,
-                    route.id)::onMessage;
+                    route.id)::onNetworkMessage;
             }
         }
 
@@ -195,6 +197,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPadding;
 
         private long replySeq;
         private long replyAck;
@@ -225,7 +228,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             this.stream = new PgsqlStream(this, routedId, resolvedId);
         }
 
-        private void onMessage(
+        private void onNetworkMessage(
             final int msgTypeId,
             final DirectBuffer buffer,
             final int index,
@@ -259,11 +262,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onWindow(window);
-                break;
-            case ChallengeFW.TYPE_ID:
-                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
-                onChallenge(challenge);
+                onNetworkWindow(window);
                 break;
             default:
                 // ignore
@@ -288,7 +287,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            stream.doAppBegin(traceId, authorization, affinity);
+            stream.doApplicationBegin(traceId, authorization, affinity);
         }
 
         private void onNetworkData(
@@ -403,7 +402,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     authorization, extension);
         }
 
-        private void onWindow(
+        private void onNetworkWindow(
             final WindowFW window)
         {
             final long originId = window.originId();
@@ -419,31 +418,48 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     budgetId, padding);
         }
 
-        private void onChallenge(
-            ChallengeFW challenge)
+        private void doNetworkBegin(
+            long traceId,
+            long authorization,
+            long affinity)
         {
-            final long originId = challenge.originId();
-            final long routedId = challenge.routedId();
-            final long sequence = challenge.sequence();
-            final long acknowledge = challenge.acknowledge();
-            final int maximum = challenge.maximum();
-            final long traceId = challenge.traceId();
-            final long authorization = challenge.authorization();
-            final OctetsFW extension = challenge.extension();
+            doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, EMPTY_OCTETS);
 
-            doChallenge(network, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.openReply(state);
         }
 
         private void doNetworkWindow(
             long traceId,
             long authorization,
             long budgetId,
-            int padding,
-            int maximum)
+            int pendingAck,
+            int paddingMin)
         {
-            doWindow(network, originId, routedId, initialId, initialSeq, initialAck, maximum,
-                    traceId, budgetId, padding);
+            long initialAckMax = Math.max(initialSeq - pendingAck, initialAck);
+            if (initialAckMax > initialAck || stream.initialMax > initialMax)
+            {
+                initialAck = initialAckMax;
+                initialMax = stream.initialMax;
+                initialPadding = paddingMin;
+                assert initialAck <= initialSeq;
+
+
+                final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                        .originId(originId)
+                        .routedId(routedId)
+                        .streamId(initialId)
+                        .sequence(initialSeq)
+                        .acknowledge(initialAck)
+                        .maximum(initialMax)
+                        .traceId(traceId)
+                        .authorization(authorization)
+                        .budgetId(budgetId)
+                        .padding(initialPadding)
+                        .build();
+
+                network.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+            }
         }
 
         private void doNetworkResetAndAbort(
@@ -517,10 +533,22 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             if (!PgsqlState.initialClosed(state))
             {
-                doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, initialMax);
+                doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, initialPadding);
             }
 
             return progress;
+        }
+
+        private void onDecodeMessageQuery(
+            long traceId,
+            long authorization,
+            OctetsFW value)
+        {
+            Consumer<OctetsFW.Builder> queryEx = e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
+                .typeId(pgsqlTypeId)
+                .query(PgsqlQueryDataExFW.Builder::build)
+                .build().sizeof());
+            stream.doApplicationData(traceId, authorization, value, queryEx);
         }
 
         private void cleanupNetwork(
@@ -593,7 +621,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
-        private void onMessage(
+        private void onApplicationMessage(
             final int msgTypeId,
             final DirectBuffer buffer,
             final int index,
@@ -629,10 +657,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onApplicationWindow(window);
                 break;
-            case ChallengeFW.TYPE_ID:
-                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
-                onApplicationChallenge(challenge);
-                break;
             default:
                 // ignore
                 break;
@@ -642,18 +666,11 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         private void onApplicationBegin(
             final BeginFW begin)
         {
-            final long originId = begin.originId();
-            final long routedId = begin.routedId();
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
-            final int maximum = begin.maximum();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
-            final OctetsFW extension = begin.extension();
 
-            doBegin(application, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, affinity, extension);
+            server.doNetworkBegin(traceId, authorization, affinity);
         }
 
         private void onApplicationData(
@@ -745,36 +762,29 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         private void onApplicationWindow(
             final WindowFW window)
         {
-            final long originId = window.originId();
-            final long routedId = window.routedId();
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            doWindow(application, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
-                    budgetId, padding);
+            assert acknowledge <= sequence;
+            assert acknowledge >= initialAck;
+            assert maximum + acknowledge >= initialMax + initialAck;
+
+            initialBudgetId = budgetId;
+            initialAck = acknowledge;
+            initialMax = maximum;
+            initialPad = padding;
+
+            assert initialAck <= initialSeq;
+
+            server.doNetworkWindow(traceId, authorization, budgetId, (int)(initialSeq - initialAck), initialPad);
         }
 
-        private void onApplicationChallenge(
-            ChallengeFW challenge)
-        {
-            final long originId = challenge.originId();
-            final long routedId = challenge.routedId();
-            final long sequence = challenge.sequence();
-            final long acknowledge = challenge.acknowledge();
-            final int maximum = challenge.maximum();
-            final long traceId = challenge.traceId();
-            final long authorization = challenge.authorization();
-            final OctetsFW extension = challenge.extension();
-
-            doChallenge(application, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
-        }
-
-        private void doAppBegin(
+        private void doApplicationBegin(
                 long traceId,
                 long authorization,
                 long affinity)
@@ -792,22 +802,20 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     .extension(EMPTY_OCTETS)
                     .build();
 
-            application =
-                streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), this::onMessage);
+            application = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(),
+                    this::onApplicationMessage);
 
             application.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
         }
 
-        private void doAppData(
+        private void doApplicationData(
             long traceId,
             long authorization,
-            int flags,
-            int maskingKey,
-            OctetsFW payload)
+            OctetsFW payload,
+            Consumer<OctetsFW.Builder> extension)
         {
             final int reserved = payload.sizeof() + initialPad;
 
-            final int capacity = payload.sizeof();
             final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
@@ -820,7 +828,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     .budgetId(initialBudgetId)
                     .reserved(reserved)
                     .payload(payload)
-                    .extension(EMPTY_OCTETS)
+                    .extension(extension)
                     .build();
 
             application.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
@@ -829,7 +837,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doAppEnd(
+        private void doApplicationEnd(
             long traceId,
             long authorization,
             short code)
@@ -849,7 +857,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             application.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
         }
 
-        private void doAppAbort(
+        private void doApplicationAbort(
             long traceId,
             long authorization,
             short code)
@@ -869,7 +877,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             application.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
         }
 
-        private void doAppFlush(
+        private void doApplicationFlush(
             long traceId,
             long authorization,
             long budgetId,
@@ -891,7 +899,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             application.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
         }
 
-        private void doAppReset(
+        private void doApplicationReset(
             long traceId,
             long authorization)
         {
@@ -909,27 +917,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             application.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
         }
 
-        private void doAppChallenge(
-            long traceId,
-            long authorization,
-            OctetsFW extension)
-        {
-            final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(replyId)
-                    .sequence(replySeq)
-                    .acknowledge(replyAck)
-                    .maximum(replyMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .extension(extension)
-                    .build();
-
-            application.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
-        }
-
-        private void doAppWindow(
+        private void doApplicationWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -1166,33 +1154,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private void doChallenge(
-        final MessageConsumer sender,
-        final long originId,
-        final long routedId,
-        final long streamId,
-        final long sequence,
-        final long acknowledge,
-        final int maximum,
-        final long traceId,
-        final long authorization,
-        final OctetsFW extension)
-    {
-        final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(extension)
-                .build();
-
-        sender.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
-    }
-
     private int decodePgsqlFrameType(
         PgsqlServer server,
         long traceId,
@@ -1210,7 +1171,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final int length = pgsqlMessage.length();
             final PgsqlServerDecoder decoder = decodersByMessageType.getOrDefault(type, decodePgsqlIgnoreOne);
 
-            if (limit - pgsqlMessage.limit() >= length)
+            if (limit - pgsqlMessage.limit() >= length + 1)
             {
                 server.decoder = decoder;
             }
@@ -1230,19 +1191,12 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     {
         final PgsqlMessageFW pgsqlMessage = messageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlMessage != null)
-        {
-            final PgsqlTypeFW type = pgsqlMessage.type();
-            final int length = pgsqlMessage.length();
-            final PgsqlServerDecoder decoder = decodersByMessageType.getOrDefault(type, decodePgsqlIgnoreOne);
+        assert pgsqlMessage != null;
 
-            if (limit - pgsqlMessage.limit() >= length)
-            {
-                server.decoder = decoder;
-            }
-        }
+        server.onDecodeMessageQuery(traceId, authorization, pgsqlMessage.value());
+        server.decoder = decodePgsqlFrameType;
 
-        return offset;
+        return pgsqlMessage.limit();
     }
 
     private int decodePgsqlIgnoreOne(

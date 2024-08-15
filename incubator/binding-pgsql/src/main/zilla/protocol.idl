@@ -30,7 +30,8 @@ scope protocol
         struct PgsqlMessage
         {
             PgsqlType type;
-            int32 length;
+            varint32 length;
+            octets[length] value;
         }
     }
 }
