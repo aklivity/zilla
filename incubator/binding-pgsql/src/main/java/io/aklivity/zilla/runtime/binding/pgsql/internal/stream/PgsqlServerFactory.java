@@ -82,6 +82,7 @@ public final class PgsqlServerFactory implements BindingHandler
     private final int decodeMax;
 
     private final PgsqlServerDecoder decodePgsqlFrameType = this::decodePgsqlFrameType;
+    private final PgsqlServerDecoder decodePgsqlQuery = this::decodePgsqlMessageQuery;
     private final PgsqlServerDecoder decodePgsqlIgnoreOne = this::decodePgsqlIgnoreOne;
     private final PgsqlServerDecoder decodePgsqlIgnoreAll = this::decodePgsqlIgnoreAll;
 
@@ -89,6 +90,7 @@ public final class PgsqlServerFactory implements BindingHandler
 
     {
         final EnumMap<PgsqlType, PgsqlServerDecoder> decodersByMessageType = new EnumMap<>(PgsqlType.class);
+        decodersByMessageType.put(PgsqlType.QUERY, decodePgsqlQuery);
         this.decodersByMessageType = decodersByMessageType;
     }
 
@@ -963,6 +965,32 @@ public final class PgsqlServerFactory implements BindingHandler
     }
 
     private int decodePgsqlFrameType(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        final PgsqlMessageFW pgsqlMessage = messageRO.tryWrap(buffer, offset, limit);
+
+        if (pgsqlMessage != null)
+        {
+            final PgsqlTypeFW type = pgsqlMessage.type();
+            final int length = pgsqlMessage.length();
+            final PgsqlServerDecoder decoder = decodersByMessageType.getOrDefault(type, decodePgsqlIgnoreOne);
+
+            if (limit - pgsqlMessage.limit() >= length)
+            {
+                server.decoder = decoder;
+            }
+        }
+
+        return offset;
+    }
+
+    private int decodePgsqlMessageQuery(
         PgsqlServer server,
         long traceId,
         long authorization,
