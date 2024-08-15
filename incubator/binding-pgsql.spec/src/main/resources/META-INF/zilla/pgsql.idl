@@ -16,6 +16,15 @@ scope pgsql
 {
     scope stream
     {
+        enum PgsqlType (uint16)
+        {
+            QUERY (81),
+            ROW (68),
+            TYPE (84),
+            COMPLETION (67),
+            READY (90)
+        }
+
         union PgsqlDataEx switch (uint8) extends core::stream::Extension
         {
             case 68: pgsql::stream::PgsqlRowDataEx row;
