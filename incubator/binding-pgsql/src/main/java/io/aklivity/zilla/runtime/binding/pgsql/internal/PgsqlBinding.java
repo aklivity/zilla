@@ -19,9 +19,9 @@ import java.net.URL;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
-final class PgsqlBinding implements Binding
+public final class PgsqlBinding implements Binding
 {
-    static final String NAME = "echo";
+    public static final String NAME = "pgsql";
 
     private final PgsqlConfiguration config;
 

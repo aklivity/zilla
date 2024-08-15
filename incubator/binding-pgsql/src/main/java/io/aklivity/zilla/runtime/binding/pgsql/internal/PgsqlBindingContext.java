@@ -20,6 +20,7 @@ import static java.util.Collections.singletonMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.pgsql.internal.stream.PgsqlServerFactory;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.stream.PgsqlStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -28,30 +29,39 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class PgsqlBindingContext implements BindingContext
 {
-    private final PgsqlRouter router;
-    private final Map<KindConfig, BindingHandler> factories;
+    private final Map<KindConfig, PgsqlStreamFactory> factories;
 
     PgsqlBindingContext(
         PgsqlConfiguration config,
         EngineContext context)
     {
-        this.router = new PgsqlRouter();
-        this.factories = singletonMap(SERVER, new PgsqlServerFactory(config, context, router));
+        this.factories = singletonMap(SERVER, new PgsqlServerFactory(config, context));
     }
 
     @Override
     public BindingHandler attach(
         BindingConfig binding)
     {
-        router.attach(binding);
-        return factories.get(binding.kind);
+        PgsqlStreamFactory factory = factories.get(binding.kind);
+
+        if (factory != null)
+        {
+            factory.attach(binding);
+        }
+
+        return factory;
     }
 
     @Override
     public void detach(
         BindingConfig binding)
     {
-        router.detach(binding.id);
+        PgsqlStreamFactory factory = factories.get(binding.kind);
+
+        if (factory != null)
+        {
+            factory.detach(binding.id);
+        }
     }
 
     @Override
