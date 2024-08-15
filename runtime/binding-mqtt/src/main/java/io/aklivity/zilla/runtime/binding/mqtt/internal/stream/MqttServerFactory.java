@@ -2949,7 +2949,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 this.sessionId = sessionAuth;
 
-                this.session = new MqttSessionStream(originId, resolved.id, 0);
+                this.session = new MqttSessionStream(routedId, resolved.id, 0);
 
                 final int capabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
                     ? REDIRECT_MASK : 0;
