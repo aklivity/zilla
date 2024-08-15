@@ -20,8 +20,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlRowDataExFW;
-
-public final class PgsqlFunctions
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlType;
+unctions
 {
     public static final class PgsqlDataExBuilder
     {
@@ -45,9 +45,16 @@ public final class PgsqlFunctions
 
         public PgsqlQueryDataExBuilder query()
         {
-            dataExRW.kind(81);
+            dataExRW.kind(PgsqlType.QUERY.value());
 
             return new PgsqlQueryDataExBuilder();
+        }
+
+        public PgsqlRowDataExBuilder row()
+        {
+            dataExRW.kind(PgsqlType.ROW.value());
+
+            return new PgsqlRowDataExBuilder();
         }
 
         public byte[] build()
@@ -86,8 +93,8 @@ public final class PgsqlFunctions
 
             public PgsqlDataExBuilder build()
             {
-                final PgsqlRowDataExFW pgsqlQueryDataEx = pgsqlRowDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, pgsqlQueryDataEx.limit());
+                final PgsqlRowDataExFW pgsqlRowDataEx = pgsqlRowDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, pgsqlRowDataEx.limit());
                 return PgsqlDataExBuilder.this;
             }
         }
