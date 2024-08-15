@@ -39,6 +39,12 @@ public final class PgsqlFunctions
         return new PgsqlDataExBuilder();
     }
 
+    @Function
+    public static PgsqlFlushExBuilder flushEx()
+    {
+        return new PgsqlFlushExBuilder();
+    }
+
     public static final class PgsqlDataExBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -270,7 +276,7 @@ public final class PgsqlFunctions
                 pgsqlCompletedFlushExRW.wrap(writeBuffer, PgsqlFlushExFW.FIELD_OFFSET_TYPE, writeBuffer.capacity());
             }
 
-            private PgsqlCompletedFlushExBuilder tag(
+            public PgsqlCompletedFlushExBuilder tag(
                 String tag)
             {
                 pgsqlCompletedFlushExRW.tag(tag);
@@ -294,7 +300,7 @@ public final class PgsqlFunctions
                 pgsqlReadyFlushExRW.wrap(writeBuffer, PgsqlFlushExFW.FIELD_OFFSET_TYPE, writeBuffer.capacity());
             }
 
-            private PgsqlReadyFlushExBuilder status(
+            public PgsqlReadyFlushExBuilder status(
                 String status)
             {
                 pgsqlReadyFlushExRW.status(s -> s.set(PgsqlStatus.valueOf(status)));
