@@ -46,7 +46,11 @@ scope pgsql
             case 90: pgsql::stream::PgsqlReadyFlushEx ready;
         }
 
-        enum PgsqlFormat (uint16) { TEXT(0), BINARY(1) }
+        enum PgsqlFormat (uint16)
+        {
+            TEXT(0),
+            BINARY(1)
+        }
 
         struct PgsqlColumnInfo
         {

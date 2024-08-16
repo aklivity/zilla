@@ -54,6 +54,7 @@ import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlTypeFlushExFW;
 
 public final class PgsqlServerFactory implements PgsqlStreamFactory
 {
@@ -772,6 +773,9 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             switch (pgsqlFlushEx.kind())
             {
+            case PgsqlFlushExFW.KIND_TYPE:
+                doEncodeType(traceId, authorization, pgsqlFlushEx.type());
+                break;
             case PgsqlFlushExFW.KIND_COMPLETION:
                 doEncodeCompleted(traceId, authorization, pgsqlFlushEx.completion());
                 break;
@@ -946,13 +950,55 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             }
         }
 
+        private void doEncodeType(
+            long traceId,
+            long authorization,
+            PgsqlTypeFlushExFW type)
+        {
+            final MutableInteger typeOffset = new MutableInteger(0);
+
+            PgsqlMessageFW messageType = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                .kind(k -> k.set(PgsqlMessageKind.TYPE))
+                .length(0)
+                .build();
+            typeOffset.getAndAdd(messageType.limit());
+
+            frameBuffer.putShort(typeOffset.value, (short) type.columns().fieldCount());
+            typeOffset.getAndAdd(Short.BYTES);
+
+            type.columns().forEach(c ->
+            {
+                final DirectBuffer nameBuffer = c.name().value();
+                final int nameSize = nameBuffer.capacity();
+
+                frameBuffer.putBytes(typeOffset.value, nameBuffer, 0, nameSize);
+                typeOffset.getAndAdd(nameSize);
+                frameBuffer.putByte(typeOffset.value, (byte) 0x00);
+                typeOffset.getAndAdd(Byte.BYTES);
+                frameBuffer.putInt(typeOffset.value, c.tableOid());
+                typeOffset.getAndAdd(Integer.BYTES);
+                frameBuffer.putShort(typeOffset.value, c.index());
+                typeOffset.getAndAdd(Short.BYTES);
+                frameBuffer.putInt(typeOffset.value, c.typeOid());
+                typeOffset.getAndAdd(Integer.BYTES);
+                frameBuffer.putShort(typeOffset.value, c.length());
+                typeOffset.getAndAdd(Short.BYTES);
+                frameBuffer.putShort(typeOffset.value, c.modifier());
+                typeOffset.getAndAdd(Short.BYTES);
+                frameBuffer.putShort(typeOffset.value, (short) c.format().get().value());
+                typeOffset.getAndAdd(Short.BYTES);
+            });
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, typeOffset.value);
+        }
+
         private void doEncodeCompleted(
             long traceId,
             long authorization,
             PgsqlCompletedFlushExFW completion)
         {
             final DirectBuffer tagBuffer = completion.tag().value();
-            final int tagSize = completion.tag().value().capacity();
+            final int tagSize = tagBuffer.capacity();
 
             int completionOffset = 0;
 
@@ -964,6 +1010,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             frameBuffer.putBytes(completionOffset, tagBuffer, 0, tagSize);
             completionOffset += tagSize;
+            frameBuffer.putByte(completionOffset, (byte) 0x00);
+            completionOffset += Byte.BYTES;
 
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, completionOffset);
         }
