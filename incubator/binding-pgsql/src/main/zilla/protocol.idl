@@ -30,8 +30,15 @@ scope protocol
         struct PgsqlMessage
         {
             PgsqlType type;
-            varint32 length;
-            octets[length] value;
+            int32 length;
+            octets value;
+        }
+
+        struct PgsqlCompletion
+        {
+            PgsqlType type = ;
+            int32 length;
+            octets tag;
         }
     }
 }
