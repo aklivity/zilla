@@ -359,49 +359,36 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         private void onNetworkEnd(
             final EndFW end)
         {
-            final long originId = end.originId();
-            final long routedId = end.routedId();
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final int maximum = end.maximum();
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            final OctetsFW extension = end.extension();
 
-            doEnd(network, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeInitial(state);
+
+            cleanupDecodeSlotIfNecessary();
+
+            stream.doApplicationEnd(traceId, authorization);
         }
 
         private void onNetworkAbort(
             final AbortFW abort)
         {
-            final long originId = abort.originId();
-            final long routedId = abort.routedId();
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final int maximum = abort.maximum();
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
-            final OctetsFW extension = abort.extension();
 
-            doAbort(network, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeInitial(state);
+
+            stream.doApplicationAbort(traceId, authorization);
         }
 
         private void onNetworkReset(
             final ResetFW reset)
         {
-            final long originId = reset.originId();
-            final long routedId = reset.routedId();
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final int maximum = reset.maximum();
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
-            final OctetsFW extension = reset.extension();
 
-            doReset(network, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeReply(state);
+
+            stream.doApplicationReset(traceId, authorization);
         }
 
         private void onNetworkWindow(
@@ -485,23 +472,36 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doNetworkAbort(traceId, authorization);
         }
 
+        private void doNetworkEnd(
+            long traceId,
+            long authorization)
+        {
+            state = PgsqlState.closeReply(state);
+
+            doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, EMPTY_OCTETS);
+        }
+
         private void doNetworkAbort(
             long traceId,
             long authorization)
         {
+            state = PgsqlState.closeReply(state);
+
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, EMPTY_OCTETS);
-            state = PgsqlState.closeReply(state);
         }
 
         private void doNetworkReset(
             long traceId,
             long authorization)
         {
-            cleanupDecodeSlotIfNecessary();
+            state = PgsqlState.closingInitial(state);
+
             doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_OCTETS);
-            state = PgsqlState.closeInitial(state);
+
+            cleanupDecodeSlotIfNecessary();
         }
 
         private int decodeNetwork(
@@ -598,7 +598,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization,
             LongLongConsumer cleanupHandler)
         {
-            //TODO: add cleanup
+            cleanupHandler.accept(traceId, authorization);
+            stream.doApplicationAbortAndReset(traceId, authorization);
         }
 
         private void cleanupDecodeSlotIfNecessary()
@@ -786,49 +787,34 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         private void onApplicationEnd(
             final EndFW end)
         {
-            final long originId = end.originId();
-            final long routedId = end.routedId();
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final int maximum = end.maximum();
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            final OctetsFW extension = end.extension();
 
-            doEnd(application, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeReply(state);
+
+            server.doNetworkEnd(traceId, authorization);
         }
 
         private void onApplicationAbort(
             final AbortFW abort)
         {
-            final long originId = abort.originId();
-            final long routedId = abort.routedId();
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final int maximum = abort.maximum();
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
-            final OctetsFW extension = abort.extension();
 
-            doAbort(application, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeReply(state);
+
+            server.doNetworkAbort(traceId, authorization);
         }
 
         private void onApplicationReset(
             final ResetFW reset)
         {
-            final long originId = reset.originId();
-            final long routedId = reset.routedId();
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final int maximum = reset.maximum();
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
-            final OctetsFW extension = reset.extension();
 
-            doReset(application, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
-                    authorization, extension);
+            state = PgsqlState.closeInitial(state);
+
+            server.doNetworkReset(traceId, authorization);
         }
 
         private void onApplicationWindow(
@@ -901,81 +887,40 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
         private void doApplicationEnd(
             long traceId,
-            long authorization,
-            short code)
+            long authorization)
         {
-            final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(initialId)
-                    .sequence(initialSeq)
-                    .acknowledge(initialAck)
-                    .maximum(initialMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .extension(EMPTY_OCTETS)
-                    .build();
+            doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, EMPTY_OCTETS);
 
-            application.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+            state = PgsqlState.closeInitial(state);
         }
 
         private void doApplicationAbort(
             long traceId,
-            long authorization,
-            short code)
+            long authorization)
         {
-            final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(initialId)
-                    .sequence(initialSeq)
-                    .acknowledge(initialAck)
-                    .maximum(initialMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .build();
+            state = PgsqlState.closeInitial(state);
 
-            application.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-        }
-
-        private void doApplicationFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved)
-        {
-            final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(initialId)
-                    .sequence(initialSeq)
-                    .acknowledge(initialAck)
-                    .maximum(initialMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .budgetId(budgetId)
-                    .reserved(reserved)
-                    .build();
-
-            application.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+            doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, EMPTY_OCTETS);
         }
 
         private void doApplicationReset(
             long traceId,
             long authorization)
         {
-            final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(replyId)
-                    .sequence(replySeq)
-                    .acknowledge(replyAck)
-                    .maximum(replyMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .build();
+            state = PgsqlState.closeReply(state);
 
-            application.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+            doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, EMPTY_OCTETS);
+        }
+
+        private void doApplicationAbortAndReset(
+            long traceId,
+            long authorization)
+        {
+            doApplicationAbort(traceId, authorization);
+            doApplicationReset(traceId, authorization);
         }
 
         private void doApplicationWindow(
@@ -996,20 +941,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
                 state = PgsqlState.openReply(state);
 
-                final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .originId(originId)
-                        .routedId(routedId)
-                        .streamId(replyId)
-                        .sequence(replySeq)
-                        .acknowledge(replyAck)
-                        .maximum(replyMax)
-                        .traceId(traceId)
-                        .authorization(authorization)
-                        .budgetId(budgetId)
-                        .padding(replyPad)
-                        .build();
-
-                application.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+                doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, replyPad);
             }
         }
 
@@ -1121,39 +1054,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-
-
-    private void doFlush(
-        final MessageConsumer receiver,
-        final long originId,
-        final long routedId,
-        final long streamId,
-        final long sequence,
-        final long acknowledge,
-        final int maximum,
-        final long traceId,
-        final long authorization,
-        final long budgetId,
-        final int reserved,
-        final OctetsFW extension)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension)
-                .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
-    }
-
     private void doAbort(
         final MessageConsumer receiver,
         final long originId,
@@ -1244,6 +1144,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         final long acknowledge,
         final int maximum,
         final long traceId,
+        long authorization,
         final long budgetId,
         final int padding)
     {
@@ -1255,6 +1156,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .budgetId(budgetId)
                 .padding(padding)
                 .build();
