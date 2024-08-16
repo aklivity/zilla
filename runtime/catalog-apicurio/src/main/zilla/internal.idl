@@ -16,7 +16,13 @@ scope internal
 {
     option byteorder network;
 
-    struct ApicurioPrefix
+    struct ApicurioDefaultId
+    {
+        uint8 magic = 0;
+        int64 schemaId;
+    }
+
+    struct ApicurioLegacyId
     {
         uint8 magic = 0;
         int32 schemaId;
