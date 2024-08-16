@@ -16,7 +16,7 @@ scope pgsql
 {
     scope stream
     {
-        enum PgsqlType (uint16)
+        enum PgsqlMessageKind (uint16)
         {
             QUERY (81),
             ROW (68),
@@ -69,7 +69,7 @@ scope pgsql
             string16 tag;
         }
 
-        enum PgsqlStatus (uint32)
+        enum PgsqlStatus (uint8)
         {
             IDLE(73),
             TRANSACTION(84),

@@ -18,7 +18,7 @@ scope protocol
 
     scope codec
     {
-        enum PgsqlType (uint8)
+        enum PgsqlMessageKind (uint8)
         {
             QUERY (81),
             ROW (68),
@@ -29,16 +29,8 @@ scope protocol
 
         struct PgsqlMessage
         {
-            PgsqlType type;
+            PgsqlMessageKind kind;
             int32 length;
-            octets value;
-        }
-
-        struct PgsqlCompletion
-        {
-            PgsqlType type = ;
-            int32 length;
-            octets tag;
         }
     }
 }
