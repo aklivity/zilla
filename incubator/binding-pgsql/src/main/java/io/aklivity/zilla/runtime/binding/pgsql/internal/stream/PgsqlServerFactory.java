@@ -88,6 +88,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
+    private final PgsqlDataExFW pgsqlDataExRO = new PgsqlDataExFW();
     private final PgsqlFlushExFW pgsqlFlushExRO = new PgsqlFlushExFW();
 
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
@@ -729,14 +730,20 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             }
             else
             {
-                final OctetsFW payload = data.payload();
+                final OctetsFW extension = data.extension();
+                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
 
-                if (payload != null)
+                final PgsqlDataExFW pgsqlDataEx = dataEx != null && dataEx.typeId() == pgsqlTypeId ?
+                        extension.get(pgsqlDataExRO::tryWrap) : null;
+
+                if (pgsqlDataEx.kind() == PgsqlDataExFW.KIND_ROW)
                 {
-                    final int flags = data.flags();
-                    final int length = data.length();
+                    final OctetsFW payload = data.payload();
 
-                    //TODO: work on row encoding
+                    if (payload != null)
+                    {
+                        doEncodeRow(traceId, authorization, payload);
+                    }
                 }
             }
         }
@@ -990,6 +997,28 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             });
 
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, typeOffset.value);
+        }
+
+        private void doEncodeRow(
+            long traceId,
+            long authorization,
+            OctetsFW row)
+        {
+            final DirectBuffer rowBuffer = row.value();
+            final int rowSize = rowBuffer.capacity();
+
+            int rowOffset = 0;
+
+            PgsqlMessageFW messageRow = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                .kind(k -> k.set(PgsqlMessageKind.ROW))
+                .length(rowSize + Integer.BYTES)
+                .build();
+            rowOffset += messageRow.limit();
+
+            frameBuffer.putBytes(rowOffset, rowBuffer, 0, rowSize);
+            rowOffset += rowSize;
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, rowOffset);
         }
 
         private void doEncodeCompleted(
