@@ -75,7 +75,6 @@ write [0x00 0x03]                                                 # Field Count
         [0x00 0x00 0x00 0x04]                                       # Length
         [0x5c 0x78 0x33 0x31]                                       # Data
 
-
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completed()

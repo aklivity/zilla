@@ -45,4 +45,13 @@ public class StreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/select.table/client",
+        "${app}/select.table/server" })
+    public void shouldSelectTable() throws Exception
+    {
+        k3po.finish();
+    }
 }
