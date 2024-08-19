@@ -32,21 +32,24 @@ write [0x54]                             # type T
       86                                 # length
       3s                                 # Field Count
          "balance"                           # Column name
-         [0x00]                              # Table OID
+         [0x00]                              # End of string
+         0                                   # Table OID
          0s                                  # Index
          701                                 # Type OID
          8s                                  # Length
          -1                                  # Modifier
          0s                                  # Format
          "timestamp"                         # Column name
-         [0x00]                              # Table OID
+         [0x00]                              # End of string
+         0                                   # Table OID
          0s                                  # Index
          20                                  # Type OID
          8s                                  # Length
          -1                                  # Modifier
          0s                                  # Format
          "user_id"                           # Column name
-         [0x00]                              # Table OID
+         [0x00]                              # End of string
+         0                                   # Table OID
          0s                                  # Index
          17                                  # Type OID
          -1s                                 # Length
@@ -67,6 +70,7 @@ write [0x44]                             # type D
 write [0x43]                             # type C
       13                                 # length
       "SELECT 1"                         # tag
+     [0x00]                              # End of string
 
 write [0x5a]                             # type Z
       5                                  # length

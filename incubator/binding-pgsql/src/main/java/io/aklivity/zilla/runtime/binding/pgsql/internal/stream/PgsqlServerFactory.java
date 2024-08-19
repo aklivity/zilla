@@ -1027,7 +1027,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             PgsqlMessageFW messageCompleted = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.COMPLETION))
-                .length(Integer.BYTES + tagSize)
+                .length(Integer.BYTES + tagSize + Byte.BYTES)
                 .build();
             completionOffset += messageCompleted.limit();
 

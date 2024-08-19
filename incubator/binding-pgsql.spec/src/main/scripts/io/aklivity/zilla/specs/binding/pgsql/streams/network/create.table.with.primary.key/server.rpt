@@ -29,8 +29,10 @@ read [0x51]                            # type Q
      "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
 
 write [0x43]                             # type C
-      16                                 # length
+      17                                 # length
       "CREATE_TABLE"                     # tag
+     [0x00]                              # End of string
+
 
 write [0x5a]                             # type Z
       5                                  # length
