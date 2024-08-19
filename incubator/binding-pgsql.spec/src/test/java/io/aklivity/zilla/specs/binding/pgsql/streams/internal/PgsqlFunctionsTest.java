@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.pgsql.streams.internal;
 
 import static io.aklivity.zilla.specs.binding.pgsql.PgsqlFunctions.dataEx;
+import static io.aklivity.zilla.specs.binding.pgsql.PgsqlFunctions.flushEx;
 
 import org.junit.Test;
 
@@ -22,13 +23,32 @@ import org.junit.Test;
 public class PgsqlFunctionsTest
 {
     @Test
-    public void shouldEncodePgsqlDataExtensionWithDeferred()
+    public void shouldEncodePgsqlDataQueryExtension()
     {
         final byte[] array = dataEx()
             .typeId(0)
             .query()
                 .build()
             .build();
+    }
+
+    @Test
+    public void shouldEncodePgsqlFlushTypeExtension()
+    {
+        final byte[] array = flushEx()
+                              .typeId(0)
+                              .type()
+                                .column()
+                                    .name("balance")
+                                    .tableOid(0)
+                                    .index((short) 0)
+                                    .typeOid(701)
+                                    .length((short) 8)
+                                    .modifier((short) -1)
+                                    .format("TEXT")
+                                    .build()
+                                .build()
+                              .build();
     }
 
 }

@@ -251,6 +251,7 @@ public final class PgsqlFunctions
                         .name(columnInfo.name())
                         .tableOid(columnInfo.tableOid())
                         .index(columnInfo.index())
+                        .typeOid(columnInfo.typeOid())
                         .length(columnInfo.length())
                         .modifier(columnInfo.modifier())
                         .format(columnInfo.format()));

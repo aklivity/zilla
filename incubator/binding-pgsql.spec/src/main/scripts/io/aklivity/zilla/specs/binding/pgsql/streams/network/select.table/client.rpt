@@ -1,0 +1,72 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property networkConnectWindow 8192
+
+connect "zilla://streams/net0"
+  option zilla:window ${networkConnectWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write [0x51]                            # type Q
+      28                               # length
+      "SELECT * FROM balances;"
+
+read [0x54]                             # type T
+     86                                 # length
+     3s                                 # Field Count
+        "balance"                           # Column name
+        [0x00]                              # Table OID
+        0s                                  # Index
+        701                                 # Type OID
+        8s                                  # Length
+        -1                                  # Modifier
+        0s                                  # Format
+        "timestamp"                         # Column name
+        [0x00]                              # Table OID
+        0s                                  # Index
+        20                                  # Type OID
+        8s                                  # Length
+        -1                                  # Modifier
+        0s                                  # Format
+        "user_id"                           # Column name
+        [0x00]                              # Table OID
+        0s                                  # Index
+        17                                  # Type OID
+        -1s                                 # Length
+        -1                                  # Modifier
+        0s                                  # Format
+
+read [0x44]                             # type D
+     36                                 # length
+     3s                                 # Field Count
+        4                                                           # Length
+        [0x31 0x39 0x36 0x34]                                       # Data
+        10                                                          # Length
+        [0x31 0x37 0x32 0x33 0x35 0x39 0x33 0x31 0x31 0x33]         # Data
+        4                                                           # Length
+        [0x5c 0x78 0x33 0x31]                                       # Data
+
+
+read [0x43]                             # type C
+     13                                 # length
+     "SELECT 1"                         # tag
+
+read [0x5a]                             # type Z
+     5                                  # length
+     [0x49]                             # tag
+

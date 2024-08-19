@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.pgsql.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
 
 import java.util.EnumMap;
@@ -100,7 +101,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer frameBuffer;
+    private final MutableDirectBuffer messageBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -129,7 +130,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.messageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -952,13 +953,13 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         {
             final MutableInteger typeOffset = new MutableInteger(0);
 
-            PgsqlMessageFW messageType = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            PgsqlMessageFW messageType = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.TYPE))
                 .length(0)
                 .build();
             typeOffset.getAndAdd(messageType.limit());
 
-            frameBuffer.putShort(typeOffset.value, (short) type.columns().fieldCount());
+            messageBuffer.putShort(typeOffset.value, (short) type.columns().fieldCount(), BIG_ENDIAN);
             typeOffset.getAndAdd(Short.BYTES);
 
             type.columns().forEach(c ->
@@ -966,25 +967,30 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 final DirectBuffer nameBuffer = c.name().value();
                 final int nameSize = nameBuffer.capacity();
 
-                frameBuffer.putBytes(typeOffset.value, nameBuffer, 0, nameSize);
+                messageBuffer.putBytes(typeOffset.value, nameBuffer, 0, nameSize);
                 typeOffset.getAndAdd(nameSize);
-                frameBuffer.putByte(typeOffset.value, (byte) 0x00);
+                messageBuffer.putByte(typeOffset.value, (byte) 0x00);
                 typeOffset.getAndAdd(Byte.BYTES);
-                frameBuffer.putInt(typeOffset.value, c.tableOid());
+                messageBuffer.putInt(typeOffset.value, c.tableOid(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Integer.BYTES);
-                frameBuffer.putShort(typeOffset.value, c.index());
+                messageBuffer.putShort(typeOffset.value, c.index(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Short.BYTES);
-                frameBuffer.putInt(typeOffset.value, c.typeOid());
+                messageBuffer.putInt(typeOffset.value, c.typeOid(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Integer.BYTES);
-                frameBuffer.putShort(typeOffset.value, c.length());
+                messageBuffer.putShort(typeOffset.value, c.length(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Short.BYTES);
-                frameBuffer.putShort(typeOffset.value, c.modifier());
-                typeOffset.getAndAdd(Short.BYTES);
-                frameBuffer.putShort(typeOffset.value, (short) c.format().get().value());
+                messageBuffer.putInt(typeOffset.value, c.modifier(), BIG_ENDIAN);
+                typeOffset.getAndAdd(Integer.BYTES);
+                messageBuffer.putShort(typeOffset.value, (short) c.format().get().value(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Short.BYTES);
             });
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, typeOffset.value);
+            messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .kind(k -> k.set(PgsqlMessageKind.TYPE))
+                .length(typeOffset.get() - Byte.BYTES)
+                .build();
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, typeOffset.value);
         }
 
         private void doEncodeRow(
@@ -997,16 +1003,16 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             int rowOffset = 0;
 
-            PgsqlMessageFW messageRow = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            PgsqlMessageFW messageRow = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.ROW))
                 .length(rowSize + Integer.BYTES)
                 .build();
             rowOffset += messageRow.limit();
 
-            frameBuffer.putBytes(rowOffset, rowBuffer, 0, rowSize);
+            messageBuffer.putBytes(rowOffset, rowBuffer, 0, rowSize);
             rowOffset += rowSize;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, rowOffset);
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, rowOffset);
         }
 
         private void doEncodeCompleted(
@@ -1019,18 +1025,18 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             int completionOffset = 0;
 
-            PgsqlMessageFW messageCompleted = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            PgsqlMessageFW messageCompleted = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.COMPLETION))
-                .length(tagSize + Integer.BYTES)
+                .length(Integer.BYTES + tagSize)
                 .build();
             completionOffset += messageCompleted.limit();
 
-            frameBuffer.putBytes(completionOffset, tagBuffer, 0, tagSize);
+            messageBuffer.putBytes(completionOffset, tagBuffer, 0, tagSize);
             completionOffset += tagSize;
-            frameBuffer.putByte(completionOffset, (byte) 0x00);
+            messageBuffer.putByte(completionOffset, (byte) 0x00);
             completionOffset += Byte.BYTES;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, completionOffset);
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, completionOffset);
         }
 
         private void doEncodeReady(
@@ -1040,16 +1046,16 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         {
             int readyOffset = 0;
 
-            PgsqlMessageFW messageReady = messageRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            PgsqlMessageFW messageReady = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.READY))
                 .length(ready.status().sizeof() + Integer.BYTES)
                 .build();
             readyOffset += messageReady.limit();
 
-            frameBuffer.putByte(messageReady.limit(), (byte) ready.status().get().value());
+            messageBuffer.putByte(messageReady.limit(), (byte) ready.status().get().value());
             readyOffset += Byte.BYTES;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, frameBuffer, 0, readyOffset);
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, readyOffset);
         }
     }
 
