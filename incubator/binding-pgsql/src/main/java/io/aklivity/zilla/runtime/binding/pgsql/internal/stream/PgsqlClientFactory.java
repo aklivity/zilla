@@ -454,7 +454,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             if (replyAckMax > replyAck || stream.replyMax > replyMax)
             {
                 replyAck = replyAckMax;
-                replyMax = stream.initialMax;
+                replyMax = stream.replyMax;
                 replyPad = paddingMin;
                 assert replyAck <= replySeq;
 
@@ -476,10 +476,10 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         {
             final int reserved = length + replyPad;
 
-            doData(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                 flags, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
-            replySeq += reserved;
+            initialSeq += reserved;
         }
 
         private void doNetworkResetAndAbort(
@@ -543,7 +543,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             {
                 if (decodeSlot == NO_SLOT)
                 {
-                    decodeSlot = bufferPool.acquire(initialId);
+                    decodeSlot = bufferPool.acquire(replyId);
                 }
 
                 if (decodeSlot == NO_SLOT)
@@ -563,9 +563,9 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 cleanupDecodeSlotIfNecessary();
             }
 
-            if (!PgsqlState.initialClosed(state))
+            if (!PgsqlState.replyClosed(state))
             {
-                doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, initialPadding);
+                doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, replyPad);
             }
 
             return progress;
