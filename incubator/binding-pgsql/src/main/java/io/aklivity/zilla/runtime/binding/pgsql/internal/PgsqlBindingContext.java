@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.Collections.singletonMap;
 
+import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.pgsql.internal.stream.PgsqlClientFactory;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.stream.PgsqlServerFactory;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.stream.PgsqlStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -35,7 +37,10 @@ final class PgsqlBindingContext implements BindingContext
         PgsqlConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(SERVER, new PgsqlServerFactory(config, context));
+        final EnumMap<KindConfig, PgsqlStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(SERVER, new PgsqlServerFactory(config, context));
+        factories.put(CLIENT, new PgsqlClientFactory(config, context));
+        this.factories = factories;
     }
 
     @Override

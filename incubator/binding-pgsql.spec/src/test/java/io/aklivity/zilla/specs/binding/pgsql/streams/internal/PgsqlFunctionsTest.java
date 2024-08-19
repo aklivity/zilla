@@ -14,31 +14,15 @@
  */
 package io.aklivity.zilla.specs.binding.pgsql.streams.internal;
 
-import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static io.aklivity.zilla.specs.binding.pgsql.PgsqlFunctions.dataEx;
 
-import javax.el.ELContext;
-import javax.el.ExpressionFactory;
-
-import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 
 public class PgsqlFunctionsTest
 {
-    private ExpressionFactory factory;
-    private ELContext ctx;
-
-    @Before
-    public void setUp() throws Exception
-    {
-        factory = newExpressionFactory();
-        ctx = new ExpressionContext();
-    }
-
     @Test
-    public void shouldEncodeAmqpDataExtensionWithDeferred()
+    public void shouldEncodePgsqlDataExtensionWithDeferred()
     {
         final byte[] array = dataEx()
             .typeId(0)
