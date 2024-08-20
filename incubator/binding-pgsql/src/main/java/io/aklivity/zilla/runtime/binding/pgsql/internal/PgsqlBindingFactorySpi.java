@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.internal;
 
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 
+@Incubating
 public final class PgsqlBindingFactorySpi implements BindingFactorySpi
 {
     @Override
