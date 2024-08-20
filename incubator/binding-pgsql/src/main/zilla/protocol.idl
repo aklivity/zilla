@@ -18,13 +18,50 @@ scope protocol
 
     scope codec
     {
+        struct PgsqlSslRequest
+        {
+            int32 length = 4;
+            int32 requestCode = 80877103;
+        }
+
+        struct PgsqlSslResponse
+        {
+            uint8 answer = 78;
+        }
+
+        struct PgsqlStartupMessage
+        {
+            int32 length;
+            uint16 majorVersion;
+            uint16 minorVersion;
+        }
+
         enum PgsqlMessageKind (uint8)
         {
+            TERMINATOR(88),
+            PARAMETER_STATUS(83),
+            BACKEND_KEY(75),
+            AUTHENTICATION(82),
             QUERY (81),
             ROW (68),
             TYPE (84),
             COMPLETION (67),
             READY (90)
+        }
+
+        struct PgsqlAuthenticationMessage
+        {
+            PgsqlMessageKind kind = AUTHENTICATION;
+            int32 length = 8;
+            int32 type = 0;
+        }
+
+        struct PgsqlBackendKeyMessage
+        {
+            PgsqlMessageKind kind = BACKEND_KEY;
+            int32 length = 12;
+            int32 pid = 0;
+            int32 key = 0;
         }
 
         struct PgsqlMessage

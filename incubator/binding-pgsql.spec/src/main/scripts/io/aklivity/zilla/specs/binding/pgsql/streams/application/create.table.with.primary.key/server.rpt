@@ -20,6 +20,15 @@ accept ${serverAddress}
     option zilla:transmission "duplex"
 
 accepted
+
+read zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "root")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
 connected
 
 read zilla:data.ext ${pgsql:dataEx()

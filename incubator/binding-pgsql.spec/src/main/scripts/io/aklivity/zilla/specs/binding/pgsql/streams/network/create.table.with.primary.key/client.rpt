@@ -22,6 +22,52 @@ connect "zilla://streams/net0"
 
 connected
 
+write 8                                 # length
+      [0x00 0xd2 0x16 0x2f]             # request code
+
+read [0x4e]
+
+write 75                                # length
+      3s                                # major version
+      0s                                # minor version
+      "user" [0x00]                     # name
+      "root" [0x00]                     # value
+      "database" [0x00]                 # name
+      "dev" [0x00]                      # value
+      "application_name" [0x00]         # name
+      "psql" [0x00]                     # value
+      "client_encoding" [0x00]          # name
+      "UTF8" [0x00]                     # value
+
+read [0x52]                             # type R
+     8                                  # length
+     0                                  # authentication type
+
+read [0x4b]                             # type K
+     12                                 # length
+     0                                  # pid
+     0                                  # key
+
+read [0x53]                                 # type S
+     25                                     # length
+     "client_encoding" [0x00]               # name
+     "UTF8" [0x00]                          # value
+
+read [0x53]                                 # type S
+     35                                     # length
+     "standard_confirming_strings" [0x00]   # name
+     [0x6e 0x00]                            # value
+
+read [0x53]                                 # type S
+     25                                     # length
+     "server_version" [0x00]                # name
+     "1.0.0" [0x00]                         # value
+
+read [0x53]                                 # type S
+     26                                     # length
+     "application_name" [0x00]              # name
+     "psql" [0x00]                          # value
+
 write [0x51]                            # type Q
       111                               # length
       "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
@@ -35,3 +81,6 @@ read [0x43]                             # type C
 read [0x5a]                             # type Z
      5                                  # length
      [0x49]                             # tag
+
+read [0x50]                             # type X
+     0                                  # length

@@ -16,7 +16,18 @@ scope pgsql
 {
     scope stream
     {
-        enum PgsqlMessageKind (uint16)
+        struct PgsqlParameter
+        {
+            string16 name;
+            string16 value;
+        }
+
+        struct PgsqlBeginEx extends core::stream::Extension
+        {
+            PgsqlParameter[] parameters;
+        }
+
+        enum PgsqlMessageKind (uint8)
         {
             QUERY (81),
             ROW (68),
