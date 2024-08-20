@@ -969,8 +969,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
                 messageBuffer.putBytes(typeOffset.value, nameBuffer, 0, nameSize);
                 typeOffset.getAndAdd(nameSize);
-                messageBuffer.putByte(typeOffset.value, (byte) 0x00);
-                typeOffset.getAndAdd(Byte.BYTES);
                 messageBuffer.putInt(typeOffset.value, c.tableOid(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Integer.BYTES);
                 messageBuffer.putShort(typeOffset.value, c.index(), BIG_ENDIAN);
@@ -1027,14 +1025,12 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             PgsqlMessageFW messageCompleted = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .kind(k -> k.set(PgsqlMessageKind.COMPLETION))
-                .length(Integer.BYTES + tagSize + Byte.BYTES)
+                .length(Integer.BYTES + tagSize)
                 .build();
             completionOffset += messageCompleted.limit();
 
             messageBuffer.putBytes(completionOffset, tagBuffer, 0, tagSize);
             completionOffset += tagSize;
-            messageBuffer.putByte(completionOffset, (byte) 0x00);
-            completionOffset += Byte.BYTES;
 
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, completionOffset);
         }

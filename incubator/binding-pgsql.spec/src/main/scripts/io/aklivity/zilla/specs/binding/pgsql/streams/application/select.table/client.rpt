@@ -76,7 +76,7 @@ read [0x00 0x03]                                                 # Field Count
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .completed()
+                              .completion()
                                 .tag("SELECT 1")
                                 .build()
                               .build()}

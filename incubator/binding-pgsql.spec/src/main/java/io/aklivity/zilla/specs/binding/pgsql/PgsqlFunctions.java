@@ -198,7 +198,10 @@ public final class PgsqlFunctions
                 public PgsqlColumnInfoBuilder name(
                     String name)
                 {
-                    columnInfoRW.name(name);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    stringBuilder.append(name);
+                    stringBuilder.append((char) 0x00);
+                    columnInfoRW.name(stringBuilder.toString());
                     return this;
                 }
 
@@ -280,7 +283,10 @@ public final class PgsqlFunctions
             public PgsqlCompletedFlushExBuilder tag(
                 String tag)
             {
-                pgsqlCompletedFlushExRW.tag(tag);
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append(tag);
+                stringBuilder.append((char) 0x00);
+                pgsqlCompletedFlushExRW.tag(stringBuilder.toString());
                 return this;
             }
 

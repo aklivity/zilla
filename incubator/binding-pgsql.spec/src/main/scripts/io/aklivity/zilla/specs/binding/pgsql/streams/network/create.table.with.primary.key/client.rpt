@@ -30,7 +30,7 @@ write [0x51]                            # type Q
 read [0x43]                             # type C
      17                                 # length
      "CREATE_TABLE"                     # tag
-     [0x00]                              # End of string
+     [0x00]                             # End of string
 
 read [0x5a]                             # type Z
      5                                  # length
