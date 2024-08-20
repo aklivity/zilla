@@ -32,5 +32,15 @@ scope protocol
             PgsqlMessageKind kind;
             int32 length;
         }
+
+        struct PgsqlRowDescription
+        {
+            int32 tableOid;
+            int16 index;
+            int32 typeOid;
+            int16 length;
+            int16 modifier;
+            int16 format;
+        }
     }
 }

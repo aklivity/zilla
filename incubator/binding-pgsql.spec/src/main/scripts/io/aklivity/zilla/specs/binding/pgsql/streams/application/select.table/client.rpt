@@ -25,8 +25,9 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "SELECT * FROM balances;"
+write [0x00]
 
-read advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .type()
                                 .column()
@@ -73,14 +74,14 @@ read [0x00 0x03]                                                 # Field Count
         [0x5c 0x78 0x33 0x31]                                       # Data
 
 
-read advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completed()
                                 .tag("SELECT 1")
                                 .build()
                               .build()}
 
-read advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")

@@ -25,6 +25,7 @@ connected
 write [0x51]                            # type Q
       28                               # length
       "SELECT * FROM balances;"
+      [0x00]
 
 read [0x54]                             # type T
      86                                 # length

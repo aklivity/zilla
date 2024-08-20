@@ -111,7 +111,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private final Long2ObjectHashMap<PgsqlBindingConfig> bindings;
     private final int pgsqlTypeId;
 
-    private final PgsqlServerDecoder decodePgsqlFrameType = this::decodePgsqlFrameType;
+    private final PgsqlServerDecoder decodePgsqlFrameKind = this::decodePgsqlFrameKind;
     private final PgsqlServerDecoder decodePgsqlQuery = this::decodePgsqlMessageQuery;
     private final PgsqlServerDecoder decodePgsqlPayload = this::decodePgsqlMessagePayload;
     private final PgsqlServerDecoder decodePgsqlIgnoreOne = this::decodePgsqlIgnoreOne;
@@ -250,7 +250,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
 
             this.stream = new PgsqlStream(this, routedId, resolvedId);
-            this.decoder = decodePgsqlFrameType;
+            this.decoder = decodePgsqlFrameKind;
         }
 
         private void onNetworkMessage(
@@ -773,7 +773,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 doEncodeType(traceId, authorization, pgsqlFlushEx.type());
                 break;
             case PgsqlFlushExFW.KIND_COMPLETION:
-                doEncodeCompleted(traceId, authorization, pgsqlFlushEx.completion());
+                doEncodeCompletion(traceId, authorization, pgsqlFlushEx.completion());
                 break;
             case PgsqlFlushExFW.KIND_READY:
                 doEncodeReady(traceId, authorization, pgsqlFlushEx.ready());
@@ -1015,7 +1015,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, rowOffset);
         }
 
-        private void doEncodeCompleted(
+        private void doEncodeCompletion(
             long traceId,
             long authorization,
             PgsqlCompletedFlushExFW completion)
@@ -1235,7 +1235,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private int decodePgsqlFrameType(
+    private int decodePgsqlFrameKind(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1276,16 +1276,17 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
         final int flags = payloadSize == length ? FLAGS_COMP : FLAGS_INIT;
 
-        server.onDecodeMessageQuery(traceId, authorization, flags, buffer, offset, offset + length);
+        final int maxLimit = offset + length;
+        server.onDecodeMessageQuery(traceId, authorization, flags, buffer, offset, maxLimit);
         payloadRemaining.set(payloadSize - length);
 
         assert payloadRemaining.get() >= 0;
 
         server.decoder = payloadSize == length
-            ? decodePgsqlFrameType
+            ? decodePgsqlFrameKind
             : decodePgsqlPayload;
 
-        return length;
+        return maxLimit;
     }
 
     private int decodePgsqlMessagePayload(
@@ -1302,18 +1303,18 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
         final int flags = payloadSize == length ? FLAGS_FIN : FLAGS_CONT;
 
-        server.stream.doApplicationData(traceId, authorization, flags, buffer, offset, offset + limit,
-            EMPTY_EXTENSION);
+        final int maxLimit = offset + length;
+        server.stream.doApplicationData(traceId, authorization, flags, buffer, offset, maxLimit, EMPTY_EXTENSION);
         payloadRemaining.set(payloadSize - length);
 
         assert payloadRemaining.get() >= 0;
 
         if (payloadSize == length)
         {
-            server.decoder = decodePgsqlFrameType;
+            server.decoder = decodePgsqlFrameKind;
         }
 
-        return length;
+        return maxLimit;
     }
 
     private int decodePgsqlIgnoreOne(
@@ -1328,7 +1329,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         final PgsqlMessageFW messageType = messageRO.wrap(buffer, offset, limit);
         final int progress = messageType.limit() + messageType.length();
 
-        server.decoder = decodePgsqlFrameType;
+        server.decoder = decodePgsqlFrameKind;
         return progress;
     }
 

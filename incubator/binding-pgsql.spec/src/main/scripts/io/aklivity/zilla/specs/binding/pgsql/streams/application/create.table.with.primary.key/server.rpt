@@ -28,10 +28,11 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
+read [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .completed()
+                              .completion()
                                 .tag("CREATE_TABLE")
                                 .build()
                               .build()}

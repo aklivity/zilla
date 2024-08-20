@@ -149,7 +149,7 @@ public final class PgsqlFunctions
             return new PgsqlTypeFlushExBuilder();
         }
 
-        public PgsqlCompletedFlushExBuilder completed()
+        public PgsqlCompletedFlushExBuilder completion()
         {
             flushExRW.kind(PgsqlMessageKind.COMPLETION.value());
 
