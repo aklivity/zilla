@@ -22,7 +22,6 @@
     "io.aklivity.zilla:binding-http-filesystem",
     "io.aklivity.zilla:binding-http-kafka",
     "io.aklivity.zilla:binding-grpc",
-    "io.aklivity.zilla:binding-pgsql",
     "io.aklivity.zilla:binding-grpc-kafka",
     "io.aklivity.zilla:binding-kafka-grpc",
     "io.aklivity.zilla:binding-kafka",

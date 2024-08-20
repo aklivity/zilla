@@ -43,6 +43,11 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlTypeFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -50,11 +55,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlTypeFlushExFW;
 
 public final class PgsqlServerFactory implements PgsqlStreamFactory
 {
