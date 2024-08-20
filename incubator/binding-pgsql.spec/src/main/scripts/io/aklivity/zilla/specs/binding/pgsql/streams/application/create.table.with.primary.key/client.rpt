@@ -25,7 +25,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
-write [0x00]
+      [0x00]
 
 write flush
 

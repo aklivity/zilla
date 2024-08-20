@@ -96,6 +96,13 @@ public final class PgsqlFunctions
                 pgsqlQueryDataExRW.wrap(writeBuffer, PgsqlDataExFW.FIELD_OFFSET_QUERY, writeBuffer.capacity());
             }
 
+            public PgsqlQueryDataExBuilder deferred(
+                int deferred)
+            {
+                pgsqlQueryDataExRW.deferred(deferred);
+                return this;
+            }
+
             public PgsqlDataExBuilder build()
             {
                 final PgsqlQueryDataExFW pgsqlQueryDataEx = pgsqlQueryDataExRW.build();
@@ -111,6 +118,13 @@ public final class PgsqlFunctions
             private PgsqlRowDataExBuilder()
             {
                 pgsqlRowDataExRW.wrap(writeBuffer, PgsqlDataExFW.FIELD_OFFSET_QUERY, writeBuffer.capacity());
+            }
+
+            public PgsqlRowDataExBuilder deferred(
+                int deferred)
+            {
+                pgsqlRowDataExRW.deferred(deferred);
+                return this;
             }
 
             public PgsqlDataExBuilder build()

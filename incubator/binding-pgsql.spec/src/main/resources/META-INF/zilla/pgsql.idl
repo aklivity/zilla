@@ -33,10 +33,12 @@ scope pgsql
 
         struct PgsqlQueryDataEx
         {
+            int32 deferred = 0;
         }
 
         struct PgsqlRowDataEx
         {
+            int32 deferred = 0;
         }
 
         union PgsqlFlushEx switch (uint8) extends core::stream::Extension
