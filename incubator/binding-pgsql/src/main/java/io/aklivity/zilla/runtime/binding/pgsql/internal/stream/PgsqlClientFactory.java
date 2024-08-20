@@ -78,7 +78,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -94,7 +93,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final PgsqlDataExFW pgsqlDataExRO = new PgsqlDataExFW();
-    private final PgsqlFlushExFW pgsqlFlushExRO = new PgsqlFlushExFW();
 
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
@@ -118,7 +116,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final Long2ObjectHashMap<PgsqlBindingConfig> bindings;
     private final int pgsqlTypeId;
 
-    private final PgsqlClientDecoder decodePgsqlMessageType = this::decodePgsqlMessageKind;
+    private final PgsqlClientDecoder decodePgsqlMessageKind = this::decodePgsqlMessageKind;
     private final PgsqlClientDecoder decodePgsqlType = this::decodePgsqlMessageType;
     private final PgsqlClientDecoder decodePgsqlRow = this::decodePgsqlMessageRow;
     private final PgsqlClientDecoder decodePgsqlCompletion = this::decodePgsqlMessageCompletion;
@@ -261,7 +259,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
 
             this.stream = stream;
-            this.decoder = decodePgsqlMessageType;
+            this.decoder = decodePgsqlMessageKind;
         }
 
         private void onNetworkMessage(
@@ -490,7 +488,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             int offset,
             int length)
         {
-            final int reserved = length + replyPad;
+            final int reserved = length + initialPadding;
 
             doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                 flags, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
@@ -598,6 +596,23 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 .build().sizeof());
 
             stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, typeEx);
+        }
+
+        private void onDecodeMessageRow(
+            long traceId,
+            long authorization,
+            int flags,
+            int deferred,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            Consumer<OctetsFW.Builder> rowEx = e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
+                .typeId(pgsqlTypeId)
+                .row(q -> q.deferred(deferred))
+                .build().sizeof());
+
+            stream.doApplicationData(traceId, authorization, flags, buffer, offset, limit, rowEx);
         }
 
         private void onDecodeMessageCompletion(
@@ -721,10 +736,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onApplicationAbort(abort);
                 break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onApplicationFlush(flush);
-                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onApplicationReset(reset);
@@ -793,42 +804,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 {
                     client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, payload.value(), 0, payload.sizeof());
                 }
-            }
-        }
-
-        private void onApplicationFlush(
-            final FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final int reserved = flush.reserved();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge <= initialAck;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            if (initialSeq > initialSeq + initialMax)
-            {
-                client.cleanupNetwork(traceId, authorization);
-            }
-
-            final OctetsFW extension = flush.extension();
-            final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
-
-            final PgsqlFlushExFW pgsqlFlushEx = flushEx != null && flushEx.typeId() == pgsqlTypeId ?
-                    extension.get(pgsqlFlushExRO::tryWrap) : null;
-
-            assert pgsqlFlushEx != null;
-
-            if (pgsqlFlushEx.kind() == PgsqlFlushExFW.KIND_TYPE)
-            {
-                doEncodeType(traceId, authorization, pgsqlFlushEx.type());
             }
         }
 
@@ -913,11 +888,11 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             final int length = limit - offset;
             final int reserved = length + initialPad;
 
-            doData(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                flags, initialBudgetId, reserved, buffer, offset, length, extension);
+            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                flags, replyBudgetId, reserved, buffer, offset, length, extension);
 
-            initialSeq += reserved;
-            assert initialSeq <= initialAck + initialMax;
+            replySeq += reserved;
+            assert replySeq <= replyAck + replyMax;
         }
 
         private void doApplicationEnd(
@@ -1014,8 +989,8 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 typeOffset.getAndAdd(Integer.BYTES);
                 messageBuffer.putShort(typeOffset.value, c.length(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Short.BYTES);
-                messageBuffer.putShort(typeOffset.value, c.modifier(), BIG_ENDIAN);
-                typeOffset.getAndAdd(Short.BYTES);
+                messageBuffer.putInt(typeOffset.value, c.modifier(), BIG_ENDIAN);
+                typeOffset.getAndAdd(Integer.BYTES);
                 messageBuffer.putShort(typeOffset.value, (short) c.format().get().value(), BIG_ENDIAN);
                 typeOffset.getAndAdd(Short.BYTES);
             });
@@ -1307,7 +1282,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         int progressOffset = offset;
 
-        short fieldCount = buffer.getShort(progressOffset);
+        short fieldCount = buffer.getShort(progressOffset, BIG_ENDIAN);
         progressOffset += Short.BYTES;
 
         columnsRW.wrap(messageBuffer, 0, messageBuffer.capacity());
@@ -1323,7 +1298,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 break columns;
             }
 
-            progressOffset += nameLength + Byte.BYTES;
+            progressOffset += nameLength;
 
             PgsqlRowDescriptionFW description = rowDescriptionRO.tryWrap(buffer, progressOffset, limit);
 
@@ -1333,12 +1308,15 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             }
 
             columnsRW.item(c -> c
-                .name(buffer, nameOffset, nameOffset)
+                .name(buffer, nameOffset, nameLength)
                 .tableOid(description.tableOid())
                 .index(description.index())
                 .typeOid(description.typeOid())
-                .length(description.modifier())
+                .length(description.length())
+                .modifier(description.modifier())
                 .format(f -> f.set(PgsqlFormat.valueOf(description.format()))));
+
+            progressOffset = description.limit();
         }
 
         Array32FW<PgsqlColumnInfoFW> columns = columnsRW.build();
@@ -1350,7 +1328,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             assert payloadRemaining.get() == 0;
 
-            client.decoder = decodePgsqlMessageType;
+            client.decoder = decodePgsqlMessageKind;
         }
 
         return progressOffset;
@@ -1366,17 +1344,25 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         int limit)
     {
         final int payloadSize = payloadRemaining.get();
-        final int length = limit - offset;
-        int progress = offset + length;
+        final int length = Math.min(payloadSize, limit - offset);
+        final int maxLimit = offset + length;
 
-        client.onDecodeMessageCompletion(traceId, authorization, buffer, offset, length);
-        payloadRemaining.set(payloadSize - length);
+        if (length > 0)
+        {
+            final int flags = payloadSize == length ? FLAGS_COMP : FLAGS_INIT;
+            final int deferred = payloadSize - length;
 
-        assert payloadRemaining.get() == 0;
+            client.onDecodeMessageRow(traceId, authorization, flags, deferred, buffer, offset, maxLimit);
+            payloadRemaining.set(payloadSize - length);
 
-        client.decoder = decodePgsqlMessageType;
+            assert payloadRemaining.get() >= 0;
 
-        return progress;
+            client.decoder = payloadSize == length
+                ? decodePgsqlMessageKind
+                : decodePgsqlPayload;
+        }
+
+        return maxLimit;
     }
 
     private int decodePgsqlMessageCompletion(
@@ -1397,7 +1383,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         assert payloadRemaining.get() == 0;
 
-        client.decoder = decodePgsqlMessageType;
+        client.decoder = decodePgsqlMessageKind;
 
         return progress;
     }
@@ -1420,7 +1406,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         assert payloadRemaining.get() == 0;
 
-        client.decoder = decodePgsqlMessageType;
+        client.decoder = decodePgsqlMessageKind;
 
         return progress;
     }
@@ -1447,7 +1433,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         if (payloadSize == length)
         {
-            client.decoder = decodePgsqlMessageType;
+            client.decoder = decodePgsqlMessageKind;
         }
 
         return length;
@@ -1465,7 +1451,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         final PgsqlMessageFW messageType = messageRO.wrap(buffer, offset, limit);
         final int progress = messageType.limit() + messageType.length();
 
-        client.decoder = decodePgsqlMessageType;
+        client.decoder = decodePgsqlMessageKind;
         return progress;
     }
 
@@ -1485,16 +1471,19 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         DirectBuffer buffer,
         int startingOffset)
     {
-        int index = -1;
+        int length = -1;
+
+        length:
         for (int i = startingOffset; i < buffer.capacity(); i++)
         {
             if (buffer.getByte(i) == 0x00)
             {
-                index = i - 1;
+                length = i - startingOffset + 1;
+                break length;
             }
         }
 
-        return index;
+        return length;
     }
 
 }

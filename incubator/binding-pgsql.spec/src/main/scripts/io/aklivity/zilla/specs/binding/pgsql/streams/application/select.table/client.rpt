@@ -25,7 +25,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "SELECT * FROM balances;"
-write [0x00]
+      [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))

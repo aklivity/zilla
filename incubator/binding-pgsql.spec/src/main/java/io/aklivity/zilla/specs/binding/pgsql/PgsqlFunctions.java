@@ -248,7 +248,7 @@ public final class PgsqlFunctions
                 }
 
                 public PgsqlColumnInfoBuilder modifier(
-                    short modifier)
+                    int modifier)
                 {
                     columnInfoRW.modifier(modifier);
                     return this;
