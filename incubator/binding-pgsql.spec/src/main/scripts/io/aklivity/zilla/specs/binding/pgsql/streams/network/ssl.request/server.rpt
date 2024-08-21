@@ -71,6 +71,10 @@ write [0x53]                                 # type S
       "application_name" [0x00]              # name
       "psql" [0x00]                          # value
 
+write [0x5a]                             # type Z
+      5                                  # length
+      [0x49]                             # status
+
 write [0x58]                             # type X
       4                                  # length
 

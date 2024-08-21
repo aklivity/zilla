@@ -64,6 +64,10 @@ read [0x53]                                 # type S
      "application_name" [0x00]              # name
      "psql" [0x00]                          # value
 
+read [0x5a]                             # type Z
+     5                                  # length
+     [0x49]                             # status
+
 write [0x51]                            # type Q
       111                               # length
       "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
@@ -76,7 +80,7 @@ read [0x43]                             # type C
 
 read [0x5a]                             # type Z
      5                                  # length
-     [0x49]                             # tag
+     [0x49]                             # status
 
 read [0x58]                             # type X
      4                                  # length

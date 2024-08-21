@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataEx
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlParameterFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlTypeFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.WindowFW;
@@ -633,6 +634,18 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doEncodeParamStatus(traceId, "standard_confirming_strings", "on");
             doEncodeParamStatus(traceId, "server_version", "1.0.0");
             doEncodeParamStatus(traceId, "application_name", "psql");
+
+            int progress = 0;
+            PgsqlMessageFW message = messageRW.wrap(messageBuffer, progress, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_READY)
+                .length(Integer.BYTES + Byte.BYTES)
+                .build();
+            progress = message.limit();
+
+            messageBuffer.putByte(progress, (byte) PgsqlStatus.IDLE.value());
+            progress += Byte.BYTES;
+
+            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, progress);
         }
 
         private void doEncodeParamStatus(
