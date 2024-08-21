@@ -18,17 +18,17 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class PgsqlConfiguration extends Configuration
 {
-    private static final ConfigurationDef ECHO_CONFIG;
+    private static final ConfigurationDef PGSQL_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", PgsqlBinding.NAME));
-        ECHO_CONFIG = config;
+        PGSQL_CONFIG = config;
     }
 
     public PgsqlConfiguration(
         Configuration config)
     {
-        super(ECHO_CONFIG, config);
+        super(PGSQL_CONFIG, config);
     }
 }
