@@ -22,11 +22,6 @@ connect "zilla://streams/net0"
 
 connected
 
-write 8                                 # length
-      [0x04 0xd2 0x16 0x2f]             # request code
-
-read [0x4e]
-
 write 75                                # length
       3s                                # major version
       0s                                # minor version

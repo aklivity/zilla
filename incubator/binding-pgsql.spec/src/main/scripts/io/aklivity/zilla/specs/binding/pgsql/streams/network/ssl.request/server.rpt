@@ -24,6 +24,11 @@ accepted
 
 connected
 
+read 8                                 # length
+     [0x04 0xd2 0x16 0x2f]             # request code
+
+write [0x4e]
+
 read  75                                # length
       3s                                # major version
       0s                                # minor version
@@ -64,21 +69,6 @@ write [0x53]                                 # type S
       26                                     # length
       "application_name" [0x00]              # name
       "psql" [0x00]                          # value
-
-read [0x51]                              # type Q
-     111                                 # length
-     "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
-     [0x00]                              # End of string
-
-write [0x43]                             # type C
-      17                                 # length
-      "CREATE_TABLE"                     # tag
-      [0x00]                             # End of string
-
-
-write [0x5a]                             # type Z
-      5                                  # length
-      [0x49]                             # tag
 
 write [0x58]                             # type X
       4                                  # length

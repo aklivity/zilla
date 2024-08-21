@@ -51,6 +51,16 @@ public class ServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/ssl.request/client",
+        "${app}/ssl.request/server" })
+    public void shouldHandleSslRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/create.table.with.primary.key/client",
         "${app}/create.table.with.primary.key/server" })
     public void shouldCreateTableWithPrimaryKey() throws Exception
