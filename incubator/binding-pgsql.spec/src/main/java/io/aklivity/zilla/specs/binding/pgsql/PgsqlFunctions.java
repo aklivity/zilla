@@ -56,8 +56,6 @@ public final class PgsqlFunctions
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
-        private final PgsqlBeginExFW beginExRO = new PgsqlBeginExFW();
-
         private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
 
         private PgsqlBeginExBuilder()
@@ -91,7 +89,7 @@ public final class PgsqlFunctions
 
         public byte[] build()
         {
-            final PgsqlBeginExFW beginEx = beginExRO;
+            final PgsqlBeginExFW beginEx = beginExRW.build();
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
             return array;

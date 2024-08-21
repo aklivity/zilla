@@ -35,6 +35,8 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.config.PgsqlBindingConfi
 import io.aklivity.zilla.runtime.binding.pgsql.internal.config.PgsqlRouteConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlAuthenticationMessageFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlBackendKeyMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlCancelRequestMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlSslRequestFW;
@@ -68,6 +70,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_DATA_ROW = 'D';
     private static final Byte MESSAGE_TYPE_COMPLETION = 'C';
     private static final Byte MESSAGE_TYPE_READY = 'Z';
+    private static final Byte MESSAGE_TYPE_TERMINATE = 'X';
+    private static final Byte MESSAGE_TYPE_PARAMETER_STATUS = 'S';
 
     private static final int SSL_REQUEST_CODE = 80877103;
     private static final int CANCEL_REQUEST_CODE = 80877102;
@@ -115,6 +119,9 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final PgsqlMessageFW.Builder messageRW = new PgsqlMessageFW.Builder();
     private final PgsqlSslResponseFW.Builder sslResponseRW = new PgsqlSslResponseFW.Builder();
+    private final PgsqlAuthenticationMessageFW.Builder authMessageRW = new PgsqlAuthenticationMessageFW.Builder();
+    private final PgsqlBackendKeyMessageFW.Builder backendKeyMessageRW = new PgsqlBackendKeyMessageFW.Builder();
+
     private final Array32FW.Builder<PgsqlParameterFW.Builder, PgsqlParameterFW> parametersRW =
         new Array32FW.Builder<>(new PgsqlParameterFW.Builder(), new PgsqlParameterFW());
 
@@ -614,8 +621,46 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             doNetworkWindow(traceId, authorization, authorization, decodeSlotReserved, initialPadding);
 
-            PgsqlSslResponseFW sslResponse = sslResponseRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, sslResponse.limit());
+            PgsqlAuthenticationMessageFW authMessage = authMessageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .build();
+            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, authMessage.limit());
+
+            PgsqlBackendKeyMessageFW backendKeyMessage =
+                backendKeyMessageRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
+            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, backendKeyMessage.limit());
+
+            doEncodeParamStatus(traceId, "client_encoding", "UTF8");
+            doEncodeParamStatus(traceId, "standard_confirming_strings", "on");
+            doEncodeParamStatus(traceId, "server_version", "1.0.0");
+            doEncodeParamStatus(traceId, "application_name", "psql");
+        }
+
+        private void doEncodeParamStatus(
+            long traceId,
+            String name,
+            String value)
+        {
+            int statusOffset = 0;
+
+            PgsqlMessageFW status = messageRW.wrap(messageBuffer, statusOffset, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_PARAMETER_STATUS)
+                .length(0)
+                .build();
+            statusOffset = status.limit();
+
+            messageBuffer.putBytes(statusOffset, name.getBytes());
+            statusOffset += name.length();
+            messageBuffer.putByte(statusOffset, (byte) 0x00);
+            statusOffset += Byte.BYTES;
+
+            messageBuffer.putBytes(statusOffset, value.getBytes());
+            statusOffset += value.length();
+            messageBuffer.putByte(statusOffset, (byte) 0x00);
+            statusOffset += Byte.BYTES;
+
+            messageBuffer.putInt(Byte.BYTES, statusOffset - Byte.BYTES, BIG_ENDIAN);
+
+            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, statusOffset);
         }
 
         private void onDecodeMessageQuery(
@@ -745,11 +790,10 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long affinity = begin.affinity();
 
             state = PgsqlState.openingReply(state);
 
-            server.doNetworkBegin(traceId, authorization, affinity);
+            doApplicationWindow(traceId, authorization, server.replyBudgetId, 0, 0);
         }
 
         private void onApplicationData(
@@ -847,6 +891,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
+
+            doEncodeTerminate(traceId, authorization);
 
             state = PgsqlState.closeReply(state);
 
@@ -1110,6 +1156,18 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, readyOffset);
         }
+
+        private void doEncodeTerminate(
+            long traceId,
+            long authorization)
+        {
+            PgsqlMessageFW messageReady = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_TERMINATE)
+                .length(Integer.BYTES)
+                .build();
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, messageReady.limit());
+        }
     }
 
     private void doBegin(
@@ -1372,7 +1430,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             }
 
             server.onDecodeStartup(traceId, authorization, parametersRW.build());
-
+            server.decoder = decodePgsqlMessageType;
         }
 
         return progress.value;
