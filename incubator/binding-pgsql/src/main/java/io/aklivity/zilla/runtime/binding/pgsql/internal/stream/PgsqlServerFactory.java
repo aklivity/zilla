@@ -145,6 +145,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private final PgsqlServerDecoder decodePgsqlMessageType = this::decodePgsqlMessageType;
     private final PgsqlServerDecoder decodePgsqlQuery = this::decodePgsqlMessageQuery;
     private final PgsqlServerDecoder decodePgsqlPayload = this::decodePgsqlMessagePayload;
+    private final PgsqlServerDecoder decodePgsqlTermination = this::decodePgsqlMessageTerminator;
     private final PgsqlServerDecoder decodePgsqlIgnoreOne = this::decodePgsqlIgnoreOne;
     private final PgsqlServerDecoder decodePgsqlIgnoreAll = this::decodePgsqlIgnoreAll;
 
@@ -152,6 +153,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     {
         Int2ObjectHashMap<PgsqlServerDecoder> decodersByType = new Int2ObjectHashMap();
         decodersByType.put(MESSAGE_TYPE_QUERY, decodePgsqlQuery);
+        decodersByType.put(MESSAGE_TYPE_TERMINATE, decodePgsqlTermination);
         this.decodersByType = decodersByType;
     }
 
@@ -691,6 +693,13 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 .build().sizeof());
 
             stream.doApplicationData(traceId, authorization, flags, buffer, offset, limit, queryEx);
+        }
+
+        private void onDecodeMessageTermination(
+            long traceId,
+            long authorization)
+        {
+            stream.doApplicationEnd(traceId, authorization);
         }
 
         private void cleanupNetwork(
@@ -1482,17 +1491,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     {
         int progress = offset;
 
-        final PgsqlMessageFW message = messageRO.tryWrap(buffer, offset, limit);
+        final PgsqlMessageFW pgsqlMessage = messageRO.tryWrap(buffer, offset, limit);
 
-        if (message != null)
+        if (pgsqlMessage != null)
         {
-            final int type = message.type();
-            final int length = message.length();
-            payloadRemaining.set(length - Integer.BYTES);
+            final int type = pgsqlMessage.type();
 
             final PgsqlServerDecoder decoder = decodersByType.getOrDefault(type, decodePgsqlIgnoreOne);
             server.decoder = decoder;
-            progress = message.limit();
         }
 
         return progress;
@@ -1507,26 +1513,37 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         int offset,
         int limit)
     {
-        final int payloadSize = payloadRemaining.get();
-        final int length = Math.min(payloadSize, limit - offset);
-        final int maxLimit = offset + length;
+        int progressOffset = offset;
 
-        if (length > 0)
+        final PgsqlMessageFW pgsqlQuery = messageRO.tryWrap(buffer, progressOffset, limit);
+        if (pgsqlQuery != null)
         {
-            final int flags = payloadSize == length ? FLAGS_COMP : FLAGS_INIT;
-            final int deferred = payloadSize - length;
+            progressOffset = pgsqlQuery.limit();
 
-            server.onDecodeMessageQuery(traceId, authorization, flags, deferred, buffer, offset, maxLimit);
-            payloadRemaining.set(payloadSize - length);
+            final int querySize = pgsqlQuery.length() - Integer.BYTES;
+            payloadRemaining.set(querySize);
 
-            assert payloadRemaining.get() >= 0;
+            final int length = Math.min(payloadRemaining.value, limit - progressOffset);
 
-            server.decoder = payloadSize == length
-                ? decodePgsqlMessageType
-                : decodePgsqlPayload;
+            if (length > 0)
+            {
+                final int flags = querySize == length ? FLAGS_COMP : FLAGS_INIT;
+                final int deferred = querySize - length;
+
+                server.onDecodeMessageQuery(traceId, authorization, flags, deferred,
+                    buffer, progressOffset, progressOffset + length);
+                progressOffset += length;
+                payloadRemaining.set(querySize - length);
+
+                assert payloadRemaining.get() >= 0;
+
+                server.decoder = querySize == length
+                    ? decodePgsqlMessageType
+                    : decodePgsqlPayload;
+            }
         }
 
-        return maxLimit;
+        return progressOffset;
     }
 
     private int decodePgsqlMessagePayload(
@@ -1555,6 +1572,30 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         }
 
         return maxLimit;
+    }
+
+    private int decodePgsqlMessageTerminator(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progressOffset = offset;
+
+        final PgsqlMessageFW pgsqlTerminate = messageRO.tryWrap(buffer, offset, limit);
+
+        if (pgsqlTerminate != null)
+        {
+            server.onDecodeMessageTermination(traceId, authorization);
+
+            server.decoder = decodePgsqlIgnoreAll;
+            progressOffset = limit;
+        }
+
+        return progressOffset;
     }
 
     private int decodePgsqlIgnoreOne(
