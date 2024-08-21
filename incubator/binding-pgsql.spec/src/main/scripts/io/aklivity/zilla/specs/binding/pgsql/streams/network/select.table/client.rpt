@@ -33,6 +33,7 @@ write 75                                # length
       "psql" [0x00]                     # value
       "client_encoding" [0x00]          # name
       "UTF8" [0x00]                     # value
+      [0x00]                            # end of parameters
 
 read [0x52]                             # type R
      8                                  # length

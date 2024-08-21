@@ -1427,6 +1427,11 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                     .value(buffer, progress.value + nameLength, valueLength));
 
                 progress.addAndGet(nameLength + valueLength);
+
+                if (buffer.getByte(progress.value) == (byte) 0x00)
+                {
+                    progress.addAndGet(Byte.BYTES);
+                }
             }
 
             server.onDecodeStartup(traceId, authorization, parametersRW.build());

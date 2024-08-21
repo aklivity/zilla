@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
@@ -28,7 +29,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlBinding;
@@ -222,7 +222,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         final OctetsFW extension = begin.extension();
         final PgsqlBeginExFW pgsqlBeginEx = extension.get(pgsqlBeginExRO::tryWrap);
 
-        final Object2ObjectHashMap<String, String> parameters = new Object2ObjectHashMap<>();
+        final Map<String, String> parameters = new LinkedHashMap<>();
         pgsqlBeginEx.parameters().forEach(p -> parameters.put(p.name().asString(), p.value().asString()));
 
         PgsqlBindingConfig binding = bindings.get(routedId);
@@ -250,7 +250,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
     private final class PgsqlClient
     {
-        private final Object2ObjectHashMap<String, String> parameters;
+        private final Map<String, String> parameters;
         private final PgsqlStream stream;
         private LongLongConsumer encoder;
         private PgsqlClientDecoder decoder;
@@ -260,8 +260,8 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         private final long routedId;
         private long authorization;
 
-        private long initialId;
-        private long replyId;
+        private final long initialId;
+        private final long replyId;
 
         private long initialSeq;
         private long initialAck;
@@ -285,7 +285,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             PgsqlStream stream,
             long originId,
             long routedId,
-            Object2ObjectHashMap<String, String> parameters)
+            Map<String, String> parameters)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -355,7 +355,11 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             state = PgsqlState.openingReply(state);
 
+            doNetworkWindow(traceId, authorization, replyBudgetId, decodeSlotReserved, replyPad);
+
             stream.doApplicationBegin(traceId, authorization, affinity);
+
+            encoder.accept(traceId, authorization);
         }
 
         private void onNetworkData(
@@ -464,7 +468,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             state = PgsqlState.openInitial(state);
 
-
+            encoder.accept(traceId, authorization);
         }
 
         private void doNetworkBegin(
@@ -501,7 +505,8 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             int paddingMin)
         {
             long replyAckMax = Math.max(replySeq - pendingAck, replyAck);
-            if (replyAckMax > replyAck || stream.replyMax > replyMax)
+            if (!PgsqlState.replyOpening(stream.state) ||
+                replyAckMax > replyAck || stream.replyMax > replyMax)
             {
                 replyAck = replyAckMax;
                 replyMax = stream.replyMax;
@@ -634,6 +639,49 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, typeEx);
         }
 
+        private void doEncodeNetworkWindow(
+            long traceId,
+            long authorization)
+        {
+            stream.doApplicationWindow(traceId, authorization, initialBudgetId,
+                (int)(initialSeq - initialAck), initialPadding);
+        }
+
+        private void doEncodeNetworkStartupMessage(
+            long traceId,
+            long authorization)
+        {
+            if (PgsqlState.replyOpening(state))
+            {
+                int startupOffset = 0;
+
+                PgsqlStartupMessageFW startupMessage =
+                    startupMessageRW.wrap(messageBuffer, startupOffset, messageBuffer.capacity())
+                        .length(0)
+                        .majorVersion(3)
+                        .minorVersion(0)
+                        .build();
+                startupOffset = startupMessage.limit();
+
+                for (Map.Entry<String, String> parameter : parameters.entrySet())
+                {
+                    messageBuffer.putBytes(startupOffset, parameter.getKey().getBytes());
+                    startupOffset += parameter.getKey().length();
+                    messageBuffer.putBytes(startupOffset, parameter.getValue().getBytes());
+                    startupOffset += parameter.getValue().length();
+                }
+
+                messageBuffer.putByte(startupOffset, (byte) 0x00);
+                startupOffset += Byte.BYTES;
+
+                messageBuffer.putInt(0, startupOffset, BIG_ENDIAN);
+
+                doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, startupOffset);
+
+                encoder = this::doEncodeNetworkWindow;
+            }
+        }
+
         private void onDecodeMessageRow(
             long traceId,
             long authorization,
@@ -687,38 +735,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long authorization)
         {
             stream.doApplicationEnd(traceId, authorization);
-        }
-
-        private void doEncodeNetworkWindow(
-            long traceId,
-            long authorization)
-        {
-            stream.doApplicationWindow(traceId, authorization, initialBudgetId,
-                (int)(initialSeq - initialAck), initialPadding);
-        }
-
-        private void doEncodeNetworkStartupMessage(
-            long traceId,
-            long authorization)
-        {
-            int startupOffset = 0;
-
-            PgsqlStartupMessageFW startupMessage = startupMessageRW.wrap(messageBuffer, startupOffset, messageBuffer.capacity())
-                    .length(0)
-                    .majorVersion(3)
-                    .minorVersion(0)
-                    .build();
-            startupOffset = startupMessage.limit();
-
-            for (Map.Entry<String, String> parameter : parameters.entrySet())
-            {
-                messageBuffer.putBytes(startupOffset, parameter.getKey().getBytes());
-                startupOffset += parameter.getKey().length();
-                messageBuffer.putBytes(startupOffset, parameter.getValue().getBytes());
-                startupOffset += parameter.getValue().length();
-            }
-
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, startupOffset);
         }
 
         private void cleanupNetwork(
@@ -780,7 +796,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
-            Object2ObjectHashMap<String, String> parameters)
+            Map<String, String> parameters)
         {
             this.application = application;
             this.originId = originId;
@@ -1530,8 +1546,8 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         {
             progressOffset = pgsqlReady.limit();
 
-            client.onDecodeMessageReady(traceId, authorization, PgsqlStatus.valueOf(buffer.getShort(offset)));
-            progressOffset += Integer.BYTES;
+            client.onDecodeMessageReady(traceId, authorization, PgsqlStatus.valueOf(buffer.getByte(progressOffset)));
+            progressOffset += Byte.BYTES;
 
             client.decoder = decodePgsqlMessageKind;
         }
