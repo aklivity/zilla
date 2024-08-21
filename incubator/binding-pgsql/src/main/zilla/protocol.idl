@@ -21,7 +21,7 @@ scope protocol
         struct PgsqlSslRequest
         {
             int32 length = 4;
-            int32 requestCode = 80877103;
+            int32 code = 80877103;
         }
 
         struct PgsqlSslResponse
@@ -36,29 +36,24 @@ scope protocol
             uint16 minorVersion;
         }
 
-        enum PgsqlMessageKind (uint8)
+        struct PgsqlCancelRequestMessage
         {
-            TERMINATOR(88),
-            PARAMETER_STATUS(83),
-            BACKEND_KEY(75),
-            AUTHENTICATION(82),
-            QUERY (81),
-            ROW (68),
-            TYPE (84),
-            COMPLETION (67),
-            READY (90)
+            int32 length;
+            int32 code = 80877102;
+            int32 pid = 0;
+            int32 key = 0;
         }
 
         struct PgsqlAuthenticationMessage
         {
-            PgsqlMessageKind kind = AUTHENTICATION;
+            uint8 type = 82;
             int32 length = 8;
-            int32 type = 0;
+            int32 authenticationType = 0;
         }
 
         struct PgsqlBackendKeyMessage
         {
-            PgsqlMessageKind kind = BACKEND_KEY;
+            uint8 type = 75;
             int32 length = 12;
             int32 pid = 0;
             int32 key = 0;
@@ -66,7 +61,7 @@ scope protocol
 
         struct PgsqlMessage
         {
-            PgsqlMessageKind kind;
+            uint8 type;
             int32 length;
         }
 

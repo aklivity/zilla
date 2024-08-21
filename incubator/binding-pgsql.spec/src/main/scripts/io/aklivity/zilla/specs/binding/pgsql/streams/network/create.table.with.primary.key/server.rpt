@@ -25,7 +25,7 @@ accepted
 connected
 
 read 8                                 # length
-     [0x00 0xd2 0x16 0x2f]             # request code
+     [0x04 0xd2 0x16 0x2f]             # request code
 
 write [0x4e]
 

@@ -27,7 +27,7 @@ scope pgsql
             PgsqlParameter[] parameters;
         }
 
-        enum PgsqlMessageKind (uint8)
+        enum PgsqlMessageType (uint8)
         {
             QUERY (81),
             ROW (68),

@@ -19,12 +19,13 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFormat;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlMessageKind;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlMessageType;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlRowDataExFW;
@@ -33,6 +34,12 @@ import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlTypeFlus
 
 public final class PgsqlFunctions
 {
+    @Function
+    public static PgsqlBeginExBuilder beginEx()
+    {
+        return new PgsqlBeginExBuilder();
+    }
+
     @Function
     public static PgsqlDataExBuilder dataEx()
     {
@@ -43,6 +50,52 @@ public final class PgsqlFunctions
     public static PgsqlFlushExBuilder flushEx()
     {
         return new PgsqlFlushExBuilder();
+    }
+
+    public static final class PgsqlBeginExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final PgsqlBeginExFW beginExRO = new PgsqlBeginExFW();
+
+        private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
+
+        private PgsqlBeginExBuilder()
+        {
+            beginExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public PgsqlBeginExBuilder typeId(
+            int typeId)
+        {
+            beginExRW.typeId(typeId);
+            return this;
+        }
+
+        public PgsqlBeginExBuilder parameter(
+            String name,
+            String value)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(name);
+            stringBuilder.append((char) 0x00);
+            final String newName = stringBuilder.toString();
+            stringBuilder.setLength(0);
+            stringBuilder.append(value);
+            stringBuilder.append((char) 0x00);
+            final String newValue = stringBuilder.toString();
+            beginExRW.parametersItem(p -> p.name(newName).value(newValue));
+
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final PgsqlBeginExFW beginEx = beginExRO;
+            final byte[] array = new byte[beginEx.sizeof()];
+            beginEx.buffer().getBytes(beginEx.offset(), array);
+            return array;
+        }
     }
 
     public static final class PgsqlDataExBuilder
@@ -67,14 +120,14 @@ public final class PgsqlFunctions
 
         public PgsqlQueryDataExBuilder query()
         {
-            dataExRW.kind(PgsqlMessageKind.QUERY.value());
+            dataExRW.kind(PgsqlMessageType.QUERY.value());
 
             return new PgsqlQueryDataExBuilder();
         }
 
         public PgsqlRowDataExBuilder row()
         {
-            dataExRW.kind(PgsqlMessageKind.ROW.value());
+            dataExRW.kind(PgsqlMessageType.ROW.value());
 
             return new PgsqlRowDataExBuilder();
         }
@@ -158,21 +211,21 @@ public final class PgsqlFunctions
 
         public PgsqlTypeFlushExBuilder type()
         {
-            flushExRW.kind(PgsqlMessageKind.TYPE.value());
+            flushExRW.kind(PgsqlMessageType.TYPE.value());
 
             return new PgsqlTypeFlushExBuilder();
         }
 
         public PgsqlCompletedFlushExBuilder completion()
         {
-            flushExRW.kind(PgsqlMessageKind.COMPLETION.value());
+            flushExRW.kind(PgsqlMessageType.COMPLETION.value());
 
             return new PgsqlCompletedFlushExBuilder();
         }
 
         public PgsqlReadyFlushExBuilder ready()
         {
-            flushExRW.kind(PgsqlMessageKind.READY.value());
+            flushExRW.kind(PgsqlMessageType.READY.value());
 
             return new PgsqlReadyFlushExBuilder();
         }
