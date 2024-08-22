@@ -51,7 +51,7 @@ read [0x53]                                 # type S
 
 read [0x53]                                 # type S
      35                                     # length
-     "standard_confirming_strings" [0x00]   # name
+     "standard_conforming_strings" [0x00]   # name
      [0x6f 0x6e 0x00]                       # value
 
 read [0x53]                                 # type S

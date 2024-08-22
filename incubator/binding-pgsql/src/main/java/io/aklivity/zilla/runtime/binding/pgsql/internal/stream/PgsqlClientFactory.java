@@ -76,6 +76,8 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATION = 'X';
 
+    private static final int AUTHENTICATION_SUCCESS_CODE = 0;
+
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_CONT = 0x00;
     private static final int FLAGS_FIN = 0x01;
@@ -505,7 +507,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             }
         }
 
-        private void  doNetworkData(
+        private void doNetworkData(
             long traceId,
             long authorization,
             int flags,
@@ -1323,9 +1325,11 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         final PgsqlAuthenticationMessageFW pgsqlAuth = authMessageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlAuth != null && pgsqlAuth.authenticationType() == 0)
+        if (pgsqlAuth != null)
         {
-            client.decoder = decodePgsqlBackendKey;
+            client.decoder = pgsqlAuth.authenticationType() == AUTHENTICATION_SUCCESS_CODE
+                ? decodePgsqlBackendKey
+                : decodePgsqlIgnoreAll;
             progress = pgsqlAuth.limit();
         }
 
@@ -1642,21 +1646,18 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
     private int getLengthOfString(
         DirectBuffer buffer,
-        int startingOffset)
+        int offset)
     {
         int length = -1;
-
-        length:
-        for (int i = startingOffset; i < buffer.capacity(); i++)
+        loop:
+        for (int progress = offset; progress < buffer.capacity(); progress++)
         {
-            if (buffer.getByte(i) == 0x00)
+            if (buffer.getByte(progress) == 0x00)
             {
-                length = i - startingOffset + 1;
-                break length;
+                length = progress - offset + 1;
+                break loop;
             }
         }
-
         return length;
     }
-
 }

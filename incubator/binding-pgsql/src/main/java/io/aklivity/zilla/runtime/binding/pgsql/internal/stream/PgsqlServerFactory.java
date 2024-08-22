@@ -620,9 +620,9 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, backendKeyMessage.limit());
 
             doEncodeParamStatus(traceId, "client_encoding", "UTF8");
-            doEncodeParamStatus(traceId, "standard_confirming_strings", "on");
+            doEncodeParamStatus(traceId, "standard_conforming_strings", "on");
             doEncodeParamStatus(traceId, "server_version", "1.0.0");
-            doEncodeParamStatus(traceId, "application_name", "psql");
+            doEncodeParamStatus(traceId, "application_name", "zilla");
 
             int progress = 0;
             PgsqlMessageFW message = messageRW.wrap(messageBuffer, progress, messageBuffer.capacity())
@@ -1628,21 +1628,18 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private int getLengthOfString(
         DirectBuffer buffer,
-        int startingOffset)
+        int offset)
     {
         int length = -1;
-
-        length:
-        for (int i = startingOffset; i < buffer.capacity(); i++)
+        loop:
+        for (int progress = offset; progress < buffer.capacity(); progress++)
         {
-            if (buffer.getByte(i) == 0x00)
+            if (buffer.getByte(progress) == 0x00)
             {
-                length = i - startingOffset + 1;
-                break length;
+                length = progress - offset + 1;
+                break loop;
             }
         }
-
         return length;
     }
-
 }

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.pgsql.streams.application;
+package io.aklivity.zilla.specs.binding.pgsql.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class StreamIT
+public class NetworkIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/pgsql/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/pgsql/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,8 +38,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/create.table.with.primary.key/client",
-        "${app}/create.table.with.primary.key/server"
+        "${net}/create.table.with.primary.key/client",
+        "${net}/create.table.with.primary.key/server"
     })
     public void shouldCreateTableWithPrimaryKey() throws Exception
     {
@@ -48,9 +48,18 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/select.table/client",
-        "${app}/select.table/server" })
+        "${net}/select.table/client",
+        "${net}/select.table/server" })
     public void shouldSelectTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ssl.request/client",
+        "${net}/ssl.request/server" })
+    public void shouldHandleSslRequest() throws Exception
     {
         k3po.finish();
     }
