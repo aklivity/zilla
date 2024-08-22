@@ -77,6 +77,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_TERMINATION = 'X';
 
     private static final int AUTHENTICATION_SUCCESS_CODE = 0;
+    private static final int END_OF_FIELD = 0x00;
 
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_CONT = 0x00;
@@ -658,7 +659,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                     startupOffset += parameter.getValue().length();
                 }
 
-                messageBuffer.putByte(startupOffset, (byte) 0x00);
+                messageBuffer.putByte(startupOffset, (byte) END_OF_FIELD);
                 startupOffset += Byte.BYTES;
 
                 messageBuffer.putInt(0, startupOffset, BIG_ENDIAN);
@@ -1652,7 +1653,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         loop:
         for (int progress = offset; progress < buffer.capacity(); progress++)
         {
-            if (buffer.getByte(progress) == 0x00)
+            if (buffer.getByte(progress) == END_OF_FIELD)
             {
                 length = progress - offset + 1;
                 break loop;

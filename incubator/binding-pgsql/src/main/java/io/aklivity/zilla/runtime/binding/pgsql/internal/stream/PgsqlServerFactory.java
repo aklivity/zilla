@@ -76,6 +76,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private static final int SSL_REQUEST_CODE = 80877103;
     private static final int CANCEL_REQUEST_CODE = 80877102;
+    private static final int END_OF_FIELD = 0x00;
 
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_CONT = 0x00;
@@ -652,12 +653,12 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             messageBuffer.putBytes(statusOffset, name.getBytes());
             statusOffset += name.length();
-            messageBuffer.putByte(statusOffset, (byte) 0x00);
+            messageBuffer.putByte(statusOffset, (byte) END_OF_FIELD);
             statusOffset += Byte.BYTES;
 
             messageBuffer.putBytes(statusOffset, value.getBytes());
             statusOffset += value.length();
-            messageBuffer.putByte(statusOffset, (byte) 0x00);
+            messageBuffer.putByte(statusOffset, (byte) END_OF_FIELD);
             statusOffset += Byte.BYTES;
 
             messageBuffer.putInt(Byte.BYTES, statusOffset - Byte.BYTES, BIG_ENDIAN);
@@ -1437,7 +1438,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
                 progress.addAndGet(nameLength + valueLength);
 
-                if (buffer.getByte(progress.value) == (byte) 0x00)
+                if (buffer.getByte(progress.value) == (byte) END_OF_FIELD)
                 {
                     progress.addAndGet(Byte.BYTES);
                 }
@@ -1634,7 +1635,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         loop:
         for (int progress = offset; progress < buffer.capacity(); progress++)
         {
-            if (buffer.getByte(progress) == 0x00)
+            if (buffer.getByte(progress) == END_OF_FIELD)
             {
                 length = progress - offset + 1;
                 break loop;
