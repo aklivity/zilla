@@ -19,9 +19,11 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-pgsql.spec</module>
+    <module>binding-risingwave.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
+    <module>binding-risingwave</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -38,6 +40,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-pgsql</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-risingwave</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
