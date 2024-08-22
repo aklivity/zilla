@@ -178,19 +178,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         this.pgsqlTypeId = context.supplyTypeId(PgsqlBinding.NAME);
     }
 
-    @FunctionalInterface
-    private interface PgsqlClientDecoder
-    {
-        int decode(
-            PgsqlClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit);
-    }
-
     @Override
     public void attach(
         BindingConfig binding)
@@ -1638,6 +1625,19 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         int limit)
     {
         return limit;
+    }
+
+    @FunctionalInterface
+    private interface PgsqlClientDecoder
+    {
+        int decode(
+            PgsqlClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit);
     }
 
     private int getLengthOfString(
