@@ -81,4 +81,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/ssl.request/client",
+        "${app}/ssl.request/server" })
+    public void shouldHandleSslRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/termination.request/client",
+        "${app}/termination.request/server" })
+    public void shouldHandleTerminationRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

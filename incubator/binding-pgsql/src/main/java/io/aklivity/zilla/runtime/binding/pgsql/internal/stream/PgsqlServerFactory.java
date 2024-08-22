@@ -903,7 +903,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            if (PgsqlState.replyOpened(server.state))
+            if (!PgsqlState.closed(server.state))
             {
                 doEncodeTerminate(traceId, authorization);
 

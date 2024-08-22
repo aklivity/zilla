@@ -90,4 +90,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/termination.request/client",
+        "${net}/termination.request/server" })
+    public void shouldHandleTerminationRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }
