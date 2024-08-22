@@ -81,4 +81,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.table.fragmented/client",
+        "${net}/create.table.fragmented/server" })
+    public void shouldHandleFragmentedCreateTable() throws Exception
+    {
+        k3po.finish();
+    }
 }

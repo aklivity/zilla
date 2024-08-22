@@ -688,6 +688,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization)
         {
             stream.doApplicationEnd(traceId, authorization);
+            doNetworkEnd(traceId, authorization);
         }
 
         private void cleanupNetwork(
@@ -902,11 +903,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            doEncodeTerminate(traceId, authorization);
+            if (PgsqlState.replyOpened(server.state))
+            {
+                doEncodeTerminate(traceId, authorization);
 
-            state = PgsqlState.closeReply(state);
+                state = PgsqlState.closeReply(state);
 
-            server.doNetworkEnd(traceId, authorization);
+                server.doNetworkEnd(traceId, authorization);
+            }
         }
 
         private void onApplicationAbort(

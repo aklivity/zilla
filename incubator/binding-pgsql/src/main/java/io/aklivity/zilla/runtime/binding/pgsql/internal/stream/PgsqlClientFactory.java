@@ -906,6 +906,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             state = PgsqlState.closeInitial(state);
 
+            doEncodeTermination(traceId, authorization);
             client.doNetworkEnd(traceId, authorization);
         }
 
@@ -1046,6 +1047,18 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             }
         }
 
+        public void doApplicationFlush(
+            long traceId,
+            long authorization,
+            int reserved,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            replySeq = client.replySeq;
+
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                    authorization, replyBudgetId, reserved, extension);
+        }
+
         private void doEncodeQuery(
             long traceId,
             long authorization,
@@ -1057,11 +1070,11 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             int queryOffset = 0;
 
-            PgsqlMessageFW messageRow = messageRW.wrap(messageBuffer, queryOffset, messageBuffer.capacity())
+            PgsqlMessageFW messageQuery = messageRW.wrap(messageBuffer, queryOffset, messageBuffer.capacity())
                 .type(MESSAGE_TYPE_QUERY)
                 .length(rowSize + Integer.BYTES + deferred)
                 .build();
-            queryOffset = messageRow.limit();
+            queryOffset = messageQuery.limit();
 
             messageBuffer.putBytes(queryOffset, queryBuffer, 0, rowSize);
             queryOffset += rowSize;
@@ -1069,16 +1082,16 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, queryOffset);
         }
 
-        public void doApplicationFlush(
+        private void doEncodeTermination(
             long traceId,
-            long authorization,
-            int reserved,
-            Consumer<OctetsFW.Builder> extension)
+            long authorization)
         {
-            replySeq = client.replySeq;
+            PgsqlMessageFW messageTermination = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_TERMINATION)
+                .length(Integer.BYTES)
+                .build();
 
-            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                    authorization, replyBudgetId, reserved, extension);
+            client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, messageTermination.limit());
         }
     }
 

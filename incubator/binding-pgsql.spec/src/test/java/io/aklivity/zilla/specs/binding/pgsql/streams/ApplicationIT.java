@@ -72,4 +72,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.table.fragmented/client",
+        "${app}/create.table.fragmented/server" })
+    public void shouldHandleFragmentedCreateTable() throws Exception
+    {
+        k3po.finish();
+    }
 }

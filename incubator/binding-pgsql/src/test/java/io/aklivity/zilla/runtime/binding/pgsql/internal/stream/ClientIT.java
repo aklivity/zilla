@@ -61,6 +61,16 @@ public class ClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/termination.request/client",
+        "${net}/termination.request/server" })
+    public void shouldHandleTerminationRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/select.table/client",
         "${net}/select.table/server" })
     public void shouldSelectTable() throws Exception
