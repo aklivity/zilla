@@ -54,4 +54,13 @@ public class StreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/ssl.request/client",
+        "${net}/ssl.request/server" })
+    public void shouldHandleSslRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

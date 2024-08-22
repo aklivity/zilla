@@ -74,15 +74,9 @@ public final class PgsqlFunctions
             String name,
             String value)
         {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(name);
-            stringBuilder.append((char) 0x00);
-            final String newName = stringBuilder.toString();
-            stringBuilder.setLength(0);
-            stringBuilder.append(value);
-            stringBuilder.append((char) 0x00);
-            final String newValue = stringBuilder.toString();
-            beginExRW.parametersItem(p -> p.name(newName).value(newValue));
+            beginExRW.parametersItem(p -> p
+                .name(String.format("%s\u0000", name))
+                .value(String.format("%s\u0000", value)));
 
             return this;
         }
@@ -263,10 +257,7 @@ public final class PgsqlFunctions
                 public PgsqlColumnInfoBuilder name(
                     String name)
                 {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append(name);
-                    stringBuilder.append((char) 0x00);
-                    columnInfoRW.name(stringBuilder.toString());
+                    columnInfoRW.name(String.format("%s\u0000", name));
                     return this;
                 }
 
@@ -348,10 +339,7 @@ public final class PgsqlFunctions
             public PgsqlCompletedFlushExBuilder tag(
                 String tag)
             {
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append(tag);
-                stringBuilder.append((char) 0x00);
-                pgsqlCompletedFlushExRW.tag(stringBuilder.toString());
+                pgsqlCompletedFlushExRW.tag(String.format("%s\u0000", tag));
                 return this;
             }
 
