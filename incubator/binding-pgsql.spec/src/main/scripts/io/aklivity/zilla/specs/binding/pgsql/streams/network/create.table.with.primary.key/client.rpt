@@ -60,9 +60,9 @@ read [0x53]                                 # type S
      "1.0.0" [0x00]                         # value
 
 read [0x53]                                 # type S
-     26                                     # length
+     27                                     # length
      "application_name" [0x00]              # name
-     "psql" [0x00]                          # value
+     "zilla" [0x00]                         # value
 
 read [0x5a]                             # type Z
      5                                  # length

@@ -1011,7 +1011,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         {
             state = PgsqlState.closeInitial(state);
 
-            doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_OCTETS);
         }
 

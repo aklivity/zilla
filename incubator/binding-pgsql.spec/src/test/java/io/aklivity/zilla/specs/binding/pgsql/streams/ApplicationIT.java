@@ -54,4 +54,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.write.abort/client",
+        "${app}/client.sent.write.abort/server" })
+    public void shouldHandleClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.read.abort/client",
+        "${app}/client.sent.read.abort/server" })
+    public void shouldHandleClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

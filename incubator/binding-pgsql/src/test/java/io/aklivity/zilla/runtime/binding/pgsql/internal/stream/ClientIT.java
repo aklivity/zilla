@@ -67,4 +67,24 @@ public class ClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/client.sent.write.abort/client",
+        "${net}/client.sent.write.abort/server" })
+    public void shouldHandleClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/client.sent.read.abort/client",
+        "${net}/client.sent.read.abort/server" })
+    public void shouldHandleClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

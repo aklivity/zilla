@@ -63,4 +63,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.write.abort/client",
+        "${net}/client.sent.write.abort/server" })
+    public void shouldHandleClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.read.abort/client",
+        "${net}/client.sent.read.abort/server" })
+    public void shouldHandleClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
