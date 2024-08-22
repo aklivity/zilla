@@ -133,7 +133,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final Long2ObjectHashMap<PgsqlBindingConfig> bindings;
     private final int pgsqlTypeId;
 
-    private final PgsqlClientDecoder decodePgsqlMessageKind = this::decodePgsqlMessageKind;
+    private final PgsqlClientDecoder decodePgsqlMessage = this::decodePgsqlMessage;
     private final PgsqlClientDecoder decodePgsqlAuth = this::decodePgsqlMessageAuth;
     private final PgsqlClientDecoder decodePgsqlBackendKey = this::decodePgsqlMessageBackendKey;
     private final PgsqlClientDecoder decodePgsqlParameterStatus = this::decodePgsqlMessageParameterStatus;
@@ -283,7 +283,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             this.stream = stream;
             this.encoder = this::doEncodeNetworkStartupMessage;
-            this.decoder = decodePgsqlMessageKind;
+            this.decoder = decodePgsqlMessage;
         }
 
         private void onNetworkMessage(
@@ -1286,7 +1286,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private int decodePgsqlMessageKind(
+    private int decodePgsqlMessage(
         PgsqlClient client,
         long traceId,
         long authorization,
@@ -1369,7 +1369,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         if (pgsqlParameter != null)
         {
-            client.decoder = decodePgsqlMessageKind;
+            client.decoder = decodePgsqlMessage;
             progress += pgsqlParameter.length() + Byte.BYTES;
         }
 
@@ -1437,7 +1437,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             {
                 client.onDecodeMessageType(traceId, authorization, columns);
 
-                client.decoder = decodePgsqlMessageKind;
+                client.decoder = decodePgsqlMessage;
             }
         }
 
@@ -1478,7 +1478,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 assert payloadRemaining.get() >= 0;
 
                 client.decoder = rowSize == length
-                    ? decodePgsqlMessageKind
+                    ? decodePgsqlMessage
                     : decodePgsqlPayload;
             }
         }
@@ -1512,7 +1512,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             payloadRemaining.set(completionSize - length);
 
             client.decoder = completionSize == length
-                    ? decodePgsqlMessageKind
+                    ? decodePgsqlMessage
                     : decodePgsqlPayload;
         }
 
@@ -1541,7 +1541,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             client.onDecodeMessageReady(traceId, authorization, PgsqlStatus.valueOf(buffer.getByte(progressOffset)));
             progressOffset += Byte.BYTES;
 
-            client.decoder = decodePgsqlMessageKind;
+            client.decoder = decodePgsqlMessage;
         }
 
         return progressOffset;
@@ -1593,7 +1593,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         if (payloadSize == length)
         {
-            client.decoder = decodePgsqlMessageKind;
+            client.decoder = decodePgsqlMessage;
         }
 
         return length;
@@ -1611,7 +1611,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         final PgsqlMessageFW messageType = messageRO.wrap(buffer, offset, limit);
         final int progress = messageType.limit() + messageType.length();
 
-        client.decoder = decodePgsqlMessageKind;
+        client.decoder = decodePgsqlMessage;
         return progress;
     }
 
