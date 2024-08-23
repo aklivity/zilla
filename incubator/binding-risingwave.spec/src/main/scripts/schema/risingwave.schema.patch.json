@@ -1,0 +1,72 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "risingwave"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "risingwave"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "risingwave"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy"]
+                    },
+                    "vault": false,
+                    "options":
+					{
+						"properties":
+						{
+							"url":
+							{
+								"title": "url",
+								"type": "string"
+							},
+						    "schema-registry":
+							{
+								"properties":
+								{
+									"url":
+									{
+										"title": "url",
+										"type": "string"
+									}
+								}
+							}
+						},
+						"additionalProperties": false
+					},
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+]
