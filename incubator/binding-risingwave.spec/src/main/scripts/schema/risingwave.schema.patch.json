@@ -33,36 +33,36 @@
                     },
                     "vault": false,
                     "options":
-					{
-						"properties":
-						{
-							"kafka":
-							{
-								"title": "Kafka",
-								"type": "object",
-							  	"properties":
-								{
-									"properties":
-									{
-									  	"title": "Properties",
-										"type": "object",
-										"properties":
-										{
-											"bootstrap.server":
-											{
-												"type": "string"
-											}
-										}
-									},
-									"format":
-									{
-										"$ref": "#/$defs/converter"
-									}
-								}
-							}
-						},
-						"additionalProperties": false
-					},
+                    {
+                        "properties":
+                        {
+                            "kafka":
+                            {
+                                "title": "Kafka",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "properties":
+                                    {
+                                        "title": "Properties",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "bootstrap.server":
+                                            {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "format":
+                                    {
+                                        "$ref": "#/$defs/converter"
+                                    }
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
                     "routes":
                     {
                         "items":
