@@ -36,7 +36,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
+read "CREATE TOPIC IF NOT EXISTS balances (name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -73,7 +73,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS balances(*, PRIMARY KEY (balance_id)) INCLUDE KEY AS balance_id WITH (connector='kafka', topic='balances', properties.bootstrap.server='kafka:29092', scan.startup.mode='latest', scan.startup.timestamp.millis='140000000' ) FORMAT UPSERT ENCODE AVRO ( schema.registry = 'http://schema-registry:8081');"
+read "CREATE TABLE IF NOT EXISTS balances(*, PRIMARY KEY (balance_id)) INCLUDE KEY AS balance_id WITH (connector='kafka', topic='balances', properties.bootstrap.server='localhost:9092', scan.startup.mode='latest', scan.startup.timestamp.millis='140000000' ) FORMAT UPSERT ENCODE AVRO ( schema.registry = 'http://localhost:8081');"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()

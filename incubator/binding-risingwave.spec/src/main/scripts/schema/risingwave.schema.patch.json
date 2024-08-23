@@ -36,26 +36,59 @@
 					{
 						"properties":
 						{
-							"url":
+							"kafka":
 							{
-								"title": "url",
-								"type": "string"
-							},
-						    "schema-registry":
-							{
-								"properties":
+								"title": "Kafka",
+								"type": "object",
+							  	"properties":
 								{
-									"url":
+									"properties":
 									{
-										"title": "url",
-										"type": "string"
+									  	"title": "Properties",
+										"type": "object",
+										"properties":
+										{
+											"bootstrap.server":
+											{
+												"type": "string"
+											}
+										}
+									},
+									"format":
+									{
+										"$ref": "#/$defs/converter"
 									}
 								}
 							}
 						},
 						"additionalProperties": false
 					},
-                    "routes": false
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "command":
+                                            {
+                                                "title": "Commands",
+                                                "type": "string",
+                                                "enum": [ "CREATE TOPIC"]
+                                            }
+                                        }
+                                    }
+                                },
+                                "with": false
+                            }
+                        }
+                    }
                 },
                 "anyOf":
                 [
@@ -63,6 +96,12 @@
                         "required":
                         [
                             "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
                         ]
                     }
                 ]
