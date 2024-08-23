@@ -12,10 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.pgsql
-{
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.binding.pgsql.internal.stream;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlBindingFactorySpi;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public interface PgsqlStreamFactory extends BindingHandler
+{
+    void attach(
+        BindingConfig binding);
+
+    void detach(
+        long bindingId);
 }

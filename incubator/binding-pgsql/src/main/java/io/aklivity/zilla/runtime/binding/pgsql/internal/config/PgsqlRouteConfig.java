@@ -12,10 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.pgsql
-{
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.binding.pgsql.internal.config;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlBindingFactorySpi;
+import java.util.function.LongPredicate;
+
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+
+public final class PgsqlRouteConfig
+{
+    public final long id;
+    public final int order;
+
+    private final LongPredicate authorized;
+
+    public PgsqlRouteConfig(
+        RouteConfig route)
+    {
+        this.id = route.id;
+        this.order = route.order;
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
 }
