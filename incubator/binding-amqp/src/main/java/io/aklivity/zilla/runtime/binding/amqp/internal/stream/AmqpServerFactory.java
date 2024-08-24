@@ -254,8 +254,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final AmqpMapFW<AmqpValueFW, AmqpValueFW> annotationsRO = new AmqpMapFW<>(new AmqpValueFW(), new AmqpValueFW());
     private final OctetsFW deliveryTagRO = new OctetsFW();
     private final AmqpMessagePropertiesFW amqpPropertiesRO = new AmqpMessagePropertiesFW();
-    private final AmqpMapFW<AmqpValueFW, AmqpValueFW> applicationPropertyRO =
-        new AmqpMapFW<>(new AmqpValueFW(), new AmqpValueFW());
     private final AmqpApplicationPropertiesFW<AmqpSimpleTypeFW> applicationPropertiesRO =
         new AmqpApplicationPropertiesFW<>(new AmqpStringFW(), new AmqpSimpleTypeFW());
     private final AmqpMapFW<AmqpValueFW, AmqpValueFW> footerRO = new AmqpMapFW<>(new AmqpValueFW(), new AmqpValueFW());
@@ -275,7 +273,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final AmqpCloseFW.Builder amqpCloseRW = new AmqpCloseFW.Builder();
     private final AmqpErrorListFW.Builder amqpErrorListRW = new AmqpErrorListFW.Builder();
     private final AmqpStringFW.Builder amqpStringRW = new AmqpStringFW.Builder();
-    private final AmqpSimpleTypeFW.Builder amqpValueRW = new AmqpSimpleTypeFW.Builder();
     private final AmqpSymbolFW.Builder amqpSymbolRW = new AmqpSymbolFW.Builder();
     private final AmqpSourceListFW.Builder amqpSourceListRW = new AmqpSourceListFW.Builder();
     private final AmqpTargetListFW.Builder amqpTargetListRW = new AmqpTargetListFW.Builder();
@@ -4503,6 +4500,8 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     messageFragmentRW.put(buffer, progress, Integer.BYTES);
                     progress += Integer.BYTES;
                     break;
+                default:
+                    break;
                 }
                 this.sectionEncoder = this::encodeSectionDataBytes;
             }
@@ -4552,6 +4551,8 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     this.encodableBytes = buffer.getInt(progress, BIG_ENDIAN);
                     messageFragmentRW.put(buffer, progress, Integer.BYTES);
                     progress += Integer.BYTES;
+                    break;
+                default:
                     break;
                 }
                 this.sectionEncoder = this::encodeSectionSequenceBytes;

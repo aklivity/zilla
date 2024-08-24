@@ -299,6 +299,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
+        @SuppressWarnings("resource")
         MessageConsumer newStream = (t, b, i, l) -> {};
 
         if (!isGrpcRequestMethod(httpBeginEx))

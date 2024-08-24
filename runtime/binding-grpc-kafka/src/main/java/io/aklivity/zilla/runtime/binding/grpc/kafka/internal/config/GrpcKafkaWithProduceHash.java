@@ -66,7 +66,7 @@ public class GrpcKafkaWithProduceHash
 
         if (digest != null && correlationId != null)
         {
-            octetsRW.reset();
+            octetsRW.rewrap();
             newCorrelationId = octetsRW.put(correlationId).put(dashOctets).put(toHex(digest).getBytes()).build();
         }
         else

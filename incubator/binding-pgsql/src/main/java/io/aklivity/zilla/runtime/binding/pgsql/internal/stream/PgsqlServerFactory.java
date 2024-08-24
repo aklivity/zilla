@@ -152,7 +152,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final Int2ObjectHashMap<PgsqlServerDecoder> decodersByType;
     {
-        Int2ObjectHashMap<PgsqlServerDecoder> decodersByType = new Int2ObjectHashMap();
+        Int2ObjectHashMap<PgsqlServerDecoder> decodersByType = new Int2ObjectHashMap<>();
         decodersByType.put(MESSAGE_TYPE_QUERY, decodePgsqlQuery);
         decodersByType.put(MESSAGE_TYPE_TERMINATE, decodePgsqlTermination);
         this.decodersByType = decodersByType;

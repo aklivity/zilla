@@ -132,6 +132,8 @@ public abstract class JsonModelHandler
                                 valueBytes = null;
                             }
                             break;
+                        default:
+                            break;
                         }
                     }
                 }
