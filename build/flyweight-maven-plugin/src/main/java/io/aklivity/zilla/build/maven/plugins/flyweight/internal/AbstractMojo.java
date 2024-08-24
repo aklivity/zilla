@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -65,11 +67,15 @@ public abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo
 
         try
         {
-            for (Object resourcePathEntry : project.getTestClasspathElements())
+            for (String classPathElement : project.getTestClasspathElements())
             {
-                File resourcePathFile = new File(resourcePathEntry.toString());
-                URI resourcePathURI = resourcePathFile.getAbsoluteFile().toURI();
-                resourcePath.add(URI.create(String.format("jar:%s!/META-INF/zilla/", resourcePathURI)).toURL());
+                Path classPathEntry = Path.of(classPathElement).toAbsolutePath();
+                URI classPathEntryURI = classPathEntry.toUri();
+                URI resourcePathEntryURI = Files.isDirectory(classPathEntry)
+                    ? classPathEntry.resolve("META-INF/zilla").toUri()
+                    : URI.create(String.format("jar:%s!/META-INF/zilla/", classPathEntryURI));
+                URL resourcePathEntry = resourcePathEntryURI.toURL();
+                resourcePath.add(resourcePathEntry);
             }
         }
         catch (DependencyResolutionRequiredException e)
