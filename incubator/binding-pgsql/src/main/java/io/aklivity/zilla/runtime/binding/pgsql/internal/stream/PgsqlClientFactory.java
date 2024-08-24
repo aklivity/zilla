@@ -152,7 +152,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final Int2ObjectHashMap<PgsqlClientDecoder> decodersByType;
 
     {
-        Int2ObjectHashMap<PgsqlClientDecoder> decodersByType = new Int2ObjectHashMap();
+        Int2ObjectHashMap<PgsqlClientDecoder> decodersByType = new Int2ObjectHashMap<>();
         decodersByType.put(MESSAGE_TYPE_AUTH, decodePgsqlAuth);
         decodersByType.put(MESSAGE_TYPE_BACKEND_KEY, decodePgsqlBackendKey);
         decodersByType.put(MESSAGE_TYPE_PARAMETER_STATUS, decodePgsqlParameterStatus);

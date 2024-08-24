@@ -1223,9 +1223,6 @@ public class KafkaFunctionsTest
                                                  .partition(0, 0L, 1L)
                                                  .progress(0, 1L, 1L)
                                                  .timestamp(12345678L)
-                                                 .producerId(8L)
-                                                 .producerEpoch((short) 2)
-                                                 .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
                                                  .build()
@@ -2791,29 +2788,6 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldMatchProduceBeginExtensionProducerId() throws Exception
-    {
-        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
-                                             .produce()
-                                                 .producerId(1L)
-                                                 .build()
-                                             .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new KafkaBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .produce(f -> f
-                .transaction("transaction")
-                .topic("test")
-                .partition(p -> p.partitionId(0).partitionOffset(0L)))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
     public void shouldMatchProduceBeginExtensionTopic() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -3685,6 +3659,8 @@ public class KafkaFunctionsTest
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .produce(p -> p.timestamp(12345678L)
+                               .producerId(8L)
+                               .producerEpoch((short) 1)
                                .sequence(0)
                                .key(k -> k.length(5)
                                           .value(v -> v.set("match".getBytes(UTF_8))))

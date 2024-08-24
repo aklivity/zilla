@@ -306,6 +306,8 @@ public final class TcpClientRouter
                 destinationInet6.buffer().getBytes(destinationInet6.offset(), ipv6);
                 resolved = new InetSocketAddress(InetAddress.getByAddress(ipv6), destinationPortInet6);
                 break;
+            default:
+                break;
             }
         }
         catch (UnknownHostException e)
@@ -318,6 +320,8 @@ public final class TcpClientRouter
 
     private static final class TcpDnsFailedException extends RuntimeException
     {
+        private static final long serialVersionUID = 1L;
+
         private final String hostname;
 
         TcpDnsFailedException(

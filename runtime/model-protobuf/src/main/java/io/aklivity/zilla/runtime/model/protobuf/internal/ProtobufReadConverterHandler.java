@@ -336,6 +336,8 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 field.value.wrap(text, 0, length);
             }
             break;
+        default:
+            break;
         }
     }
 

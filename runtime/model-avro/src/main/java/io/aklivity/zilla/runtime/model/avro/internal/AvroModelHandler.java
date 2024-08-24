@@ -153,6 +153,8 @@ public abstract class AvroModelHandler
                 progress = index;
                 extractFields(buffer, index + length, schema);
                 break;
+            default:
+                break;
             }
         }
         catch (IOException | AvroRuntimeException ex)
@@ -394,6 +396,8 @@ public abstract class AvroModelHandler
                 field.value.wrap(data, progress, progress + fixedSize);
             }
             progress += fixedSize;
+            break;
+        default:
             break;
         }
     }

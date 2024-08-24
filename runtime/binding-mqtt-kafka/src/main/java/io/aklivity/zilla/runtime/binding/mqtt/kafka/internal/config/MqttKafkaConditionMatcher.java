@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -63,22 +62,6 @@ public class MqttKafkaConditionMatcher
         }
 
         return true;
-    }
-
-    private static List<Matcher> asTopicMatchers(
-        List<String> wildcards)
-    {
-        final List<Matcher> matchers = new ArrayList<>();
-        for (String wildcard : wildcards)
-        {
-            String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
-            String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
-            String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
-            fixedPattern = fixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)");
-            nonFixedPattern = nonFixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "");
-            matchers.add(Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher(""));
-        }
-        return matchers;
     }
 
     private static Matcher asTopicMatcher(
