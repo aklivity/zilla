@@ -14,31 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
-import static java.util.stream.Collectors.toList;
-
-import java.util.List;
-import java.util.function.Function;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String SERVICES_NAME = "services";
+    private static final String KAFKA_NAME = "kafka";
 
+    private final RisingwaveKafkaConfigAdapter kafka = new RisingwaveKafkaConfigAdapter();
 
     @Override
     public Kind kind()
@@ -49,22 +40,20 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
     @Override
     public String type()
     {
-        return GrpcBinding.NAME;
+        return RisingwaveBinding.NAME;
     }
 
     @Override
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        GrpcOptionsConfig grpcOptions = (GrpcOptionsConfig) options;
+        RisingwaveOptionsConfig risingwaveOptions = (RisingwaveOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (grpcOptions.protobufs != null)
+        if (risingwaveOptions.kafka != null)
         {
-            JsonArrayBuilder keys = Json.createArrayBuilder();
-            grpcOptions.protobufs.forEach(p -> keys.add(p.location));
-            object.add(SERVICES_NAME, keys);
+            object.add(KAFKA_NAME, kafka.adaptToJson(risingwaveOptions.kafka));
         }
 
         return object.build();
@@ -74,34 +63,13 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        List<GrpcProtobufConfig> protobufs = object.containsKey(SERVICES_NAME)
-                ? asListProtobufs(object.getJsonArray(SERVICES_NAME))
-                : null;
+        RisingwaveKafkaConfig kafkaConfig = null;
 
-        return new GrpcOptionsConfig(protobufs);
-    }
+        if (object.containsKey(KAFKA_NAME))
+        {
+            kafkaConfig = kafka.adaptFromJson(object);
+        }
 
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
-    {
-        this.readResource = context::readResource;
-    }
-
-    private List<GrpcProtobufConfig> asListProtobufs(
-        JsonArray array)
-    {
-        return array.stream()
-            .map(this::asProtobuf)
-            .collect(toList());
-    }
-
-    private GrpcProtobufConfig asProtobuf(
-        JsonValue value)
-    {
-        final String location = ((JsonString) value).getString();
-        final String protobuf = readResource.apply(location);
-
-        return parser.parse(location, protobuf);
+        return new RisingwaveOptionsConfig(kafkaConfig);
     }
 }

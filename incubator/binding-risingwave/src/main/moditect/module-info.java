@@ -16,7 +16,6 @@ module io.aklivity.zilla.runtime.binding.risingwave
 {
     requires io.aklivity.zilla.runtime.engine;
 
-/*
     exports io.aklivity.zilla.runtime.binding.risingwave.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
@@ -27,8 +26,4 @@ module io.aklivity.zilla.runtime.binding.risingwave
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveEventFormatterFactory;
-*/
 }
