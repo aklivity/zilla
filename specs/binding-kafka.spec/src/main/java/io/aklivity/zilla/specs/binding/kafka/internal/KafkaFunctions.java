@@ -2460,6 +2460,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaProduceDataExBuilder crc32c(
+                long crc32c)
+            {
+                produceDataExRW.crc32c(crc32c);
+                return this;
+            }
+
             public KafkaProduceDataExBuilder ackMode(
                 String ackMode)
             {

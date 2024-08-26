@@ -1328,6 +1328,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             }
 
             private long networkBytesReceived;
+            private long recordHeaderChecksum;
+            private int recordHeaderSize;
             private long headersChecksum;
             private int headersSize;
 
@@ -1723,6 +1725,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                              .valueLength(valueLength)
                                              .build();
 
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                this.recordHeaderSize = recordHeader.sizeof();
+                encodeBuffer.putBytes(0, encodeSlotBuffer, encodeSlotLimit, this.recordHeaderSize);
+
+                final byte[] encodeByteBuf = encodeBuffer.byteArray();
+                crc32c.reset();
+                crc32c.update(encodeByteBuf, 0, this.recordHeaderSize);
+
+                recordHeaderChecksum = crc32c.getValue();
+
                 final int newRecordHeaderSize = recordHeader.sizeof();
                 encodeSlotLimit += newRecordHeaderSize;
 
@@ -1812,7 +1824,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (encodeableRecordBytesDeferred > 0)
                 {
-                    doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+                    if (flushableRequestBytes == 0)
+                    {
+                        doEncodeRequestIfNecessary(traceId, budgetId);
+                    }
+                    else
+                    {
+                        doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+                    }
                 }
                 else
                 {
@@ -2006,9 +2025,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     crc.update(encodeSlotByteBuffer);
 
                     long checksum = crc.getValue();
-
                     if (crcDataLimit == recordBatch.limit())
                     {
+                        checksum = combineCRC32C(checksum, recordHeaderChecksum, recordHeaderSize);
                         checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
                         checksum = combineCRC32C(checksum, headersChecksum, headersSize);
                     }

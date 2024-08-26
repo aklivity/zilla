@@ -1,0 +1,285 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .topic("test")
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("test")
+                                   .build()
+                               .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .partition(0, 177)
+                                  .build()
+                              .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(2)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(2)
+                                   .build()
+                               .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/39")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "39")
+                                  .header("zilla:local", "bench_pub_2543774266_39")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(80)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/50")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "50")
+                                  .header("zilla:local", "bench_pub_2346691215_50")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "50")
+                                  .header("zilla:local", "bench_pub_2346691215_50")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(43)
+                                  .crc32c(3196829087)
+                                  .ackMode("NONE")
+                                  .key("bench/30")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "30")
+                                  .header("zilla:local", "bench_pub_2382277490_30")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .ackMode("IN_SYNC_REPLICAS")
+                                  .header("zilla:filter", "bench")
+                                  .header("zilla:filter", "30")
+                                  .header("zilla:local", "bench_pub_2382277490_30")
+                                  .header("zilla:qos", "0")
+                                  .build()
+                              .build()}
+read "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
