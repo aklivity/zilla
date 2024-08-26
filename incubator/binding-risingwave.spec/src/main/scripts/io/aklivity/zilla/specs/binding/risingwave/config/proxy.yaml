@@ -22,22 +22,22 @@ catalogs:
       url: http://localhost:8081
 
 bindings:
-    app0:
-        type: risingwave
-        kind: proxy
-        options:
-            kafka:
-                properties:
-                    bootstrap.server: localhost:9092
-                format:
-                    model: avro
-                    catalog:
-                        catalog0:
-                            version: latest
-                            strategy: topic
-        routes:
-            - when:
-                  command:
-                      - "CREATE TOPIC"
-                  exit: net1
-        exit: net0
+  app0:
+    type: risingwave
+    kind: proxy
+    options:
+      kafka:
+        properties:
+          bootstrap.server: localhost:9092
+        format:
+          model: avro
+          catalog:
+            catalog0:
+              version: latest
+              strategy: topic
+    routes:
+      - when:
+          command:
+            - "CREATE TOPIC"
+          exit: app1
+    exit: app2

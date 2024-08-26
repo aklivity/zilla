@@ -80,7 +80,7 @@
                                             {
                                                 "title": "Commands",
                                                 "type": "string",
-                                                "enum": [ "CREATE TOPIC"]
+                                                "enum": [ "CREATE TOPIC" ]
                                             }
                                         }
                                     }
@@ -90,20 +90,9 @@
                         }
                     }
                 },
-                "anyOf":
+                "required":
                 [
-                    {
-                        "required":
-                        [
-                            "exit"
-                        ]
-                    },
-                    {
-                        "required":
-                        [
-                            "routes"
-                        ]
-                    }
+                    "exit"
                 ]
             }
         }
