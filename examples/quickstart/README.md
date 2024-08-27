@@ -1,6 +1,6 @@
 # quickstart
 
-Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html) to discover some of what Zilla can do!
+Follow the [Zilla Quickstart](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/) to discover some of what Zilla can do!
 
 ## Running locally
 
@@ -23,7 +23,7 @@ The `setup.sh` script will:
 
 ### Using this quickstart
 
-You can interact with this quickstart using our [Postman collection](https://vordimous.github.io/zilla-docs/next/tutorials/quickstart/kafka-proxies.html#postman-collections)
+You can interact with this quickstart using our [Postman collection](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview)
 
 ### Teardown
 
