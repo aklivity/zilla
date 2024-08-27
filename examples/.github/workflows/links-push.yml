@@ -1,0 +1,22 @@
+name: Link Checker
+
+on:
+  push:
+  repository_dispatch:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  linkChecker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v1.8.0
+        with:
+          fail: true
+          args: --exclude-mail --exclude .+localhost.+ .
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
