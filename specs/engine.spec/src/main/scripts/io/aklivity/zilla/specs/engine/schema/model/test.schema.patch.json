@@ -66,26 +66,6 @@
                                             "type": "object",
                                             "properties":
                                             {
-                                                "schema":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "schema"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
                                                 "strategy":
                                                 {
                                                     "type": "string"
@@ -193,26 +173,6 @@
                                             "required":
                                             [
                                                 "id"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "schema":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "schema"
                                             ],
                                             "additionalProperties": false
                                         },
