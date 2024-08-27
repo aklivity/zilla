@@ -1328,7 +1328,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             }
 
             private long networkBytesReceived;
-            private long recordHeaderChecksum;
             private int recordHeaderSize;
             private long headersChecksum;
             private int headersSize;
@@ -1725,16 +1724,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                              .valueLength(valueLength)
                                              .build();
 
-                final MutableDirectBuffer encodeBuffer = writeBuffer;
-                this.recordHeaderSize = recordHeader.sizeof();
-                encodeBuffer.putBytes(0, encodeSlotBuffer, encodeSlotLimit, this.recordHeaderSize);
-
-                final byte[] encodeByteBuf = encodeBuffer.byteArray();
-                crc32c.reset();
-                crc32c.update(encodeByteBuf, 0, this.recordHeaderSize);
-
-                recordHeaderChecksum = crc32c.getValue();
-
                 final int newRecordHeaderSize = recordHeader.sizeof();
                 encodeSlotLimit += newRecordHeaderSize;
 
@@ -2013,7 +2002,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
                     final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
+                    final int recordHeaderLimit = encodeLimit - (valueCompleteSize - encodeableRecordBytesDeferred);
+                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
 
                     final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                     final int encodePosition = encodeSlotByteBuffer.position();
@@ -2025,9 +2015,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     crc.update(encodeSlotByteBuffer);
 
                     long checksum = crc.getValue();
-                    if (crcDataLimit == recordBatch.limit())
+                    if (crcDataLimit == recordHeaderLimit)
                     {
-                        checksum = combineCRC32C(checksum, recordHeaderChecksum, recordHeaderSize);
                         checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
                         checksum = combineCRC32C(checksum, headersChecksum, headersSize);
                     }
