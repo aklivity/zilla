@@ -12,15 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.risingwave.config;
+package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
-public class RisingwavePropertiesConfig
+import java.util.function.LongPredicate;
+
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+
+public final class RisingwaveRouteConfig
 {
-    public final String bootstrapServer;
+    public final long id;
+    public final int order;
 
-    public RisingwavePropertiesConfig(
-        String bootstrapServer)
+    private final LongPredicate authorized;
+
+    public RisingwaveRouteConfig(
+        RouteConfig route)
     {
-        this.bootstrapServer = bootstrapServer;
+        this.id = route.id;
+        this.order = route.order;
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
     }
 }
