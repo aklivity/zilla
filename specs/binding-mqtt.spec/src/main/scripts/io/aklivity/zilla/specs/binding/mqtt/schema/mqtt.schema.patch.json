@@ -51,10 +51,15 @@
                                                 "type": "array",
                                                 "items":
                                                 {
-                                                    "client-id":
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties":
                                                     {
-                                                        "title": "Client Id",
-                                                        "type": "string"
+                                                        "client-id":
+                                                        {
+                                                            "title": "Client Id",
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 }
                                             },
@@ -64,23 +69,31 @@
                                                 "type": "array",
                                                 "items":
                                                 {
-                                                    "topic":
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties":
                                                     {
-                                                        "title": "Topic",
-                                                        "type": "string"
+                                                        "topic":
+                                                        {
+                                                            "title": "Topic",
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 }
                                             },
                                             "publish":
                                             {
-                                                "title": "Subscribe",
+                                                "title": "Publish",
                                                 "type": "array",
                                                 "items":
                                                 {
-                                                    "topic":
-                                                    {
-                                                        "title": "Topic",
-                                                        "type": "string"
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "topic": {
+                                                            "title": "Topic",
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 }
                                             }

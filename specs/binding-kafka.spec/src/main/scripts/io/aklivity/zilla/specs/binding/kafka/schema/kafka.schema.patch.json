@@ -314,12 +314,10 @@
         "path": "/$defs/options/binding/kafka/cache_server_topics",
         "value":
         {
-            "topics":
+            "title": "Topics",
+            "type": "array",
+            "items":
             {
-                "title": "Topics",
-                "type": "array",
-                "items":
-                {
                     "type": "object",
                     "additionalProperties": false,
                     "properties":
@@ -429,7 +427,6 @@
                         }
                     }
                 }
-            }
         }
     }
 ]

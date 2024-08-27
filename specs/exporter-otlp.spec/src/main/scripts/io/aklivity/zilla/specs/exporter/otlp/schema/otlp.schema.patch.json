@@ -55,6 +55,7 @@
                                 {
                                     "protocol":
                                     {
+                                        "type": "string",
                                         "enum":
                                         [
                                             "http"

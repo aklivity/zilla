@@ -142,22 +142,6 @@
                                 [
                                     "exit"
                                 ]
-                            },
-                            {
-                                "properties":
-                                {
-                                    "routes":
-                                    {
-                                        "required":
-                                        [
-                                            "exit"
-                                        ]
-                                    }
-                                },
-                                "required":
-                                [
-                                    "routes"
-                                ]
                             }
                         ]
                     },
@@ -167,16 +151,6 @@
                             "kind":
                             {
                                 "const": "client"
-                            },
-                            "routes":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "exit": false
-                                    }
-                                }
                             },
                             "exit": false
                         }
