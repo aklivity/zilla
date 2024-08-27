@@ -403,12 +403,6 @@
                 {
                     "title": "Exit",
                     "type": "string"
-                },
-                "entry":
-                {
-                    "title": "Entry",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
                 }
             },
             "additionalProperties": false,
@@ -416,38 +410,6 @@
             [
                 "type",
                 "kind"
-            ],
-            "anyOf":
-            [
-                {
-                    "properties":
-                    {
-                        "kind":
-                        {
-                            "const": "remote_server"
-                        }
-                    },
-                    "required":
-                    [
-                        "entry"
-                    ]
-                },
-                {
-                    "properties":
-                    {
-                        "kind":
-                        {
-                            "not":
-                            {
-                                "const": "remote_server"
-                            }
-                        },
-                        "entry": false
-                    }
-                }
-            ],
-            "allOf":
-            [
             ]
         },
         "converter":
