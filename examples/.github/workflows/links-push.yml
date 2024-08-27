@@ -17,6 +17,6 @@ jobs:
         uses: lycheeverse/lychee-action@v1.8.0
         with:
           fail: true
-          args: --exclude-mail --exclude .+localhost.+ .
+          args: --exclude-mail --exclude .+localhost.+ --max-concurrency 20 ./**/*.md
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
