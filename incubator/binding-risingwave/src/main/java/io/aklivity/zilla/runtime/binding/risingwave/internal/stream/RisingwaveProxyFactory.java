@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.LinkedHashMap;
@@ -49,7 +50,8 @@ import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExF
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
-import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
+
+import net.sf.jsqlparser.statement.Statement;
 
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
@@ -63,6 +65,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final Byte MESSAGE_TYPE_COMPLETION = 'C';
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATION = 'X';
+    private static final Byte STATEMENT_SEMICOLON = ';';
 
     private static final int AUTHENTICATION_SUCCESS_CODE = 0;
     private static final int END_OF_FIELD = 0x00;
@@ -192,7 +195,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final class PgsqlStream
     {
 
-        private MessageConsumer application;
+        private final MessageConsumer application;
+        private Long2ObjectHashMap<Statement> statementByRouteIds;
 
         private final long initialId;
         private final long replyId;
@@ -211,6 +215,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int replyPadding;
         private long replyBudgetId;
 
+        private int parserSlot = NO_SLOT;
+        private int parserSlotOffset;
+        private int parserSlotReserved;
+
         private int state;
 
         private PgsqlStream(
@@ -226,6 +234,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+
+            this.statementByRouteIds = new Long2ObjectHashMap<>();
 
         }
 
@@ -287,6 +297,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long authorization = data.authorization();
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
+            final int flags = data.flags();
+
+            final OctetsFW payload = data.payload();
+            final DirectBuffer buffer = payload.buffer();
+            int offset = payload.offset();
+            int limit = payload.limit();
+
+            final OctetsFW extension = data.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -298,12 +316,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (initialSeq > initialAck + initialMax)
             {
-                //cleanupNetwork(traceId, authorization);
+                cleanup(traceId, authorization);
             }
             else
             {
-                final OctetsFW extension = data.extension();
-                final OctetsFW payload = data.payload();
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
 
                 final PgsqlDataExFW pgsqlDataEx = dataEx != null && dataEx.typeId() == pgsqlTypeId ?
@@ -312,10 +328,21 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 if (pgsqlDataEx != null &&
                     pgsqlDataEx.kind() == PgsqlDataExFW.KIND_QUERY)
                 {
-                    PgsqlQueryDataExFW query = pgsqlDataEx.query();
+                    if (parserSlot == NO_SLOT)
+                    {
+                        parserSlot = bufferPool.acquire(initialId);
+                    }
                 }
-                else
+
+                final MutableDirectBuffer slotBuffer = bufferPool.buffer(parserSlot);
+                slotBuffer.putBytes(parserSlotOffset, buffer, offset, limit - offset);
+                parserSlotOffset += limit - offset;
+                parserSlotReserved += reserved;
+
+                if ((flags & FLAGS_FIN) != 0x00)
                 {
+                    //parseStatement
+                    cleanupParserSlotIfNecessary();
                 }
             }
         }
@@ -463,7 +490,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
         }
 
-        public void doApplicationFlush(
+        private void doApplicationFlush(
             long traceId,
             long authorization,
             int reserved,
@@ -473,6 +500,44 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, replyBudgetId, reserved, extension);
+        }
+
+        private void parseQuery()
+        {
+            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+
+            int statementOffset = 0;
+            int progress = 0;
+
+            while (progress <= parserSlotOffset)
+            {
+                if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
+                {
+                    parserBuffer.
+
+                    statementOffset = progress;
+                }
+
+                progress++;
+            }
+        }
+
+
+        private void cleanup(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        private void cleanupParserSlotIfNecessary()
+        {
+            if (parserSlot != NO_SLOT)
+            {
+                bufferPool.release(parserSlot);
+                parserSlot = NO_SLOT;
+                parserSlotOffset = 0;
+                parserSlotReserved = 0;
+            }
         }
     }
 

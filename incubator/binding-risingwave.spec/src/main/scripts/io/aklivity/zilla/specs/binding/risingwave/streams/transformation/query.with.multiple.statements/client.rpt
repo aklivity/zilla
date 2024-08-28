@@ -87,12 +87,20 @@ write "CREATE TABLE IF NOT EXISTS balances(*, PRIMARY KEY (balance_id)) "
      "FORMAT UPSERT ENCODE AVRO ( "
          "schema.registry = 'http://localhost:8081'"
      ");"
+     "UPDATE user SET user_id = 'test';"
      [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
                                 .tag("CREATE_TABLE")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("UPDATE 1")
                                 .build()
                               .build()}
 

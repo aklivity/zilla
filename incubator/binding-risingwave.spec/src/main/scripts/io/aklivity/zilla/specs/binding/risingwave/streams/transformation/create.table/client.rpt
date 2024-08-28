@@ -33,7 +33,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS balances "
-      "(name VARCHAR, type VARCHAR, description VARCHAR, PRIMARY KEY (name));"
+      "(name VARCHAR, type VARCHAR, description VARCHAR);"
       [0x00]
 
 write flush
@@ -75,7 +75,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS balances(*, PRIMARY KEY (balance_id)) "
+write "CREATE SOURCE IF NOT EXISTS balances(*) "
      "INCLUDE KEY AS balance_id "
      "WITH ("
          "connector='kafka', "
@@ -92,7 +92,7 @@ write "CREATE TABLE IF NOT EXISTS balances(*, PRIMARY KEY (balance_id)) "
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_SOURCE")
                                 .build()
                               .build()}
 

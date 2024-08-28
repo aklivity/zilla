@@ -256,7 +256,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
-        public long initialBudgetId;
+        private long initialBudgetId;
         private int initialPadding;
 
         private long replySeq;
@@ -1051,7 +1051,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             }
         }
 
-        public void doApplicationFlush(
+        private void doApplicationFlush(
             long traceId,
             long authorization,
             int reserved,
