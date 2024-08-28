@@ -1328,7 +1328,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             }
 
             private long networkBytesReceived;
-            private int recordHeaderSize;
             private long headersChecksum;
             private int headersSize;
 
@@ -2008,7 +2007,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     crc.update(encodeSlotByteBuffer);
 
                     long checksum = crc.getValue();
-                    if (crcDataLimit == recordHeaderLimit)
+                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
                     {
                         checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
                         checksum = combineCRC32C(checksum, headersChecksum, headersSize);

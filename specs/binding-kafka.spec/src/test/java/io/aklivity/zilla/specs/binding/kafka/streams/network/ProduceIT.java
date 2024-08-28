@@ -130,6 +130,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.empty.crc/client",
+        "${net}/message.empty.crc/server"})
+    public void shouldSendMessageEmptyWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.producer.id/client",
         "${net}/message.producer.id/server"})
     public void shouldSendMessageValueWithProducerId() throws Exception

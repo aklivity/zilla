@@ -3593,6 +3593,7 @@ public final class KafkaFunctions
             private Long timestamp;
             private Long producerId;
             private Short producerEpoch;
+            private Integer crc32c;
             private Integer sequence;
             private KafkaAckMode ackMode;
             private KafkaKeyFW.Builder keyRW;
@@ -3613,6 +3614,13 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder crc32c(
+                int crc32c)
+            {
+                this.crc32c = crc32c;
                 return this;
             }
 
@@ -3709,6 +3717,7 @@ public final class KafkaFunctions
                 return matchDeferred(produceDataEx) &&
                     matchTimestamp(produceDataEx) &&
                     matchSequence(produceDataEx) &&
+                    matchCrc32c(produceDataEx) &&
                     matchAckMode(produceDataEx) &&
                     matchKey(produceDataEx) &&
                     matchHeaders(produceDataEx);
@@ -3736,6 +3745,12 @@ public final class KafkaFunctions
                 final KafkaProduceDataExFW produceDataEx)
             {
                 return producerEpoch == null || producerEpoch == produceDataEx.producerEpoch();
+            }
+
+            private boolean matchCrc32c(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return crc32c == null || crc32c == produceDataEx.crc32c();
             }
 
             private boolean matchSequence(
