@@ -268,6 +268,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.repeated.fragmented/client",
+        "${app}/message.value.repeated.fragmented/server"})
+    public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.values.sequential/client",
         "${app}/message.values.sequential/server"})
     public void shouldSendMessageValueSequential() throws Exception

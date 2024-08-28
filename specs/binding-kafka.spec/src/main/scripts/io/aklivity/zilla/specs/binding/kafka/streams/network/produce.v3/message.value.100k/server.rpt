@@ -95,7 +95,7 @@ read 102517
      102460                             # length
      -1
      [0x02]
-     -363472926
+     1383945041
      0s
      0                                  # last offset delta
      1716424650323L                     # first timestamp

@@ -340,6 +340,17 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.value.repeated.fragmented/client",
+        "${net}/message.value.repeated/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
+    public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.values.sequential/client",
         "${net}/message.values.sequential/server"})
     public void shouldSendMessageValueSequential() throws Exception

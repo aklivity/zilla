@@ -1811,16 +1811,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
                 encodeSlotLimit += encodeProgress;
 
-                if (encodeableRecordBytesDeferred > 0)
+                if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes > 0)
                 {
-                    if (flushableRequestBytes == 0)
-                    {
-                        doEncodeRequestIfNecessary(traceId, budgetId);
-                    }
-                    else
-                    {
-                        doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
-                    }
+                    doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
                 }
                 else
                 {
