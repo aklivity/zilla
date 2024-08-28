@@ -229,14 +229,15 @@
                         "type": "array",
                         "items":
                         {
-                            "type": [ "string", "null" ]
+                            "type": "string"
                         }
                     },
                     "mutual":
                     {
                         "title": "Mutual Authentication",
                         "type": "string",
-                        "enum": [ "required", "requested", "none" ]
+                        "enum": [ "required", "requested", "none" ],
+                        "default": "none"
                     },
                     "signers":
                     {
