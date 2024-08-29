@@ -50,7 +50,6 @@ import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExF
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
-
 import net.sf.jsqlparser.statement.Statement;
 
 
@@ -513,9 +512,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
                 {
-                    parserBuffer.
-
-                    statementOffset = progress;
                 }
 
                 progress++;
