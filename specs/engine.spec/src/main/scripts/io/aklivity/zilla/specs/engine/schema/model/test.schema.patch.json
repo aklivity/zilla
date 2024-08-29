@@ -68,7 +68,8 @@
                                             {
                                                 "strategy":
                                                 {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "enum": [ "topic" ]
                                                 },
                                                 "version":
                                                 {
@@ -182,7 +183,8 @@
                                             {
                                                 "strategy":
                                                 {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "enum": [ "topic" ]
                                                 },
                                                 "version":
                                                 {

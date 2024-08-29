@@ -33,18 +33,19 @@
                         {
                             "interval":
                             {
-                                "type": "number"
+                                "type": "number",
+                                "default": 30
                             },
                             "signals":
                             {
                                 "type": "array",
                                 "items":
                                 {
+                                    "type": "string",
                                     "enum":
                                     [
                                         "metrics",
-                                        "logs",
-                                        "traces"
+                                        "logs"
                                     ]
                                 }
                             },

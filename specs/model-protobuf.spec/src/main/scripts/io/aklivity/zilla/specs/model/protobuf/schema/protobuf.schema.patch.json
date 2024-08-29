@@ -73,7 +73,8 @@
                                             {
                                                 "strategy":
                                                 {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "enum": [ "topic" ]
                                                 },
                                                 "version":
                                                 {

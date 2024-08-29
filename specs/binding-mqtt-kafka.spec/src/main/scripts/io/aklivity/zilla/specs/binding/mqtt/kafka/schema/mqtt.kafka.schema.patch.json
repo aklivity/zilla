@@ -136,6 +136,7 @@
                                                         "type": "array",
                                                         "items":
                                                         {
+                                                            "type": "object",
                                                             "properties":
                                                             {
                                                                 "topic":
@@ -158,6 +159,7 @@
                                                         "type": "array",
                                                         "items":
                                                         {
+                                                            "type": "object",
                                                             "properties":
                                                             {
                                                                 "topic":

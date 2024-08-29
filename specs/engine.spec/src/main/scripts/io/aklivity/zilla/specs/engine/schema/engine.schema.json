@@ -410,6 +410,9 @@
             [
                 "type",
                 "kind"
+            ],
+            "allOf":
+            [
             ]
         },
         "converter":
