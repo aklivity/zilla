@@ -34,14 +34,20 @@
                     "vault": false,
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "topic":
@@ -329,7 +335,8 @@
                         "defaultOffset":
                         {
                             "type": "string",
-                            "enum": [ "live", "historical" ]
+                            "enum": [ "live", "historical" ],
+                            "default": "historical"
                         },
                         "deltaType":
                         {
