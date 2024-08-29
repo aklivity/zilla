@@ -80,5 +80,4 @@ write zilla:data.ext ${kafka:dataEx()
                                   .header("header1", "value1")
                                   .build()
                               .build()}
-write zilla:data.empty
 write flush

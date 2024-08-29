@@ -75,17 +75,14 @@ write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -93,30 +90,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -124,30 +115,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -155,30 +140,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -186,30 +165,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -217,30 +190,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/39")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -248,30 +215,24 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "39")
-                                  .header("zilla:local", "bench_pub_2543774266_39")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(80)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/50")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "50")
-                                  .header("zilla:local", "bench_pub_2346691215_50")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -279,13 +240,10 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "50")
-                                  .header("zilla:local", "bench_pub_2346691215_50")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush
 
 
@@ -293,17 +251,14 @@ write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(43)
-                                  .crc32c(3196829087)
+                                  .deferred(7)
+                                  .crc32c(1297420392)
                                   .ackMode("NONE")
-                                  .key("bench/30")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "30")
-                                  .header("zilla:local", "bench_pub_2382277490_30")
-                                  .header("zilla:qos", "0")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write "Hello,"
 write flush
 
 write option zilla:flags "fin"
@@ -311,11 +266,8 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .ackMode("IN_SYNC_REPLICAS")
-                                  .header("zilla:filter", "bench")
-                                  .header("zilla:filter", "30")
-                                  .header("zilla:local", "bench_pub_2382277490_30")
-                                  .header("zilla:qos", "0")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+write " World!"
 write flush

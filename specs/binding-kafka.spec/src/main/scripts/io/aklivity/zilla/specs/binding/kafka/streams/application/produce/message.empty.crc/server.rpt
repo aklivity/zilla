@@ -72,8 +72,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .produce()
                                   .timestamp(1724846895864)
                                   .ackMode("LEADER_ONLY")
-                                  .key("bench_pub_682636139_8#migrate")
-                                  .header("sender-id", "zilla-5e105508-c47e-4e41-add1-1b214c2883f6")
+                                  .key("key1")
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
 read zilla:data.empty

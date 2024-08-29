@@ -2007,7 +2007,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     crc.update(encodeSlotByteBuffer);
 
                     long checksum = crc.getValue();
-                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
+                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize > 0)
                     {
                         checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
                         checksum = combineCRC32C(checksum, headersChecksum, headersSize);

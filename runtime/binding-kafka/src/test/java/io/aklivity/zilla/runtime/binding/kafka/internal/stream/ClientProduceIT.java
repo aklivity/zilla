@@ -216,6 +216,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.null.crc/client",
+        "${net}/message.null.crc/server"})
+    public void shouldSendMessageNullWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/messages.fragmented.crc/client",
         "${net}/messages.fragmented.crc/server"})
     public void shouldSendFragmentedMessagesWithCrc() throws Exception

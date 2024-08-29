@@ -81,7 +81,7 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -93,12 +93,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -107,33 +107,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -145,12 +133,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -159,33 +147,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -197,12 +173,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -211,33 +187,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -249,12 +213,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -263,33 +227,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -301,12 +253,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -315,33 +267,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -353,12 +293,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     1693603873
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -367,33 +307,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/39"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "39"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2543774266_39"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -405,12 +333,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     -488707537
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -419,33 +347,21 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/50"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "50"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2346691215_50"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
-write 462
+write 145
      0s
      3s
      ${newRequestId}
@@ -457,12 +373,12 @@ write 462
      4s "test"
      1
      2
-     417                                # record set size
+     100                                # record set size
      0L                                 # first offset
-     405                                # length
+     88                                # length
      -1
      [0x02]
-     -1159250768
+     1012046046
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
@@ -471,28 +387,16 @@ write 462
      -1s
      -1
      1                                  # records
-     ${kafka:varint(354)}
+     ${kafka:varint(38)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(8)}                 # key
-     "bench/30"
-     ${kafka:varint(256)}
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-     ${kafka:varint(4)}                 # headers
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(5)}                   # value size
-       "bench"                             # value bytes
-       ${kafka:varint(12)}                   # key size
-       "zilla:filter"                            # key bytes
-       ${kafka:varint(2)}                   # value size
-       "30"                             # value bytes
-       ${kafka:varint(11)}                   # key size
-       "zilla:local"                            # key bytes
-       ${kafka:varint(23)}                   # value size
-       "bench_pub_2382277490_30"                             # value bytes
-       ${kafka:varint(9)}                   # key size
-       "zilla:qos"                            # key bytes
-       ${kafka:varint(1)}                   # value size
-       "0"                             # value bytes
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(13)}
+     "Hello, World!"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes

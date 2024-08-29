@@ -91,7 +91,7 @@ read 132
      75                                 # length
      -1
      [0x02]
-     1548293632
+     61721183
      0s
      0                                  # last offset delta
      1724846895864L                     # first timestamp
@@ -106,12 +106,12 @@ read 132
      ${kafka:varint(0)}
      ${kafka:varint(4)}                 # key
      "key1"
-     [0x00]
+     [0x01]
      ${kafka:varint(1)}                 # headers
        ${kafka:varint(7)}                   # key size
        "header1"                            # key bytes
        ${kafka:varint(6)}                   # value size
-       "value1"                             # value bytes                          # value bytes
+       "value1"                             # value bytes
 
 write 44
       ${requestId}
