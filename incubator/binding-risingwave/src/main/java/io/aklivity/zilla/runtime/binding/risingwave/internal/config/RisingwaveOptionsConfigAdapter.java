@@ -19,7 +19,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -63,13 +63,12 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        RisingwaveKafkaConfig kafkaConfig = null;
-
+        final RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder = RisingwaveOptionsConfig.builder();
         if (object.containsKey(KAFKA_NAME))
         {
-            kafkaConfig = kafka.adaptFromJson(object);
+            builder.kafka(kafka.adaptFromJson(object));
         }
 
-        return new RisingwaveOptionsConfig(kafkaConfig);
+        return builder.build();
     }
 }

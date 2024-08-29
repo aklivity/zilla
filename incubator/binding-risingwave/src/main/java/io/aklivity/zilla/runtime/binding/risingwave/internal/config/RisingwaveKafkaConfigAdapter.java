@@ -20,7 +20,8 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwavePropertiesConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfigBuilder;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
@@ -57,20 +58,18 @@ public final class RisingwaveKafkaConfigAdapter implements JsonbAdapter<Risingwa
     public RisingwaveKafkaConfig adaptFromJson(
         JsonObject object)
     {
-        RisingwavePropertiesConfig propertiesConfig = null;
+        RisingwaveKafkaConfigBuilder<RisingwaveKafkaConfig> builder = RisingwaveKafkaConfig.builder();
 
         if (object.containsKey(PROPERTIES_NAME))
         {
-            propertiesConfig = properties.adaptFromJson(object.getJsonObject(PROPERTIES_NAME));
+            builder.properties(properties.adaptFromJson(object.getJsonObject(PROPERTIES_NAME)));
         }
-
-        ModelConfig formatConfig = null;
 
         if (object.containsKey(FORMAT_NAME))
         {
-            formatConfig = model.adaptFromJson(object.getJsonObject(FORMAT_NAME));
+            builder.format(model.adaptFromJson(object.getJsonObject(FORMAT_NAME)));
         }
 
-        return new RisingwaveKafkaConfig(propertiesConfig, formatConfig);
+        return builder.build();
     }
 }

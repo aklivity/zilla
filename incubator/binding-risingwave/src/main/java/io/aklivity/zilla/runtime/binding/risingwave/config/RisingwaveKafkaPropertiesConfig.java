@@ -14,11 +14,24 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.config;
 
-public class RisingwavePropertiesConfig
+import java.util.function.Function;
+
+public class RisingwaveKafkaPropertiesConfig
 {
     public final String bootstrapServer;
 
-    public RisingwavePropertiesConfig(
+    public static RisingwaveKafkaPropertiesConfigBuilder<RisingwaveKafkaPropertiesConfig> builder()
+    {
+        return new RisingwaveKafkaPropertiesConfigBuilder<>(RisingwaveKafkaPropertiesConfig.class::cast);
+    }
+
+    public static <T> RisingwaveKafkaPropertiesConfigBuilder<T> builder(
+        Function<RisingwaveKafkaPropertiesConfig, T> mapper)
+    {
+        return new RisingwaveKafkaPropertiesConfigBuilder<>(mapper);
+    }
+
+    RisingwaveKafkaPropertiesConfig(
         String bootstrapServer)
     {
         this.bootstrapServer = bootstrapServer;

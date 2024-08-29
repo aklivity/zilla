@@ -20,7 +20,12 @@ public final class RisingwaveOptionsConfig extends OptionsConfig
 {
     public final RisingwaveKafkaConfig kafka;
 
-    public RisingwaveOptionsConfig(
+    public static RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder()
+    {
+        return new RisingwaveOptionConfigBuilder<>(RisingwaveOptionsConfig.class::cast);
+    }
+
+    RisingwaveOptionsConfig(
         RisingwaveKafkaConfig kafka)
     {
         this.kafka = kafka;

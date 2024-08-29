@@ -18,11 +18,16 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class RisingwaveKafkaConfig
 {
-    public final RisingwavePropertiesConfig properties;
+    public final RisingwaveKafkaPropertiesConfig properties;
     public final ModelConfig format;
 
-    public RisingwaveKafkaConfig(
-        RisingwavePropertiesConfig properties,
+    public static RisingwaveKafkaConfigBuilder<RisingwaveKafkaConfig> builder()
+    {
+        return new RisingwaveKafkaConfigBuilder<>(RisingwaveKafkaConfig.class::cast);
+    }
+
+    RisingwaveKafkaConfig(
+        RisingwaveKafkaPropertiesConfig properties,
         ModelConfig format)
     {
         this.properties = properties;
