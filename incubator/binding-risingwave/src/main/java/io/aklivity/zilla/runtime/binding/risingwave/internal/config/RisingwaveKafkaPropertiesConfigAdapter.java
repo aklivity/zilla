@@ -20,6 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfigBuilder;
 
 public final class RisingwaveKafkaPropertiesConfigAdapter implements JsonbAdapter<RisingwaveKafkaPropertiesConfig, JsonObject>
 {
@@ -43,8 +44,11 @@ public final class RisingwaveKafkaPropertiesConfigAdapter implements JsonbAdapte
     public RisingwaveKafkaPropertiesConfig adaptFromJson(
         JsonObject object)
     {
-        final String bootstrapServer =  object.getString(BOOTSTRAP_SERVER_NAME, null);
+        RisingwaveKafkaPropertiesConfigBuilder<RisingwaveKafkaPropertiesConfig> builder =
+            RisingwaveKafkaPropertiesConfig.builder();
 
-        return new RisingwaveKafkaPropertiesConfig(bootstrapServer);
+        builder.bootstrapServer(object.getString(BOOTSTRAP_SERVER_NAME, null));
+
+        return builder.build();
     }
 }
