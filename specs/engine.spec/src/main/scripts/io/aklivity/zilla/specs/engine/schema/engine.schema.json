@@ -303,22 +303,6 @@
                     "title": "Vault",
                     "type": "string"
                 },
-                "catalog":
-                {
-                    "type": "object",
-                    "patternProperties":
-                    {
-                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                        {
-                            "type": "array",
-                            "items":
-                            {
-                                "$ref": "#/$defs/cataloged"
-                            }
-                        }
-                    },
-                    "maxProperties": 1
-                },
                 "type":
                 {
                     "title": "Type",
