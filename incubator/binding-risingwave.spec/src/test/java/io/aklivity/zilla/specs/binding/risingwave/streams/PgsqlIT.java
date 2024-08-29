@@ -45,4 +45,34 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.table/client",
+        "${app}/create.table/server"
+    })
+    public void shouldCreateTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.materialized.view/client",
+        "${app}/create.materialized.view/server"
+    })
+    public void shouldCreateMaterializedView() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/query.with.multiple.statements/client",
+        "${app}/query.with.multiple.statements/server"
+    })
+    public void shouldHandleQueryWithMultiStatements() throws Exception
+    {
+        k3po.finish();
+    }
 }

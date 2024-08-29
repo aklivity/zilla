@@ -32,8 +32,8 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS active_users"
-      "SELECT * FROM users WHERE status = 'active';"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities "
+      "SELECT id, DISTINCT city FROM weather;"
       [0x00]
 
 write flush
@@ -41,7 +41,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_MATERIALIZE_VIEW") # Need to double check
+                                .tag("CREATE_MATERIALIZED_VIEW")
                                 .build()
                               .build()}
 

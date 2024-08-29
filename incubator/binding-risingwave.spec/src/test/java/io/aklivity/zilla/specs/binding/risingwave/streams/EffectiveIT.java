@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class TransformationIT
+public class EffectiveIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/risingwave/streams/transformation");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/risingwave/streams/effective");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

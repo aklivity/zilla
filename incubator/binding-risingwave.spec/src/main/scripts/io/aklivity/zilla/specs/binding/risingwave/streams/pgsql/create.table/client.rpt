@@ -32,8 +32,8 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS balances "
-      "(name VARCHAR, type VARCHAR, description VARCHAR);"
+write "CREATE TABLE IF NOT EXISTS weather "
+      "(city VARCHAR, temperature double, date DATE);"
       [0x00]
 
 write flush
