@@ -34,7 +34,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS cities "
+read "CREATE TOPIC IF NOT EXISTS cities "
       "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));"
       [0x00]
 

@@ -33,7 +33,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS weather "
-      "(city VARCHAR, temperature double, date DATE);"
+      "(city VARCHAR, temperature DOUBLE, date DATE);"
       [0x00]
 
 write flush
