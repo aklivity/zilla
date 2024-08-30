@@ -35,6 +35,10 @@
                             {
                                 "type": "string"
                             },
+                            "schema":
+                            {
+                                "type": "string"
+                            },
                             "id":
                             {
                                 "type": "integer"
