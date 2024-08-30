@@ -151,16 +151,20 @@
                             },
                             "options":
                             {
-                                "$ref": "#/$defs/options/binding/tls",
-                                "oneOf": [
+                                "allOf":
+                                [
                                     {
-                                        "required": [
-                                            "keys"
-                                        ]
+                                        "$ref": "#/$defs/options/binding/tls"
                                     },
                                     {
-                                        "required": [
-                                            "signers"
+                                        "oneOf":
+                                        [
+                                            {
+                                                "required": ["keys"]
+                                            },
+                                            {
+                                                "required": ["signers"]
+                                            }
                                         ]
                                     }
                                 ]
