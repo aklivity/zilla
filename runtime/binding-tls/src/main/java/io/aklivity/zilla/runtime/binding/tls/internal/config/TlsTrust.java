@@ -15,17 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static java.util.Collections.list;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.KeyStore.TrustedCertificateEntry;
-import java.util.LinkedList;
-import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 
@@ -35,50 +30,40 @@ public final class TlsTrust
     {
     }
 
-    public static TrustedCertificateEntry[] cacerts(
+    public static KeyStore cacerts(
         TlsConfiguration config)
     {
         String storeType = config.cacertsStoreType();
-        String store = config.cacertsStore();
+        String storePath = config.cacertsStore();
         String storePass = config.cacertsStorePass();
 
-        TrustedCertificateEntry[] certificates = null;
+        KeyStore cacerts = null;
 
-        if (store == null || !Files.exists(Paths.get(store)))
+        if (storePath == null || !Files.exists(Paths.get(storePath)))
         {
             String home = System.getProperty("java.home");
 
-            store = String.format("%s/lib/security/jssecacerts", home);
+            storePath = String.format("%s/lib/security/jssecacerts", home);
 
-            if (!Files.exists(Paths.get(store)))
+            if (!Files.exists(Paths.get(storePath)))
             {
-                store = String.format("%s/lib/security/cacerts", home);
+                storePath = String.format("%s/lib/security/cacerts", home);
 
-                if (!Files.exists(Paths.get(store)))
+                if (!Files.exists(Paths.get(storePath)))
                 {
-                    store = null;
+                    storePath = null;
                 }
             }
         }
 
-        if (store != null)
+        if (storePath != null)
         {
             try
             {
-                KeyStore cacerts = KeyStore.getInstance(storeType);
-                cacerts.load(new FileInputStream(store), storePass != null ? storePass.toCharArray() : null);
+                KeyStore store = KeyStore.getInstance(storeType);
+                store.load(new FileInputStream(storePath), storePass != null ? storePass.toCharArray() : null);
 
-                List<TrustedCertificateEntry> trusted = new LinkedList<>();
-                for (String alias : list(cacerts.aliases()))
-                {
-                    if (cacerts.isCertificateEntry(alias))
-                    {
-                        TrustedCertificateEntry entry = (TrustedCertificateEntry) cacerts.getEntry(alias, null);
-                        trusted.add(entry);
-                    }
-                }
-
-                certificates = trusted.toArray(TrustedCertificateEntry[]::new);
+                cacerts = store;
             }
             catch (GeneralSecurityException | IOException ex)
             {
@@ -86,6 +71,6 @@ public final class TlsTrust
             }
         }
 
-        return certificates;
+        return cacerts;
     }
 }

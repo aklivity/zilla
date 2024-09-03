@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
-import java.security.KeyStore.PrivateKeyEntry;
-import java.security.KeyStore.TrustedCertificateEntry;
+import java.security.KeyStore;
+import java.util.List;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -29,22 +32,23 @@ public final class TestVaultHandler implements VaultHandler
     }
 
     @Override
-    public PrivateKeyEntry key(
-        String name)
+    public KeyManagerFactory initKeys(
+        List<String> keyRefs)
     {
         return null;
     }
 
     @Override
-    public TrustedCertificateEntry certificate(
-        String name)
+    public KeyManagerFactory initSigners(
+        List<String> signerRefs)
     {
         return null;
     }
 
     @Override
-    public PrivateKeyEntry[] keys(
-        String name)
+    public TrustManagerFactory initTrust(
+        List<String> certRefs,
+        KeyStore cacerts)
     {
         return null;
     }

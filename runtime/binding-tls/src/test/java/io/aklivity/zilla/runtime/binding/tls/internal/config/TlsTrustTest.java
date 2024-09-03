@@ -21,8 +21,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.security.KeyStore;
 import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 
 import org.junit.Test;
 
@@ -32,14 +34,37 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class TlsTrustTest
 {
     @Test
-    public void shouldConfigureTrustViaCacerts()
+    public void shouldConfigureTrustViaCacerts() throws Exception
     {
         TlsConfiguration config = new TlsConfiguration(new Configuration());
-        TrustedCertificateEntry[] entries = TlsTrust.cacerts(config);
+        KeyStore cacerts = TlsTrust.cacerts(config);
 
-        assertThat(entries, not(nullValue()));
+        assertThat(cacerts, not(nullValue()));
+
+        TrustedCertificateEntry[] entries = Collections.list(cacerts.aliases()).stream()
+            .map(a -> lookup(cacerts, a))
+            .toArray(TrustedCertificateEntry[]::new);
+
         assertThat(entries, not(emptyArray()));
         assertThat(entries[0], not(nullValue()));
         assertThat(entries[0].getTrustedCertificate(), instanceOf(X509Certificate.class));
+    }
+
+    private static TrustedCertificateEntry lookup(
+        KeyStore store,
+        String alias)
+    {
+        TrustedCertificateEntry cert = null;
+
+        try
+        {
+            cert = (TrustedCertificateEntry) store.getEntry(alias, null);
+        }
+        catch (Exception ex)
+        {
+            // ignore
+        }
+
+        return cert;
     }
 }
