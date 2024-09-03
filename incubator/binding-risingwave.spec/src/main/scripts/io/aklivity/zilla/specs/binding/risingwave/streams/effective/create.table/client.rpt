@@ -32,16 +32,24 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
-      [0x00]
-
-write flush
+write "CREATE SOURCE IF NOT EXISTS weather(*) "
+     "INCLUDE KEY AS weather_id "
+     "WITH ("
+         "connector='kafka', "
+         "topic='weather', "
+         "properties.bootstrap.server='localhost:9092', "
+         "scan.startup.mode='latest', "
+         "scan.startup.timestamp.millis='140000000' "
+     ") "
+     "FORMAT UPSERT ENCODE AVRO ( "
+         "schema.registry = 'http://localhost:8081'"
+     ");"
+     [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TOPIC")
+                                .tag("CREATE_SOURCE")
                                 .build()
                               .build()}
 
@@ -75,24 +83,16 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SOURCE IF NOT EXISTS weather(*) "
-     "INCLUDE KEY AS weather_id "
-     "WITH ("
-         "connector='kafka', "
-         "topic='weather', "
-         "properties.bootstrap.server='localhost:9092', "
-         "scan.startup.mode='latest', "
-         "scan.startup.timestamp.millis='140000000' "
-     ") "
-     "FORMAT UPSERT ENCODE AVRO ( "
-         "schema.registry = 'http://localhost:8081'"
-     ");"
-     [0x00]
+write "CREATE TOPIC IF NOT EXISTS weather "
+      "(city VARCHAR, temperature DOUBLE, date DATE);"
+      [0x00]
+
+write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_SOURCE")
+                                .tag("CREATE_TOPIC")
                                 .build()
                               .build()}
 

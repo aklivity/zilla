@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -42,6 +43,16 @@ public final class RisingwaveBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public RisingwaveRouteConfig resolve(
+        long authorization,
+        ByteBuffer statement)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(statement))
             .findFirst()
             .orElse(null);
     }

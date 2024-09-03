@@ -14,19 +14,46 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 
 public final class RisingwaveConditionMatcher
 {
+    private final List<byte[]> commands;
 
     public RisingwaveConditionMatcher(
         RisingwaveConditionConfig condition)
     {
+        this.commands = condition.commands;
     }
 
     public boolean matches(
-        String command)
+        ByteBuffer statement)
     {
-        return true;
+        return commands.stream().anyMatch(c ->
+        {
+            boolean matches = statement.remaining() < c.length;
+
+            if (matches)
+            {
+                int position = statement.position();
+
+                match:
+                for (byte b : c)
+                {
+                    if (statement.get() != b)
+                    {
+                        statement.position(position);
+                        break match;
+                    }
+                }
+
+                statement.position(position);
+            }
+
+            return matches;
+        });
     }
 }

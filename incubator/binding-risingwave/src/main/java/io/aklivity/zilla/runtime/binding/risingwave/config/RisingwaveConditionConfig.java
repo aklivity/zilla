@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class RisingwaveConditionConfig extends ConditionConfig
 {
-    public final List<String> commands;
+    public final List<byte[]> commands;
 
     public static RisingwaveConditionConfigBuilder<RisingwaveConditionConfig> builder()
     {
@@ -35,7 +35,7 @@ public final class RisingwaveConditionConfig extends ConditionConfig
     }
 
     RisingwaveConditionConfig(
-        List<String> commands)
+        List<byte[]> commands)
     {
         this.commands = commands;
     }

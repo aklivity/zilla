@@ -14,22 +14,30 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class RisingwaveRouteConfig
 {
     public final long id;
-    public final int order;
 
+    private final List<RisingwaveConditionMatcher> when;
     private final LongPredicate authorized;
 
     public RisingwaveRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
-        this.order = route.order;
+        this.when = route.when.stream()
+            .map(RisingwaveConditionConfig.class::cast)
+            .map(RisingwaveConditionMatcher::new)
+            .collect(toList());
         this.authorized = route.authorized;
     }
 
@@ -37,5 +45,11 @@ public final class RisingwaveRouteConfig
         long authorization)
     {
         return authorized.test(authorization);
+    }
+
+    boolean matches(
+        ByteBuffer statement)
+    {
+        return when.isEmpty() || statement != null && when.stream().anyMatch(m -> m.matches(statement));
     }
 }
