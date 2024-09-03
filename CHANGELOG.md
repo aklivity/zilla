@@ -1,5 +1,52 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.92...HEAD)
+
+**Implemented enhancements:**
+
+- Support `pgsql` binding [\#1057](https://github.com/aklivity/zilla/issues/1057)
+- Handle large HTTP headers [\#1046](https://github.com/aklivity/zilla/issues/1046)
+- Gracefully handle `zilla.yml` instead of `zilla.yaml` [\#580](https://github.com/aklivity/zilla/issues/580)
+
+**Fixed bugs:**
+
+- Issue referencing `guard` in `asyncapi` binding [\#1215](https://github.com/aklivity/zilla/issues/1215)
+- Using catalog::apicurio triggers unexpected behaviour [\#1202](https://github.com/aklivity/zilla/issues/1202)
+- `400 Bad Request` response from Zilla when Using Java HttpClient [\#1192](https://github.com/aklivity/zilla/issues/1192)
+- Investigate connection pool reconnect when Kafka not yet available [\#1153](https://github.com/aklivity/zilla/issues/1153)
+
+**Merged pull requests:**
+
+- Link checker [\#1216](https://github.com/aklivity/zilla/pull/1216) ([vordimous](https://github.com/vordimous))
+- Reduce compile warnings [\#1213](https://github.com/aklivity/zilla/pull/1213) ([jfallows](https://github.com/jfallows))
+- Eclipse IDE import maven projects [\#1212](https://github.com/aklivity/zilla/pull/1212) ([jfallows](https://github.com/jfallows))
+- Disable JVM class sharing to avoid error message during build [\#1210](https://github.com/aklivity/zilla/pull/1210) ([jfallows](https://github.com/jfallows))
+- Initial risingwave binding projects [\#1209](https://github.com/aklivity/zilla/pull/1209) ([jfallows](https://github.com/jfallows))
+- Ensure id encoding is consistent for encode and decode [\#1204](https://github.com/aklivity/zilla/pull/1204) ([jfallows](https://github.com/jfallows))
+- Update mqtt session stream to report correct origin id for zilla dump command [\#1203](https://github.com/aklivity/zilla/pull/1203) ([jfallows](https://github.com/jfallows))
+- Support pgsql binding [\#1200](https://github.com/aklivity/zilla/pull/1200) ([akrambek](https://github.com/akrambek))
+- Initial pgsql binding projects [\#1198](https://github.com/aklivity/zilla/pull/1198) ([jfallows](https://github.com/jfallows))
+- Fix: Using `asyncapi client` binding trigger NPE & crashes Zilla [\#1197](https://github.com/aklivity/zilla/pull/1197) ([ankitk-me](https://github.com/ankitk-me))
+- Compute kafka produce checksum without staging headers [\#1196](https://github.com/aklivity/zilla/pull/1196) ([jfallows](https://github.com/jfallows))
+- Allow content-length header with h2c upgrade [\#1194](https://github.com/aklivity/zilla/pull/1194) ([jfallows](https://github.com/jfallows))
+- Kafka cache client: mark entry dirty at flush before notifying the server to process [\#1193](https://github.com/aklivity/zilla/pull/1193) ([bmaidics](https://github.com/bmaidics))
+- Ensure streams are cleaned up on authentication failure… [\#1191](https://github.com/aklivity/zilla/pull/1191) ([jfallows](https://github.com/jfallows))
+
+## [0.9.92](https://github.com/aklivity/zilla/tree/0.9.92) (2024-08-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.91...0.9.92)
+
+**Implemented enhancements:**
+
+- Support `extract-key` kafka message transform [\#1176](https://github.com/aklivity/zilla/issues/1176)
+
+**Merged pull requests:**
+
+- Align subject names when using inline catalog [\#1190](https://github.com/aklivity/zilla/pull/1190) ([jfallows](https://github.com/jfallows))
+- Support extract-key kafka message transform  [\#1183](https://github.com/aklivity/zilla/pull/1183) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.91](https://github.com/aklivity/zilla/tree/0.9.91) (2024-08-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.90...0.9.91)
