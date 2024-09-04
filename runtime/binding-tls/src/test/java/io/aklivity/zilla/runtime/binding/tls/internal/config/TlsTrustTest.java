@@ -28,6 +28,7 @@ import java.util.Collections;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsTrust;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
