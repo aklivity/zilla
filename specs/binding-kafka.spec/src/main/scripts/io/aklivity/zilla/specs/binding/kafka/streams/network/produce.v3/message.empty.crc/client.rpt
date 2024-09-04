@@ -81,7 +81,7 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 102517                             # size
+write 132                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId}
@@ -92,36 +92,40 @@ write 102517                             # size
       1
       4s "test"
       1
-      0                                 # partition
-      102472                            # record set size
+      2                                 # partition
+      87                                # record set size
       0L                                # first offset
-      102460                            # length
+      75                                # length
       -1
       [0x02]
-      1383945041
+      1548293632
       0s
       0                                 # last offset delta
-      1716424650323L                    # first timestamp
-      1716424650323L                    # last timestamp
+      1724846895864L                    # first timestamp
+      1724846895864L                    # last timestamp
       -1L
       -1s
       -1
       1                                 # records
-      ${kafka:varint(102408)}
-      [0x00]
-      ${kafka:varint(0)}
-      ${kafka:varint(0)}
-      ${kafka:varint(-1)}               # key
-      ${kafka:varint(102400)}           # value
-      ${kafka:randomBytes(102400)}
-      ${kafka:varint(0)}                # headers
+     ${kafka:varint(25)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(4)}                 # key
+     "key1"
+     [0x00]
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
 read 44
      ${newRequestId}
      1                                  # topics
      4s "test"
      1                                  # partitions
-     0                                  # partition
+     2                                  # partition
      0s                                 # no error
      20L                                # base offset
      [0..8]                             # log append time

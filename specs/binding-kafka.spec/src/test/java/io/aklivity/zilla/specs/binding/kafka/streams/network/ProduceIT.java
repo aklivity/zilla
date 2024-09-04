@@ -121,6 +121,33 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/messages.fragmented.crc/client",
+        "${net}/messages.fragmented.crc/server"})
+    public void shouldSendFragmentedMessagesWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.empty.crc/client",
+        "${net}/message.empty.crc/server"})
+    public void shouldSendMessageEmptyWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.null.crc/client",
+        "${net}/message.null.crc/server"})
+    public void shouldSendMessageNullWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.producer.id/client",
         "${net}/message.producer.id/server"})
     public void shouldSendMessageValueWithProducerId() throws Exception

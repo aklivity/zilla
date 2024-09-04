@@ -1810,7 +1810,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
                 encodeSlotLimit += encodeProgress;
 
-                if (encodeableRecordBytesDeferred > 0)
+                if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes > 0)
                 {
                     doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
                 }
@@ -1994,7 +1994,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
                     final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
+                    final int recordHeaderLimit = encodeLimit - (valueCompleteSize - encodeableRecordBytesDeferred);
+                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
 
                     final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                     final int encodePosition = encodeSlotByteBuffer.position();
@@ -2006,8 +2007,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     crc.update(encodeSlotByteBuffer);
 
                     long checksum = crc.getValue();
-
-                    if (crcDataLimit == recordBatch.limit())
+                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
                     {
                         checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
                         checksum = combineCRC32C(checksum, headersChecksum, headersSize);
