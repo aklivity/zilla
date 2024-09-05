@@ -16,9 +16,14 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableGenerator;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicGenerator;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -26,16 +31,25 @@ public final class RisingwaveBindingConfig
 {
     public final long id;
     public final String name;
+    public final RisingwaveOptionsConfig options;
     public final KindConfig kind;
     public final List<RisingwaveRouteConfig> routes;
+    public final RisingwaveCreateTopicGenerator createTopic;
+    public final RisingwaveCreateTableGenerator createTable;
 
     public RisingwaveBindingConfig(
+        RisingwaveConfiguration config,
         BindingConfig binding)
     {
         this.id = binding.id;
         this.name = binding.name;
+        this.options = RisingwaveOptionsConfig.class.cast(binding.options);
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
+
+        this.createTopic = new RisingwaveCreateTopicGenerator();
+        this.createTable = new RisingwaveCreateTableGenerator(options.kafka.properties.bootstrapServer,
+            options.kafka.format.model, config.kafkaScanStartupTimestampMillis());
     }
 
     public RisingwaveRouteConfig resolve(
@@ -49,10 +63,12 @@ public final class RisingwaveBindingConfig
 
     public RisingwaveRouteConfig resolve(
         long authorization,
-        ByteBuffer statement)
+        DirectBuffer statement,
+        int offset,
+        int length)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(statement))
+            .filter(r -> r.authorized(authorization) && r.matches(statement, offset, length))
             .findFirst()
             .orElse(null);
     }

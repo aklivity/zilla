@@ -14,8 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
-import java.nio.ByteBuffer;
 import java.util.List;
+
+import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 
@@ -30,27 +31,27 @@ public final class RisingwaveConditionMatcher
     }
 
     public boolean matches(
-        ByteBuffer statement)
+        DirectBuffer statement,
+        int offset,
+        int length)
     {
         return commands.stream().anyMatch(c ->
         {
-            boolean matches = statement.remaining() < c.length;
+            boolean matches = length < c.length;
+
+            int progressOffset = offset;
 
             if (matches)
             {
-                int position = statement.position();
-
                 match:
                 for (byte b : c)
                 {
-                    if (statement.get() != b)
+                    if (statement.getByte(progressOffset) != b)
                     {
-                        statement.position(position);
                         break match;
                     }
+                    progressOffset++;
                 }
-
-                statement.position(position);
             }
 
             return matches;

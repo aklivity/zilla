@@ -20,6 +20,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.LongPredicate;
 
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -48,8 +51,11 @@ public final class RisingwaveRouteConfig
     }
 
     boolean matches(
-        ByteBuffer statement)
+        DirectBuffer statement,
+        int offset,
+        int length)
     {
-        return when.isEmpty() || statement != null && when.stream().anyMatch(m -> m.matches(statement));
+        return when.isEmpty() ||
+            statement != null && when.stream().anyMatch(m -> m.matches(statement, offset, length));
     }
 }

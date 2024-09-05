@@ -20,9 +20,12 @@ public class RisingwaveConfiguration extends Configuration
 {
     private static final ConfigurationDef RISINGWAVE_CONFIG;
 
+    public static final LongPropertyDef KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS;
+
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", RisingwaveBinding.NAME));
+        KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS = config.property("kafka.scan.startup.timestamp.millis", 140000000L);
         RISINGWAVE_CONFIG = config;
     }
 
@@ -30,5 +33,10 @@ public class RisingwaveConfiguration extends Configuration
         Configuration config)
     {
         super(RISINGWAVE_CONFIG, config);
+    }
+
+    public long kafkaScanStartupTimestampMillis()
+    {
+        return KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS.getAsLong(this);
     }
 }
