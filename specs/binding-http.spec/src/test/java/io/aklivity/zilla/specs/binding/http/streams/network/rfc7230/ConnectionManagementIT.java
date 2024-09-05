@@ -67,6 +67,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/request.with.header.override.with/client",
+        "${net}/request.with.header.override.with/server" })
+    public void shouldSendRequestWithHeaderOverrideWith() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}response.with.connection.close/client",
         "${net}response.with.connection.close/server" })
     public void shouldCloseConnectionAfterSendingResponseWithConnectionClose() throws Exception

@@ -305,6 +305,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/request.with.header.override.with/client",
+        "${app}/request.with.header.override.with/server" })
+    public void shouldProxyRequestWithHeaderOverrideWith() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.authority.with.no.port/client",
         "${app}/request.authority.with.no.port/server" })
     public void requestAuthorityWithNoPort() throws Exception

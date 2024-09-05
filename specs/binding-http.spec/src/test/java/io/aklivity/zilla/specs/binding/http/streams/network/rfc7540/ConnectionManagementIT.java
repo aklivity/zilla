@@ -70,6 +70,17 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
+    @Test
+    @Specification({
+        "${net}/http.get.exchange.with.header.override.with/client",
+        "${net}/http.get.exchange.with.header.override.with/server"
+    })
+    public void shouldSendRequestWithHeaderOverrideWith() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/http.unknown.authority/client",

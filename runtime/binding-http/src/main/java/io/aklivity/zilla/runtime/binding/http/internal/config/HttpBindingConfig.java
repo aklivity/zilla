@@ -78,7 +78,8 @@ public final class HttpBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
-        this.routes = binding.routes.stream().map(HttpRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(route ->
+            new HttpRouteConfig(route, options != null ? options.overrides : null)).collect(toList());
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
