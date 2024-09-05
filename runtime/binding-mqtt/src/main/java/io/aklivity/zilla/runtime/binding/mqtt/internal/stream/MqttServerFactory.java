@@ -1492,29 +1492,25 @@ public final class MqttServerFactory implements MqttStreamFactory
         int progress = offset;
         int reasonCode = SUCCESS;
 
-        decode:
         if (length >= 0)
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
 
             int initialBudget = publisher.initialBudget();
             int lengthMax = Math.min(length, server.decodeablePublishPayloadBytes);
-            int reservedMax = Math.min(lengthMax + publisher.initialPad, initialBudget);
-            if (reservedMax < publisher.initialPad)
-            {
-                reservedMax = publisher.initialPad;
-            }
+            int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
 
             boolean canPublish = MqttState.initialOpened(publisher.state);
 
             final int maximum = reservedMax;
-            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024));
+            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
 
             int valueClaimed = maximum;
 
             if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && lengthMax != 0)
             {
-                valueClaimed = publisher.debitor.claim(traceId, publisher.debitorIndex, publisher.initialId, minimum, maximum);
+                valueClaimed =
+                    publisher.debitor.claim(traceId, publisher.debitorIndex, publisher.initialId, minimum, maximum, 0);
             }
 
             int sizeClaimed = valueClaimed - publisher.initialPad;
@@ -1530,7 +1526,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + sizeClaimed);
 
-            if (canPublish && (valueClaimed != 0 || payload.sizeof() == 0))
+            if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
             {
                 if (server.publishPayloadDeferred == 0)
                 {
