@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import static io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
 
+import java.security.KeyStore;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
@@ -50,6 +52,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndF
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
 {
@@ -89,6 +92,8 @@ final class TestBindingFactory implements BindingHandler
     private String credentials;
     private List<Event> events;
     private int eventIndex;
+    private VaultHandler vault;
+    private VaultAssertion vaultAssertion;
 
     TestBindingFactory(
         EngineContext context)
@@ -143,6 +148,12 @@ final class TestBindingFactory implements BindingHandler
             }
 
             this.events = options.events;
+
+            if (binding.vault != null)
+            {
+                this.vault = context.supplyVault(binding.vaultId);
+                this.vaultAssertion = options.vaultAssertion;
+            }
         }
     }
 
@@ -267,6 +278,28 @@ final class TestBindingFactory implements BindingHandler
 
             target.doInitialBegin(traceId);
 
+            if (vault != null && vaultAssertion != null)
+            {
+                String key = vaultAssertion.key;
+                if (key != null)
+                {
+                    vault.initKeys(List.of(key));
+                }
+
+                String signer = vaultAssertion.signer;
+                if (signer != null)
+                {
+                    vault.initSigners(List.of(signer));
+                }
+
+                String trust = vaultAssertion.trust;
+                if (trust != null)
+                {
+                    KeyStore cacerts = null;
+                    vault.initTrust(List.of(trust), cacerts);
+                }
+            }
+
             if (catalogs != null)
             {
                 CatalogHandler handler = catalogs.get(0);
@@ -324,10 +357,12 @@ final class TestBindingFactory implements BindingHandler
                     }
                 }
             }
+
             if (guard != null)
             {
                 guard.reauthorize(traceId, routedId, 0, credentials);
             }
+
             while (events != null && eventIndex < events.size())
             {
                 Event e = events.get(eventIndex);
