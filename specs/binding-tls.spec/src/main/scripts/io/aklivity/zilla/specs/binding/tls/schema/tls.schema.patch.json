@@ -190,7 +190,9 @@
         "path": "/$defs/options/binding/tls",
         "value":
         {
-                "properties":
+            "title": "tls Options",
+            "type": "object",
+            "properties":
                 {
                     "version":
                     {

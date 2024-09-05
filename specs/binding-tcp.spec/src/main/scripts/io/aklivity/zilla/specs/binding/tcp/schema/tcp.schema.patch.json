@@ -169,6 +169,8 @@
         "path": "/$defs/options/binding/tcp",
         "value":
         {
+            "title": "tcp Options",
+            "type": "object",
             "properties":
             {
                 "host":
