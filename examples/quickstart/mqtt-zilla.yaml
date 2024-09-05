@@ -80,3 +80,7 @@ telemetry:
     - stream.errors.received
     - stream.active.sent
     - stream.active.received
+  exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout

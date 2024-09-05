@@ -152,3 +152,7 @@ telemetry:
     - grpc.active.requests
     - grpc.requests.per.rpc
     - grpc.responses.per.rpc
+  exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout

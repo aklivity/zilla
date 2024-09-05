@@ -40,7 +40,6 @@ bindings:
       metrics:
         - stream.*
         - http.*
-
   # gRPC service definition to Kafka topics
   #region route_guide_service_definition
   north_grpc_server:
@@ -49,10 +48,7 @@ bindings:
     catalog:
       host_filesystem:
         - subject: route_guide
-    routes:
-      - when:
-          - method: routeguide.RouteGuide/*
-        exit: north_grpc_kafka_mapping
+    exit: north_grpc_kafka_mapping
     #endregion route_guide_service_definition
     telemetry:
       metrics:
@@ -86,7 +82,6 @@ bindings:
         - grpc-request
         - grpc-response
     exit: south_kafka_client
-
   # Connect to local Kafka
   south_kafka_client:
     type: kafka
@@ -98,7 +93,6 @@ bindings:
   south_tcp_client:
     type: tcp
     kind: client
-
   # Kafka to external gRPC server
   #region route_guide_interface
   west_kafka_grpc_remote_server:
@@ -117,7 +111,6 @@ bindings:
           authority: ${{env.ROUTE_GUIDE_SERVER_HOST}}:${{env.ROUTE_GUIDE_SERVER_PORT}}
         #endregion route_guide_interface
         exit: west_route_guide_grpc_client
-
   # gRPC RoutGuide server config
   west_route_guide_grpc_client:
     type: grpc
@@ -155,6 +148,10 @@ telemetry:
     - grpc.active.requests
     - grpc.requests.per.rpc
     - grpc.responses.per.rpc
+  exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout
 ---
 name: http-quickstart
 bindings:
@@ -177,6 +174,9 @@ bindings:
     type: http
     kind: server
     options:
+      versions:
+        - h2
+        - http/1.1
       access-control:
         policy: cross-origin
     routes:
@@ -196,7 +196,6 @@ bindings:
       metrics:
         - stream.*
         - http.*
-
   # REST proxy endpoints to Kafka a topic
   north_rest_api_http_kafka_mapping:
     type: http-kafka
@@ -253,8 +252,7 @@ bindings:
           topic: http-messages
           filters:
             - key: ${params.id}
-              #endregion rest_retrieve_id
-
+    #endregion rest_retrieve_id
   # SSE Server to Kafka topics
   north_sse_server:
     type: sse
@@ -264,11 +262,14 @@ bindings:
     type: sse-kafka
     kind: proxy
     routes:
+      #region sse_stream_all
       - when:
           - path: /api/stream
         exit: north_kafka_cache_client
         with:
           topic: http-messages
+          #endregion sse_stream_all
+          #region sse_stream_id
       - when:
           - path: /api/stream/{id}
         exit: north_kafka_cache_client
@@ -276,7 +277,7 @@ bindings:
           topic: http-messages
           filters:
             - key: ${params.id}
-
+          #endregion sse_stream_id
   # Kafka sync layer
   north_kafka_cache_client:
     type: kafka
@@ -289,7 +290,6 @@ bindings:
       bootstrap:
         - http-messages
     exit: south_kafka_client
-
   # Connect to local Kafka
   south_kafka_client:
     type: kafka
@@ -315,6 +315,10 @@ telemetry:
     - stream.errors.received
     - stream.active.sent
     - stream.active.received
+  exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout
 ---
 name: mqtt-quickstart
 bindings:
@@ -333,17 +337,12 @@ bindings:
     telemetry:
       metrics:
         - stream.*
-
   # MQTT Server to Kafka topics
   #region mqtt_broker_mapping
   north_mqtt_server:
     type: mqtt
     kind: server
     exit: north_mqtt_kafka_mapping
-    telemetry:
-      metrics:
-        - stream.*
-
   north_mqtt_kafka_mapping:
     type: mqtt-kafka
     kind: proxy
@@ -357,7 +356,6 @@ bindings:
     telemetry:
       metrics:
         - stream.*
-
   # Kafka sync layer
   north_kafka_cache_client:
     type: kafka
@@ -366,7 +364,6 @@ bindings:
     telemetry:
       metrics:
         - stream.*
-
   south_kafka_cache_server:
     type: kafka
     kind: cache_server
@@ -378,7 +375,6 @@ bindings:
     telemetry:
       metrics:
         - stream.*
-
   # Connect to local Kafka
   south_kafka_client:
     type: kafka
@@ -401,14 +397,14 @@ telemetry:
     - stream.errors.received
     - stream.active.sent
     - stream.active.received
----
-name: telemetry-exporters
-telemetry:
   exporters:
     # Enable Standard Out logs
     stdout_logs_exporter:
       type: stdout
-
+---
+name: telemetry-exporters
+telemetry:
+  exporters:
     # Prometheus endpoint definition
     prometheus_metric_exporter:
       type: prometheus
