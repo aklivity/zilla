@@ -66,7 +66,7 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
         final RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder = RisingwaveOptionsConfig.builder();
         if (object.containsKey(KAFKA_NAME))
         {
-            builder.kafka(kafka.adaptFromJson(object));
+            builder.kafka(kafka.adaptFromJson(object.getJsonObject(KAFKA_NAME)));
         }
 
         return builder.build();

@@ -16,7 +16,7 @@
 ---
 name: test
 catalogs:
-  catalog0:
+  test0:
     type: test
     options:
       url: http://localhost:8081
@@ -30,11 +30,11 @@ bindings:
         properties:
           bootstrap.server: localhost:9092
         format:
-          model: avro
+          model: test
+          length: 0
           catalog:
-            catalog0:
-              version: latest
-              strategy: topic
+            test0:
+              - id: 1
     routes:
       - when:
           commands:
