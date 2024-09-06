@@ -91,4 +91,10 @@ public class TestCatalogHandler implements CatalogHandler
     {
         return prefix != null ? prefix.capacity() : 0;
     }
+
+    @Override
+    public String location()
+    {
+        return "http://localhost:8081";
+    }
 }

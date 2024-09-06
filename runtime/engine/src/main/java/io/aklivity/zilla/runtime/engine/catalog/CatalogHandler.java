@@ -115,4 +115,9 @@ public interface CatalogHandler
     {
         return 0;
     }
+
+    default String location()
+    {
+        return "";
+    }
 }

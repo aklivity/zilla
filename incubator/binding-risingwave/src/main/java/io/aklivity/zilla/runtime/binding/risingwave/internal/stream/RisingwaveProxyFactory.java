@@ -22,6 +22,7 @@ import java.io.Reader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -36,6 +37,7 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
@@ -57,6 +59,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
@@ -72,24 +75,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final int FLAGS_CONT = 0x00;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
-
-    private enum CommandType
-    {
-        CREATE_TABLE_COMMAND("CREATE TABLE".getBytes()),
-        UNKNOWN_COMMAND("UNKNOWN".getBytes());
-
-        private final byte[] value;
-
-        CommandType(byte[] value)
-        {
-            this.value = value;
-        }
-
-        public byte[] value()
-        {
-            return value;
-        }
-    }
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -136,6 +121,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final MutableDirectBuffer clientBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final BindingHandler streamFactory;
 
     private final int decodeMax;
@@ -146,12 +132,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final PgsqlCompletion completeKnownCommand = this::completeKnownCommand;
     private final PgsqlCompletion completeUnknownCommand = this::completeUnknownCommand;
 
-    private final Object2ObjectHashMap<CommandType, PgsqlTransform> clientTransforms;
+    private final Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms;
+
     {
-        Object2ObjectHashMap<CommandType, PgsqlTransform> clientTransforms =
+        Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
-        clientTransforms.put(CommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
-        clientTransforms.put(CommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
+        clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
 
@@ -168,6 +155,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
         this.decodeMax = bufferPool.slotCapacity();
+        this.supplyCatalog = context::supplyCatalog;
 
         this.bindings = new Long2ObjectHashMap<>();
 
@@ -178,7 +166,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        RisingwaveBindingConfig risingwaveBinding = new RisingwaveBindingConfig(config, binding);
+        RisingwaveBindingConfig risingwaveBinding = new RisingwaveBindingConfig(config, binding, supplyCatalog);
         bindings.put(binding.id, risingwaveBinding);
     }
 
@@ -658,7 +646,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
                 {
                     int length = progress - statementOffset;
-                    final CommandType command = decodeCommandType(parserBuffer, statementOffset, length);
+                    final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
                     final PgsqlTransform transform = clientTransforms.get(command);
                     transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
                     break parse;
@@ -1404,15 +1392,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.doApplicationFlush(traceId, authorization, flushEx);
     }
 
-    private CommandType decodeCommandType(
+    private RisingwaveCommandType decodeCommandType(
         DirectBuffer statement,
         int offset,
         int length)
     {
-        CommandType matchingCommand = CommandType.UNKNOWN_COMMAND;
+        RisingwaveCommandType matchingCommand = RisingwaveCommandType.UNKNOWN_COMMAND;
 
         command:
-        for (CommandType command : CommandType.values())
+        for (RisingwaveCommandType command : RisingwaveCommandType.values())
         {
             int progressOffset = offset;
 

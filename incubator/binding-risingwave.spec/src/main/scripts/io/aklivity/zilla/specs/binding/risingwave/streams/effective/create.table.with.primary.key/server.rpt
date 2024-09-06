@@ -37,7 +37,7 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE TABLE IF NOT EXISTS cities(*, PRIMARY KEY (id)) "
-     "INCLUDE KEY AS city_id "
+     "INCLUDE KEY AS key "
      "WITH ("
          "connector='kafka', "
          "topic='cities', "

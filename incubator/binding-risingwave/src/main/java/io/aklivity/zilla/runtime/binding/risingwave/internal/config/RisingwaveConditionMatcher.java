@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionCo
 
 public final class RisingwaveConditionMatcher
 {
-    private final List<byte[]> commands;
+    private final List<RisingwaveCommandType> commands;
 
     public RisingwaveConditionMatcher(
         RisingwaveConditionConfig condition)
@@ -37,14 +37,14 @@ public final class RisingwaveConditionMatcher
     {
         return commands.stream().anyMatch(c ->
         {
-            boolean matches = length < c.length;
+            boolean matches = length < c.value().length;
 
             int progressOffset = offset;
 
             if (matches)
             {
                 match:
-                for (byte b : c)
+                for (byte b : c.value())
                 {
                     if (statement.getByte(progressOffset) != b)
                     {

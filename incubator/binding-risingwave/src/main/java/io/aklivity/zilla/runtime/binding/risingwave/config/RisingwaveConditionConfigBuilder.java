@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
@@ -25,7 +26,7 @@ public final class RisingwaveConditionConfigBuilder<T> extends ConfigBuilder<T, 
 {
     private final Function<ConditionConfig, T> mapper;
 
-    private List<String> commands;
+    private List<RisingwaveCommandType> commands;
 
     RisingwaveConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -41,7 +42,7 @@ public final class RisingwaveConditionConfigBuilder<T> extends ConfigBuilder<T, 
     }
 
     public RisingwaveConditionConfigBuilder<T> command(
-        String command)
+        RisingwaveCommandType command)
     {
         if (commands == null)
         {

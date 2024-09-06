@@ -52,7 +52,7 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
             !condition.commands.isEmpty())
         {
             JsonArrayBuilder entries = Json.createArrayBuilder();
-            condition.commands.forEach(c -> entries.add(new String(c, StandardCharsets.UTF_8)));
+            condition.commands.forEach(c -> entries.add(new String(c.value(), StandardCharsets.UTF_8)));
 
             object.add(COMMANDS_NAME, entries);
         }
@@ -70,7 +70,7 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
         if (object.containsKey(COMMANDS_NAME))
         {
             object.getJsonArray(COMMANDS_NAME)
-                .forEach(c -> risingwaveCondition.command(c.toString()));
+                .forEach(c -> risingwaveCondition.command(RisingwaveCommandType.valueOf(c.toString())));
         }
 
         return risingwaveCondition.build();

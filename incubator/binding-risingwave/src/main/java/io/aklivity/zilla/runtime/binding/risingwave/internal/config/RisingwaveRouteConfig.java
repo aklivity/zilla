@@ -16,12 +16,10 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.LongPredicate;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;

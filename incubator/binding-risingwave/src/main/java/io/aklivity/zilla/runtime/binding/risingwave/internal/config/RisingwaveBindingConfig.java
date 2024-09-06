@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
@@ -24,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConf
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableGenerator;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicGenerator;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -39,7 +41,8 @@ public final class RisingwaveBindingConfig
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
-        BindingConfig binding)
+        BindingConfig binding,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -48,8 +51,9 @@ public final class RisingwaveBindingConfig
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
         this.createTopic = new RisingwaveCreateTopicGenerator();
+        final CatalogHandler catalogHandler = supplyCatalog.apply(options.kafka.format.cataloged.get(0).id);
         this.createTable = new RisingwaveCreateTableGenerator(options.kafka.properties.bootstrapServer,
-            options.kafka.format.model, config.kafkaScanStartupTimestampMillis());
+            catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
     }
 
     public RisingwaveRouteConfig resolve(

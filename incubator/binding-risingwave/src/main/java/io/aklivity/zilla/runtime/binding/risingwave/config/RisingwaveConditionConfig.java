@@ -17,11 +17,12 @@ package io.aklivity.zilla.runtime.binding.risingwave.config;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class RisingwaveConditionConfig extends ConditionConfig
 {
-    public final List<byte[]> commands;
+    public final List<RisingwaveCommandType> commands;
 
     public static RisingwaveConditionConfigBuilder<RisingwaveConditionConfig> builder()
     {
@@ -35,7 +36,7 @@ public final class RisingwaveConditionConfig extends ConditionConfig
     }
 
     RisingwaveConditionConfig(
-        List<byte[]> commands)
+        List<RisingwaveCommandType> commands)
     {
         this.commands = commands;
     }
