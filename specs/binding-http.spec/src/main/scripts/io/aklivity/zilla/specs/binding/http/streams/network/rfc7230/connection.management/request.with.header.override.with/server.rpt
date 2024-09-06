@@ -20,7 +20,7 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read "GET / HTTP/1.1" "\r\n"
+read "GET /v1/path HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
 read "\r\n"
 

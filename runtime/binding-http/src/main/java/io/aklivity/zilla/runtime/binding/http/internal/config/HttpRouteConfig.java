@@ -45,14 +45,15 @@ public final class HttpRouteConfig
         Map<String8FW, String16FW> overrides)
     {
         this.id = route.id;
-        this.when = route.when.stream()
-            .map(HttpConditionConfig.class::cast)
-            .map(HttpConditionMatcher::new)
-            .collect(toList());
         this.with = Optional.ofNullable(route.with)
             .map(HttpWithConfig.class::cast)
             .map(HttpWithResolver::new)
-            .orElse(null);
+            .orElse(new HttpWithResolver(null));
+        this.when = route.when.stream()
+            .map(HttpConditionConfig.class::cast)
+            .map(HttpConditionMatcher::new)
+            .peek(m -> m.observe(with::onConditionMatched))
+            .collect(toList());
         this.authorized = route.authorized;
         this.overrides = new LinkedHashMap<>();
         if (overrides != null)

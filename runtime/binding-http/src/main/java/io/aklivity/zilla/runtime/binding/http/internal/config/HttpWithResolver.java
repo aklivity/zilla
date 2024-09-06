@@ -44,6 +44,12 @@ public class HttpWithResolver
         this.with = with;
     }
 
+    public void onConditionMatched(
+        HttpConditionMatcher condition)
+    {
+        this.replacer = r -> condition.parameter(r.group(1));
+    }
+
     public long compositeId()
     {
         return with != null ? with.compositeId : NO_COMPOSITE_ID;

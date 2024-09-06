@@ -19,7 +19,7 @@ connect "zilla://streams/net0"
   option zilla:transmission "duplex"
 connected
 
-write "GET / HTTP/1.1" "\r\n"
+write "GET /v1/path HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "\r\n"
 

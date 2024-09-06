@@ -25,14 +25,15 @@ bindings:
                 - http/1.1
             overrides:
                 :authority: otherhost:8181
-                :path: /api/path
         routes:
             - exit: app0
               when:
                   - headers:
                         :authority: localhost:8080
+                        :path: /v1/{id}
               with:
                   headers:
                       overrides:
                           :authority: localhost:8081
+                          :path: /api/${params.id}
                           custom: value
