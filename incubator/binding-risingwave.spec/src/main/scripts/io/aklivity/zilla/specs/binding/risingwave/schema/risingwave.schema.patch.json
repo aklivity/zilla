@@ -76,11 +76,15 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "command":
+                                            "commands":
                                             {
                                                 "title": "Commands",
-                                                "type": "string",
-                                                "enum": [ "CREATE TOPIC" ]
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string",
+                                                    "enum": [ "CREATE TOPIC" ]
+                                                }
                                             }
                                         }
                                     }

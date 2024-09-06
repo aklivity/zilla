@@ -28,6 +28,7 @@ public final class TestCatalogOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private String schema;
     private int id;
     private String prefix;
+    private String url;
 
     TestCatalogOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -70,9 +71,16 @@ public final class TestCatalogOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestCatalogOptionsConfigBuilder<T> url(
+        String url)
+    {
+        this.url = url;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestCatalogOptionsConfig(id, subject, schema, prefix));
+        return mapper.apply(new TestCatalogOptionsConfig(id, subject, schema, prefix, url));
     }
 }

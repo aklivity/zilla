@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
+import java.util.Arrays;
+
 public enum RisingwaveCommandType
 {
     CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
@@ -30,5 +32,18 @@ public enum RisingwaveCommandType
     public byte[] value()
     {
         return value;
+    }
+
+    public static RisingwaveCommandType fromValue(
+        byte[] value)
+    {
+        for (RisingwaveCommandType commandType : RisingwaveCommandType.values())
+        {
+            if (Arrays.equals(commandType.value, value))
+            {
+                return commandType;
+            }
+        }
+        return UNKNOWN_COMMAND;
     }
 }

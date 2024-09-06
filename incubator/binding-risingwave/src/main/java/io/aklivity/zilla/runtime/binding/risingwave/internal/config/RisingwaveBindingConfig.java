@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicGenerator;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
@@ -51,7 +52,11 @@ public final class RisingwaveBindingConfig
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
         this.createTopic = new RisingwaveCreateTopicGenerator();
-        final CatalogHandler catalogHandler = supplyCatalog.apply(options.kafka.format.cataloged.get(0).id);
+
+        final CatalogedConfig cataloged = options.kafka.format.cataloged.get(0);
+        cataloged.id = binding.resolveId.applyAsLong(cataloged.name);
+
+        final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
         this.createTable = new RisingwaveCreateTableGenerator(options.kafka.properties.bootstrapServer,
             catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
     }

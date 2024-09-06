@@ -635,24 +635,27 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorizationId)
         {
-            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
-
-            int statementOffset = 0;
-            int progress = 0;
-
-            parse:
-            while (progress <= parserSlotOffset)
+            if (parserSlot != NO_SLOT)
             {
-                if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
-                {
-                    int length = progress - statementOffset;
-                    final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
-                    final PgsqlTransform transform = clientTransforms.get(command);
-                    transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
-                    break parse;
-                }
+                final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
-                progress++;
+                int statementOffset = 0;
+                int progress = 0;
+
+                parse:
+                while (progress <= parserSlotOffset)
+                {
+                    if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
+                    {
+                        int length = progress - statementOffset;
+                        final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
+                        final PgsqlTransform transform = clientTransforms.get(command);
+                        transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
+                        break parse;
+                    }
+
+                    progress++;
+                }
             }
         }
 

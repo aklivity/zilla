@@ -33,7 +33,7 @@ public class ProxyIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("pgsql", "io/aklivity/zilla/specs/binding/risingwave/streams/pgsql")
-        .addScriptRoot("effective", "io/aklivity/zilla/specs/binding/pgsql/streams/effective");
+        .addScriptRoot("effective", "io/aklivity/zilla/specs/binding/risingwave/streams/effective");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

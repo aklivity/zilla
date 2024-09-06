@@ -25,6 +25,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     public final String schema;
     public final int id;
     public final String prefix;
+    public final String url;
 
     public static TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> builder()
     {
@@ -41,11 +42,13 @@ public class TestCatalogOptionsConfig extends OptionsConfig
         int id,
         String subject,
         String schema,
-        String prefix)
+        String prefix,
+        String url)
     {
         this.subject = subject;
         this.schema = schema;
         this.id = id;
         this.prefix = prefix;
+        this.url = url;
     }
 }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 import java.nio.charset.StandardCharsets;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -69,8 +70,12 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
 
         if (object.containsKey(COMMANDS_NAME))
         {
-            object.getJsonArray(COMMANDS_NAME)
-                .forEach(c -> risingwaveCondition.command(RisingwaveCommandType.valueOf(c.toString())));
+            JsonArray commands = object.getJsonArray(COMMANDS_NAME);
+            for (int i = 0; i < commands.size(); i++)
+            {
+                String name = commands.getString(i);
+                risingwaveCondition.command(RisingwaveCommandType.fromValue(name.getBytes()));
+            }
         }
 
         return risingwaveCondition.build();
