@@ -14,9 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public class RisingwaveCreateTableGenerator extends StatementGenerator
+public class RisingwaveCreateTableGenerator extends CommandGenerator
 {
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -37,10 +38,11 @@ public class RisingwaveCreateTableGenerator extends StatementGenerator
     }
 
     public String generate(
-        CreateTable statement)
+        Statement statement)
     {
-        this.table = statement.getTable().getName();
-        this.primaryKey = getPrimaryKey(statement);
+        CreateTable createTable = (CreateTable) statement;
+        this.table = createTable.getTable().getName();
+        this.primaryKey = getPrimaryKey(createTable);
 
         return format();
     }

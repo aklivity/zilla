@@ -18,9 +18,10 @@ import java.util.Map;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public class RisingwaveCreateTopicGenerator extends StatementGenerator
+public class RisingwaveCreateTopicGenerator extends CommandGenerator
 {
     private final Map<String, String> fields;
 
@@ -33,11 +34,12 @@ public class RisingwaveCreateTopicGenerator extends StatementGenerator
     }
 
     public String generate(
-        CreateTable statement)
+        Statement statement)
     {
-        topic = statement.getTable().getName();
-        primaryKey = getPrimaryKey(statement);
-        statement.getColumnDefinitions()
+        CreateTable createTable = (CreateTable) statement;
+        topic = createTable.getTable().getName();
+        primaryKey = getPrimaryKey(createTable);
+        createTable.getColumnDefinitions()
             .forEach(c -> fields.put(c.getColumnName(), c.getColDataType().getDataType()));
 
         return format();

@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.CommandGenerator;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
@@ -326,6 +327,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             streamsByRouteIds.values().forEach(c -> c.doApplicationBegin(traceId, authorization, affinity));
 
             doApplicationWindow(traceId, authorization);
+
             doApplicationBegin(traceId, authorization);
         }
 
@@ -1408,37 +1410,38 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        final RisingwaveBindingConfig binding = server.binding;
-        final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-        final String primaryKey = binding.createTable.getPrimaryKey(statement);
-
-        int progress = 0;
-
-        if (server.commandsProcessed == 0) //TODO: Consider better approach too many conditions
-        {
-            final String newStatement = binding.createTopic.generate(statement);
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-        }
-        else if (server.commandsProcessed == 1 && primaryKey != null)
-        {
-            final String newStatement = binding.createTable.generate(statement);
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-        }
-
         if (server.commandsProcessed == 2)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
         else
         {
+            final RisingwaveBindingConfig binding = server.binding;
+            final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
+            final String primaryKey = binding.createTable.getPrimaryKey(statement);
+
+            CommandGenerator commandGenerator = null;
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                commandGenerator = binding.createTopic;
+            }
+            else if (server.commandsProcessed == 1 && primaryKey != null)
+            {
+                commandGenerator = binding.createTable;
+            }
+
+            final String newStatement = commandGenerator.generate(statement);
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
-            client.completion = completeKnownCommand;
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.completion = completeKnownCommand;
         }
     }
 
@@ -1464,6 +1467,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         PgsqlFlushExFW flushEx)
     {
+        //NOOP
     }
 
     private void completeUnknownCommand(
