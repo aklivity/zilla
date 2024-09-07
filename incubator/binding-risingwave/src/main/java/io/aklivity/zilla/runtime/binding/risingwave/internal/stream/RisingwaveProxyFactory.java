@@ -37,7 +37,6 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
