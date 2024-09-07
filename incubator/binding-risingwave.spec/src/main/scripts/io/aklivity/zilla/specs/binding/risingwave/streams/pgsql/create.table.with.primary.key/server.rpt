@@ -54,5 +54,3 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write close
-read closed

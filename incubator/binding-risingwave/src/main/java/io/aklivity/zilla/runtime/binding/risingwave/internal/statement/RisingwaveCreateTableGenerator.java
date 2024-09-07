@@ -81,6 +81,7 @@ public class RisingwaveCreateTableGenerator extends StatementGenerator
         builder.append(schemaRegistry);
         builder.append("'\n");
         builder.append(");");
+        builder.append("\000");
 
         return builder.toString();
     }

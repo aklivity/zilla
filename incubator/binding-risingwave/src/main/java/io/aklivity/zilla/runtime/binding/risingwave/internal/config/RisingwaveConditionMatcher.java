@@ -37,7 +37,7 @@ public final class RisingwaveConditionMatcher
     {
         return commands.stream().anyMatch(c ->
         {
-            boolean matches = length < c.value().length;
+            boolean matches = length >= c.value().length;
 
             int progressOffset = offset;
 

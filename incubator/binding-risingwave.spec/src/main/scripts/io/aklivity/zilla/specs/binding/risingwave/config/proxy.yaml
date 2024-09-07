@@ -36,8 +36,8 @@ bindings:
             catalog0:
               - id: 0
     routes:
-      - exit: app1
+      - exit: app2
         when:
            - commands:
               - "CREATE TOPIC"
-    exit: app2
+    exit: app1

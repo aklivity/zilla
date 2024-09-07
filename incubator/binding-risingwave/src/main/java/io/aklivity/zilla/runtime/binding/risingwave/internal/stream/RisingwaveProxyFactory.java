@@ -34,7 +34,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
-import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
@@ -159,7 +158,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         this.bindings = new Long2ObjectHashMap<>();
 
-        this.pgsqlTypeId = context.supplyTypeId(RisingwaveBinding.NAME);
+        this.pgsqlTypeId = context.supplyTypeId("pgsql");
     }
 
     @Override
@@ -324,6 +323,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             streamsByRouteIds.values().forEach(c -> c.doApplicationBegin(traceId, authorization, affinity));
 
+            doApplicationWindow(traceId, authorization);
             doApplicationBegin(traceId, authorization);
         }
 
@@ -471,10 +471,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 responses.removeLong();
             }
-
         }
 
-        private void onStatementCompleted(
+        private void onCommandCompleted(
             long traceId,
             long authorization,
             int progress)
@@ -647,7 +646,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 {
                     if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
                     {
-                        int length = progress - statementOffset;
+                        int length = progress - statementOffset + 1;
                         final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
                         final PgsqlTransform transform = clientTransforms.get(command);
                         transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
@@ -843,7 +842,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 server.doApplicationFlush(traceId, authorization, extension);
                 break;
             case PgsqlFlushExFW.KIND_COMPLETION:
-                completion.complete(server, traceId, authorization, pgsqlFlushEx);
+                onCommandCompleted(traceId, authorization, pgsqlFlushEx);
                 break;
             case PgsqlFlushExFW.KIND_READY:
                 server.onQueryReady(traceId, authorization, pgsqlFlushEx);
@@ -914,7 +913,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             assert initialAck <= initialSeq;
 
+            state = RisingwaveState.openInitial(state);
+
             server.doParseQuery(traceId, authorization);
+        }
+
+        private void onCommandCompleted(
+            long traceId, long authorization,
+            PgsqlFlushExFW pgsqlFlushEx)
+        {
+            messageOffset = 0;
+            completion.complete(server, traceId, authorization, pgsqlFlushEx);
         }
 
         private void doApplicationBegin(
@@ -1024,7 +1033,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = RisingwaveState.openReply(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, server.replyMax,
+                doWindow(application, originId, routedId, replyId, replySeq, replyAck, server.replyMax,
                     traceId, authorization, server.replyBudgetId, server.replyPadding);
             }
         }
@@ -1041,7 +1050,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final int lengthMax = Math.min(initialWin - initialPad, remaining);
 
             if (RisingwaveState.initialOpened(state) &&
-                lengthMax > 0 && remaining == 0)
+                lengthMax > 0 && remaining > 0)
             {
                 final int deferred = remaining - length;
 
@@ -1056,7 +1065,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 }
 
                 Consumer<OctetsFW.Builder> queryEx = (flags & FLAGS_INIT) != 0x00
-                    ?  e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
+                    ? e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
                         .typeId(pgsqlTypeId)
                         .query(q -> q.deferred(deferred))
                         .build().sizeof())
@@ -1064,14 +1073,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 doApplicationData(traceId, authorization, flags, buffer, offset, lengthMax, queryEx);
 
-                if ((flags & FLAGS_FIN) == 0x00)
-                {
-                    this.messageOffset += lengthMax;
-                }
-                else
-                {
-                    this.messageOffset = 0;
-                }
+                messageOffset += lengthMax;
             }
         }
     }
@@ -1350,7 +1352,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         if (server.commandsProcessed == 2)
         {
-            server.onStatementCompleted(traceId, authorization, length);
+            server.onCommandCompleted(traceId, authorization, length);
         }
         else
         {
@@ -1358,6 +1360,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.completion = completeKnownCommand;
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
         }
     }
@@ -1437,8 +1440,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         try
         {
             inputStream.wrap(buffer, offset, length);
-            reader.reset();
-            parserManager.parse(reader);
+            statement = parserManager.parse(reader);
         }
         catch (Exception ignored)
         {
