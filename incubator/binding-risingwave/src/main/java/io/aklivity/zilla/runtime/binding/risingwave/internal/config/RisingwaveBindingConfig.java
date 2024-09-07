@@ -62,15 +62,6 @@ public final class RisingwaveBindingConfig
     }
 
     public RisingwaveRouteConfig resolve(
-        long authorization)
-    {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization))
-            .findFirst()
-            .orElse(null);
-    }
-
-    public RisingwaveRouteConfig resolve(
         long authorization,
         DirectBuffer statement,
         int offset,
