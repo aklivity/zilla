@@ -37,7 +37,7 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwavePgsqlCommandType;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
@@ -480,7 +480,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization,
             int progress,
-            RisingwavePgsqlCommandType command)
+            RisingwaveCompletionCommand command)
         {
             commandsProcessed = 0;
             parserSlotOffset -= progress;
@@ -651,7 +651,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private void doCommandCompletion(
             long traceId,
             long authorization,
-            RisingwavePgsqlCommandType command)
+            RisingwaveCompletionCommand command)
         {
             extBuffer.putBytes(0, command.value());
             extBuffer.putInt(command.value().length, END_OF_FIELD);
@@ -1430,7 +1430,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         if (server.commandsProcessed == 2)
         {
-            server.onCommandCompleted(traceId, authorization, length, RisingwavePgsqlCommandType.CREATE_TABLE_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
         else
         {

@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
-public enum RisingwavePgsqlCommandType
+public enum RisingwaveCompletionCommand
 {
     CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes());
 
     private final byte[] value;
 
-    RisingwavePgsqlCommandType(byte[] value)
+    RisingwaveCompletionCommand(byte[] value)
     {
         this.value = value;
     }
