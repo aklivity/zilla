@@ -74,7 +74,7 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
             for (int i = 0; i < commands.size(); i++)
             {
                 String name = commands.getString(i);
-                risingwaveCondition.command(RisingwaveCommandType.fromValue(name.getBytes()));
+                risingwaveCondition.command(RisingwaveCommandType.valueOf(name.getBytes()));
             }
         }
 

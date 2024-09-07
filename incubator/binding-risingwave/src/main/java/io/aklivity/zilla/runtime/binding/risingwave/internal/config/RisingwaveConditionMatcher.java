@@ -48,6 +48,7 @@ public final class RisingwaveConditionMatcher
                 {
                     if (statement.getByte(progressOffset) != b)
                     {
+                        matches = false;
                         break match;
                     }
                     progressOffset++;

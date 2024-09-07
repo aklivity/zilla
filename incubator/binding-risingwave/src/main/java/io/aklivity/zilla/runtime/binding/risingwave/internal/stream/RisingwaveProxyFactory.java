@@ -37,6 +37,7 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwavePgsqlCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
@@ -74,6 +75,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final int FLAGS_CONT = 0x00;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
+
+    private static final byte[] CREATE_TABLE_COMMAND = "CREATE_TABLE".getBytes();
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -117,7 +120,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final RisingwaveConfiguration config;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer statementBuffer;
-    private final MutableDirectBuffer clientBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<CatalogHandler> supplyCatalog;
@@ -147,8 +150,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.statementBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.clientBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -201,7 +204,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         if (binding != null)
         {
-            RisingwaveRouteConfig route = binding.resolve(authorization, clientBuffer, 0, 0);
+            RisingwaveRouteConfig route = binding.resolve(authorization, extBuffer, 0, 0);
 
             if (route != null)
             {
@@ -476,20 +479,24 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private void onCommandCompleted(
             long traceId,
             long authorization,
-            int progress)
+            int progress,
+            RisingwavePgsqlCommandType command)
         {
             commandsProcessed = 0;
             parserSlotOffset -= progress;
+
+            doCommandCompletion(traceId, authorization, command);
 
             final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
             final int queryLength = queries.peekInt();
-            queryProgressOffset += progress;
+            queryProgressOffset += progress + 1;
             if (queryLength == queryProgressOffset)
             {
                 queryProgressOffset = 0;
                 queries.removeInt();
+                doQueryReady(traceId, authorization);
             }
 
             if (parserSlotOffset == 0)
@@ -628,6 +635,46 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, replyBudgetId, reserved, extension);
+        }
+
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            int reserved = (int) replySeq;
+
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                    authorization, replyBudgetId, reserved, extension);
+        }
+
+        private void doCommandCompletion(
+            long traceId,
+            long authorization,
+            RisingwavePgsqlCommandType command)
+        {
+            extBuffer.putBytes(0, command.value());
+            extBuffer.putInt(command.value().length, END_OF_FIELD);
+
+            Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                .typeId(pgsqlTypeId)
+
+                .completion(c -> c.tag(extBuffer, 0,  command.value().length + 1))
+                .build().sizeof());
+
+            doApplicationFlush(traceId, authorization, completionEx);
+        }
+
+        private void doQueryReady(
+            long traceId,
+            long authorization)
+        {
+            Consumer<OctetsFW.Builder> readyEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                    .typeId(pgsqlTypeId)
+                    .ready(r -> r.status(s -> s.set(PgsqlStatus.IDLE)))
+                    .build().sizeof());
+
+            doApplicationFlush(traceId, authorization, readyEx);
         }
 
         private void doParseQuery(
@@ -1213,6 +1260,37 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
+    private void doFlush(
+        final MessageConsumer receiver,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final int maximum,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
     private void doAbort(
         final MessageConsumer receiver,
         final long originId,
@@ -1337,7 +1415,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         int progress = 0;
 
-        if (server.commandsProcessed == 0)
+        if (server.commandsProcessed == 0) //TODO: Consider better approach too many conditions
         {
             final String newStatement = binding.createTopic.generate(statement);
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1352,7 +1430,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         if (server.commandsProcessed == 2)
         {
-            server.onCommandCompleted(traceId, authorization, length);
+            server.onCommandCompleted(traceId, authorization, length, RisingwavePgsqlCommandType.CREATE_TABLE_COMMAND);
         }
         else
         {

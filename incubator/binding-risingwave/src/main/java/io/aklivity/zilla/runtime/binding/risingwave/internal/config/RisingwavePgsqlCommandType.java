@@ -14,17 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
-import java.util.Arrays;
-
-public enum RisingwaveCommandType
+public enum RisingwavePgsqlCommandType
 {
-    CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
-    CREATE_TABLE_COMMAND("CREATE TABLE".getBytes()),
-    UNKNOWN_COMMAND("UNKNOWN".getBytes());
+    CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes());
 
     private final byte[] value;
 
-    RisingwaveCommandType(byte[] value)
+    RisingwavePgsqlCommandType(byte[] value)
     {
         this.value = value;
     }
@@ -32,23 +28,5 @@ public enum RisingwaveCommandType
     public byte[] value()
     {
         return value;
-    }
-
-    public static RisingwaveCommandType valueOf(
-        byte[] value)
-    {
-        RisingwaveCommandType command = UNKNOWN_COMMAND;
-
-        command:
-        for (RisingwaveCommandType commandType : RisingwaveCommandType.values())
-        {
-            if (Arrays.equals(commandType.value, value))
-            {
-                command = commandType;
-                break command;
-            }
-        }
-
-        return command;
     }
 }

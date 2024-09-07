@@ -68,7 +68,7 @@ public class RisingwaveCreateTopicGenerator extends StatementGenerator
         builder.append(", PRIMARY KEY (");
         builder.append(primaryKey);
         builder.append("));");
-        builder.append("\000");
+        builder.append("\u0000");
 
         return builder.toString();
     }

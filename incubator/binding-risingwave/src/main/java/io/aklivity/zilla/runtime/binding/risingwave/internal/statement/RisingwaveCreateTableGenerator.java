@@ -47,6 +47,8 @@ public class RisingwaveCreateTableGenerator extends StatementGenerator
 
     private String format()
     {
+        builder.setLength(0);
+
         // Begin the CREATE TABLE statement
         builder.append("CREATE TABLE IF NOT EXISTS ");
         builder.append(table);
@@ -65,12 +67,11 @@ public class RisingwaveCreateTableGenerator extends StatementGenerator
         builder.append("',\n");
         builder.append("topic='");
         builder.append(table);
-        builder.append("'\n");
+        builder.append(",'\n");
         builder.append("scan.startup.mode='latest',\n");
         builder.append("scan.startup.timestamp.millis='");
         builder.append(scanStartupMil);
         builder.append("'");
-        builder.append("\n) ");
         builder.append("\n");
 
         // Add FORMAT and ENCODE
@@ -81,7 +82,7 @@ public class RisingwaveCreateTableGenerator extends StatementGenerator
         builder.append(schemaRegistry);
         builder.append("'\n");
         builder.append(");");
-        builder.append("\000");
+        builder.append("\u0000");
 
         return builder.toString();
     }
