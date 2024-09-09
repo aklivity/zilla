@@ -350,81 +350,35 @@
                         {
                             "title": "Transforms",
                             "type": "array",
-                            "oneOf":
+                            "items":
                             [
                                 {
-                                    "items":
-                                    [
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "extract-headers":
                                         {
                                             "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
+                                            "patternProperties":
                                             {
-                                                "extract-headers":
-                                                {
-                                                    "type": "object",
-                                                    "patternProperties":
-                                                    {
-                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                },
-                                                "extract-key":
+                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                 {
                                                     "type": "string",
-                                                    "additionalProperties": false
+                                                    "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
                                                 }
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    "items":
-                                    [
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "extract-key":
                                         {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
-                                            {
-                                                "extract-headers":
-                                                {
-                                                    "type": "object",
-                                                    "patternProperties":
-                                                    {
-                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            }
+                                            "type": "string",
+                                            "additionalProperties": false
                                         }
-                                    ]
-                                },
-                                {
-                                    "items":
-                                    [
-                                        {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
-                                            {
-                                                "extract-key":
-                                                {
-                                                    "type": "string",
-                                                    "additionalProperties": false
-                                                }
-                                            }
-                                        }
-                                    ]
+                                    }
                                 }
                             ]
+
                         },
                         "key":
                         {
