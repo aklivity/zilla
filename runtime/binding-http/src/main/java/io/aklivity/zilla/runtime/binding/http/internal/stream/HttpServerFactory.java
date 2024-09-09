@@ -1072,9 +1072,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route != null)
                         {
-                            if (binding.options != null && binding.options.overrides != null)
+                            Map<String8FW, String16FW> overrides = route.overrides();
+                            if (overrides != null)
                             {
-                                binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                                overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
 
                                 final HttpBeginExFW.Builder newBeginEx = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                                                                                      .typeId(httpTypeId);
@@ -5014,9 +5015,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            if (binding.options != null && binding.options.overrides != null)
+                            Map<String8FW, String16FW> overrides = route.overrides();
+                            if (overrides != null)
                             {
-                                binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                                overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
                             }
 
                             final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -5395,9 +5397,10 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (pushId != -1)
                 {
-                    if (binding.options != null && binding.options.overrides != null)
+                    Map<String8FW, String16FW> overrides = route.overrides();
+                    if (overrides != null)
                     {
-                        binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                        overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
                     }
 
                     final long originId = this.routedId;

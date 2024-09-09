@@ -15,12 +15,17 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpWithConfig extends WithConfig
 {
+    public final Map<String8FW, String16FW> overrides;
+
     public static HttpWithConfigBuilder<HttpWithConfig> builder()
     {
         return new HttpWithConfigBuilder<>(HttpWithConfig.class::cast);
@@ -33,8 +38,10 @@ public final class HttpWithConfig extends WithConfig
     }
 
     HttpWithConfig(
-        long compositeId)
+        long compositeId,
+        Map<String8FW, String16FW> overrides)
     {
         super(compositeId);
+        this.overrides = overrides;
     }
 }

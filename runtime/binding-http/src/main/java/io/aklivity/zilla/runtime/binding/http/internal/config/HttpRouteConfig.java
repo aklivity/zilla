@@ -18,12 +18,17 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class HttpRouteConfig
@@ -31,24 +36,44 @@ public final class HttpRouteConfig
     public final long id;
 
     private final List<HttpConditionMatcher> when;
-    private final HttpWithConfig with;
+    private final HttpWithResolver with;
     private final LongPredicate authorized;
+    private final Map<String8FW, String16FW> overrides;
 
     public HttpRouteConfig(
-        RouteConfig route)
+        RouteConfig route,
+        Map<String8FW, String16FW> overrides)
     {
         this.id = route.id;
+        this.with = Optional.ofNullable(route.with)
+            .map(HttpWithConfig.class::cast)
+            .map(HttpWithResolver::new)
+            .orElse(null);
         this.when = route.when.stream()
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
+            .peek(m -> Optional.ofNullable(with).ifPresent(w -> m.observe(w::onConditionMatched)))
             .collect(toList());
-        this.with = (HttpWithConfig)route.with;
         this.authorized = route.authorized;
+        this.overrides = new LinkedHashMap<>();
+        if (overrides != null)
+        {
+            this.overrides.putAll(overrides);
+        }
     }
 
     public long compositeId()
     {
-        return with != null ? with.compositeId : NO_COMPOSITE_ID;
+        return with != null ? with.compositeId() : NO_COMPOSITE_ID;
+    }
+
+    public Map<String8FW, String16FW> overrides()
+    {
+        if (with != null)
+        {
+            overrides.putAll(with.resolveOverrides());
+        }
+        return overrides;
     }
 
     boolean authorized(
