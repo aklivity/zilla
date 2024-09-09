@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionCo
 public final class RisingwaveConditionMatcher
 {
     private final DirectBuffer commandBuffer = new UnsafeBuffer(0, 0);
+    private final DirectBuffer statementBuffer = new UnsafeBuffer(0, 0);
     private final List<RisingwaveCommandType> commands;
 
     public RisingwaveConditionMatcher(
@@ -39,13 +40,15 @@ public final class RisingwaveConditionMatcher
     {
         return commands.stream().anyMatch(c ->
         {
-            boolean matches = length >= c.value().length;
+            final int commandLength = c.value().length;
+            boolean matches = length >= commandLength;
 
             int progressOffset = offset;
 
-            commandBuffer.wrap(statement, progressOffset, length);
+            statementBuffer.wrap(statement, progressOffset, commandLength);
+            commandBuffer.wrap(c.value());
 
-            matches = matches ? commandBuffer.equals(c.value()) : matches;
+            matches = matches ? statementBuffer.compareTo(commandBuffer) == 0 : matches;
 
             return matches;
         });
