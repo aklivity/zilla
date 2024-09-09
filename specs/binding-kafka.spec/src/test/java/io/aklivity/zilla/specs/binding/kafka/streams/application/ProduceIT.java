@@ -148,6 +148,33 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/messages.fragmented.crc/client",
+        "${app}/messages.fragmented.crc/server"})
+    public void shouldSendFragmentedMessagesWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.empty.crc/client",
+        "${app}/message.empty.crc/server"})
+    public void shouldSendMessageEmptyWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.null.crc/client",
+        "${app}/message.null.crc/server"})
+    public void shouldSendMessageNullWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.producer.id/client",
         "${app}/message.producer.id/server"})
     public void shouldSendMessageValueWithProducerId() throws Exception
@@ -253,6 +280,15 @@ public class ProduceIT
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.value.repeated.fragmented/client",
+        "${app}/message.value.repeated.fragmented/server"})
+    public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
     {
         k3po.finish();
     }

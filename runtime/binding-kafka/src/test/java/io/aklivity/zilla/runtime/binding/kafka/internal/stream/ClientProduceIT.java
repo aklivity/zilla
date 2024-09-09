@@ -206,6 +206,36 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.empty.crc/client",
+        "${net}/message.empty.crc/server"})
+    public void shouldSendMessageEmptyWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.null.crc/client",
+        "${net}/message.null.crc/server"})
+    public void shouldSendMessageNullWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/messages.fragmented.crc/client",
+        "${net}/messages.fragmented.crc/server"})
+    public void shouldSendFragmentedMessagesWithCrc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.value.null/client",
         "${net}/message.value.null/server"})
     public void shouldSendMessageValueNull() throws Exception
@@ -323,6 +353,17 @@ public class ClientProduceIT
         "${net}/message.value.repeated/server"})
     @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.value.repeated.fragmented/client",
+        "${net}/message.value.repeated/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
+    public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
     {
         k3po.finish();
     }
