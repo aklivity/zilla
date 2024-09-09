@@ -17,11 +17,13 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 
 public final class RisingwaveConditionMatcher
 {
+    private final DirectBuffer commandBuffer = new UnsafeBuffer(0, 0);
     private final List<RisingwaveCommandType> commands;
 
     public RisingwaveConditionMatcher(
@@ -41,19 +43,9 @@ public final class RisingwaveConditionMatcher
 
             int progressOffset = offset;
 
-            if (matches)
-            {
-                match:
-                for (byte b : c.value())
-                {
-                    if (statement.getByte(progressOffset) != b)
-                    {
-                        matches = false;
-                        break match;
-                    }
-                    progressOffset++;
-                }
-            }
+            commandBuffer.wrap(statement, progressOffset, length);
+
+            matches = matches ? commandBuffer.equals(c.value()) : matches;
 
             return matches;
         });

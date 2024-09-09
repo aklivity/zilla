@@ -65,7 +65,7 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        RisingwaveConditionConfigBuilder<RisingwaveConditionConfig> risingwaveCondition =
+        RisingwaveConditionConfigBuilder<RisingwaveConditionConfig> condition =
             RisingwaveConditionConfig.builder();
 
         if (object.containsKey(COMMANDS_NAME))
@@ -74,10 +74,10 @@ public final class RisingwaveConditionConfigAdapter implements ConditionConfigAd
             for (int i = 0; i < commands.size(); i++)
             {
                 String name = commands.getString(i);
-                risingwaveCondition.command(RisingwaveCommandType.valueOf(name.getBytes()));
+                condition.command(RisingwaveCommandType.valueOf(name.getBytes()));
             }
         }
 
-        return risingwaveCondition.build();
+        return condition.build();
     }
 }
