@@ -48,11 +48,11 @@ public final class HttpRouteConfig
         this.with = Optional.ofNullable(route.with)
             .map(HttpWithConfig.class::cast)
             .map(HttpWithResolver::new)
-            .orElse(new HttpWithResolver(null));
+            .orElse(null);
         this.when = route.when.stream()
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
-            .peek(m -> m.observe(with::onConditionMatched))
+            .peek(m -> Optional.ofNullable(with).ifPresent(w -> m.observe(w::onConditionMatched)))
             .collect(toList());
         this.authorized = route.authorized;
         this.overrides = new LinkedHashMap<>();

@@ -305,9 +305,9 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/request.with.header.override.with/client",
-        "${app}/request.with.header.override.with/server" })
-    public void shouldProxyRequestWithHeaderOverrideWith() throws Exception
+        "${app}/request.with.route.header.overrides/client",
+        "${app}/request.with.route.header.overrides/server" })
+    public void shouldProxyRequestWithRouteHeaderOverrides() throws Exception
     {
         k3po.finish();
     }

@@ -67,9 +67,9 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/request.with.header.override.with/client",
-        "${net}/request.with.header.override.with/server" })
-    public void shouldSendRequestWithHeaderOverrideWith() throws Exception
+        "${net}/request.with.route.header.overrides/client",
+        "${net}/request.with.route.header.overrides/server" })
+    public void shouldSendRequestWithRouteHeaderOverrides() throws Exception
     {
         k3po.finish();
     }

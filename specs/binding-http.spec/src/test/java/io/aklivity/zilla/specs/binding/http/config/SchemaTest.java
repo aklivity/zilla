@@ -84,9 +84,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp11ServerOverrideWith()
+    public void shouldValidateHttp11ServerWithRouteHeaderOverrides()
     {
-        JsonObject config = schema.validate("v1.1/server.override.with.yaml");
+        JsonObject config = schema.validate("v1.1/server.with.route.header.overrides.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -220,9 +220,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerOverrideWith()
+    public void shouldValidateHttp2ServerWithRouteHeaderOverrides()
     {
-        JsonObject config = schema.validate("v2/server.override.with.yaml");
+        JsonObject config = schema.validate("v2/server.with.route.header.overrides.yaml");
 
         assertThat(config, not(nullValue()));
     }
