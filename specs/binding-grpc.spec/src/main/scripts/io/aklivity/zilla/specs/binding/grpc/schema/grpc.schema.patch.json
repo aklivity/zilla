@@ -88,35 +88,6 @@
                                 "with": false
                             }
                         }
-                    },
-                    "catalog":
-                    {
-                        "type": "object",
-                        "patternProperties":
-                        {
-                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                            {
-                                "type": "object",
-                                "properties":
-                                {
-                                    "subject":
-                                    {
-                                        "type": "string"
-                                    },
-                                    "version":
-                                    {
-                                        "type": "string",
-                                        "default": "latest"
-                                    }
-                                },
-                                "required":
-                                [
-                                    "subject"
-                                ],
-                                "additionalProperties": false
-                            },
-                            "additionalProperties": false
-                        }
                     }
                 },
                 "anyOf":
@@ -160,6 +131,35 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "catalog":
+                            {
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "subject":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "version":
+                                            {
+                                                "type": "string",
+                                                "default": "latest"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "subject"
+                                        ],
+                                        "additionalProperties": false
+                                    },
+                                    "additionalProperties": false
+                                }
                             }
                         }
                     },
@@ -170,8 +170,7 @@
                             {
                                 "const": "client"
                             },
-                            "options": false,
-                            "catalog": false
+                            "options": false
                         }
                     }
                 ]
