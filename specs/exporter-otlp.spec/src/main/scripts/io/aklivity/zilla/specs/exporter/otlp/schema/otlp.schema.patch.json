@@ -74,11 +74,13 @@
                                         {
                                             "metrics":
                                             {
-                                                "type": "string"
+                                                "type": "string",
+                                                "default": "/v1/metrics"
                                             },
                                             "logs":
                                             {
-                                                "type": "string"
+                                                "type": "string",
+                                                "default": "/v1/logs"
                                             }
                                         }
                                     }
