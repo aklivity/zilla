@@ -37,6 +37,7 @@
                     },
                     "catalog":
                     {
+                        "title": "Catalog",
                         "type": "object",
                         "patternProperties":
                         {

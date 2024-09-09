@@ -198,6 +198,7 @@
         },
         "catalog":
         {
+            "title": "Catalog",
             "type": "object",
             "properties":
             {
@@ -305,6 +306,7 @@
                 },
                 "catalog":
                 {
+                    "title": "Catalog",
                     "type": "object",
                     "patternProperties":
                     {
