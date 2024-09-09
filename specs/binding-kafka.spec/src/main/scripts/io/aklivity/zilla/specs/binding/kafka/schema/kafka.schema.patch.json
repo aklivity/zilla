@@ -31,6 +31,8 @@
                     {
                         "enum": [ "cache_client", "cache_server", "client" ]
                     },
+                    "entry": false,
+                    "catalog": false,
                     "vault": false,
                     "routes":
                     {

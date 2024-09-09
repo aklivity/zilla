@@ -31,6 +31,8 @@
                     {
                         "enum": [ "proxy"]
                     },
+                    "entry": false,
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {

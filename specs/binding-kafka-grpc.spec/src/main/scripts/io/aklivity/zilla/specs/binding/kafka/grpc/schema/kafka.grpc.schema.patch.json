@@ -31,6 +31,7 @@
                     {
                         "enum": [ "remote_server" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {

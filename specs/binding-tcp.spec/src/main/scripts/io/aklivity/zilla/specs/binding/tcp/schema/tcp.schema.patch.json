@@ -31,6 +31,8 @@
                     {
                         "enum": [ "server", "client" ]
                     },
+                    "entry": false,
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {

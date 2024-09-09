@@ -114,6 +114,7 @@
                             {
                                 "const": "server"
                             },
+                            "entry": false,
                             "options":
                             {
                                 "properties":
@@ -170,6 +171,8 @@
                             {
                                 "const": "client"
                             },
+                            "entry": false,
+                            "catalog": false,
                             "options": false
                         }
                     }
