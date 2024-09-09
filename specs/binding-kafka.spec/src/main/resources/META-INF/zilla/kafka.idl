@@ -21,6 +21,12 @@ scope kafka
         string16 value;
     }
 
+    struct KafkaResourceType
+    {
+        BROKER(4),
+        TOPIC(2)
+    }
+
     struct KafkaPartition
     {
         int32 partitionId;
@@ -171,7 +177,10 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            ALTER_CONFIGS(33)
             INIT_PRODUCER_ID (22),
+            DELETE_TOPICS (20),
+            CREATE_TOPICS(19)
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -186,7 +195,10 @@ scope kafka
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
+            case 33 kafka::stream::KafkaAlterConfigsBeginEx alterConfigs;
             case 22: kafka::stream::KafkaInitProducerIdBeginEx initProducerId;
+            case 20: kafka::stream::KafkaDeleteTopicsBeginEx initProducerId;
+            case 19 kafka::stream::KafkaCreateTopicsBeginEx createTopics;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
@@ -496,12 +508,41 @@ scope kafka
             int32 leaderEpoch;
         }
 
+        struct KafkaResource
+        {
+            KafkaResourceType type;
+            string16 name;
+            KafkaConfig[] configs;
+        }
+
+        struct KafkaAlterConfigsBeginEx
+        {
+            KafkaResource[] resource;
+        }
+
         struct KafkaInitProducerIdBeginEx
         {
             int64 producerId;
             int16 producerEpoch;
         }
-    }
+
+        struct KafkaDeleteTopicsBeginEx
+        {
+            string16[] names;
+        }
+
+        struct KafkaTopic
+        {
+            string16 name;
+            int16 replicationFactor;
+            KafkaPartition[] assignments;
+        }
+
+        struct KafkaCreateTopicsBeginEx
+        {
+            KafkaTopic[] topics;
+        }
+
 
     scope rebalance
     {
