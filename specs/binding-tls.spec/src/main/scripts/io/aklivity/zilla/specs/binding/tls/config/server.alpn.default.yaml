@@ -34,5 +34,4 @@ bindings:
                 - localhost
             alpn:
                 - protocol2
-                - null
         exit: app0
