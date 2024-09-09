@@ -60,7 +60,8 @@
                                     {
                                         "title": "Policy",
                                         "type": "string",
-                                        "enum": [ "same-origin" , "cross-origin" ]
+                                        "enum": [ "same-origin" , "cross-origin" ],
+                                        "default": "same-origin"
                                     }
                                 },
                                 "oneOf":
