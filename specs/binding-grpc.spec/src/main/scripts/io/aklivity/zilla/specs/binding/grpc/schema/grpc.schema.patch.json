@@ -32,7 +32,6 @@
                         "enum": [ "server", "client"]
                     },
                     "vault": false,
-                    "options": false,
                     "routes":
                     {
                         "title": "Routes",
