@@ -508,11 +508,16 @@ scope kafka
             int32 leaderEpoch;
         }
 
-        struct KafkaAlterConfigsBeginEx
+        struct KafkaResource
         {
             KafkaResourceType type;
             string16 name;
             KafkaConfig[] configs;
+        }
+
+        struct KafkaAlterConfigsBeginEx
+        {
+            KafkaResource[] resource;
         }
 
         struct KafkaInitProducerIdBeginEx
@@ -526,14 +531,20 @@ scope kafka
             string16[] names;
         }
 
-        struct KafkaCreateTopicsBeginEx
+        struct KafkaTopic
         {
             string16 name;
             int16 replicationFactor;
             KafkaPartition[] assignments;
             KafkaConfig[] configs;
+        }
+
+        struct KafkaCreateTopicsBeginEx
+        {
+            KafkaTopic[] topics;
             uint8 validateOnly;
         }
+
 
     scope rebalance
     {
