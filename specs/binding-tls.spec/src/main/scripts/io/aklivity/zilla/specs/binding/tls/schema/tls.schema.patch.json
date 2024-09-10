@@ -192,7 +192,7 @@
         "path": "/$defs/options/binding/tls",
         "value":
         {
-            "title": "tls Options",
+            "title": "Options",
             "type": "object",
             "properties":
                 {
