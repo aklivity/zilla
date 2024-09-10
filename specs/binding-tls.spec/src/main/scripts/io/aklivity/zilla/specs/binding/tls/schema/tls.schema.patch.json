@@ -246,8 +246,7 @@
                     {
                         "title": "Mutual Authentication",
                         "type": "string",
-                        "enum": [ "required", "requested", "none" ],
-                        "default": "none"
+                        "enum": [ "required", "requested", "none" ]
                     },
                     "signers":
                     {
