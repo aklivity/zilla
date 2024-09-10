@@ -1419,19 +1419,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
             final String primaryKey = binding.createTable.getPrimaryKey(statement);
 
-            CommandGenerator commandGenerator = null;
+            CommandGenerator generator = null;
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                commandGenerator = binding.createTopic;
+                generator = binding.createTopic;
             }
             else if (server.commandsProcessed == 1 && primaryKey != null)
             {
-                commandGenerator = binding.createTable;
+                generator = binding.createTable;
             }
 
-            final String newStatement = commandGenerator.generate(statement);
+            final String newStatement = generator.generate(statement);
             statementBuffer.putBytes(progress, newStatement.getBytes());
             progress += newStatement.length();
 

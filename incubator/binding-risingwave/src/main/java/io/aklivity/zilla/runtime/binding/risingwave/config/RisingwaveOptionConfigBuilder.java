@@ -44,6 +44,11 @@ public class RisingwaveOptionConfigBuilder<T> extends ConfigBuilder<T, Risingwav
         return this;
     }
 
+    public RisingwaveKafkaConfigBuilder<RisingwaveOptionConfigBuilder<T>> kafka()
+    {
+        return RisingwaveKafkaConfig.builder(this::kafka);
+    }
+
     public T build()
     {
         return mapper.apply(new RisingwaveOptionsConfig(kafka));

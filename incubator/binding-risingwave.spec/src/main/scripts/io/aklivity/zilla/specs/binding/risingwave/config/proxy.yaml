@@ -31,10 +31,9 @@ bindings:
           bootstrap.server: localhost:9092
         format:
           model: test
-          length: 0
           catalog:
             catalog0:
-              - id: 0
+              - strategy: topic
     routes:
       - exit: app2
         when:

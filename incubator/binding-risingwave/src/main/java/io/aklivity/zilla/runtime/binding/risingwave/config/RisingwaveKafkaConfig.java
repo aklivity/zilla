@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class RisingwaveKafkaConfig
@@ -21,9 +23,10 @@ public class RisingwaveKafkaConfig
     public final RisingwaveKafkaPropertiesConfig properties;
     public final ModelConfig format;
 
-    public static RisingwaveKafkaConfigBuilder<RisingwaveKafkaConfig> builder()
+    public static <T> RisingwaveKafkaConfigBuilder<T> builder(
+        Function<RisingwaveKafkaConfig, T> mapper)
     {
-        return new RisingwaveKafkaConfigBuilder<>(RisingwaveKafkaConfig.class::cast);
+        return new RisingwaveKafkaConfigBuilder<>(mapper);
     }
 
     RisingwaveKafkaConfig(
