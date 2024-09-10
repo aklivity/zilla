@@ -388,7 +388,7 @@
       <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>
-        <version>0.43.2</version>
+        <version>0.45.0</version>
         <configuration>
           <filter>${*}</filter>
           <images combine.children="append">
