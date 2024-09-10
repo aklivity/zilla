@@ -19,15 +19,14 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class TestVaultOptionsConfig extends OptionsConfig
+public final class TestVaultEntryConfig extends OptionsConfig
 {
-    public final TestVaultEntryConfig key;
-    public final TestVaultEntryConfig signer;
-    public final TestVaultEntryConfig trust;
+    public final String alias;
+    public final String entry;
 
-    public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
+    public static TestVaultOptionsConfigBuilder<TestVaultEntryConfig> builder()
     {
-        return new TestVaultOptionsConfigBuilder<>(TestVaultOptionsConfig.class::cast);
+        return new TestVaultOptionsConfigBuilder<>(TestVaultEntryConfig.class::cast);
     }
 
     public static <T> TestVaultOptionsConfigBuilder<T> builder(
@@ -36,13 +35,11 @@ public final class TestVaultOptionsConfig extends OptionsConfig
         return new TestVaultOptionsConfigBuilder<>(mapper);
     }
 
-    TestVaultOptionsConfig(
-        TestVaultEntryConfig key,
-        TestVaultEntryConfig signer,
-        TestVaultEntryConfig trust)
+    TestVaultEntryConfig(
+        String alias,
+        String entry)
     {
-        this.key = key;
-        this.signer = signer;
-        this.trust = trust;
+        this.alias = alias;
+        this.entry = entry;
     }
 }

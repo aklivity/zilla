@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.config;
+package io.aklivity.zilla.runtime.engine.security;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,25 +22,25 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
-public final class TlsTrust
+public final class Trusted
 {
-    private TlsTrust()
+    private Trusted()
     {
     }
 
     public static KeyStore cacerts(
         Configuration config)
     {
-        return config instanceof TlsConfiguration tlsConfig
-            ? cacerts(tlsConfig)
-            : cacerts(new TlsConfiguration(config));
+        return config instanceof EngineConfiguration engineConfig
+            ? cacerts(engineConfig)
+            : cacerts(new EngineConfiguration(config));
     }
 
     private static KeyStore cacerts(
-        TlsConfiguration config)
+        EngineConfiguration config)
     {
         String storeType = config.cacertsStoreType();
         String storePath = config.cacertsStore();

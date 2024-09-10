@@ -47,7 +47,6 @@ import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsTrust;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
@@ -57,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsBindingConfig
@@ -451,7 +451,7 @@ public final class TlsBindingConfig
                 trustNames = ignoreEmptyNames(trustNames);
             }
 
-            KeyStore cacerts = trustcacerts ? TlsTrust.cacerts(config) : null;
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
 
             if (vault != null)
             {

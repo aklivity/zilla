@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.runtime.engine.security;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyArray;
@@ -28,17 +28,16 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsTrust;
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
-public class TlsTrustTest
+public class TrustedTest
 {
     @Test
     public void shouldConfigureTrustViaCacerts() throws Exception
     {
-        TlsConfiguration config = new TlsConfiguration(new Configuration());
-        KeyStore cacerts = TlsTrust.cacerts(config);
+        EngineConfiguration config = new EngineConfiguration(new Configuration());
+        KeyStore cacerts = Trusted.cacerts(config);
 
         assertThat(cacerts, not(nullValue()));
 
