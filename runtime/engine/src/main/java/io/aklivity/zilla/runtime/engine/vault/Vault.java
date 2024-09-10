@@ -18,8 +18,9 @@ package io.aklivity.zilla.runtime.engine.vault;
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.factory.Aliasable;
 
-public interface Vault
+public interface Vault extends Aliasable
 {
     String name();
 

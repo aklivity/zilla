@@ -26,6 +26,73 @@
                     "type":
                     {
                         "const": "test"
+                    },
+                    "options":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "key":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "alias":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "entry":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "required":
+                                [
+                                    "alias",
+                                    "entry"
+                                ]
+                            },
+                            "signer":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "alias":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "entry":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "required":
+                                [
+                                    "alias",
+                                    "entry"
+                                ]
+                            },
+                            "trust":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "alias":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "entry":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "required":
+                                [
+                                    "alias",
+                                    "entry"
+                                ]
+                            }
+                        }
                     }
                 }
             }

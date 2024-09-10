@@ -16,34 +16,24 @@
 
 ---
 name: test
-vaults:
-    server:
-        type: filesystem
-        options:
-            keys:
-                store: stores/server/keys
-                type: pkcs12
-                password: generated
-            trust:
-                store: stores/server/trust
-                type: pkcs12
-                password: generated
-realms:
-    - name: clients
-      type: tls
 bindings:
     net0:
-        type: tls
+        type: http
         kind: server
-        vault: server
         options:
-            keys:
-                - localhost
-            trust:
-                - clientca
-            realm: clients
+            versions:
+                - http/1.1
+            overrides:
+                :authority: otherhost:8181
         routes:
             - exit: app0
-              allow:
-                  realm: clients
-                  identity: client#1
+              when:
+                  - headers:
+                        :authority: localhost:8080
+                        :path: /v1/{id}
+              with:
+                  headers:
+                      overrides:
+                          :authority: localhost:8081
+                          :path: /api/${params.id}
+                          custom: value

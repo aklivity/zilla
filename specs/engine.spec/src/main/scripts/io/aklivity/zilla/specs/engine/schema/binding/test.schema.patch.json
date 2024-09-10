@@ -61,36 +61,60 @@
                             },
                             "assertions":
                             {
-                                "catalog":
+                                "title": "Assertions",
+                                "type": "object",
+                                "properties":
                                 {
-                                    "type": "object",
-                                    "patternProperties":
+                                    "catalog":
                                     {
-                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        "type": "object",
+                                        "patternProperties":
                                         {
-                                            "type": "array",
-                                            "items":
+                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                             {
-                                                "type": "object",
-                                                "properties":
+                                                "type": "array",
+                                                "items":
                                                 {
-                                                    "id":
+                                                    "type": "object",
+                                                    "properties":
                                                     {
-                                                        "type": "integer"
-                                                    },
-                                                    "schema":
-                                                    {
-                                                        "type": ["string", "null"]
-                                                    },
-                                                    "delay":
-                                                    {
-                                                        "type": "number"
+                                                        "id":
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        "schema":
+                                                        {
+                                                            "type": ["string", "null"]
+                                                        },
+                                                        "delay":
+                                                        {
+                                                            "type": "number"
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
+                                        },
+                                        "maxProperties": 1
                                     },
-                                    "maxProperties": 1
+                                    "vault":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "key":
+                                            {
+                                                "type": "String"
+                                            },
+                                            "signer":
+                                            {
+                                                "type": "String"
+                                            },
+                                            "trust":
+                                            {
+                                                "type": "String"
+                                            }
+                                        }
+                                    }
                                 }
                             },
                             "port":
