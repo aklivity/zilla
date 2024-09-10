@@ -48,7 +48,6 @@ public interface CatalogHandler
         Encoder IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) ->
         {
             next.accept(data, index, length);
-
             return length;
         };
 
@@ -118,6 +117,6 @@ public interface CatalogHandler
 
     default String location()
     {
-        return "";
+        throw new UnsupportedOperationException("location");
     }
 }

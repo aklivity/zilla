@@ -401,7 +401,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             doApplicationEnd(traceId, authorization);
 
             cleanup(traceId, authorization);
-
         }
 
         private void onApplicationAbort(

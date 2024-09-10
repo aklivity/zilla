@@ -14,64 +14,35 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import java.util.Map;
-
-import org.agrona.collections.Object2ObjectHashMap;
-
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
 public class RisingwaveCreateTopicGenerator extends CommandGenerator
 {
-    private final Map<String, String> fields;
+    private final String sqlFormat = """
+        CREATE TOPIC IF NOT EXISTS %s (%s PRIMARY KEY (%s));\u0000
+        """;
+    private final String fieldFormat = "%s %s, ";
 
-    private String topic;
-    private String primaryKey;
+    private final StringBuilder fieldBuilder = new StringBuilder();
 
     public RisingwaveCreateTopicGenerator()
     {
-        this.fields = new Object2ObjectHashMap<>();
     }
 
     public String generate(
         Statement statement)
     {
         CreateTable createTable = (CreateTable) statement;
-        topic = createTable.getTable().getName();
-        primaryKey = getPrimaryKey(createTable);
+        String topic = createTable.getTable().getName();
+        String primaryKey = getPrimaryKey(createTable);
+
+        fieldBuilder.setLength(0);
+
         createTable.getColumnDefinitions()
-            .forEach(c -> fields.put(c.getColumnName(), c.getColDataType().getDataType()));
+            .forEach(c -> fieldBuilder.append(
+                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
 
-        return format();
-    }
-
-    private String format()
-    {
-        builder.setLength(0);
-
-        builder.append("CREATE TOPIC IF NOT EXISTS ");
-        builder.append(topic);
-        builder.append(" (");
-
-        int i = 0;
-        for (Map.Entry<String, String> field : fields.entrySet())
-        {
-            builder.append(field.getKey());
-            builder.append(" ");
-            builder.append(field.getValue());
-
-            if (i < fields.size() - 1)
-            {
-                builder.append(", ");
-            }
-            i++;
-        }
-
-        builder.append(", PRIMARY KEY (");
-        builder.append(primaryKey);
-        builder.append("));");
-        builder.append("\u0000");
-
-        return builder.toString();
+        return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
     }
 }

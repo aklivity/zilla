@@ -22,8 +22,6 @@ import net.sf.jsqlparser.statement.create.table.Index;
 
 public abstract class CommandGenerator
 {
-    protected final StringBuilder builder = new StringBuilder();
-
     public abstract String generate(Statement statement);
 
     public String getPrimaryKey(

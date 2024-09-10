@@ -38,6 +38,6 @@ bindings:
     routes:
       - exit: app2
         when:
-           - commands:
+          - commands:
               - "CREATE TOPIC"
     exit: app1

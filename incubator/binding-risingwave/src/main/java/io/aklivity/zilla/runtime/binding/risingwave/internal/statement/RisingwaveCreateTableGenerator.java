@@ -19,13 +19,26 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 
 public class RisingwaveCreateTableGenerator extends CommandGenerator
 {
+    private final String sqlFormat = """
+        CREATE TABLE IF NOT EXISTS %s ("
+         "    *,"
+         "    PRIMARY KEY (%s)"
+         ") INCLUDE KEY AS key"
+         "WITH ("
+            "connector='kafka',"
+            "properties.bootstrap.server='%s',"
+             "topic='%s',"
+             "scan.startup.mode='latest',"
+             "scan.startup.timestamp.millis='%d'"
+         ") "
+         ") FORMAT UPSERT ENCODE AVRO ("
+            "schema.registry = '%s'"
+         ");\u0000
+        """;
+
     private final String bootstrapServer;
     private final String schemaRegistry;
     private final long scanStartupMil;
-
-    private String table;
-    private String primaryKey;
-
 
     public RisingwaveCreateTableGenerator(
         String bootstrapServer,
@@ -41,51 +54,9 @@ public class RisingwaveCreateTableGenerator extends CommandGenerator
         Statement statement)
     {
         CreateTable createTable = (CreateTable) statement;
-        this.table = createTable.getTable().getName();
-        this.primaryKey = getPrimaryKey(createTable);
+        String table = createTable.getTable().getName();
+        String primaryKey = getPrimaryKey(createTable);
 
-        return format();
-    }
-
-    private String format()
-    {
-        builder.setLength(0);
-
-        // Begin the CREATE TABLE statement
-        builder.append("CREATE TABLE IF NOT EXISTS ");
-        builder.append(table);
-        builder.append(" (\n    *,\n    PRIMARY KEY (");
-        builder.append(primaryKey);
-        builder.append(")\n)");
-
-        // Add the INCLUDE KEY statement
-        builder.append(" INCLUDE KEY AS key\n");
-
-        // Add WITH clause for connector properties
-        builder.append("WITH (\n");
-        builder.append("connector='kafka',\n");
-        builder.append("properties.bootstrap.server='");
-        builder.append(bootstrapServer);
-        builder.append("',\n");
-        builder.append("topic='");
-        builder.append(table);
-        builder.append(",'\n");
-        builder.append("scan.startup.mode='latest',\n");
-        builder.append("scan.startup.timestamp.millis='");
-        builder.append(scanStartupMil);
-        builder.append("'");
-        builder.append("\n");
-
-        // Add FORMAT and ENCODE
-        builder.append(") FORMAT UPSERT ENCODE AVRO (\n");
-
-        // Add schema properties
-        builder.append("schema.registry = '");
-        builder.append(schemaRegistry);
-        builder.append("'\n");
-        builder.append(");");
-        builder.append("\u0000");
-
-        return builder.toString();
+        return String.format(sqlFormat, table, primaryKey, bootstrapServer, schemaRegistry, scanStartupMil);
     }
 }

@@ -45,15 +45,15 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
 
     @Override
     public JsonObject adaptToJson(
-        OptionsConfig options)
+        OptionsConfig adaptable)
     {
-        RisingwaveOptionsConfig risingwaveOptions = (RisingwaveOptionsConfig) options;
+        RisingwaveOptionsConfig options = (RisingwaveOptionsConfig) adaptable;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (risingwaveOptions.kafka != null)
+        if (options.kafka != null)
         {
-            object.add(KAFKA_NAME, kafka.adaptToJson(risingwaveOptions.kafka));
+            object.add(KAFKA_NAME, kafka.adaptToJson(options.kafka));
         }
 
         return object.build();
@@ -63,12 +63,12 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        final RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder = RisingwaveOptionsConfig.builder();
+        final RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> options = RisingwaveOptionsConfig.builder();
         if (object.containsKey(KAFKA_NAME))
         {
-            builder.kafka(kafka.adaptFromJson(object.getJsonObject(KAFKA_NAME)));
+            options.kafka(kafka.adaptFromJson(object.getJsonObject(KAFKA_NAME)));
         }
 
-        return builder.build();
+        return options.build();
     }
 }
