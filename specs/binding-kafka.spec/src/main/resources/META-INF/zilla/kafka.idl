@@ -191,14 +191,13 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 250: kafka::stream::KafkaRequestBeginEx request;
+            case 251: kafka::stream::KafkaResponseBeginEx response;
             case 252: kafka::stream::KafkaConsumerBeginEx consumer;
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
-            case 33 kafka::stream::KafkaAlterConfigsBeginEx alterConfigs;
             case 22: kafka::stream::KafkaInitProducerIdBeginEx initProducerId;
-            case 20: kafka::stream::KafkaDeleteTopicsBeginEx initProducerId;
-            case 19 kafka::stream::KafkaCreateTopicsBeginEx createTopics;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
@@ -508,54 +507,13 @@ scope kafka
             int32 leaderEpoch;
         }
 
-        struct KafkaResourceRequest
-        {
-            string16 name;
-            KafkaResourceType type;
-            KafkaConfig[] configs;
-        }
-
-        struct KafkaAlterConfigsBeginEx
-        {
-            KafkaResourceRequest[] resources;
-        }
-
-        struct KafkaResourceResponse
-        {
-            string16 name;
-            KafkaResourceType type;
-            int16 code;
-            string16 message = null;
-        }
-
-        struct KafkaAlterConfigsResetEx
-        {
-            KafkaResourceResponse[] resources;
-        }
-
         struct KafkaInitProducerIdBeginEx
         {
             int64 producerId;
             int16 producerEpoch;
         }
 
-        struct KafkaDeleteTopicsBeginEx
-        {
-            string16[] names;
-        }
-
-        struct KafkaDeleteTopicResponse
-        {
-            string16 name;
-            int16 code;
-        }
-
-        struct KafkaDeleteTopicsResetEx
-        {
-            KafkaDeleteTopicResponse[] topics;
-        }
-
-        struct KafkaCrateTopicRequest
+        struct KafkaCrateTopic
         {
             string16 name;
             int16 replicationFactor;
@@ -563,22 +521,77 @@ scope kafka
             KafkaConfig[] configs;
         }
 
-        struct KafkaCreateTopicsBeginEx
+        struct KafkaCreateTopicsRequestBeginEx
         {
-            KafkaCrateTopicRequest[] topics;
+            KafkaCrateTopic[] topics;
             uint8 validateOnly;
         }
 
-        struct KafkaCreateTopicResponse
+        struct KafkaDeleteTopicsRequestBeginEx
+        {
+            string16[] names;
+        }
+
+        struct KafkaResourceRequest
+        {
+            string16 name;
+            KafkaResourceType type;
+            KafkaConfig[] configs;
+        }
+
+        struct KafkaAlterConfigsRequestBeginEx
+        {
+            KafkaResourceRequest[] resources;
+        }
+
+        struct KafkaRequestBeginEx switch (uint8)
+        {
+            case 33 kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
+            case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
+            case 19 kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
+        }
+
+        struct KafkaCreateTopicStatus
         {
             string16 name;
             int16 code;
             string16 message = null;
         }
 
-        struct KafkaCreateTopicsResetEx
+        struct KafkaCreateTopicsResponseBeginEx
         {
-            KafkaCreateTopicResponse[] topics;
+            KafkaCreateTopicStatus[] topics;
+        }
+
+        struct KafkaDeleteTopicStatus
+        {
+            string16 name;
+            int16 code;
+        }
+
+        struct KafkaDeleteTopicsResponseBeginEx
+        {
+            KafkaDeleteTopicStatus[] topics;
+        }
+
+        struct KafkaResourceStatus
+        {
+            string16 name;
+            KafkaResourceType type;
+            int16 code;
+            string16 message = null;
+        }
+
+        struct KafkaAlterConfigsResponseBeginEx
+        {
+            KafkaResourceStatus[] resources;
+        }
+
+        struct KafkaResponseBeginEx switch (uint8)
+        {
+            case 33 kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
+            case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
+            case 19 kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
         }
     }
 
