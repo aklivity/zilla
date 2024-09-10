@@ -1390,6 +1390,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
             }
 
+            initialAck += reserved;
+
             final int noAck = (int) (initialSeq - initialAck);
             doClientInitialWindow(traceId, noAck, initialBudgetMax);
         }

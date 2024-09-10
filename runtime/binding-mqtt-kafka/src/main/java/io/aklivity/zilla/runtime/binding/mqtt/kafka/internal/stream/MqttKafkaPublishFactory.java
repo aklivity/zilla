@@ -610,7 +610,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                                 .capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                                 .key(key)))
                             .build();
-                    retained.doKafkaFlush(traceId, authorization, budgetId, kafkaFlushEx);
+                    retained.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
                 }
             }
 
@@ -1629,7 +1629,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                         .typeId(kafkaTypeId)
                         .merged(m -> m.produce(p -> p.hashKey(hashKey)))
                         .build();
-                doKafkaFlush(traceId, authorization, 0, kafkaFlushEx);
+                doKafkaFlush(traceId, authorization, 0, 0, kafkaFlushEx);
             }
         }
 
@@ -1674,12 +1674,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization,
             long budgetId,
+            int reserved,
             KafkaFlushExFW extension)
         {
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, initialPad, extension);
+                traceId, authorization, budgetId, reserved, extension);
 
-            initialSeq += initialPad;
+            initialSeq += reserved;
 
             assert initialSeq <= initialAck + initialMax;
         }
