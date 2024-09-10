@@ -36,7 +36,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaTypeFW;
@@ -655,7 +654,7 @@ public final class KafkaFunctions
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentsRW =
-            new Array32FW.Builder(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
+            new Array32FW.Builder<>(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
 
         public KafkaMemberAssignmentsBuilder()
         {
@@ -683,7 +682,7 @@ public final class KafkaFunctions
             private final MemberAssignmentFW.Builder assignmentRW = new MemberAssignmentFW.Builder();
             private final MutableDirectBuffer topicAssignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentsRW =
-                new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+                new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
 
             KafkaMemberBuilder(
                 String memberId)
@@ -791,7 +790,7 @@ public final class KafkaFunctions
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
-            new Array32FW.Builder(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
+            new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
 
         public KafkaTopicAssignmentsBuilder()
         {
@@ -2460,6 +2459,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaProduceDataExBuilder crc32c(
+                long crc32c)
+            {
+                produceDataExRW.crc32c(crc32c);
+                return this;
+            }
+
             public KafkaProduceDataExBuilder ackMode(
                 String ackMode)
             {
@@ -3586,6 +3592,7 @@ public final class KafkaFunctions
             private Long timestamp;
             private Long producerId;
             private Short producerEpoch;
+            private Integer crc32c;
             private Integer sequence;
             private KafkaAckMode ackMode;
             private KafkaKeyFW.Builder keyRW;
@@ -3606,6 +3613,13 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder crc32c(
+                int crc32c)
+            {
+                this.crc32c = crc32c;
                 return this;
             }
 
@@ -3701,7 +3715,10 @@ public final class KafkaFunctions
                 final KafkaProduceDataExFW produceDataEx = dataEx.produce();
                 return matchDeferred(produceDataEx) &&
                     matchTimestamp(produceDataEx) &&
+                    matchProducerId(produceDataEx) &&
+                    matchProducerEpoch(produceDataEx) &&
                     matchSequence(produceDataEx) &&
+                    matchCrc32c(produceDataEx) &&
                     matchAckMode(produceDataEx) &&
                     matchKey(produceDataEx) &&
                     matchHeaders(produceDataEx);
@@ -3729,6 +3746,12 @@ public final class KafkaFunctions
                 final KafkaProduceDataExFW produceDataEx)
             {
                 return producerEpoch == null || producerEpoch == produceDataEx.producerEpoch();
+            }
+
+            private boolean matchCrc32c(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return crc32c == null || crc32c == produceDataEx.crc32c();
             }
 
             private boolean matchSequence(
@@ -3785,14 +3808,11 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
-                private Long producerId;
-                private Short producerEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
                 private KafkaDeltaFW.Builder deltaRW;
                 private KafkaKeyFW.Builder keyRW;
-                private KafkaKeyFW.Builder hashKeyRW;
                 private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
 
                 private KafkaMergedFetchDataExMatcherBuilder()
@@ -3810,20 +3830,6 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
-                    return this;
-                }
-
-                public KafkaMergedFetchDataExMatcherBuilder producerId(
-                    long producerId)
-                {
-                    this.producerId = producerId;
-                    return this;
-                }
-
-                public KafkaMergedFetchDataExMatcherBuilder producerEpoch(
-                    short producerEpoch)
-                {
-                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 
@@ -4135,7 +4141,6 @@ public final class KafkaFunctions
                 private Long timestamp;
                 private Long producerId;
                 private Short producerEpoch;
-                private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
                 private KafkaDeltaFW.Builder deltaRW;
@@ -4172,13 +4177,6 @@ public final class KafkaFunctions
                     short producerEpoch)
                 {
                     this.producerEpoch = producerEpoch;
-                    return this;
-                }
-
-                public KafkaMergedProduceDataExMatcherBuilder filters(
-                    long filters)
-                {
-                    this.filters = filters;
                     return this;
                 }
 
@@ -5540,7 +5538,6 @@ public final class KafkaFunctions
         public final class KafkaProduceBeginExMatcherBuilder
         {
             private String8FW transaction;
-            private Long producerId;
             private String16FW topic;
             private KafkaOffsetFW.Builder partitionRW;
 
@@ -5552,13 +5549,6 @@ public final class KafkaFunctions
                 String transaction)
             {
                 this.transaction = new String8FW(transaction);
-                return this;
-            }
-
-            public KafkaProduceBeginExMatcherBuilder producerId(
-                long producerId)
-            {
-                this.producerId = producerId;
                 return this;
             }
 
@@ -5833,7 +5823,6 @@ public final class KafkaFunctions
             private KafkaEvaluation evaluation;
             private KafkaAckMode ackMode;
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
-            private Array32FW.Builder<KafkaConfigFW.Builder, KafkaConfigFW> configsFW;
 
             private KafkaMergedBeginExMatcherBuilder()
             {

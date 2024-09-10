@@ -111,7 +111,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-    private static final Array32FW<KafkaHeaderFW> EMPTY_HEADER =
+    private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
         .wrap(new UnsafeBuffer(new byte[64]), 0, 64).build();
 
@@ -128,7 +128,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
-    private final Array32FW<KafkaHeaderFW> kafkaHeaderRO = new Array32FW<>(new  KafkaHeaderFW());
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -594,7 +593,17 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
         if ((flags & FLAGS_FIN) == FLAGS_FIN)
         {
-            client.doEncodeRecordFin(traceId, budgetId);
+            Array32FW<KafkaHeaderFW> headers = EMPTY_HEADERS;
+
+            final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::tryWrap);
+            if (kafkaDataEx != null)
+            {
+                assert kafkaDataEx.kind() == KafkaDataExFW.KIND_PRODUCE;
+                final KafkaProduceDataExFW kafkaProduceDataEx = kafkaDataEx.produce();
+                headers = kafkaProduceDataEx.headers();
+            }
+
+            client.doEncodeRecordFin(traceId, budgetId, headers);
             assert progress == limit;
             client.flusher = flushRecord;
             client.flushFlags = FLAGS_FIN;
@@ -1223,7 +1232,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private int encodeSlotLimit;
             private long encodeSlotTraceId;
 
-            private int flushableRecordHeadersBytes;
             private int encodeableRecordBytesDeferred;
             private int encodeableRecordBatchSlotOffset;
             private int flushableRequestBytes;
@@ -1320,6 +1328,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             }
 
             private long networkBytesReceived;
+            private long headersChecksum;
+            private int headersSize;
 
             private void onNetworkData(
                 DataFW data)
@@ -1605,8 +1615,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int length = limit - progress;
                 if (encodeSlot != NO_SLOT &&
                     flushableRequestBytes > 0 &&
-                    encodeSlotLimit + length + produceRecordFramingSize + flushableRecordHeadersBytes >
-                        encodePool.slotCapacity())
+                    encodeSlotLimit + length + produceRecordFramingSize > encodePool.slotCapacity())
                 {
                     doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
                 }
@@ -1738,14 +1747,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeSlotBuffer.putInt(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_RECORD_COUNT,
                     recordCount + 1, BIG_ENDIAN);
 
-                if (headersCount > 0)
-                {
-                    flushableRecordHeadersBytes = headers.sizeof();
-
-                    final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
-                    encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
-                        flushableRecordHeadersBytes);
-                }
+                doEncodeHeadersChecksum(headers);
             }
 
             private void doEncodeRecordCont(
@@ -1758,8 +1760,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 {
                     final int length = value.sizeof();
 
-                    final int encodeableBytes = produceRecordFramingSize + encodeSlotLimit +
-                        length + flushableRecordHeadersBytes;
+                    final int encodeableBytes = produceRecordFramingSize + encodeSlotLimit + length;
                     if (encodeableBytes >= encodePool.slotCapacity())
                     {
                         doEncodeRequestIfNecessary(traceId, budgetId);
@@ -1780,7 +1781,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private void doEncodeRecordFin(
                 long traceId,
-                long budgetId)
+                long budgetId,
+                Array32FW<KafkaHeaderFW> headers)
             {
                 assert encodeSlot != NO_SLOT;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
@@ -1789,14 +1791,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int encodeLimit = writeBuffer.capacity();
                 int encodeProgress = 0;
 
-                Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
-                if (flushableRecordHeadersBytes > 0)
-                {
-                    final int encodeSlotMaxLimit = encodePool.slotCapacity();
-                    headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
-                        encodeSlotMaxLimit);
-                    flushableRecordHeadersBytes = 0;
-                }
                 final int headersCount = headers.fieldCount();
                 final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .headerCount(headersCount)
@@ -1816,7 +1810,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
                 encodeSlotLimit += encodeProgress;
 
-                if (encodeableRecordBytesDeferred > 0)
+                if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes > 0)
                 {
                     doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
                 }
@@ -1952,65 +1946,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 decoder = decodeProduceResponse;
             }
 
-            private void encodeCrc()
+            private void doEncodeHeadersChecksum(
+                Array32FW<KafkaHeaderFW> headers)
             {
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
-                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                final int encodeLimit = writeBuffer.capacity();
 
-                final int encodeLimit = encodeSlotLimit;
-                int encodeProgress = encodeSlotOffset;
+                int encodeProgress = 0;
 
-                while (encodeProgress < encodeLimit)
-                {
-                    final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
-
-                    final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
-                    final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
-
-                    final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
-                    final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
-
-                    final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
-                    final int encodePosition = encodeSlotByteBuffer.position();
-                    encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
-                    encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
-
-                    final CRC32C crc = crc32c;
-                    crc.reset();
-                    crc.update(encodeSlotByteBuffer);
-
-                    long checksum = crc.getValue();
-
-                    if (crcDataLimit == recordBatch.limit())
-                    {
-                        checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
-                    }
-
-                    encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
-
-                    encodeProgress += recordBatchLength;
-                }
-            }
-
-            private long computeChecksum(
-                MutableDirectBuffer encodeBuffer,
-                int encodeLimit,
-                int encodeProgress,
-                MutableDirectBuffer encodeSlotBuffer,
-                long checksum)
-            {
-                final int oldEncodeProgress = encodeProgress;
-
-                checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
-
-                Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
-                if (flushableRecordHeadersBytes > 0)
-                {
-                    final int encodeSlotMaxLimit = encodePool.slotCapacity();
-                    headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
-                        encodeSlotMaxLimit);
-                }
                 final int headersCount = headers.fieldCount();
                 final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                                                                      .headerCount(headersCount)
@@ -2027,12 +1970,53 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeProgress += headerItemsSize;
                 }
 
-                final int length = encodeProgress - oldEncodeProgress;
                 final byte[] encodeByteBuf = encodeBuffer.byteArray();
                 crc32c.reset();
-                crc32c.update(encodeByteBuf, oldEncodeProgress, length);
-                checksum = combineCRC32C(checksum, crc32c.getValue(), length);
-                return checksum;
+                crc32c.update(encodeByteBuf, 0, encodeProgress);
+
+                headersChecksum = crc32c.getValue();
+                headersSize = encodeProgress;
+            }
+
+            private void encodeCrc()
+            {
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                final int encodeLimit = encodeSlotLimit;
+                int encodeProgress = encodeSlotOffset;
+
+                while (encodeProgress < encodeLimit)
+                {
+                    final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
+
+                    final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
+                    final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
+
+                    final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
+                    final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
+                    final int recordHeaderLimit = encodeLimit - (valueCompleteSize - encodeableRecordBytesDeferred);
+                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
+
+                    final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
+                    final int encodePosition = encodeSlotByteBuffer.position();
+                    encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
+                    encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
+
+                    final CRC32C crc = crc32c;
+                    crc.reset();
+                    crc.update(encodeSlotByteBuffer);
+
+                    long checksum = crc.getValue();
+                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
+                    {
+                        checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
+                        checksum = combineCRC32C(checksum, headersChecksum, headersSize);
+                    }
+
+                    encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
+
+                    encodeProgress += recordBatchLength;
+                }
             }
 
             private void encodeNetwork(
@@ -2121,9 +2105,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     }
                     else if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes != 0)
                     {
-                        final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
-                        final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
-                                - Math.max(flushableRecordHeadersBytes, 1), 0);
+                        final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset;
+                        final int encodeRequestBytesBuffered =
+                                Math.max(flushableRequestBytes - encodeableRecordBytesDeferred - 1, 0);
                         final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
                         final int noAck = (int) (stream.initialSeq - stream.initialAck);
                         stream.doAppWindow(traceId, noAck, noAck + encodeMaxBytes - encodeNoAck);
@@ -2310,9 +2294,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 nextResponseId++;
 
-                final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
-                final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
-                        - Math.max(flushableRecordHeadersBytes, 1), 0);
+                final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset;
+                final int encodeRequestBytesBuffered =
+                        Math.max(flushableRequestBytes - encodeableRecordBytesDeferred - 1, 0);
                 final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
                 stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
 

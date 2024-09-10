@@ -30,4 +30,7 @@ module io.aklivity.zilla.runtime.binding.http
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.http.internal.HttpEventFormatterFactory;
+
+    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.http.internal.config.HttpWithConfigAdapter;
 }

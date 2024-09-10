@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 
 public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
@@ -48,6 +49,10 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String ID_NAME = "id";
     private static final String SCHEMA_NAME = "schema";
     private static final String DELAY_NAME = "delay";
+    private static final String VAULT_NAME = "vault";
+    private static final String VAULT_KEY_NAME = "key";
+    private static final String VAULT_SIGNER_NAME = "signer";
+    private static final String VAULT_TRUST_NAME = "trust";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -98,24 +103,41 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             object.add(CATALOG_NAME, catalogs);
         }
 
-        if (testOptions.catalogAssertions != null)
+        if (testOptions.catalogAssertions != null ||
+            testOptions.vaultAssertion != null)
         {
             JsonObjectBuilder assertions = Json.createObjectBuilder();
-            JsonObjectBuilder catalogAssertions = Json.createObjectBuilder();
-            for (TestBindingOptionsConfig.CatalogAssertions c : testOptions.catalogAssertions)
+
+            if (testOptions.catalogAssertions != null)
             {
-                JsonArrayBuilder array = Json.createArrayBuilder();
-                for (TestBindingOptionsConfig.CatalogAssertion a: c.assertions)
+                JsonObjectBuilder catalogAssertions = Json.createObjectBuilder();
+                for (TestBindingOptionsConfig.CatalogAssertions c : testOptions.catalogAssertions)
                 {
-                    JsonObjectBuilder assertion = Json.createObjectBuilder();
-                    assertion.add(ID_NAME, a.id);
-                    assertion.add(SCHEMA_NAME, a.schema);
-                    assertion.add(DELAY_NAME, a.delay);
-                    array.add(assertion);
+                    JsonArrayBuilder array = Json.createArrayBuilder();
+                    for (TestBindingOptionsConfig.CatalogAssertion a: c.assertions)
+                    {
+                        JsonObjectBuilder assertion = Json.createObjectBuilder();
+                        assertion.add(ID_NAME, a.id);
+                        assertion.add(SCHEMA_NAME, a.schema);
+                        assertion.add(DELAY_NAME, a.delay);
+                        array.add(assertion);
+                    }
+                    catalogAssertions.add(c.name, array);
                 }
-                catalogAssertions.add(c.name, array);
+                assertions.add(CATALOG_NAME, catalogAssertions);
             }
-            assertions.add(CATALOG_NAME, catalogAssertions);
+
+            if (testOptions.vaultAssertion != null)
+            {
+                VaultAssertion v = testOptions.vaultAssertion;
+                JsonObjectBuilder assertion = Json.createObjectBuilder()
+                    .add(VAULT_KEY_NAME, v.key)
+                    .add(VAULT_SIGNER_NAME, v.signer)
+                    .add(VAULT_TRUST_NAME, v.trust);
+
+                assertions.add(VAULT_NAME, assertion);
+            }
+
             object.add(ASSERTIONS_NAME, assertions);
         }
 
@@ -184,6 +206,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             if (object.containsKey(ASSERTIONS_NAME))
             {
                 JsonObject assertionsJson = object.getJsonObject(ASSERTIONS_NAME);
+
                 if (assertionsJson.containsKey(CATALOG_NAME))
                 {
                     JsonObject catalogsJson = assertionsJson.getJsonObject(CATALOG_NAME);
@@ -202,6 +225,15 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                         }
                         testOptions.catalogAssertions(catalogName, catalogAssertions);
                     }
+                }
+
+                if (assertionsJson.containsKey(VAULT_NAME))
+                {
+                    JsonObject vaultJson = assertionsJson.getJsonObject(VAULT_NAME);
+                    testOptions.vaultAssertion(new TestBindingOptionsConfig.VaultAssertion(
+                        vaultJson.containsKey(VAULT_KEY_NAME) ? vaultJson.getString(VAULT_KEY_NAME) : null,
+                        vaultJson.containsKey(VAULT_SIGNER_NAME) ? vaultJson.getString(VAULT_SIGNER_NAME) : null,
+                        vaultJson.containsKey(VAULT_TRUST_NAME) ? vaultJson.getString(VAULT_TRUST_NAME) : null));
                 }
             }
 

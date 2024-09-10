@@ -25,10 +25,7 @@ import static java.util.stream.Collectors.toList;
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
 
 import java.security.KeyStore;
-import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.SecureRandom;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -45,7 +42,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
-import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
@@ -60,12 +56,11 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsBindingConfig
 {
-    private static final String TYPE_DEFAULT = "PKCS12";
-
     private static final TlsOptionsConfig OPTIONS_DEFAULT = TlsOptionsConfig.builder().build();
 
     public final long id;
@@ -94,20 +89,15 @@ public final class TlsBindingConfig
         VaultHandler vault,
         SecureRandom random)
     {
-        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier();
-        char[] keysPass = "generated".toCharArray();
-        KeyStore keys = newKeys(config, vault, keysPass, verifier, events, options.keys, options.signers);
-        KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+        KeyManagerFactory keys = newKeys(config, vault, options.keys, options.signers);
+        TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {
             KeyManager[] keyManagers = null;
             if (keys != null)
             {
-                String keyManagerAlgorithm = config.keyManagerAlgorithm();
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(keyManagerAlgorithm);
-                keyManagerFactory.init(keys, keysPass);
-                keyManagers = keyManagerFactory.getKeyManagers();
+                keyManagers = keys.getKeyManagers();
 
                 if (keyManagers != null && kind == KindConfig.CLIENT)
                 {
@@ -125,10 +115,7 @@ public final class TlsBindingConfig
             TrustManager[] trustManagers = null;
             if (trust != null)
             {
-                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
-                        TrustManagerFactory.getDefaultAlgorithm());
-                trustManagerFactory.init(trust);
-                trustManagers = trustManagerFactory.getTrustManagers();
+                trustManagers = trust.getTrustManagers();
             }
 
             String version = options.version != null ? options.version : "TLS";
@@ -406,16 +393,13 @@ public final class TlsBindingConfig
         return selected;
     }
 
-    private KeyStore newKeys(
+    private KeyManagerFactory newKeys(
         TlsConfiguration config,
         VaultHandler vault,
-        char[] password,
-        TlsKeyPairVerifier verifier,
-        TlsEventContext events,
         List<String> keyNames,
         List<String> signerNames)
     {
-        KeyStore store = null;
+        KeyManagerFactory keys = null;
 
         keys:
         try
@@ -425,64 +409,23 @@ public final class TlsBindingConfig
                 break keys;
             }
 
-            if (config.ignoreEmptyVaultRefs())
-            {
-                keyNames = ignoreEmptyNames(keyNames);
-                signerNames = ignoreEmptyNames(signerNames);
-            }
-
-            if (keyNames != null || signerNames != null)
-            {
-                store = KeyStore.getInstance(TYPE_DEFAULT);
-                store.load(null, password);
-            }
-
             if (keyNames != null)
             {
-                assert store != null;
-
-                for (String keyName : keyNames)
+                if (config.ignoreEmptyVaultRefs())
                 {
-                    KeyStore.PrivateKeyEntry entry = vault.key(keyName);
-                    if (entry == null)
-                    {
-                        events.tlsKeyPairMissing(this.id, keyName);
-                        continue;
-                    }
-                    boolean valid = verifier.verify(entry);
-                    if (!valid)
-                    {
-                        events.tlsKeyPairInvalid(this.id, keyName);
-                        continue;
-                    }
-                    KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
-                    store.setEntry(keyName, entry, protection);
+                    keyNames = ignoreEmptyNames(keyNames);
                 }
+
+                keys = vault.initKeys(keyNames);
             }
-
-            if (signerNames != null)
+            else if (signerNames != null)
             {
-                assert store != null;
-
-                for (String signerName : signerNames)
+                if (config.ignoreEmptyVaultRefs())
                 {
-                    KeyStore.PrivateKeyEntry[] entries = vault.keys(signerName);
-                    if (entries != null)
-                    {
-                        for (KeyStore.PrivateKeyEntry entry : entries)
-                        {
-                            KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
-                            Certificate certificate = entry.getCertificate();
-                            if (certificate instanceof X509Certificate)
-                            {
-                                X509Certificate x509 = (X509Certificate) certificate;
-                                X500Principal x500 = x509.getSubjectX500Principal();
-                                String alias = String.format("%s %d", x500.getName(), x509.getSerialNumber());
-                                store.setEntry(alias, entry, protection);
-                            }
-                        }
-                    }
+                    signerNames = ignoreEmptyNames(signerNames);
                 }
+
+                keys = vault.initSigners(signerNames);
             }
         }
         catch (Exception ex)
@@ -490,16 +433,16 @@ public final class TlsBindingConfig
             LangUtil.rethrowUnchecked(ex);
         }
 
-        return store;
+        return keys;
     }
 
-    private KeyStore newTrust(
+    private TrustManagerFactory newTrust(
         TlsConfiguration config,
         VaultHandler vault,
         List<String> trustNames,
         boolean trustcacerts)
     {
-        KeyStore store = null;
+        TrustManagerFactory trust = null;
 
         try
         {
@@ -508,34 +451,17 @@ public final class TlsBindingConfig
                 trustNames = ignoreEmptyNames(trustNames);
             }
 
-            if (trustNames != null || trustcacerts)
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
+
+            if (vault != null)
             {
-                store = KeyStore.getInstance(TYPE_DEFAULT);
-                store.load(null, null);
+                trust = vault.initTrust(trustNames, cacerts);
             }
-
-            if (vault != null && trustNames != null)
+            else if (cacerts != null)
             {
-                for (String trustName : trustNames)
-                {
-                    KeyStore.TrustedCertificateEntry entry = vault.certificate(trustName);
-
-                    store.setEntry(trustName, entry, null);
-                }
-            }
-
-            if (trustcacerts)
-            {
-                TrustedCertificateEntry[] cacerts = TlsTrust.cacerts(config);
-
-                for (TrustedCertificateEntry cacert : cacerts)
-                {
-                    X509Certificate trusted = (X509Certificate) cacert.getTrustedCertificate();
-                    X500Principal subject = trusted.getSubjectX500Principal();
-                    String name = subject.getName();
-
-                    store.setCertificateEntry(name, trusted);
-                }
+                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(cacerts);
+                trust = factory;
             }
         }
         catch (Exception ex)
@@ -543,7 +469,7 @@ public final class TlsBindingConfig
             LangUtil.rethrowUnchecked(ex);
         }
 
-        return store;
+        return trust;
     }
 
     private List<String> ignoreEmptyNames(

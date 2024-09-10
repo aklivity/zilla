@@ -38,12 +38,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.stream.JsonParsingException;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioDefaultIdFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioLegacyIdFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -60,8 +62,11 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
-    private final ApicurioPrefixFW.Builder prefixRW = new ApicurioPrefixFW.Builder()
+    private final ApicurioLegacyIdFW.Builder legacyIdRW = new ApicurioLegacyIdFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+
+    private final ApicurioDefaultIdFW.Builder defaultIdRW = new ApicurioDefaultIdFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[9]), 0, 9);
 
     private final HttpClient client;
     private final String baseUrl;
@@ -73,12 +78,13 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final String groupId;
     private final String useId;
+    private final IdDecoder decodeId;
     private final IdEncoder encodeId;
-    private final int idSize;
+    private final int sizeofId;
+    private final int encodePadding;
     private final String artifactPath;
     private final ConcurrentMap<Integer, CompletableFuture<CachedArtifact>> cachedArtifacts;
     private final ConcurrentMap<Integer, CompletableFuture<CachedArtifactId>> cachedArtifactIds;
-
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
@@ -87,6 +93,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     {
         this(config, context, catalogId, new ApicurioCache());
     }
+
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
         EngineContext context,
@@ -101,8 +108,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.maxAgeMillis = config.maxAge.toMillis();
         this.groupId = config.groupId;
         this.useId = config.useId;
+        this.decodeId = config.idEncoding.equals(LEGACY_ID_ENCODING) ? this::decodeLegacyId : this::decodeDefaultId;
         this.encodeId = config.idEncoding.equals(LEGACY_ID_ENCODING) ? this::encodeLegacyId : this::encodeDefaultId;
-        this.idSize = config.idEncoding.equals(LEGACY_ID_ENCODING) ? SIZE_OF_INT : SIZE_OF_LONG;
+        this.sizeofId = config.idEncoding.equals(LEGACY_ID_ENCODING) ? SIZE_OF_INT : SIZE_OF_LONG;
+        this.encodePadding = BitUtil.SIZE_OF_BYTE + sizeofId;
         this.artifactPath = useId.equals(CONTENT_ID) ?  ARTIFACT_BY_CONTENT_ID_PATH : ARTIFACT_BY_GLOBAL_ID_PATH;
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
@@ -325,7 +334,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = encodeId.encode(data, index + SIZE_OF_BYTE);
+            schemaId = decodeId.decode(data, index + SIZE_OF_BYTE);
         }
         return schemaId;
     }
@@ -346,8 +355,8 @@ public class ApicurioCatalogHandler implements CatalogHandler
         if (data.getByte(index) == MAGIC_BYTE)
         {
             progress += SIZE_OF_BYTE;
-            schemaId = encodeId.encode(data, index + progress);
-            progress += idSize;
+            schemaId = decodeId.decode(data, index + progress);
+            progress += sizeofId;
         }
 
         if (schemaId > NO_SCHEMA_ID)
@@ -368,17 +377,16 @@ public class ApicurioCatalogHandler implements CatalogHandler
         ValueConsumer next,
         Encoder encoder)
     {
-        ApicurioPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
-        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
+        int prefixLen = encodeId.encode(schemaId, next);
         int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
-        return valLength > 0 ? prefix.sizeof() + valLength : -1;
+        return valLength > 0 ? prefixLen + valLength : -1;
     }
 
     @Override
     public int encodePadding(
         int length)
     {
-        return MAX_PADDING_LENGTH;
+        return encodePadding;
     }
 
     private URI toURI(
@@ -415,13 +423,29 @@ public class ApicurioCatalogHandler implements CatalogHandler
     }
 
     private int encodeDefaultId(
+        int schemaId, ValueConsumer next)
+    {
+        ApicurioDefaultIdFW prefix = defaultIdRW.rewrap().schemaId(schemaId).build();
+        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
+        return prefix.sizeof();
+    }
+
+    private int encodeLegacyId(
+        int schemaId, ValueConsumer next)
+    {
+        ApicurioLegacyIdFW prefix = legacyIdRW.rewrap().schemaId(schemaId).build();
+        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
+        return prefix.sizeof();
+    }
+
+    private int decodeDefaultId(
         DirectBuffer data,
         int index)
     {
         return (int) data.getLong(index, ByteOrder.BIG_ENDIAN);
     }
 
-    private int encodeLegacyId(
+    private int decodeLegacyId(
         DirectBuffer data,
         int index)
     {
@@ -431,6 +455,12 @@ public class ApicurioCatalogHandler implements CatalogHandler
     @FunctionalInterface
     private interface IdEncoder
     {
-        int encode(DirectBuffer data, int index);
+        int encode(int schemaId, ValueConsumer next);
+    }
+
+    @FunctionalInterface
+    private interface IdDecoder
+    {
+        int decode(DirectBuffer data, int index);
     }
 }

@@ -98,11 +98,11 @@ write 102517                             # size
       102460                            # length
       -1
       [0x02]
-      0x4e8723aa
+      1383945041
       0s
       0                                 # last offset delta
-      ${newTimestamp}                   # first timestamp
-      ${newTimestamp}                   # last timestamp
+      1716424650323L                    # first timestamp
+      1716424650323L                    # last timestamp
       -1L
       -1s
       -1

@@ -128,6 +128,8 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
                     textValue = ((JsonString) v).getString();
                     base64Value = encoder64.encodeToString(textValue.getBytes());
                     break;
+                default:
+                    break;
                 }
 
                 GrpcKafkaMetadataValueConfig metadataValue = new GrpcKafkaMetadataValueConfig(new String16FW(textValue),

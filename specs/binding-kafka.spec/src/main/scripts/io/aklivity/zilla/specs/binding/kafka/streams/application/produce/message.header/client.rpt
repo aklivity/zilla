@@ -73,7 +73,7 @@ read zilla:begin.ext ${kafka:beginEx()
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .timestamp(newTimestamp)
+                                  .timestamp(1716424650323)
                                   .header("header1", "value1")
                                   .build()
                               .build()}

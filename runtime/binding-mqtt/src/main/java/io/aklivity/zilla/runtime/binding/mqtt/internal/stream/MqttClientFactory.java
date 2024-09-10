@@ -944,7 +944,6 @@ public final class MqttClientFactory implements MqttStreamFactory
 
         int progress = offset;
 
-        decode:
         if (length >= client.decodeablePacketBytes)
         {
             int reasonCode = SUCCESS;
@@ -1051,7 +1050,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (canPublish && subscriber.debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
             {
                 final int minimum = reserved; // TODO: fragmentation
-                reserved = subscriber.debitor.claim(subscriber.debitorIndex, subscriber.replyId, minimum, reserved);
+                reserved = subscriber.debitor.claim(traceId, subscriber.debitorIndex, subscriber.replyId, minimum, reserved, 0);
             }
 
             if (canPublish && (reserved != 0 || payloadSize == 0))

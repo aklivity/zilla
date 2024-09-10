@@ -113,6 +113,8 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
                     }
                 }
                 break;
+            default:
+                break;
             }
         }
         catch (IOException | AvroRuntimeException ex)

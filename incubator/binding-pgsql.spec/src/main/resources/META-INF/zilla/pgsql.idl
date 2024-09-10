@@ -1,0 +1,101 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope pgsql
+{
+    scope stream
+    {
+        struct PgsqlParameter
+        {
+            string16 name;
+            string16 value;
+        }
+
+        struct PgsqlBeginEx extends core::stream::Extension
+        {
+            PgsqlParameter[] parameters;
+        }
+
+        enum PgsqlMessageType (uint8)
+        {
+            QUERY (81),
+            ROW (68),
+            TYPE (84),
+            COMPLETION (67),
+            READY (90)
+        }
+
+        union PgsqlDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 68: pgsql::stream::PgsqlRowDataEx row;
+            case 81: pgsql::stream::PgsqlQueryDataEx query;
+        }
+
+        struct PgsqlQueryDataEx
+        {
+            int32 deferred = 0;
+        }
+
+        struct PgsqlRowDataEx
+        {
+            int32 deferred = 0;
+        }
+
+        union PgsqlFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 84: pgsql::stream::PgsqlTypeFlushEx type;
+            case 67: pgsql::stream::PgsqlCompletedFlushEx completion;
+            case 90: pgsql::stream::PgsqlReadyFlushEx ready;
+        }
+
+        enum PgsqlFormat (uint16)
+        {
+            TEXT(0),
+            BINARY(1)
+        }
+
+        struct PgsqlColumnInfo
+        {
+            string16 name;
+            int32 tableOid;
+            int16 index;
+            int32 typeOid;
+            int16 length;
+            int32 modifier;
+            PgsqlFormat format;
+        }
+
+        struct PgsqlTypeFlushEx
+        {
+            PgsqlColumnInfo[] columns;
+        }
+
+        struct PgsqlCompletedFlushEx
+        {
+            string16 tag;
+        }
+
+        enum PgsqlStatus (uint8)
+        {
+            IDLE(73),
+            TRANSACTION(84),
+            ERROR(69)
+        }
+
+        struct PgsqlReadyFlushEx
+        {
+            PgsqlStatus status;
+        }
+    }
+}

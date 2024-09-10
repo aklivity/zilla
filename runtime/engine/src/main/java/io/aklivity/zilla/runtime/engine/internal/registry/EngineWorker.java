@@ -393,7 +393,15 @@ public class EngineWorker implements EngineContext, Agent
         for (Vault vault : vaults)
         {
             String type = vault.name();
-            vaultsByType.put(type, vault.supply(this));
+            Set<String> aliases = vault.aliases();
+
+            VaultContext context = vault.supply(this);
+
+            vaultsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                vaultsByType.put(alias, context);
+            }
         }
 
         Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();

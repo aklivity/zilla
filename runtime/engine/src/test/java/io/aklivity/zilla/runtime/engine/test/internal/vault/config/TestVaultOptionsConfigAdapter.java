@@ -24,7 +24,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
-    private static final String MODE_NAME = "mode";
+    private static final String KEY_NAME = "key";
+    private static final String SIGNER_NAME = "signer";
+    private static final String TRUST_NAME = "trust";
+
+    private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
 
     @Override
     public Kind kind()
@@ -40,13 +44,26 @@ public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapter
 
     @Override
     public JsonObject adaptToJson(
-        OptionsConfig options)
+        OptionsConfig adaptable)
     {
-        TestVaultOptionsConfig testOptions = (TestVaultOptionsConfig) options;
+        TestVaultOptionsConfig options = (TestVaultOptionsConfig) adaptable;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(MODE_NAME, testOptions.mode);
+        if (options.key != null)
+        {
+            object.add(KEY_NAME, entry.adaptToJson(options.key));
+        }
+
+        if (options.signer != null)
+        {
+            object.add(SIGNER_NAME, entry.adaptToJson(options.signer));
+        }
+
+        if (options.trust != null)
+        {
+            object.add(TRUST_NAME, entry.adaptToJson(options.trust));
+        }
 
         return object.build();
     }
@@ -55,16 +72,32 @@ public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> testOptions = TestVaultOptionsConfig.builder();
+        TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> options = TestVaultOptionsConfig.builder();
 
         if (object != null)
         {
-            if (object.containsKey(MODE_NAME))
+            if (object.containsKey(KEY_NAME))
             {
-                testOptions.mode(object.getString(MODE_NAME));
+                JsonObject key = object.getJsonObject(KEY_NAME);
+                TestVaultEntryConfig config = entry.adaptFromJson(key);
+                options.key(config.alias, config.entry);
+            }
+
+            if (object.containsKey(SIGNER_NAME))
+            {
+                JsonObject signer = object.getJsonObject(SIGNER_NAME);
+                TestVaultEntryConfig config = entry.adaptFromJson(signer);
+                options.signer(config.alias, config.entry);
+            }
+
+            if (object.containsKey(TRUST_NAME))
+            {
+                JsonObject trust = object.getJsonObject(TRUST_NAME);
+                TestVaultEntryConfig config = entry.adaptFromJson(trust);
+                options.trust(config.alias, config.entry);
             }
         }
 
-        return testOptions.build();
+        return options.build();
     }
 }

@@ -369,7 +369,31 @@
                                         "additionalProperties": false
                                     }
                                 },
-                                "with": false
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "headers":
+                                        {
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "overrides":
+                                                {
+                                                    "title": "Overrides",
+                                                    "type": "object",
+                                                    "additionalProperties" :
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
                             }
                         }
                     }

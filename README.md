@@ -38,7 +38,7 @@ Use **Zilla** as a:
 | [Async workflows for sync microservices →](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
 | [Secure a Server Sent Event (SSE) API →](https://github.com/aklivity/zilla-examples/tree/main/sse.proxy.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
-| [Validate MQTT via AsyncAPI →](https://github.com/aklivity/zilla-examples/tree/main/mqtt.proxy.asyncapi) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
+| [Validate MQTT via AsyncAPI →](https://github.com/aklivity/zilla-examples/tree/main/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
 | **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](https://github.com/aklivity/zilla-examples). |
 
 ## Get started in 60 seconds

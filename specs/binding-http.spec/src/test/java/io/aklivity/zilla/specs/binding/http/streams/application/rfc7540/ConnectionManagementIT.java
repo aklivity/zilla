@@ -61,6 +61,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/http.get.exchange.with.route.header.overrides/client",
+        "${app}/http.get.exchange.with.route.header.overrides/server"
+    })
+    public void shouldSendRequestWithRouteHeaderOverrides() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/http.post.exchange/client",
         "${app}/http.post.exchange/server"
     })

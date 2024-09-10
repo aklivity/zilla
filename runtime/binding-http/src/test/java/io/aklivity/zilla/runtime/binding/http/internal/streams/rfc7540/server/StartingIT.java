@@ -79,6 +79,16 @@ public class StartingIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.no.settings/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithNoSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("TODO")
     @Test
     @Configuration("server.yaml")

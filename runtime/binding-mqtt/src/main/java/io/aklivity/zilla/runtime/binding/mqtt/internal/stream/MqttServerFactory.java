@@ -1326,7 +1326,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     // special case, when payload is empty -> wait for window
                     break decode;
                 }
-                server.publishPayloadBytes = decodeablePublishPayloadBytes;
+                server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1462,7 +1462,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     // special case, when payload is empty -> wait for window
                     break decode;
                 }
-                server.publishPayloadBytes = decodeablePublishPayloadBytes;
+                server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1492,30 +1492,32 @@ public final class MqttServerFactory implements MqttStreamFactory
         int progress = offset;
         int reasonCode = SUCCESS;
 
-        decode:
         if (length >= 0)
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
 
-            int publishablePayloadSize =
-                Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget()), length);
-
-            final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + publishablePayloadSize);
+            int initialBudget = publisher.initialBudget();
+            int lengthMax = Math.min(length, server.decodeablePublishPayloadBytes);
+            int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
 
             boolean canPublish = MqttState.initialOpened(publisher.state);
 
-            final int maximum = publishablePayloadSize;
-            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024));
+            final int maximum = reservedMax;
+            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
 
             int valueClaimed = maximum;
 
-            if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && publishablePayloadSize != 0)
+            if (canPublish && publisher.debitorIndex != NO_DEBITOR_INDEX && lengthMax != 0)
             {
                 valueClaimed =
-                    publisher.debitor.claim(publisher.debitorIndex, publisher.initialId, minimum, maximum);
+                    publisher.debitor.claim(traceId, publisher.debitorIndex, publisher.initialId, minimum, maximum, 0);
             }
 
-            if (canPublish && (valueClaimed != 0 || payload.sizeof() == 0))
+            int sizeClaimed = valueClaimed - publisher.initialPad;
+
+            final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + sizeClaimed);
+
+            if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
             {
                 if (server.publishPayloadDeferred == 0)
                 {
@@ -1526,12 +1528,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId, server.decodedQos,
                     server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType, server.decodedPayloadFormat,
                     server.decodedResponseTopic, server.decodedCorrelationData, server.decodedUserProperties,
-                    payload, payload.offset(), payload.offset() + valueClaimed, publisher.contentType);
+                    payload, payload.offset(), payload.offset() + sizeClaimed, publisher.contentType);
 
-                progress = payload.offset() + valueClaimed;
+                progress = payload.offset() + sizeClaimed;
 
 
-                if (server.publishPayloadBytes == 0)
+                if (server.decodeablePublishPayloadBytes == 0)
                 {
                     server.decoder = decodePacketTypeByVersion.get(server.version);
                 }
@@ -2448,7 +2450,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long decodePublisherKey;
         private int decodeablePacketBytes;
         private int publishPayloadDeferred;
-        public int publishPayloadBytes;
+        public int decodeablePublishPayloadBytes;
         private int willPayloadDeferred;
         public int willPayloadBytes;
 
@@ -2949,7 +2951,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 this.sessionId = sessionAuth;
 
-                this.session = new MqttSessionStream(originId, resolved.id, 0);
+                this.session = new MqttSessionStream(routedId, resolved.id, 0);
 
                 final int capabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
                     ? REDIRECT_MASK : 0;
@@ -3080,79 +3082,78 @@ public final class MqttServerFactory implements MqttStreamFactory
             int limit)
         {
             int progress = offset;
-            decode:
+
+            final int willFlags = decodeWillFlags(connectFlags);
+            final int willQos = decodeWillQos(connectFlags);
+            final boolean willFlagSet = isSetWillFlag(connectFlags);
+
+            if (willFlagSet && MqttState.initialOpened(session.state))
             {
-                final int willFlags = decodeWillFlags(connectFlags);
-                final int willQos = decodeWillQos(connectFlags);
-                final boolean willFlagSet = isSetWillFlag(connectFlags);
-
-                if (willFlagSet && MqttState.initialOpened(session.state))
+                int publishedWillSize = 0;
+                if (willPayloadDeferred == 0)
                 {
-                    int publishedWillSize = 0;
-                    if (willPayloadDeferred == 0)
+                    final MqttWillMessageFW.Builder willMessageBuilder =
+                        mqttWillMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                            .topic(mqttConnectPayloadRO.willTopic)
+                            .delay(mqttConnectPayloadRO.willDelay)
+                            .qos(willQos)
+                            .flags(willFlags)
+                            .expiryInterval(mqttConnectPayloadRO.expiryInterval)
+                            .contentType(mqttConnectPayloadRO.contentType)
+                            .format(f -> f.set(mqttConnectPayloadRO.payloadFormat))
+                            .responseTopic(mqttConnectPayloadRO.responseTopic)
+                            .correlation(c -> c.bytes(mqttConnectPayloadRO.correlationData))
+                            .payloadSize(mqttConnectPayloadRO.payloadSize);
+
+                    if (version == 5)
                     {
-                        final MqttWillMessageFW.Builder willMessageBuilder =
-                            mqttWillMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
-                                .topic(mqttConnectPayloadRO.willTopic)
-                                .delay(mqttConnectPayloadRO.willDelay)
-                                .qos(willQos)
-                                .flags(willFlags)
-                                .expiryInterval(mqttConnectPayloadRO.expiryInterval)
-                                .contentType(mqttConnectPayloadRO.contentType)
-                                .format(f -> f.set(mqttConnectPayloadRO.payloadFormat))
-                                .responseTopic(mqttConnectPayloadRO.responseTopic)
-                                .correlation(c -> c.bytes(mqttConnectPayloadRO.correlationData))
-                                .payloadSize(mqttConnectPayloadRO.payloadSize);
-
-                        if (version == 5)
-                        {
-                            final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
-                            userProperties.forEach(
-                                c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
-                        }
-
-                        final MqttWillMessageFW will = willMessageBuilder.build();
-                        final int headerSize = willMessageBuilder.sizeof();
-                        int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
-
-                        final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
-
-                        willMessageBuffer.putBytes(will.limit(), payload.buffer(), payload.offset(), payload.limit());
-
-                        int flags = willPayloadBytes + headerSize > session.initialBudget() ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
-                        int deferred = Math.max(willPayloadBytes + headerSize - session.initialBudget(), 0);
-                        willPayloadDeferred = deferred;
-
-                        final MqttDataExFW.Builder sessionDataExBuilder =
-                            mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                                .typeId(mqttTypeId)
-                                .session(s -> s.deferred(deferred).kind(k -> k.set(MqttSessionDataKind.WILL)));
-
-                        publishedWillSize = session.doSessionData(traceId, flags,
-                            willMessageBuffer, 0, headerSize + payload.sizeof(), headerSize, sessionDataExBuilder.build());
-
-                        if (publishedWillSize < headerSize)
-                        {
-                            willPayloadDeferred = 0;
-                        }
-
-                        willPayloadBytes -= payloadSize;
-                        progress += payloadSize;
+                        final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
+                        userProperties.forEach(
+                            c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
                     }
-                    else
+
+                    final MqttWillMessageFW will = willMessageBuilder.build();
+                    final int headerSize = willMessageBuilder.sizeof();
+                    int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
+
+                    final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
+
+                    willMessageBuffer.putBytes(will.limit(), payload.buffer(), payload.offset(), payload.limit());
+
+                    int flags = willPayloadBytes + headerSize > session.initialBudget() ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
+                    int deferred = Math.max(willPayloadBytes + headerSize - session.initialBudget(), 0);
+                    willPayloadDeferred = deferred;
+
+                    final MqttDataExFW.Builder sessionDataExBuilder =
+                        mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                            .typeId(mqttTypeId)
+                            .session(s -> s.deferred(deferred).kind(k -> k.set(MqttSessionDataKind.WILL)));
+
+                    publishedWillSize = session.doSessionData(traceId, flags,
+                        willMessageBuffer, 0, headerSize + payload.sizeof(), headerSize, sessionDataExBuilder.build());
+
+                    if (publishedWillSize < headerSize)
                     {
-                        final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
-                        assert willPayloadDeferred >= 0;
-                        int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
-
-                        publishedWillSize = session.doSessionData(traceId, flags,
-                            payload.buffer(), offset, limit, 0, EMPTY_OCTETS);
-                        willPayloadDeferred -= publishedWillSize;
-                        willPayloadBytes -= publishedWillSize;
-                        progress += publishedWillSize;
+                        willPayloadDeferred = 0;
                     }
+
+                    willPayloadBytes -= payloadSize;
+                    progress += payloadSize;
+                }
+                else
+                {
+                    final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
+                    assert willPayloadDeferred >= 0;
+                    int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
+
+                    publishedWillSize = session.doSessionData(traceId, flags,
+                        payload.buffer(), offset, limit, 0, EMPTY_OCTETS);
+                    willPayloadDeferred -= publishedWillSize;
+                    willPayloadBytes -= publishedWillSize;
+                    progress += publishedWillSize;
                 }
             }
+
             return progress;
         }
 
@@ -3268,7 +3269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (publishPayloadDeferred == 0)
                     {
-                        publishPayloadDeferred = publishPayloadBytes - length;
+                        publishPayloadDeferred = decodeablePublishPayloadBytes - length;
                         final Flyweight dataEx = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                             .typeId(mqttTypeId)
                             .publish(p ->
@@ -3294,7 +3295,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             stream.doPublishData(traceId, authorization, reserved, packetId, payload, dataFlags,
                                 offset, limit, dataEx);
-                            publishPayloadBytes -= length;
+                            decodeablePublishPayloadBytes -= length;
                         }
                     }
                     else
@@ -3307,13 +3308,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             stream.doPublishData(traceId, authorization, reserved, packetId, payload, dataFlags,
                                 offset, limit, EMPTY_OCTETS);
-                            publishPayloadBytes -= length;
+                            decodeablePublishPayloadBytes -= length;
                         }
                     }
                 }
                 else
                 {
-                    publishPayloadBytes -= length;
+                    decodeablePublishPayloadBytes -= length;
                 }
             }
         }
@@ -6011,7 +6012,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long traceId = signal.traceId();
 
                 final long now = System.currentTimeMillis();
-                if (now >= publishExpiresAt && publishPayloadBytes == 0)
+                if (now >= publishExpiresAt && decodeablePublishPayloadBytes == 0)
                 {
                     doPublishAppEnd(traceId);
                 }
@@ -6133,7 +6134,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private int initialBudget()
             {
-                return initialMax - (int)(initialSeq - initialAck) - initialPad;
+                return initialMax - (int)(initialSeq - initialAck);
             }
         }
 

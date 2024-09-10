@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.92</version>
+    <version>0.9.93</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -44,37 +44,30 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-openapi</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-asyncapi</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http-kafka</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt-kafka</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-kafka</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

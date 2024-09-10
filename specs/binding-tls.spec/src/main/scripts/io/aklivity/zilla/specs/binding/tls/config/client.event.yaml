@@ -28,12 +28,32 @@ telemetry:
                       message: The client and server could not negotiate the desired level of security.
 vaults:
     client:
-        type: filesystem
+        type: test
         options:
-            trust:
-                store: stores/client/trust
-                type: pkcs12
-                password: generated
+          trust:
+            alias: serverca
+            entry: |
+                -----BEGIN CERTIFICATE-----
+                MIIDbDCCAlSgAwIBAgIEEiflHDANBgkqhkiG9w0BAQsFADBeMREwDwYDVQQDEwhz
+                ZXJ2ZXJjYTEUMBIGA1UECxMLRGV2ZWxvcG1lbnQxETAPBgNVBAoTCEFrbGl2aXR5
+                MRMwEQYDVQQIEwpDYWxpZm9ybmlhMQswCQYDVQQGEwJVUzAeFw0yMTEyMTQwMDM1
+                NTNaFw0zMTEyMTIwMDM1NTNaMF4xETAPBgNVBAMTCHNlcnZlcmNhMRQwEgYDVQQL
+                EwtEZXZlbG9wbWVudDERMA8GA1UEChMIQWtsaXZpdHkxEzARBgNVBAgTCkNhbGlm
+                b3JuaWExCzAJBgNVBAYTAlVTMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+                AQEAlmDVsfeWIEjypnw6qs0eVwTeM46KqHEvl5ElOyDoZZcqqZQN/jMW/VqzTbLc
+                zjYE0HqpZNTbaW80kQ1O/VipDmnousimKHg7QtN5KIhsIelnZSQWq8cV2rtSTFDk
+                rArE659GPWCPr/OeLT3Nbde0p9psz3uh1HJYVWAbZxWOe3GflSC8pGxu3PirU/kP
+                g89RKRyO5UsF4feHdkJJqUJ92Th4n34DKQcHuwJ3iYxhB9hOlvI4ESIxM+4eWW89
+                o4p2B2Ctwt8rpHDoBsNADophBD5kMT4mv6l5J3kVYy65QH7OfUIH22ApFjABdhGj
+                lCMYtvSCN1Y1lDBU5M9xrBdERwIDAQABozIwMDAdBgNVHQ4EFgQUQqJ69wHA1kfl
+                rVH510Y8/9mID5gwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEA
+                a56t9nJWGJlZFa8T1pnf9vdAcoQoqZ8LgKcdcxvGDtGdr5QF8L6LOqoYKUvetHv0
+                kdvht0fqv3AZivCVyDIpMw17E5mLu5vvdUQM4E+qLNF6SUhO3c/Elylt2/3YKNBM
+                FgjV0OdepnPz7/0nGCFUJo1fV8obUQt005P/S/F8g6UsIubcb/V55hR9/9Pruvw8
+                gqAWNjPJZ0+BlhTgI505K80JFJ7CWZCaseDSeAkXPhb+a29vP2cDsR6wKZeny4+f
+                P+TPUku7wEo8v+Tr8L1Esmcoudn6Wq+N3ZBYFLH6T4kqP+0BkDoStFDonUFRWxXX
+                5OQUWOWJqvzyJ8VIbBRDsQ==
+                -----END CERTIFICATE-----
 bindings:
     app0:
         type: tls

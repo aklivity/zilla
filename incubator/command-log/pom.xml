@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.92</version>
+    <version>0.9.93</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -79,7 +79,6 @@
     <dependency>
       <groupId>commons-cli</groupId>
       <artifactId>commons-cli</artifactId>
-      <version>1.7.0</version>
     </dependency>
   </dependencies>
 

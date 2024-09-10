@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>0.9.92</version>
+    <version>0.9.93</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -102,6 +102,7 @@
             <exclude>**/signers</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
+            <exclude>**/*.pem</exclude>
           </excludes>
         </configuration>
       </plugin>

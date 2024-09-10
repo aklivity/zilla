@@ -52,7 +52,6 @@ public class HttpFileSystemProvider extends FileSystemProvider
     }
 
     @Override
-    @SuppressWarnings("resource")
     public FileSystem newFileSystem(
         URI uri,
         Map<String, ?> env)

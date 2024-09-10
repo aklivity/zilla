@@ -15,25 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal;
 
-import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.ComparisonFailure;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.junit.runners.model.TestTimedOutException;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
@@ -45,10 +35,8 @@ public class DuplexIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
-    private final ExpectedException thrown = ExpectedException.none();
-
     @Rule
-    public final TestRule chain = outerRule(thrown).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
     @Specification({
@@ -237,8 +225,6 @@ public class DuplexIT
     })
     public void shouldRejectClientSentDataMissingExtension() throws Exception
     {
-        thrown.expect(hasProperty("failures", contains(asList(instanceOf(ComparisonFailure.class),
-                                                              instanceOf(TestTimedOutException.class)))));
         k3po.finish();
     }
 
@@ -310,8 +296,6 @@ public class DuplexIT
     })
     public void shouldRejectServerSentDataWithMissingExtension() throws Exception
     {
-        thrown.expect(anyOf(isA(ComparisonFailure.class),
-                            hasProperty("failures", hasItem(isA(ComparisonFailure.class)))));
         k3po.finish();
     }
 
@@ -614,8 +598,6 @@ public class DuplexIT
     })
     public void shouldReportFailureFromReadNullDataWhenNullDataIsNotWritten() throws Exception
     {
-        thrown.expect(anyOf(isA(ComparisonFailure.class),
-                hasProperty("failures", hasItem(isA(ComparisonFailure.class)))));
         k3po.finish();
     }
 
@@ -778,5 +760,4 @@ public class DuplexIT
     {
         k3po.finish();
     }
-
 }

@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.92</version>
+  <version>0.9.93</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -425,7 +425,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
           <configuration>
-            <argLine>@{jacoco.java.option} --add-opens java.base/sun.nio.ch=ALL-UNNAMED</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/sun.nio.ch=ALL-UNNAMED</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -438,7 +438,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M4</version>
           <configuration>
-            <argLine>@{jacoco.java.option} --add-opens java.base/sun.nio.ch=ALL-UNNAMED -Djdk.attach.allowAttachSelf=true</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/sun.nio.ch=ALL-UNNAMED -Djdk.attach.allowAttachSelf=true</argLine>
           </configuration>
           <executions>
             <execution>
