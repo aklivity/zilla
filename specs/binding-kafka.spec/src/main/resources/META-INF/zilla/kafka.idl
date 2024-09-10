@@ -532,7 +532,7 @@ scope kafka
             string16[] names;
         }
 
-        struct KafkaResourceRequest
+        struct KafkaResource
         {
             string16 name;
             KafkaResourceType type;
@@ -541,7 +541,7 @@ scope kafka
 
         struct KafkaAlterConfigsRequestBeginEx
         {
-            KafkaResourceRequest[] resources;
+            KafkaResource[] resources;
         }
 
         struct KafkaRequestBeginEx switch (uint8)
