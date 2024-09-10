@@ -30,7 +30,7 @@ connected
 
 write 125                               # size
       19s                               # create topics
-      4s                                # v4
+      3s                                # v3
       ${newRequestId}
       2                                 # topic count
         6s "events"                     # name
