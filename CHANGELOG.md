@@ -12,6 +12,8 @@
 
 **Fixed bugs:**
 
+- Zilla OpenAPI not supporting filesystem catalog [\#1225](https://github.com/aklivity/zilla/issues/1225)
+- Zilla produces corrupt messages due to incorrect CRC when fragmented [\#1221](https://github.com/aklivity/zilla/issues/1221)
 - Issue referencing `guard` in `asyncapi` binding [\#1215](https://github.com/aklivity/zilla/issues/1215)
 - Using catalog::apicurio triggers unexpected behaviour [\#1202](https://github.com/aklivity/zilla/issues/1202)
 - `400 Bad Request` response from Zilla when Using Java HttpClient [\#1192](https://github.com/aklivity/zilla/issues/1192)
@@ -19,7 +21,13 @@
 
 **Merged pull requests:**
 
+- Refactor vault handler [\#1236](https://github.com/aklivity/zilla/pull/1236) ([jfallows](https://github.com/jfallows))
+- Mqtt flow control fix [\#1233](https://github.com/aklivity/zilla/pull/1233) ([bmaidics](https://github.com/bmaidics))
+- Fix incorrect flush acknowledgement in KafkaCacheClientProduceFactory [\#1232](https://github.com/aklivity/zilla/pull/1232) ([bmaidics](https://github.com/bmaidics))
+- http binding update to support header overrides  at route level [\#1231](https://github.com/aklivity/zilla/pull/1231) ([ankitk-me](https://github.com/ankitk-me))
+- Update asyncapi binding module-info to open parser package [\#1227](https://github.com/aklivity/zilla/pull/1227) ([jfallows](https://github.com/jfallows))
 - Link checker [\#1216](https://github.com/aklivity/zilla/pull/1216) ([vordimous](https://github.com/vordimous))
+- Fix incorrect CRC combine in Kafka produce client [\#1214](https://github.com/aklivity/zilla/pull/1214) ([bmaidics](https://github.com/bmaidics))
 - Reduce compile warnings [\#1213](https://github.com/aklivity/zilla/pull/1213) ([jfallows](https://github.com/jfallows))
 - Eclipse IDE import maven projects [\#1212](https://github.com/aklivity/zilla/pull/1212) ([jfallows](https://github.com/jfallows))
 - Disable JVM class sharing to avoid error message during build [\#1210](https://github.com/aklivity/zilla/pull/1210) ([jfallows](https://github.com/jfallows))
