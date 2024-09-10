@@ -516,7 +516,7 @@ scope kafka
         struct KafkaCreateTopic
         {
             string16 name;
-            int16 replicationFactor;
+            int16 replicas;
             KafkaPartition[] assignments;
             KafkaConfig[] configs;
         }
@@ -524,12 +524,14 @@ scope kafka
         struct KafkaCreateTopicsRequestBeginEx
         {
             KafkaCreateTopic[] topics;
+            int32 timeout;
             uint8 validateOnly;
         }
 
         struct KafkaDeleteTopicsRequestBeginEx
         {
             string16[] names;
+            int32 timeout;
         }
 
         struct KafkaResource
@@ -542,6 +544,7 @@ scope kafka
         struct KafkaAlterConfigsRequestBeginEx
         {
             KafkaResource[] resources;
+            uint8 validateOnly;
         }
 
         struct KafkaRequestBeginEx switch (uint8)
@@ -554,36 +557,39 @@ scope kafka
         struct KafkaCreateTopicStatus
         {
             string16 name;
-            int16 code;
+            int16 error;
             string16 message = null;
         }
 
         struct KafkaCreateTopicsResponseBeginEx
         {
+            int32 throttle;
             KafkaCreateTopicStatus[] topics;
         }
 
         struct KafkaDeleteTopicStatus
         {
             string16 name;
-            int16 code;
+            int16 error;
         }
 
         struct KafkaDeleteTopicsResponseBeginEx
         {
+            int32 throttle;
             KafkaDeleteTopicStatus[] topics;
         }
 
         struct KafkaResourceStatus
         {
-            string16 name;
-            KafkaResourceType type;
-            int16 code;
+            int16 error;
             string16 message = null;
+            KafkaResourceType type;
+            string16 name;
         }
 
         struct KafkaAlterConfigsResponseBeginEx
         {
+            int32 throttle;
             KafkaResourceStatus[] resources;
         }
 
