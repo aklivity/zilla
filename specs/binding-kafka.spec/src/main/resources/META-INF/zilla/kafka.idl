@@ -513,7 +513,7 @@ scope kafka
             int16 producerEpoch;
         }
 
-        struct KafkaCrateTopic
+        struct KafkaCreateTopic
         {
             string16 name;
             int16 replicationFactor;
@@ -523,7 +523,7 @@ scope kafka
 
         struct KafkaCreateTopicsRequestBeginEx
         {
-            KafkaCrateTopic[] topics;
+            KafkaCreateTopic[] topics;
             uint8 validateOnly;
         }
 
