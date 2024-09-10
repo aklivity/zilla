@@ -407,6 +407,35 @@
                 "type",
                 "kind"
             ],
+            "anyOf":
+            [
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "remote_server"
+                        }
+                    },
+                    "required":
+                    [
+                        "entry"
+                    ]
+                },
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "not":
+                            {
+                                "const": "remote_server"
+                            }
+                        },
+                        "entry": false
+                    }
+                }
+            ],
             "allOf":
             [
             ]

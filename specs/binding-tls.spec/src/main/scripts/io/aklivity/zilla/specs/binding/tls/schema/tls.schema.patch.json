@@ -31,7 +31,6 @@
                     {
                         "enum": [ "client", "server", "proxy" ]
                     },
-                    "entry": false,
                     "catalog": false,
                     "routes":
                     {

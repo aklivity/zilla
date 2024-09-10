@@ -31,7 +31,6 @@
                     {
                         "enum": [ "server", "proxy" ]
                     },
-                    "entry": false,
                     "catalog": false,
                     "options":
                     {
