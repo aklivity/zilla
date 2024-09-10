@@ -30,6 +30,7 @@
     "io.aklivity.zilla:binding-openapi",
     "io.aklivity.zilla:binding-openapi-asyncapi",
     "io.aklivity.zilla:binding-pgsql",
+    "io.aklivity.zilla:binding-pgsql-kafka",
     "io.aklivity.zilla:binding-proxy",
     "io.aklivity.zilla:binding-risingwave",
     "io.aklivity.zilla:binding-sse",
