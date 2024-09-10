@@ -28,17 +28,20 @@ connect "zilla://streams/net0"
 
 connected
 
-write 22                                # size
+write 39                                # size
       20s                               # delete topics
       1s                                # v1
       ${newRequestId}
-      1                                 # topic count
-        4s "test"                       # name
-        0                               # timeout
+      2                                 # topic count
+        6s "events"                     # name
+        9s "snapshots"                  # name
+      0                                 # timeout
 
-read 20                                 # size
-     (int:newRequestId)
-     0                                  # throttle time ms
-     1                                  # topics
-       4s "test"                        # name
-       0s                               # error code
+read 35                                 # size
+      (int:newRequestId)
+      0                                  # throttle time ms
+      2                                  # topics
+        6s "events"                      # name
+        0s                               # error code
+        9s "snapshots"                   # name
+        0s                               # error code

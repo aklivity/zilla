@@ -25,25 +25,33 @@ accepted
 
 connected
 
-read 45                                # size
-      33s                               # create topics
+read  130                               # size
+      19s                               # create topics
       1s                                # v1
       (int:newRequestId)
-      1                                 # resource count
+      2                                 # resource count
         [0x02]                          # resource type
-        4s "test"                       # name
+        6s "events"                     # name
         1                               # configs
-            7s "config0"                # name
-            6s "value0"                 # value
+            14s "cleanup.policy"        # name
+            6s "delete"                 # value
+        6s "snapshots"                  # name
+        1                               # configs
+            14s "cleanup.policy"        # name
+            6s "compact"                # value
       0                                 # timeout
       [0x00]                            # validate only
 
-write 23                                 # size
+write 41                                 # size
       ${newRequestId}
       0                                  # throttle time ms
-      1                                  # topics
+      2                                  # topics
         0s                               # error code
         -1s                              # error message
         [0x02]                           # resource type
-        4s "test"                        # name
+        6s "events"                      # name
+        0s                               # error code
+        -1s                              # error message
+        [0x02]                           # resource type
+        9s "snapshots"                   # name
 
