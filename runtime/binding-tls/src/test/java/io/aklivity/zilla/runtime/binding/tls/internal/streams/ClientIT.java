@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.TlsConfigurationTest.TLS_CACERTS_STORE_NAME;
-import static io.aklivity.zilla.runtime.binding.tls.internal.TlsConfigurationTest.TLS_CACERTS_STORE_PASS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_PASS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -70,8 +70,8 @@ public class ClientIT
     @Specification({
         "${app}/connection.established/client",
         "${net}/connection.established/server" })
-    @Configure(name = TLS_CACERTS_STORE_NAME, value =  "src/test/democa/client/trust")
-    @Configure(name = TLS_CACERTS_STORE_PASS_NAME, value =  "generated")
+    @Configure(name = ENGINE_CACERTS_STORE_NAME, value =  "src/test/democa/client/trust")
+    @Configure(name = ENGINE_CACERTS_STORE_PASS_NAME, value =  "generated")
     public void shouldEstablishConnectionWithTrustcacerts() throws Exception
     {
         k3po.finish();

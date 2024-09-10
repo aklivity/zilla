@@ -16,15 +16,16 @@
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
-import java.security.KeyStore.PrivateKeyEntry;
-import java.security.KeyStore.TrustedCertificateEntry;
+import java.util.List;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.junit.Test;
 
@@ -48,13 +49,13 @@ public class FileSystemVaultTest
                 .build()
             .build();
 
-        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::getResourcePath);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        PrivateKeyEntry key = vault.key("localhost");
-        TrustedCertificateEntry certificate = vault.certificate("clientca");
+        KeyManagerFactory keys = vault.initKeys(List.of("localhost"));
+        TrustManagerFactory trust = vault.initTrust(List.of("clientca"), null);
 
-        assertThat(key, not(nullValue()));
-        assertThat(certificate, not(nullValue()));
+        assertThat(keys, not(nullValue()));
+        assertThat(trust, not(nullValue()));
     }
 
     @Test
@@ -73,18 +74,14 @@ public class FileSystemVaultTest
                 .build()
             .build();
 
-        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::getResourcePath);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        PrivateKeyEntry key = vault.key("client1");
-        PrivateKeyEntry[] signedKeys = vault.keys("clientca");
+        KeyManagerFactory keys = vault.initSigners(List.of("clientca"));
 
-        assertThat(key, not(nullValue()));
-        assertThat(signedKeys, not(nullValue()));
-        assertThat(signedKeys.length, equalTo(1));
-        assertThat(signedKeys[0], not(nullValue()));
+        assertThat(keys, not(nullValue()));
     }
 
-    public static Path getResourcePath(
+    public static Path resourcePath(
         String resource)
     {
         URL url = FileSystemVaultTest.class.getResource(resource);
