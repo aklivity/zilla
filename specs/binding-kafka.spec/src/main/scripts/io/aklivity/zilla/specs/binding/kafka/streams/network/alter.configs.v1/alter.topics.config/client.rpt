@@ -28,39 +28,34 @@ connect "zilla://streams/net0"
 
 connected
 
-write 125                               # size
+write 130                               # size
       19s                               # create topics
-      3s                                # v3
+      1s                                # v1
       ${newRequestId}
-      2                                 # topic count
+      2                                 # resource count
+        [0x02]                          # resource type
         6s "events"                     # name
-        1                               # number of partitions
-        1s                              # replication factor
-        1                               # assignments
-            0                           # partition index
-            0                           # broker ids
         1                               # configs
             14s "cleanup.policy"        # name
-            6s "delete" 66              # value
+            6s "delete"                 # value
         6s "snapshots"                  # name
-        1                               # number of partitions
-        1s                              # replication factor
-        1                               # assignments
-            0                           # partition index
-            0                           # broker ids
         1                               # configs
             14s "cleanup.policy"        # name
-            7s "compact"                # value
+            6s "compact"                # value
       0                                 # timeout
+      [0x00]                            # validate only
 
-
-read 22                                 # size
+read  41                                 # size
       (int:newRequestId)
       0                                  # throttle time ms
       2                                  # topics
+        0s                               # error code
+        -1s                              # error message
+        [0x02]                           # resource type
         6s "events"                      # name
         0s                               # error code
         -1s                              # error message
+        [0x02]                           # resource type
         9s "snapshots"                   # name
-        0s                               # error code
-        -1s                              # error message
+
+

@@ -539,8 +539,8 @@ scope kafka
 
         struct KafkaResource
         {
-            string16 name;
             KafkaResourceType type;
+            string16 name;
             KafkaConfig[] configs;
         }
 

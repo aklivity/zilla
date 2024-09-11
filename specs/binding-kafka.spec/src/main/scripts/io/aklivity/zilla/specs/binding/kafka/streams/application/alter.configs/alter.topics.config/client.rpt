@@ -21,31 +21,40 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .request()
-                                 .deleteTopics()
-                                    .topic("events")
-                                    .topic("snapshots")
-                                    .timeout(0)
-                                 .build()
-                               .build()}
+                                 .alterConfigs()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .config("cleanup.policy", "delete")
+                                       .build()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("snapshots")
+                                       .config("cleanup.policy", "compact")
+                                       .build()
+                                    .validateOnly("false")
+                                   .build()
+                                .build()}
 
 connected
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .response()
-                                 .deleteTopics()
+                                 .alterConfigs()
                                     .throttle(0)
-                                    .topic()
+                                    .resource()
+                                       .error(0)
+                                       .type("TOPIC")
                                        .name("events")
-                                       .error(0)
                                        .build()
-                                    .topic()
-                                       .name("snapshots")
+                                    .resource()
                                        .error(0)
+                                       .type("TOPIC")
+                                       .name("snapshots")
                                        .build()
                                    .build()
-                                .build()
-                               .build()}
+                                .build()}
 
 read closed;
 write close;

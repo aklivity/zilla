@@ -372,6 +372,58 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateRequestDeleteTopicsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .deleteTopics()
+                                    .topic("events")
+                                    .topic("snapshots")
+                                    .timeout(0)
+                                 .build()
+                               .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.deleteTopics().names().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateRequestAlterConfigsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .alterConfigs()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .config("cleanup.policy", "delete")
+                                       .build()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("snapshots")
+                                       .config("cleanup.policy", "compact")
+                                       .build()
+                                   .validateOnly("false")
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.alterConfigs().resources().fieldCount(), 2);
+    }
+
+    @Test
     public void shouldGenerateResponseCreateTopicsBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
@@ -397,6 +449,64 @@ public class KafkaFunctionsTest
         final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
 
         assertEquals(responseBeginEx.createTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateResponseDeleteTopicsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .response()
+                                         .deleteTopics()
+                                            .throttle(0)
+                                            .topic()
+                                               .name("events")
+                                               .error((short) 0)
+                                               .build()
+                                            .topic()
+                                               .name("snapshots")
+                                               .error((short) 0)
+                                               .build()
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.deleteTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateResponseAlterConfigsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .alterConfigs()
+                                    .throttle(0)
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .build()
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("snapshots")
+                                       .build()
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.alterConfigs().resources().fieldCount(), 2);
     }
 
 

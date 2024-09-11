@@ -22,7 +22,7 @@ accept ${serverAddress}
 
 accepted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .request()
                                  .createTopics()
@@ -63,5 +63,5 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                 .build()}
 
-write close;
-read closed;
+write close
+read closed

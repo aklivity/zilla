@@ -22,23 +22,14 @@ accept ${serverAddress}
 
 accepted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .request()
-                                 .alterConfigs()
-                                    .resource()
-                                       .type("TOPIC")
-                                       .name("events")
-                                       .config("cleanup.policy", "delete")
-                                       .build()
-                                    .resource()
-                                       .type("TOPIC")
-                                       .name("snapshots")
-                                       .config("cleanup.policy", "compact")
-                                       .build()
-                                   .validateOnly("false")
-                                   .build()
-                                .build()
+                                 .deleteTopics()
+                                    .topic("events")
+                                    .topic("snapshots")
+                                    .timeout(0)
+                                 .build()
                                .build()}
 
 connected
@@ -46,21 +37,19 @@ connected
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .response()
-                                 .alterConfigs()
+                                 .deleteTopics()
                                     .throttle(0)
-                                    .resource()
-                                       .error(0)
-                                       .type("TOPIC")
+                                    .topic()
                                        .name("events")
-                                       .build()
-                                    .resource()
                                        .error(0)
-                                       .type("TOPIC")
+                                       .build()
+                                    .topic()
                                        .name("snapshots")
+                                       .error(0)
                                        .build()
                                    .build()
-                                .build()
-                               .build()}
+                                .build()}
 
-write close;
-read closed;
+write close
+read closed
+
