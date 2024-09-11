@@ -89,6 +89,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
 
 public class KafkaFunctionsTest
@@ -333,6 +334,42 @@ public class KafkaFunctionsTest
                 .matchFirst(c -> "cleanup.policy".equals(c.name().asString()) &&
                                  "compact".equals(c.value().asString())));
     }
+
+    @Test
+    public void shouldGenerateRequestCreateTopicsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .request()
+                                         .createTopics()
+                                            .topic()
+                                               .name("events")
+                                               .partitionCount(1)
+                                               .replicas((short) 1)
+                                               .assignment(0, 0)
+                                               .config("cleanup.policy", "delete")
+                                               .build()
+                                            .topic()
+                                               .name("snapshots")
+                                               .partitionCount(1)
+                                               .replicas((short) 1)
+                                               .assignment(0, 0)
+                                               .config("cleanup.policy", "compact")
+                                               .build()
+                                            .timeout(0)
+                                            .validateOnly("false")
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.createTopics().topics().fieldCount(), 2);
+    }
+
 
     @Test
     public void shouldGenerateMergedBeginExtension()

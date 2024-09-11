@@ -518,19 +518,20 @@ scope kafka
         struct KafkaCreateTopic
         {
             string16 name;
+            int32 partitionCount;
             int16 replicas;
             KafkaPartition[] assignments;
             KafkaConfig[] configs;
         }
 
-        struct KafkaCreateTopicsRequestBeginEx
+        struct KafkaRequestCreateTopicsBeginEx
         {
             KafkaCreateTopic[] topics;
             int32 timeout;
             uint8 validateOnly;
         }
 
-        struct KafkaDeleteTopicsRequestBeginEx
+        struct KafkaRequestDeleteTopicsBeginEx
         {
             string16[] names;
             int32 timeout;
@@ -543,7 +544,7 @@ scope kafka
             KafkaConfig[] configs;
         }
 
-        struct KafkaAlterConfigsRequestBeginEx
+        struct KafkaRequestAlterConfigsBeginEx
         {
             KafkaResource[] resources;
             uint8 validateOnly;
@@ -551,9 +552,9 @@ scope kafka
 
         union KafkaRequestBeginEx switch (uint8)
         {
-            case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
-            case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
-            case 19: kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
+            case 33: kafka::stream::KafkaRequestAlterConfigsBeginEx alterConfigs;
+            case 20: kafka::stream::KafkaRequestDeleteTopicsBeginEx deleteTopics;
+            case 19: kafka::stream::KafkaRequestCreateTopicsBeginEx createTopics;
         }
 
         struct KafkaCreateTopicStatus
