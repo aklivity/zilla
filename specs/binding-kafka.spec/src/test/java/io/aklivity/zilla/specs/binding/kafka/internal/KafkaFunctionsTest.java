@@ -91,6 +91,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceD
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
 
 public class KafkaFunctionsTest
 {
@@ -368,6 +369,34 @@ public class KafkaFunctionsTest
         final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
 
         assertEquals(requestBeginEx.createTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateResponseCreateTopicsBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .createTopics()
+                                    .throttle(0)
+                                    .topic()
+                                       .name("events")
+                                       .error((short) 0)
+                                       .build()
+                                    .topic()
+                                       .name("snapshots")
+                                       .error((short) 0)
+                                       .build()
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.createTopics().topics().fieldCount(), 2);
     }
 
 

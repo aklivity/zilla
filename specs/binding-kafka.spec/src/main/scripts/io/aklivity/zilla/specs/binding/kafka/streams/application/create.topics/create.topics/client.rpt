@@ -39,8 +39,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                     .timeout(0)
                                     .validateOnly("false")
                                    .build()
-                                .build()
-                               .build()}
+                                .build()}
 
 connected
 
@@ -58,8 +57,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                        .error(0)
                                        .build()
                                    .build()
-                                .build()
-                               .build()}
+                                .build()}
 
 read closed;
 write close;

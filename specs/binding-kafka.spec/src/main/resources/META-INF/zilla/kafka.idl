@@ -564,7 +564,7 @@ scope kafka
             string16 message = null;
         }
 
-        struct KafkaCreateTopicsResponseBeginEx
+        struct KafkaResponseCreateTopicsBeginEx
         {
             int32 throttle;
             KafkaCreateTopicStatus[] topics;
@@ -576,7 +576,7 @@ scope kafka
             int16 error;
         }
 
-        struct KafkaDeleteTopicsResponseBeginEx
+        struct KafkaResponseDeleteTopicsBeginEx
         {
             int32 throttle;
             KafkaDeleteTopicStatus[] topics;
@@ -590,7 +590,7 @@ scope kafka
             string16 name;
         }
 
-        struct KafkaAlterConfigsResponseBeginEx
+        struct KafkaResponseAlterConfigsBeginEx
         {
             int32 throttle;
             KafkaResourceStatus[] resources;
@@ -598,9 +598,9 @@ scope kafka
 
         union KafkaResponseBeginEx switch (uint8)
         {
-            case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
-            case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
-            case 19: kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
+            case 33: kafka::stream::KafkaResponseAlterConfigsBeginEx alterConfigs;
+            case 20: kafka::stream::KafkaResponseDeleteTopicsBeginEx deleteTopics;
+            case 19: kafka::stream::KafkaResponseCreateTopicsBeginEx createTopics;
         }
     }
 
