@@ -757,7 +757,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
-                flushClientFanInitialIfNecessary(traceId);
+                final long timestamp = data.timestamp();
+                flushClientFanInitialIfNecessary(traceId, timestamp);
             }
 
             if ((flags & FLAGS_INCOMPLETE) != 0x00)
@@ -801,7 +802,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
                 markEntryDirty(traceId, stream.partitionOffset);
-                flushClientFanInitialIfNecessary(traceId);
+                final long timestamp = flush.timestamp();
+                flushClientFanInitialIfNecessary(traceId, timestamp);
             }
             else
             {
@@ -818,7 +820,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
 
         private void flushClientFanInitialIfNecessary(
-            long traceId)
+            long traceId,
+            long timestamp)
         {
             final long oldOffsetHighWaterMark = offsetHighWatermark;
             long newOffsetHighWatermark = cursor.offset;
@@ -1121,6 +1124,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             final KafkaCachePartition.Node node = this.partition.seekNotAfter(partitionOffset);
             final KafkaCacheEntryFW dirtyEntry = node.findAndMarkDirty(entryRO, partitionOffset);
+            System.out.printf("markEntryDirty with topicName: %s, partition.id: %d, partitionOffset: %d%n",
+                topicName, partition.id(), partitionOffset);
 
             final long newCompactAt = this.partition.compactAt(node.segment());
 
@@ -1629,6 +1634,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 if (nextEntry != null && nextEntry.ownerId() == initialId)
                 {
                     cursor.markEntryDirty(nextEntry);
+                    System.out.printf("Marked entry dirty with offset: %d%n", cursor.offset);
                 }
                 cursor.advance(cursor.offset + 1);
             }

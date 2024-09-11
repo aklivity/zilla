@@ -239,6 +239,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
+            if (evaluation == null)
+            {
+                System.out.printf("NPE! traceId: %s, timestamp: %d%n", Long.toHexString(begin.traceId()), begin.timestamp());
+            }
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);

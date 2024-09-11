@@ -1420,6 +1420,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             int maxReplyPad = replyPad;
             int minReplyMax = replyMax;
 
+            System.out.printf("doConnectionWindow. traceId: %s, maxReplyAck: %d, maxReplyPad: %d, minReplyMax: %d%n",
+                Long.toHexString(traceId), maxReplyAck, maxReplyPad, minReplyMax);
             if (!responseAcks.isEmpty())
             {
                 final int streamsSize = streamsByInitialId.size();
@@ -1435,14 +1437,19 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                     if (stream.replyAck < stream.replySeq || stream.replyAckOffsets.isEmpty())
                     {
+                        System.out.println("In the condition:");
                         if (!stream.replySeqOffsets.isEmpty())
                         {
-                            maxReplyAck = stream.replySeqOffsets.peekLong() + stream.replyAck - stream.replyAckSnapshot;
+                            long replySeqOffsets = stream.replySeqOffsets.peekLong();
+                            maxReplyAck = replySeqOffsets + stream.replyAck - stream.replyAckSnapshot;
+                            System.out.printf("replySeqOffsets not empty. maxReplyAck: %d, replySeqOffsets: %d," +
+                                    "stream.replyAck: %d, stream.replyAckSnapshot: %d%n", maxReplyAck, replySeqOffsets,
+                                stream.replyAck, stream.replyAckSnapshot);
                         }
                         break ack;
                     }
                     maxReplyAck = stream.replyAckOffsets.removeLong();
-
+                    System.out.printf("maxReplyAck set to %d%n" , maxReplyAck);
                     if (KafkaState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
                     {
                         streamsByInitialId.remove(responseAck);
@@ -1458,7 +1465,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             final long newReplyAck = Math.max(maxReplyAck, replyAck);
-
+            System.out.printf("newReplyAck: %d, maxReplyAck: %d, replyAck: %d, minReplyMax: %d, replyOpened: %b%n",
+                newReplyAck, maxReplyAck, replyAck, minReplyMax, KafkaState.replyOpened(state));
             if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
             {
                 replyAck = newReplyAck;
@@ -1470,6 +1478,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, maxReplyPad);
+            }
+            else
+            {
+                System.out.println("Not doing window.");
             }
         }
 

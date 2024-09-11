@@ -1191,10 +1191,17 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     produce:
                     if (reserved >= initialPad)
                     {
+                        //TODO: turn off retain capability, confirm that it reproduces
+                        // put prints wherever we mark entry dirty and we break produce due to this
                         if ((entryFlags & CACHE_ENTRY_FLAGS_DIRTY) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
                             doFlushServerReply(NO_ERROR, traceId);
+                            if ("mqtt-messages".equals(fan.partionTopic))
+                            {
+                                System.out.printf("Break produce entry is dirty. traceId: %s, timestamp: %d, partitionOffset: " +
+                                        "%d, %n", Long.toHexString(traceId), timestamp, partitionOffset);
+                            }
                             break produce;
                         }
 

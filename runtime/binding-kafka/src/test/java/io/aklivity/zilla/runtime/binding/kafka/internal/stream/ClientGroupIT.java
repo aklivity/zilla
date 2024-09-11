@@ -89,9 +89,29 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/multiple.find.coordinator.response/client",
+        "${net}/multiple.find.coordinator.response/server"})
+    public void shouldHandleMultipleFindCoordinatorResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/rebalance.protocol.highlander/client",
         "${net}/rebalance.protocol.highlander/server"})
     public void shouldLeaveGroupOnGroupRebalanceError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance.protocol.highlander/client",
+        "${net}/rebalance.protocol.highlander.fragmented/server"})
+    public void shouldLeaveGroupOnGroupRebalanceErrorFragmented() throws Exception
     {
         k3po.finish();
     }

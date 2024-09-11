@@ -159,7 +159,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
     private static final int REDIRECT_AVAILABLE_MASK = 1 << MqttServerCapabilities.REDIRECT.value();
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
-    private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
+    private static final int MQTT_KAFKA_CAPABILITIES = WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
 
     public static final String GROUPID_SESSION_SUFFIX = "session";
