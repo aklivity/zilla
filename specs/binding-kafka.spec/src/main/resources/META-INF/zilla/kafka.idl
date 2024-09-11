@@ -173,14 +173,16 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            REQUEST (250),
+            RESPONSE (251),
             CONSUMER (252),
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
-            ALTER_CONFIGS(33),
-            INIT_PRODUCER_ID(22),
+            ALTER_CONFIGS (33),
+            INIT_PRODUCER_ID (22),
             DELETE_TOPICS (20),
-            CREATE_TOPICS(19),
+            CREATE_TOPICS (19),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
