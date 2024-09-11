@@ -45,6 +45,4 @@ public class AlterConfigsIT
     {
         k3po.finish();
     }
-
-
 }

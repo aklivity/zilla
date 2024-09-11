@@ -337,7 +337,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateRequestCreateTopicsBeginExtension()
+    public void shouldGenerateCreateTopicsRequestBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                        .typeId(0x01)
@@ -372,7 +372,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateRequestDeleteTopicsBeginExtension()
+    public void shouldGenerateDeleteTopicsRequestBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                .typeId(0x01)
@@ -394,7 +394,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateRequestAlterConfigsBeginExtension()
+    public void shouldGenerateAlterConfigsRequestBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                .typeId(0x01)
@@ -424,7 +424,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateResponseCreateTopicsBeginExtension()
+    public void shouldGenerateCreateTopicsResponseBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                .typeId(0x01)
@@ -452,7 +452,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateResponseDeleteTopicsBeginExtension()
+    public void shouldGenerateDeleteTopicsResponseBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                        .typeId(0x01)
@@ -480,7 +480,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateResponseAlterConfigsBeginExtension()
+    public void shouldGenerateAlterConfigsResponseBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
                                .typeId(0x01)
