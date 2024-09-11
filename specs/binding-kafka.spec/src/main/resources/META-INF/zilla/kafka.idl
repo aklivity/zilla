@@ -21,12 +21,6 @@ scope kafka
         string16 value;
     }
 
-    struct KafkaResourceType
-    {
-        BROKER(4),
-        TOPIC(2)
-    }
-
     struct KafkaPartition
     {
         int32 partitionId;
@@ -60,6 +54,12 @@ scope kafka
         HEADER (1),
         NOT (2),
         HEADERS (3)
+    }
+
+    enum KafkaResourceType (uint8)
+    {
+        BROKER(4),
+        TOPIC(2)
     }
 
     union KafkaCondition switch (uint8)
@@ -177,10 +177,10 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
-            ALTER_CONFIGS(33)
-            INIT_PRODUCER_ID (22),
+            ALTER_CONFIGS(33),
+            INIT_PRODUCER_ID(22),
             DELETE_TOPICS (20),
-            CREATE_TOPICS(19)
+            CREATE_TOPICS(19),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -547,11 +547,11 @@ scope kafka
             uint8 validateOnly;
         }
 
-        struct KafkaRequestBeginEx switch (uint8)
+        union KafkaRequestBeginEx switch (uint8)
         {
-            case 33 kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
+            case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
             case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
-            case 19 kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
+            case 19: kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
         }
 
         struct KafkaCreateTopicStatus
@@ -593,11 +593,11 @@ scope kafka
             KafkaResourceStatus[] resources;
         }
 
-        struct KafkaResponseBeginEx switch (uint8)
+        union KafkaResponseBeginEx switch (uint8)
         {
-            case 33 kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
+            case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
             case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
-            case 19 kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
+            case 19: kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
         }
     }
 
