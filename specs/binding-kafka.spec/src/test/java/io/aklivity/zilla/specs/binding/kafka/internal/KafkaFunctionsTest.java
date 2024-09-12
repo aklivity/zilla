@@ -509,7 +509,6 @@ public class KafkaFunctionsTest
         assertEquals(responseBeginEx.alterConfigs().resources().fieldCount(), 2);
     }
 
-
     @Test
     public void shouldGenerateMergedBeginExtension()
     {
@@ -2719,6 +2718,78 @@ public class KafkaFunctionsTest
                             .valueLen(5)
                             .value(v -> v.set("value".getBytes(UTF_8))))))
                 .deltaType(d -> d.set(KafkaDeltaType.NONE)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchCreateTopicsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .createTopics()
+                                                .topic()
+                                                   .name("events")
+                                                   .partitionCount(1)
+                                                   .replicas((short) 1)
+                                                   .assignment(0, 0)
+                                                   .config("cleanup.policy", "delete")
+                                                   .build()
+                                               .timeout(0)
+                                               .validateOnly("false")
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .createTopics(c -> c
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .partitionCount(1)
+                            .replicas((short) 1)
+                            .assignments(a -> a.item(ai -> ai.partitionId(0).leaderId(0)))
+                            .configs(f -> f.item(af -> af.name("cleanup.policy").value("delete")))))
+                    .timeout(0)
+                    .validateOnly(0)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .createTopics()
+                                                    .throttle(0)
+                                                    .topic()
+                                                       .name("events")
+                                                       .error((short) 0)
+                                                       .build()
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .createTopics(c -> c
+                    .throttle(0)
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .error((short) 0)))))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
