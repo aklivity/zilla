@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS dev_distinct_cities"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities"
       "SELECT id, DISTINCT city FROM weather;"
       [0x00]
 write flush
@@ -56,7 +56,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DESCRIBE MATERIALIZED VIEW dev_distinct_cities;"
+write "DESCRIBE MATERIALIZED VIEW distinct_cities;"
       [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()
@@ -150,7 +150,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS dev_distinct_cities "
+write "CREATE TOPIC IF NOT EXISTS distinct_cities "
       "(id VARCHAR, city VARCHAR);"
       [0x00]
 write flush

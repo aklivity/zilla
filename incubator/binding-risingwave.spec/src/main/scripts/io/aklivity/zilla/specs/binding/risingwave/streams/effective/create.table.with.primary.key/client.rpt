@@ -32,21 +32,23 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS dev_cities ("
-      "    *,"
-      "    PRIMARY KEY (id)"
-      ") INCLUDE KEY AS key"
-      "WITH ("
-         "connector='kafka',"
-         "properties.bootstrap.server='localhost:9092',"
-          "topic='dev_cities',"
-          "scan.startup.mode='latest',"
-          "scan.startup.timestamp.millis='140000000'"
-      ") "
-      ") FORMAT UPSERT ENCODE AVRO ("
-         "schema.registry = 'http://localhost:8081'"
-      ");"
+write "CREATE TABLE IF NOT EXISTS cities (\n"
+      "    *,\n"
+      "    PRIMARY KEY (id)\n"
+      ") INCLUDE KEY AS key\n"
+      "WITH (\n"
+        "connector='kafka',\n"
+        "properties.bootstrap.server='localhost:9092',\n"
+         "topic='dev_cities',\n"
+         "scan.startup.mode='latest',\n"
+         "scan.startup.timestamp.millis='140000000'\n"
+     ") \n"
+     ") FORMAT UPSERT ENCODE AVRO (\n"
+        "schema.registry = 'http://localhost:8081'\n"
+     ");"
       [0x00]
+
+write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -85,7 +87,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS dev_cities "
+write "CREATE TOPIC IF NOT EXISTS cities "
       "(description VARCHAR, id VARCHAR, name VARCHAR, PRIMARY KEY (id));"
       [0x00]
 write flush
