@@ -64,6 +64,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
@@ -75,8 +76,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final int FLAGS_CONT = 0x00;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
-
-    private static final byte[] CREATE_TABLE_COMMAND = "CREATE_TABLE".getBytes();
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -140,6 +139,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::onDecodeCreateMaterializedViewCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -1429,6 +1429,61 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             else if (server.commandsProcessed == 1 && primaryKey != null)
             {
                 generator = binding.createTable;
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                generator = binding.createSource;
+            }
+
+            final String newStatement = generator.generate(statement);
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.completion = completeKnownCommand;
+        }
+    }
+
+    private void onDecodeCreateMaterializedViewCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        if (server.commandsProcessed == 4)
+        {
+            server.onCommandCompleted(traceId, authorization, length,
+                RisingwaveCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
+        }
+        else
+        {
+            final RisingwaveBindingConfig binding = server.binding;
+            final CreateView statement = (CreateView) parseStatement(buffer, offset, length);
+
+            CommandGenerator generator = null;
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                generator = binding.createView;
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                generator = binding.describeView;
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                generator = binding.createTopic;
+            }
+            else if (server.commandsProcessed == 3)
+            {
+                generator = binding.createSink;
             }
 
             final String newStatement = generator.generate(statement);

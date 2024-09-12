@@ -20,6 +20,7 @@ public enum RisingwaveCommandType
 {
     CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
     CREATE_TABLE_COMMAND("CREATE TABLE".getBytes()),
+    CREATE_MATERIALIZED_VIEW_COMMAND("CREATE MATERIALIZED VIEW".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;

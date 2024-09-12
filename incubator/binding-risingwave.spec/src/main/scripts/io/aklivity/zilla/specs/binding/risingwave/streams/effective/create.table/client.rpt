@@ -32,8 +32,8 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SOURCE IF NOT EXISTS weather(*) "
-     "INCLUDE KEY AS weather_id "
+write "CREATE SOURCE IF NOT EXISTS dev_weather (*) "
+     "INCLUDE KEY AS key "
      "WITH ("
          "connector='kafka', "
          "topic='weather', "
@@ -83,7 +83,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS weather "
+write "CREATE TOPIC IF NOT EXISTS dev_weather "
       "(city VARCHAR, temperature DOUBLE, date DATE);"
       [0x00]
 

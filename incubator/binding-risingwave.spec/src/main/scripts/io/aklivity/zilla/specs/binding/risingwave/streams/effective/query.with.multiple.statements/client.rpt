@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS cities(*, PRIMARY KEY (id)) "
+write "CREATE TABLE IF NOT EXISTS dev_cities(*, PRIMARY KEY (id)) "
      "INCLUDE KEY AS cities_id "
      "WITH ("
          "connector='kafka', "
@@ -44,7 +44,7 @@ write "CREATE TABLE IF NOT EXISTS cities(*, PRIMARY KEY (id)) "
      "FORMAT UPSERT ENCODE AVRO ( "
          "schema.registry = 'http://localhost:8081'"
      ");"
-     "UPDATE weather SET id = 'test';"
+     "UPDATE dev_weather SET id = 'test';"
      [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()

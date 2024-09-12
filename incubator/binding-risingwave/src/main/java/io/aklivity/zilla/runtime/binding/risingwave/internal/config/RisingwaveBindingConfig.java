@@ -23,8 +23,12 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewGenerator;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkGenerator;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceGenerator;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableGenerator;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicGenerator;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeMaterializedViewGenerator;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -38,7 +42,11 @@ public final class RisingwaveBindingConfig
     public final KindConfig kind;
     public final List<RisingwaveRouteConfig> routes;
     public final RisingwaveCreateTopicGenerator createTopic;
+    public final RisingwaveCreateMaterializedViewGenerator createView;
+    public final RisingwaveDescribeMaterializedViewGenerator describeView;
     public final RisingwaveCreateTableGenerator createTable;
+    public final RisingwaveCreateSourceGenerator createSource;
+    public final RisingwaveCreateSinkGenerator createSink;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -51,14 +59,19 @@ public final class RisingwaveBindingConfig
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
-        this.createTopic = new RisingwaveCreateTopicGenerator();
-
         final CatalogedConfig cataloged = options.kafka.format.cataloged.get(0);
         cataloged.id = binding.resolveId.applyAsLong(cataloged.name);
 
         final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
         this.createTable = new RisingwaveCreateTableGenerator(options.kafka.properties.bootstrapServer,
             catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
+        this.createSource = new RisingwaveCreateSourceGenerator(options.kafka.properties.bootstrapServer,
+            catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
+        this.createSink = new RisingwaveCreateSinkGenerator(
+            options.kafka.properties.bootstrapServer, catalogHandler.location());
+        this.createTopic = new RisingwaveCreateTopicGenerator();
+        this.createView = new RisingwaveCreateMaterializedViewGenerator();
+        this.describeView = new RisingwaveDescribeMaterializedViewGenerator();
     }
 
     public RisingwaveRouteConfig resolve(
