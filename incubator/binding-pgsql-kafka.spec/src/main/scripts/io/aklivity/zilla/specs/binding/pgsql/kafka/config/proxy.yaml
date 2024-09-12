@@ -23,20 +23,9 @@ catalogs:
 
 bindings:
   app0:
-    type: risingwave
+    type: pgsql-kafka
     kind: proxy
-    options:
-      kafka:
-        properties:
-          bootstrap.server: localhost:9092
-        format:
-          model: test
-          catalog:
-            catalog0:
-              - strategy: topic
-    routes:
-      - exit: app2
-        when:
-          - commands:
-              - "CREATE TOPIC"
+    catalog:
+      catalog0:
+        - strategy: topic
     exit: app1
