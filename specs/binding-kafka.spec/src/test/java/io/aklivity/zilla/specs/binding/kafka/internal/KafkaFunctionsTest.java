@@ -52,6 +52,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
@@ -2793,6 +2794,40 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchAlterConfigsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .request()
+                                                 .alterConfigs()
+                                                    .resource()
+                                                       .type("TOPIC")
+                                                       .name("events")
+                                                       .config("cleanup.policy", "delete")
+                                                       .build()
+                                                   .validateOnly("false")
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .alterConfigs(c -> c
+                    .resources(t -> t
+                        .item(i -> i
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name("events")
+                            .configs(f -> f.item(af -> af.name("cleanup.policy").value("delete")))))
+                    .validateOnly(0)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -2851,6 +2886,40 @@ public class KafkaFunctionsTest
                         .item(i -> i
                             .name("events")
                             .error((short) 0)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchAlterConfigsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .alterConfigs()
+                                    .throttle(0)
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .build()
+                                   .build()
+                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .alterConfigs(c -> c
+                    .throttle(0)
+                    .resources(t -> t
+                        .item(i -> i
+                            .error((short) 0)
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name("events")))))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

@@ -6626,6 +6626,13 @@ public final class KafkaFunctions
                 return deleteTopicMatcher;
             }
 
+            public KafkaAlterConfigsRequestMatcherBuilder alterConfigs()
+            {
+                KafkaAlterConfigsRequestMatcherBuilder alterConfigsMatcher = new KafkaAlterConfigsRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = alterConfigsMatcher::match;
+                return alterConfigsMatcher;
+            }
+
             public final class KafkaCreateTopicsRequestMatcherBuilder
             {
                 private Array32FW.Builder<KafkaCreateTopicFW.Builder, KafkaCreateTopicFW> topicsRW;
@@ -6813,6 +6820,104 @@ public final class KafkaFunctions
                     return timeout == null || timeout == deleteTopicsRequestBeginEx.timeout();
                 }
             }
+
+            public final class KafkaAlterConfigsRequestMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaResourceFW.Builder, KafkaResourceFW> resourcesRW;
+                private Integer timeout;
+                private Boolean validateOnly;
+
+                private KafkaAlterConfigsRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    if (resourcesRW == null)
+                    {
+                        resourcesRW = new Array32FW.Builder<>(new KafkaResourceFW.Builder(), new KafkaResourceFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaAlterConfigsRequestMatcherBuilder validateOnly(
+                    String validateOnly)
+                {
+                    this.validateOnly = Boolean.valueOf(validateOnly);
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        resourceRW.wrap(resourceBuffer, 0, resourceBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder config(
+                        String name,
+                        String value)
+                    {
+                        resourceRW.configsItem(c -> c.name(name).value(value));
+                        return this;
+                    }
+
+                    public KafkaAlterConfigsRequestMatcherBuilder build()
+                    {
+                        KafkaResourceFW topic = resourceRW.build();
+                        resourcesRW.item(t -> t
+                            .type(topic.type())
+                            .name(topic.name())
+                            .configs(topic.configs()));
+
+                        return KafkaAlterConfigsRequestMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaAlterConfigsRequestBeginExFW alterConfigs = beginEx.request().alterConfigs();
+                    return matchResources(alterConfigs) &&
+                        matchValidateOnly(alterConfigs);
+                }
+
+                private boolean matchResources(
+                    final KafkaAlterConfigsRequestBeginExFW alterConfigsRequestBeginEx)
+                {
+                    return resourcesRW == null || resourcesRW.build().equals(alterConfigsRequestBeginEx.resources());
+                }
+
+                private boolean matchValidateOnly(
+                    final KafkaAlterConfigsRequestBeginExFW alterConfigsRequestBeginEx)
+                {
+                    return validateOnly == null || validateOnly == (alterConfigsRequestBeginEx.validateOnly() != 0);
+                }
+            }
         }
 
         public final class KafkaResponseBeginExMatcherBuilder
@@ -6838,6 +6943,13 @@ public final class KafkaFunctions
                 KafkaDeleteTopicsResponseMatcherBuilder deleteTopicMatcher = new KafkaDeleteTopicsResponseMatcherBuilder();
                 KafkaBeginExMatcherBuilder.this.caseMatcher = deleteTopicMatcher::match;
                 return deleteTopicMatcher;
+            }
+
+            public KafkaAlterConfigsResponseMatcherBuilder alterConfigs()
+            {
+                KafkaAlterConfigsResponseMatcherBuilder alterConfigsMatcher = new KafkaAlterConfigsResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = alterConfigsMatcher::match;
+                return alterConfigsMatcher;
             }
 
             public final class KafkaCreateTopicsResponseMatcherBuilder
@@ -7021,6 +7133,102 @@ public final class KafkaFunctions
                     final KafkaDeleteTopicsResponseBeginExFW createTopicsResponseBeginEx)
                 {
                     return topicsRW == null || topicsRW.build().equals(createTopicsResponseBeginEx.topics());
+                }
+            }
+
+            public final class KafkaAlterConfigsResponseMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaResourceStatusFW.Builder, KafkaResourceStatusFW> resourcesRW;
+                private Integer throttle;
+
+                private KafkaAlterConfigsResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaAlterConfigsResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    if (resourcesRW == null)
+                    {
+                        resourcesRW = new Array32FW.Builder<>(new KafkaResourceStatusFW.Builder(), new KafkaResourceStatusFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final KafkaResourceStatusFW.Builder resourceRW = new KafkaResourceStatusFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        resourceRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder error(
+                        short error)
+                    {
+                        resourceRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaAlterConfigsResponseMatcherBuilder build()
+                    {
+                        KafkaResourceStatusFW topic = resourceRW.build();
+                        resourcesRW.item(t -> t
+                            .error(topic.error())
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name(topic.name()));
+
+                        return KafkaAlterConfigsResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaAlterConfigsResponseBeginExFW alterConfigs = beginEx.response().alterConfigs();
+                    return matchThrottle(alterConfigs) &&
+                        matchResources(alterConfigs);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaAlterConfigsResponseBeginExFW alterConfigsResponseBeginEx)
+                {
+                    return throttle == null || throttle == alterConfigsResponseBeginEx.throttle();
+                }
+
+                private boolean matchResources(
+                    final KafkaAlterConfigsResponseBeginExFW alterConfigsResponseBeginEx)
+                {
+                    return resourcesRW == null || resourcesRW.build().equals(alterConfigsResponseBeginEx.resources());
                 }
             }
         }

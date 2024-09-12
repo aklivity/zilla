@@ -22,7 +22,7 @@ accept ${serverAddress}
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .request()
                                  .alterConfigs()
