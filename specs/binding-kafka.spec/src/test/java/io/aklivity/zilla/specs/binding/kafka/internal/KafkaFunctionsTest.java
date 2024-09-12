@@ -2764,6 +2764,35 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchDeleteTopicsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .deleteTopics()
+                                                .topic("events")
+                                                .topic("snapshots")
+                                                .timeout(0)
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .deleteTopics(c -> c
+                    .names(n -> n
+                        .item(i -> i.set("events", UTF_8))
+                        .item(i -> i.set("snapshots", UTF_8)))
+                    .timeout(0))
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -2785,6 +2814,38 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .response(r -> r
                 .createTopics(c -> c
+                    .throttle(0)
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .error((short) 0)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDeleteTopicsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .deleteTopics()
+                                                    .throttle(0)
+                                                    .topic()
+                                                       .name("events")
+                                                       .error((short) 0)
+                                                       .build()
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .deleteTopics(c -> c
                     .throttle(0)
                     .topics(t -> t
                         .item(i -> i

@@ -6619,6 +6619,13 @@ public final class KafkaFunctions
                 return createTopicMatcher;
             }
 
+            public KafkaDeleteTopicsRequestMatcherBuilder deleteTopics()
+            {
+                KafkaDeleteTopicsRequestMatcherBuilder deleteTopicMatcher = new KafkaDeleteTopicsRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = deleteTopicMatcher::match;
+                return deleteTopicMatcher;
+            }
+
             public final class KafkaCreateTopicsRequestMatcherBuilder
             {
                 private Array32FW.Builder<KafkaCreateTopicFW.Builder, KafkaCreateTopicFW> topicsRW;
@@ -6748,6 +6755,64 @@ public final class KafkaFunctions
                     return validateOnly == null || validateOnly == (createTopicsRequestBeginEx.validateOnly() != 0);
                 }
             }
+
+            public final class KafkaDeleteTopicsRequestMatcherBuilder
+            {
+                private Array32FW.Builder<String16FW.Builder, String16FW> topicsRW;
+                private Integer timeout;
+
+
+                private KafkaDeleteTopicsRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaDeleteTopicsRequestMatcherBuilder topic(
+                    String topic)
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new String16FW.Builder(), new String16FW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    topicsRW.item(i -> i.set(topic, UTF_8));
+
+                    return this;
+                }
+
+                public KafkaDeleteTopicsRequestMatcherBuilder timeout(
+                    int timeout)
+                {
+                    this.timeout = timeout;
+                    return this;
+                }
+
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDeleteTopicsRequestBeginExFW deleteTopics = beginEx.request().deleteTopics();
+                    return matchTopics(deleteTopics) &&
+                        matchTimeout(deleteTopics);
+                }
+
+                private boolean matchTopics(
+                    final KafkaDeleteTopicsRequestBeginExFW deleteTopicsRequestBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(deleteTopicsRequestBeginEx.names());
+                }
+
+                private boolean matchTimeout(
+                    final KafkaDeleteTopicsRequestBeginExFW deleteTopicsRequestBeginEx)
+                {
+                    return timeout == null || timeout == deleteTopicsRequestBeginEx.timeout();
+                }
+            }
         }
 
         public final class KafkaResponseBeginExMatcherBuilder
@@ -6766,6 +6831,13 @@ public final class KafkaFunctions
                 KafkaCreateTopicsResponseMatcherBuilder createTopicMatcher = new KafkaCreateTopicsResponseMatcherBuilder();
                 KafkaBeginExMatcherBuilder.this.caseMatcher = createTopicMatcher::match;
                 return createTopicMatcher;
+            }
+
+            public KafkaDeleteTopicsResponseMatcherBuilder deleteTopics()
+            {
+                KafkaDeleteTopicsResponseMatcherBuilder deleteTopicMatcher = new KafkaDeleteTopicsResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = deleteTopicMatcher::match;
+                return deleteTopicMatcher;
             }
 
             public final class KafkaCreateTopicsResponseMatcherBuilder
@@ -6859,6 +6931,94 @@ public final class KafkaFunctions
 
                 private boolean matchTopics(
                     final KafkaCreateTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(createTopicsResponseBeginEx.topics());
+                }
+            }
+
+            public final class KafkaDeleteTopicsResponseMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaDeleteTopicStatusFW.Builder, KafkaDeleteTopicStatusFW> topicsRW;
+                private Integer throttle;
+
+                private KafkaDeleteTopicsResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaDeleteTopicsResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new KafkaDeleteTopicStatusFW.Builder(), new KafkaDeleteTopicStatusFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final KafkaDeleteTopicStatusFW.Builder topicRW = new KafkaDeleteTopicStatusFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder error(
+                        short error)
+                    {
+                        topicRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaDeleteTopicsResponseMatcherBuilder build()
+                    {
+                        KafkaDeleteTopicStatusFW topic = topicRW.build();
+                        topicsRW.item(t -> t
+                            .name(topic.name())
+                            .error(topic.error()));
+
+                        return KafkaDeleteTopicsResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDeleteTopicsResponseBeginExFW deleteTopics = beginEx.response().deleteTopics();
+                    return matchThrottle(deleteTopics) &&
+                        matchTopics(deleteTopics);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaDeleteTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return throttle == null || throttle == createTopicsResponseBeginEx.throttle();
+                }
+
+                private boolean matchTopics(
+                    final KafkaDeleteTopicsResponseBeginExFW createTopicsResponseBeginEx)
                 {
                     return topicsRW == null || topicsRW.build().equals(createTopicsResponseBeginEx.topics());
                 }

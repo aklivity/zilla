@@ -30,7 +30,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .response()
                                  .deleteTopics()
