@@ -61,6 +61,10 @@ public interface CatalogHandler
             ValueConsumer next);
     }
 
+    int register(
+        String subject,
+        String schema);
+
     String resolve(
         int schemaId);
 
