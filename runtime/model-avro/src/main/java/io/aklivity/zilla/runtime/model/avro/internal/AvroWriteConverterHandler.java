@@ -87,34 +87,37 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         {
             Schema schema = supplySchema(schemaId);
 
-            switch (schema.getType())
+            if (schema != null)
             {
-            case STRING:
-                next.accept(buffer, index, length);
-                valLength = length;
-                break;
-            case RECORD:
-                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-                GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
-                if (reader != null)
+                switch (schema.getType())
                 {
-                    GenericRecord record = supplyRecord(schemaId);
-                    in.wrap(buffer, index, length);
-                    expandable.wrap(expandable.buffer());
-                    record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
-                    encoderFactory.binaryEncoder(expandable, encoder);
-                    writer.write(record, encoder);
-                    encoder.flush();
-                    int position = expandable.position();
-                    if (position > 0)
+                case STRING:
+                    next.accept(buffer, index, length);
+                    valLength = length;
+                    break;
+                case RECORD:
+                    GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                    GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
+                    if (reader != null)
                     {
-                        next.accept(expandable.buffer(), 0, position);
-                        valLength = position;
+                        GenericRecord record = supplyRecord(schemaId);
+                        in.wrap(buffer, index, length);
+                        expandable.wrap(expandable.buffer());
+                        record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
+                        encoderFactory.binaryEncoder(expandable, encoder);
+                        writer.write(record, encoder);
+                        encoder.flush();
+                        int position = expandable.position();
+                        if (position > 0)
+                        {
+                            next.accept(expandable.buffer(), 0, position);
+                            valLength = position;
+                        }
                     }
+                    break;
+                default:
+                    break;
                 }
-                break;
-            default:
-                break;
             }
         }
         catch (IOException | AvroRuntimeException ex)
