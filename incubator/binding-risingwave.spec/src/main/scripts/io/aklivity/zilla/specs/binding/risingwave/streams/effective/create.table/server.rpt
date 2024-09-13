@@ -36,17 +36,16 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SOURCE IF NOT EXISTS weather (*) "
-     "INCLUDE KEY AS weather_id "
-     "WITH ("
-         "connector='kafka', "
-         "topic='weather', "
-         "properties.bootstrap.server='localhost:9092', "
-         "scan.startup.mode='latest', "
-         "scan.startup.timestamp.millis='140000000' "
-     ") "
-     "FORMAT UPSERT ENCODE AVRO ( "
-         "schema.registry = 'http://localhost:8081'"
+read "CREATE SOURCE IF NOT EXISTS weather (*)\n"
+     "WITH (\n"
+     "   connector='kafka',\n"
+     "   properties.bootstrap.server='localhost:9092',\n"
+     "   topic='weather',\n"
+     "   scan.startup.mode='latest',\n"
+     "   scan.startup.timestamp.millis='140000000'\n"
+     ")\n"
+     ") FORMAT UPSERT ENCODE AVRO (\n"
+     "   schema.registry = 'http://localhost:8081'\n"
      ");"
      [0x00]
 
@@ -64,8 +63,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write close
-read closed
 
 accept "zilla://streams/app2"
     option zilla:window 8192
@@ -108,5 +105,3 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write close
-read closed
