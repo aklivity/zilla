@@ -325,68 +325,125 @@
             "type": "array",
             "items":
             {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties":
+                "type": "object",
+                "additionalProperties": false,
+                "properties":
+                {
+                    "name":
                     {
-                        "name":
-                        {
-                            "type": "string"
-                        },
-                        "defaultOffset":
-                        {
-                            "type": "string",
-                            "enum": [ "live", "historical" ],
-                            "default": "historical"
-                        },
-                        "deltaType":
-                        {
-                            "type": "string",
-                            "enum": [ "none", "json_patch" ],
-                            "deprecated": true
-                        },
-                        "transforms":
-                        {
-                            "title": "Transforms",
-                            "type": "array",
-                            "items":
-                            [
-                                {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties":
+                        "type": "string"
+                    },
+                    "defaultOffset":
+                    {
+                        "type": "string",
+                        "enum": [ "live", "historical" ]
+                    },
+                    "deltaType":
+                    {
+                        "type": "string",
+                        "enum": [ "none", "json_patch" ],
+                        "deprecated": true
+                    },
+                    "transforms":
+                    {
+                        "title": "Transforms",
+                        "type": "array",
+                        "oneOf":
+                        [
+                            {
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items":
+                                [
                                     {
-                                        "extract-headers":
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
                                         {
-                                            "type": "object",
-                                            "patternProperties":
+                                            "extract-key":
                                             {
-                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                {
-                                                    "type": "string",
-                                                    "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                }
-                                            },
-                                            "additionalProperties": false
-                                        },
-                                        "extract-key":
+                                                "type": "string",
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
                                         {
-                                            "type": "string",
-                                            "additionalProperties": false
+                                            "extract-headers":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
                                         }
                                     }
-                                }
-                            ]
-
-                        },
-                        "key":
-                        {
-                            "$ref": "#/$defs/converter"
-                        },
-                        "value":
-                        {
-                            "$ref": "#/$defs/converter"
-                        }
+                                ],
+                            },
+                            {
+                                "minItems": 1,
+                                "maxItems": 1,
+                                "items":
+                                [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "extract-headers":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "minItems": 1,
+                                "maxItems": 1,
+                                "items":
+                                [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "extract-key":
+                                            {
+                                                "type": "string",
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "key":
+                    {
+                        "$ref": "#/$defs/converter"
+                    },
+                    "value":
+                    {
+                        "$ref": "#/$defs/converter"
                     }
                 }
         }
