@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
+    int NO_VERSION_ID = 0;
 
     @FunctionalInterface
     interface Decoder
@@ -61,9 +62,12 @@ public interface CatalogHandler
             ValueConsumer next);
     }
 
-    int register(
+    default int register(
         String subject,
-        String schema);
+        String schema)
+    {
+        return NO_VERSION_ID;
+    }
 
     String resolve(
         int schemaId);

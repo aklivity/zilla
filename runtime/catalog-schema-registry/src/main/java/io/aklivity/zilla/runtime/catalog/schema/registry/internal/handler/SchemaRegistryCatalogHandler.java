@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
+    private static final String SUBJECT_PATH = "subjects/{0}/versions";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
 
     private static final int MAX_PADDING_LENGTH = 5;
@@ -78,6 +79,22 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
+    }
+
+    @Override
+    public int register(
+        String subject,
+        String schema)
+    {
+        int versionId = NO_VERSION_ID;
+
+        String response = sendPostHttpRequest(MessageFormat.format(SUBJECT_PATH, subject), schema);
+        if (response != null)
+        {
+            versionId = request.resolveResponse(response);
+        }
+
+        return versionId;
     }
 
     @Override
@@ -332,6 +349,30 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         HttpRequest httpRequest = HttpRequest
                 .newBuilder(toURI(baseUrl, path))
                 .GET()
+                .build();
+        // TODO: introduce interrupt/timeout for request to schema registry
+
+        String responseBody;
+        try
+        {
+            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
+        }
+        catch (Exception ex)
+        {
+            responseBody = null;
+        }
+        return responseBody;
+    }
+
+    private String sendPostHttpRequest(
+        String path,
+        String body)
+    {
+        HttpRequest httpRequest = HttpRequest
+                .newBuilder(toURI(baseUrl, path))
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
         // TODO: introduce interrupt/timeout for request to schema registry
 

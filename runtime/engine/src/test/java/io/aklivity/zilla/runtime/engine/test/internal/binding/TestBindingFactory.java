@@ -126,7 +126,7 @@ final class TestBindingFactory implements BindingHandler
 
             if (options.cataloged != null)
             {
-                this.catalog = options.cataloged.size() != 0 ? options.cataloged.get(0).schemas.get(0) : null;
+                this.catalog = !options.cataloged.isEmpty() ? options.cataloged.get(0).schemas.get(0) : null;
                 this.catalogs = new LinkedList<>();
                 for (CatalogedConfig catalog : options.cataloged)
                 {
@@ -347,7 +347,11 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
-                    if (catalog.subject != null && catalog.version != null)
+                    if (catalog.subject != null && catalog.record != null)
+                    {
+                        handler.register(catalog.subject, catalog.record);
+                    }
+                    else if (catalog.subject != null && catalog.version != null)
                     {
                         handler.resolve(catalog.subject, catalog.version);
                     }
