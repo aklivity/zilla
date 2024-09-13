@@ -20,8 +20,9 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 public class RisingwaveCreateTopicGenerator extends CommandGenerator
 {
     private final String sqlFormat = """
-        CREATE TOPIC IF NOT EXISTS %s (%s PRIMARY KEY (%s));\u0000
+        CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000
         """;
+    private final String primaryKeyFormat = ", PRIMARY KEY (%s)";
     private final String fieldFormat = "%s %s, ";
 
     private final StringBuilder fieldBuilder = new StringBuilder();
@@ -35,13 +36,15 @@ public class RisingwaveCreateTopicGenerator extends CommandGenerator
     {
         CreateTable createTable = (CreateTable) statement;
         String topic = createTable.getTable().getName();
-        String primaryKey = getPrimaryKey(createTable);
+        String primaryKeyField = getPrimaryKey(createTable);
+        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
 
         fieldBuilder.setLength(0);
 
         createTable.getColumnDefinitions()
             .forEach(c -> fieldBuilder.append(
                 String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+        fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
         return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
     }

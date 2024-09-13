@@ -23,6 +23,11 @@ public class RisingwaveKafkaConfig
     public final RisingwaveKafkaPropertiesConfig properties;
     public final ModelConfig format;
 
+    public static RisingwaveKafkaConfigBuilder<RisingwaveKafkaConfig> builder()
+    {
+        return new RisingwaveKafkaConfigBuilder<>(RisingwaveKafkaConfig.class::cast);
+    }
+
     public static <T> RisingwaveKafkaConfigBuilder<T> builder(
         Function<RisingwaveKafkaConfig, T> mapper)
     {

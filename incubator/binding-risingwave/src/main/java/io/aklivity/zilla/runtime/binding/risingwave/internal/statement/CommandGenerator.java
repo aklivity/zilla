@@ -31,14 +31,17 @@ public abstract class CommandGenerator
 
         final List<Index> indexes = statement.getIndexes();
 
-        match:
-        for (Index index : indexes)
+        if (indexes != null && !indexes.isEmpty())
         {
-            if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
+            match:
+            for (Index index : indexes)
             {
-                final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                primaryKey = primaryKeyColumns.get(0).columnName;
-                break match;
+                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
+                {
+                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
+                    primaryKey = primaryKeyColumns.get(0).columnName;
+                    break match;
+                }
             }
         }
 

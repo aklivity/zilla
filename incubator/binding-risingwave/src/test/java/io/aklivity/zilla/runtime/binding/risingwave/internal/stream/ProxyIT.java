@@ -58,4 +58,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/create.table/client",
+        "${effective}/create.table/server" })
+    public void shouldCreateTable() throws Exception
+    {
+        k3po.finish();
+    }
 }

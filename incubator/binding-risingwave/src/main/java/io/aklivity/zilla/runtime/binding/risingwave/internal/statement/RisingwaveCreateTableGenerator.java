@@ -20,20 +20,20 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 public class RisingwaveCreateTableGenerator extends CommandGenerator
 {
     private final String sqlFormat = """
-        CREATE TABLE IF NOT EXISTS %s ("
-         "    *,"
-         "    PRIMARY KEY (%s)"
-         ") INCLUDE KEY AS key"
-         "WITH ("
-            "connector='kafka',"
-            "properties.bootstrap.server='%s',"
-             "topic='%s',"
-             "scan.startup.mode='latest',"
-             "scan.startup.timestamp.millis='%d'"
-         ") "
-         ") FORMAT UPSERT ENCODE AVRO ("
-            "schema.registry = '%s'"
-         ");\u0000
+        CREATE TABLE IF NOT EXISTS %s (
+            *,
+            PRIMARY KEY (%s)
+        ) INCLUDE KEY AS key
+        WITH (
+           connector='kafka',
+           properties.bootstrap.server='%s',
+           topic='%s',
+           scan.startup.mode='latest',
+           scan.startup.timestamp.millis='%d'
+        )
+        ) FORMAT UPSERT ENCODE AVRO (
+           schema.registry = '%s'
+        );\u0000
         """;
 
     private final String bootstrapServer;
@@ -57,6 +57,6 @@ public class RisingwaveCreateTableGenerator extends CommandGenerator
         String table = createTable.getTable().getName();
         String primaryKey = getPrimaryKey(createTable);
 
-        return String.format(sqlFormat, table, primaryKey, bootstrapServer, schemaRegistry, scanStartupMil);
+        return String.format(sqlFormat, table, primaryKey, bootstrapServer, table, scanStartupMil, schemaRegistry);
     }
 }
