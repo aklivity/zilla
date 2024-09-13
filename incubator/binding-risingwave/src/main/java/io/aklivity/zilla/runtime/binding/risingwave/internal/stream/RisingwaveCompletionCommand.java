@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
 
 public enum RisingwaveCompletionCommand
 {
+    UNKNOWN_COMMAND("UNKNOWN".getBytes()),
     CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes()),
     CREATE_MATERIALIZED_VIEW_COMMAND("CREATE_MATERIALIZED_VIEW".getBytes());
 

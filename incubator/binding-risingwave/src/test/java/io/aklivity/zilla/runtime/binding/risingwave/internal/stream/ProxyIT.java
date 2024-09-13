@@ -68,4 +68,15 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/query.with.multiple.statements/client",
+        "${effective}/query.with.multiple.statements/server"
+    })
+    public void shouldHandleQueryWithMultiStatements() throws Exception
+    {
+        k3po.finish();
+    }
 }

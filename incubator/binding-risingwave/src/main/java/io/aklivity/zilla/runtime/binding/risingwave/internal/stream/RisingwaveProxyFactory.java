@@ -491,7 +491,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
             final int queryLength = queries.peekInt();
-            queryProgressOffset += progress + 1;
+            queryProgressOffset += progress;
             if (queryLength == queryProgressOffset)
             {
                 queryProgressOffset = 0;
@@ -653,16 +653,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             RisingwaveCompletionCommand command)
         {
-            extBuffer.putBytes(0, command.value());
-            extBuffer.putInt(command.value().length, END_OF_FIELD);
+            if (command != RisingwaveCompletionCommand.UNKNOWN_COMMAND)
+            {
+                extBuffer.putBytes(0, command.value());
+                extBuffer.putInt(command.value().length, END_OF_FIELD);
 
-            Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
-                .typeId(pgsqlTypeId)
+                Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                    .typeId(pgsqlTypeId)
 
-                .completion(c -> c.tag(extBuffer, 0,  command.value().length + 1))
-                .build().sizeof());
+                    .completion(c -> c.tag(extBuffer, 0,  command.value().length + 1))
+                    .build().sizeof());
 
-            doApplicationFlush(traceId, authorization, completionEx);
+                doApplicationFlush(traceId, authorization, completionEx);
+            }
         }
 
         private void doQueryReady(
@@ -693,7 +696,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 {
                     if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
                     {
-                        int length = progress - statementOffset + 1;
+                        int length = progress - statementOffset + Byte.BYTES;
+                        if (parserBuffer.getByte(progress + Byte.BYTES) == END_OF_FIELD)
+                        {
+                            length += Byte.BYTES;
+                        }
                         final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
                         final PgsqlTransform transform = clientTransforms.get(command);
                         transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
@@ -1507,12 +1514,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        final RisingwaveRouteConfig route =
-            server.binding.resolve(authorization, buffer, offset, length);
+        if (server.commandsProcessed == 1)
+        {
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.UNKNOWN_COMMAND);
+        }
+        else
+        {
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, buffer, offset, length);
 
-        final PgsqlClient client = server.streamsByRouteIds.get(route.id);
-        client.doPgsqlQuery(traceId, authorization, buffer, offset, length);
-        client.completion = completeUnknownCommand;
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, buffer, offset, length);
+            client.completion = completeUnknownCommand;
+        }
     }
 
     private void completeKnownCommand(

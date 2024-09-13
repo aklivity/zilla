@@ -30,8 +30,7 @@ public class RisingwaveCreateSourceGenerator extends CommandGenerator
         )
         ) FORMAT UPSERT ENCODE AVRO (
            schema.registry = '%s'
-        );\u0000
-        """;
+        );\u0000""";
 
     private final String bootstrapServer;
     private final String schemaRegistry;

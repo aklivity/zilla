@@ -60,5 +60,3 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-read closed
-write close
