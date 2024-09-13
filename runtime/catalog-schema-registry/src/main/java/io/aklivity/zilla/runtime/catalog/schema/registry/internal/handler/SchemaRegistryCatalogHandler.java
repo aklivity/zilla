@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
-    private static final String SUBJECT_PATH = "subjects/{0}/versions";
+    private static final String SUBJECT_PATH = "/subjects/{0}/versions";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
 
     private static final int MAX_PADDING_LENGTH = 5;

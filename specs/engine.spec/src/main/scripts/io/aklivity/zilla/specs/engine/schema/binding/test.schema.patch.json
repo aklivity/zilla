@@ -37,6 +37,10 @@
                         "type": "object",
                         "properties":
                         {
+                            "schema":
+                            {
+                                "type": "string"
+                            },
                             "value":
                             {
                                 "$ref": "#/$defs/converter"

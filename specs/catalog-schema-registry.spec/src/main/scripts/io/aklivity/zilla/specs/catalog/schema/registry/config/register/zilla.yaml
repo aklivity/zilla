@@ -25,27 +25,27 @@ bindings:
     type: test
     kind: server
     options:
+      schema: |
+        {
+          "schema":
+          {
+              "type": "record",
+              "name": "test",
+              "fields":
+              [
+                {
+                  "type": "string",
+                  "name": "field1"
+                },
+                {
+                  "type": "com.acme.Referenced",
+                  "name": "int"
+                }
+              ]
+            },
+          "schemaType":"AVRO"
+        }
       catalog:
         catalog0:
           - subject: items-snapshots-value
-            record: |
-              {
-                "schema":
-                {
-                    "type": "record",
-                    "name": "test",
-                    "fields":
-                    [
-                      {
-                        "type": "string",
-                        "name": "field1"
-                      },
-                      {
-                        "type": "com.acme.Referenced",
-                        "name": "int"
-                      }
-                    ]
-                  },
-                "schemaType":"AVRO"
-              }
     exit: app0

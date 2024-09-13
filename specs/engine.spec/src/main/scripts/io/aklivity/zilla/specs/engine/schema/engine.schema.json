@@ -300,26 +300,6 @@
                         "subject"
                     ],
                     "additionalProperties": false
-                },
-                {
-                    "type": "object",
-                    "properties":
-                    {
-                        "subject":
-                        {
-                            "type": "string"
-                        },
-                        "record":
-                        {
-                            "type": "string",
-                        }
-                    },
-                    "required":
-                    [
-                        "subject",
-                        "record"
-                    ],
-                    "additionalProperties": false
                 }
             ]
         },
