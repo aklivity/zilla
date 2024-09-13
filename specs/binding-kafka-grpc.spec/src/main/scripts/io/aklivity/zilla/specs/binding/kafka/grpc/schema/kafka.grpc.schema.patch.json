@@ -192,17 +192,10 @@
                             ]
                         }
                     },
-                    "exit": false,
-                    "entry":
-                    {
-                        "title": "Entry",
-                        "type": "string",
-                        "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
-                    }
+                    "exit": false
                 },
                 "required":
                 [
-                    "entry",
                     "routes"
                 ]
             }
