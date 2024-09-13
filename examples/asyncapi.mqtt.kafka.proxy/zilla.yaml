@@ -19,7 +19,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: mqtt
-              version: latest
     exit: south_kafka_proxy
   south_kafka_proxy:
     type: asyncapi
@@ -30,12 +29,10 @@ bindings:
           catalog:
             host_filesystem:
               subject: mqtt
-              version: latest
         kafka_api:
           catalog:
             host_filesystem:
               subject: kafka
-              version: latest
       mqtt-kafka:
         channels:
           sessions: mqttSessions
@@ -86,7 +83,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: kafka
-              version: latest
 telemetry:
   exporters:
     stdout_logs_exporter:

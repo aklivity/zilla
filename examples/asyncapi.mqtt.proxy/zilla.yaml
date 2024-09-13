@@ -17,7 +17,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: smartylighting
-              version: latest
     exit: mqtt_proxy_client
   mqtt_proxy_client:
     type: asyncapi
@@ -28,7 +27,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: smartylighting
-              version: latest
       tcp:
         host: ${{env.MOSQUITTO_BROKER_HOST}}
         port: ${{env.MOSQUITTO_BROKER_PORT}}

@@ -17,7 +17,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: petstore
-              version: latest
     exit: south_openapi_client
   south_openapi_client:
     type: openapi
@@ -28,7 +27,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: petstore
-              version: latest
       tcp:
         host: openapi-mock
         port:

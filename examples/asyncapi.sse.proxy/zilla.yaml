@@ -17,7 +17,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: eventstore
-              version: latest
     exit: sse_proxy_client
   sse_proxy_client:
     type: asyncapi
@@ -28,7 +27,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: eventstore
-              version: latest
       tcp:
         host: ${{env.SSE_SERVER_HOST}}
         port: ${{env.SSE_SERVER_PORT}}
