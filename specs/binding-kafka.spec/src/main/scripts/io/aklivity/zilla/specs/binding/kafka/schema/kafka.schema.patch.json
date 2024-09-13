@@ -31,17 +31,24 @@
                     {
                         "enum": [ "cache_client", "cache_server", "client" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "topic":
@@ -380,7 +387,7 @@
                                             }
                                         }
                                     }
-                                ],
+                                ]
                             },
                             {
                                 "minItems": 1,

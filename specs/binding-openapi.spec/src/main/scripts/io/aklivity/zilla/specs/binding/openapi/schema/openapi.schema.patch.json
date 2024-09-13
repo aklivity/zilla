@@ -31,6 +31,7 @@
                     {
                         "enum": [ "client", "server" ]
                     },
+                    "catalog": false,
                     "options":
                     {
                         "properties":
@@ -88,6 +89,7 @@
                                             },
                                             "catalog":
                                             {
+                                                "title": "Catalog",
                                                 "type": "object",
                                                 "patternProperties":
                                                 {
@@ -142,22 +144,6 @@
                                 [
                                     "exit"
                                 ]
-                            },
-                            {
-                                "properties":
-                                {
-                                    "routes":
-                                    {
-                                        "required":
-                                        [
-                                            "exit"
-                                        ]
-                                    }
-                                },
-                                "required":
-                                [
-                                    "routes"
-                                ]
                             }
                         ]
                     },
@@ -167,16 +153,6 @@
                             "kind":
                             {
                                 "const": "client"
-                            },
-                            "routes":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "exit": false
-                                    }
-                                }
                             },
                             "exit": false
                         }

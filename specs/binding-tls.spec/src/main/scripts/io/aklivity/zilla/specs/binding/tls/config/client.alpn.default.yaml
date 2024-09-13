@@ -54,5 +54,4 @@ bindings:
                 - serverca
             alpn:
                 - protocol2
-                - null
         exit: net0

@@ -31,6 +31,7 @@
                     {
                         "enum": [ "proxy" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {
@@ -94,14 +95,20 @@
                     },
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "method":
@@ -143,6 +150,7 @@
                                                     "type": "array",
                                                     "items":
                                                     {
+                                                        "type": "object",
                                                         "properties":
                                                         {
                                                             "key":
@@ -228,7 +236,8 @@
                                                 {
                                                     "title": "Acks",
                                                     "type": "string",
-                                                    "enum": [ "none", "leader_only", "in_sync_replicas" ]
+                                                    "enum": [ "none", "leader_only", "in_sync_replicas" ],
+                                                    "default": "in_sync_replicas"
                                                 },
                                                 "key":
                                                 {

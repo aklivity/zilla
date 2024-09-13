@@ -41,6 +41,8 @@
         "path": "/$defs/options/catalog/schema-registry",
         "value":
         {
+            "title": "Schema Registry",
+            "type": "object",
             "properties":
             {
                 "url":

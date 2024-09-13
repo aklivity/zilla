@@ -31,16 +31,23 @@
                     {
                         "enum": [ "client", "server", "proxy" ]
                     },
+                    "catalog": false,
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "authority":
@@ -184,6 +191,8 @@
         "path": "/$defs/options/binding/tls",
         "value":
         {
+            "title": "Options",
+            "type": "object",
             "properties":
             {
                 "version":
@@ -229,7 +238,7 @@
                     "type": "array",
                     "items":
                     {
-                        "type": [ "string", "null" ]
+                        "type": "string"
                     }
                 },
                 "mutual":
@@ -247,6 +256,7 @@
                         "type": "string"
                     }
                 }
+
             },
             "not":
             {
