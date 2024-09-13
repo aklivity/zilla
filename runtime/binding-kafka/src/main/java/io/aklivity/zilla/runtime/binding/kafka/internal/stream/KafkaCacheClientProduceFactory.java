@@ -1124,8 +1124,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             final KafkaCachePartition.Node node = this.partition.seekNotAfter(partitionOffset);
             final KafkaCacheEntryFW dirtyEntry = node.findAndMarkDirty(entryRO, partitionOffset);
-            System.out.printf("markEntryDirty with topicName: %s, partition.id: %d, partitionOffset: %d%n",
-                topicName, partition.id(), partitionOffset);
 
             final long newCompactAt = this.partition.compactAt(node.segment());
 
@@ -1634,7 +1632,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 if (nextEntry != null && nextEntry.ownerId() == initialId)
                 {
                     cursor.markEntryDirty(nextEntry);
-                    System.out.printf("Marked entry dirty with offset: %d%n", cursor.offset);
                 }
                 cursor.advance(cursor.offset + 1);
             }

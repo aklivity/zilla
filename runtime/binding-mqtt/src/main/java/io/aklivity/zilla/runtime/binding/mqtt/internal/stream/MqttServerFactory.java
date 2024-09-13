@@ -1515,15 +1515,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             int sizeClaimed = valueClaimed - publisher.initialPad;
 
-            if (sizeClaimed < 0)
-            {
-                System.out.printf("traceId: %s%n", Long.toHexString(traceId));
-                System.out.printf("sizeClaimed: %d, valueClaimed: %d, publisher.initialPad: %d, reservedMax: %d, lengthMax: %d," +
-                        "server.publishPayloadBytes: %d, publisher.initialBudget(): %d, length: %d%n", sizeClaimed, valueClaimed,
-                    publisher.initialPad, reservedMax, lengthMax, server.decodeablePublishPayloadBytes, publisher.initialBudget(),
-                    length);
-                throw new IllegalStateException("asd");
-            }
             final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + sizeClaimed);
 
             if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))

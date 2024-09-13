@@ -2000,13 +2000,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                     final int encodePosition = encodeSlotByteBuffer.position();
                     encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
-                    if (encodePosition + crcDataLimit < 0)
-                    {
-                        System.out.printf("encodePosition: %d, crcDataLimit: %d, recordBatchLimit: %d, encodeLimit: %d," +
-                            " recordHeaderLimit: %d, recordBatchLength: %d, recordBatch.length(): %d%n",
-                            encodePosition, crcDataLimit, recordBatchLimit, encodeLimit, recordHeaderLimit, recordBatchLength,
-                            recordBatch.length());
-                    }
                     encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
 
                     final CRC32C crc = crc32c;

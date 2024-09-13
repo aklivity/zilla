@@ -1197,11 +1197,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         {
                             cursor.advance(partitionOffset + 1);
                             doFlushServerReply(NO_ERROR, traceId);
-                            if ("mqtt-messages".equals(fan.partionTopic))
-                            {
-                                System.out.printf("Break produce entry is dirty. traceId: %s, timestamp: %d, partitionOffset: " +
-                                        "%d, %n", Long.toHexString(traceId), timestamp, partitionOffset);
-                            }
                             break produce;
                         }
 
