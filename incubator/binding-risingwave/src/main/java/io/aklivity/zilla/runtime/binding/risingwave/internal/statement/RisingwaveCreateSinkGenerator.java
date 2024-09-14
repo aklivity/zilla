@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public class RisingwaveCreateSinkGenerator extends CommandGenerator
+public class RisingwaveCreateSinkGenerator extends RisingwaveCommandGenerator
 {
     private final String sqlFormat = """
         CREATE SINK %s_sink

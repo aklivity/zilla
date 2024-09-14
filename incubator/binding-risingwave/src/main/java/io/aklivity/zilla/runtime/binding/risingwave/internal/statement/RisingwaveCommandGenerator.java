@@ -16,11 +16,10 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
-import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.Index;
 
-public abstract class CommandGenerator
+public abstract class RisingwaveCommandGenerator
 {
     public String getPrimaryKey(
         CreateTable statement)

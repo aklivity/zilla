@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public class RisingwaveCreateMaterializedViewGenerator extends CommandGenerator
+public class RisingwaveCreateMaterializedViewGenerator extends RisingwaveCommandGenerator
 {
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";

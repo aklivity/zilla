@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public class RisingwaveCreateSourceGenerator extends CommandGenerator
+public class RisingwaveCreateSourceGenerator extends RisingwaveCommandGenerator
 {
     private final String sqlFormat = """
         CREATE SOURCE IF NOT EXISTS %s (*)
