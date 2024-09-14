@@ -20,17 +20,17 @@ import net.sf.jsqlparser.statement.create.view.CreateView;
 public class RisingwaveCreateSinkGenerator extends CommandGenerator
 {
     private final String sqlFormat = """
-        CREATE SINK %s
+        CREATE SINK %s_sink
         FROM %s
         WITH (
            connector='kafka',
-           topic='%s',
            properties.bootstrap.server='%s',
+           topic='%s',
            primary_key='key'
         ) FORMAT UPSERT ENCODE AVRO (
-            schema.registry = '%s'
-        );\u0000
-        """;
+           schema.registry='%s'
+        );\u0000""";
+    private final String sinkFormat = "%s.%s";
 
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -44,12 +44,13 @@ public class RisingwaveCreateSinkGenerator extends CommandGenerator
     }
 
     public String generate(
-        Statement statement)
+        Statement statement,
+        String database)
     {
         CreateView createView = (CreateView) statement;
-        String table = createView.getView().getName();
-        String primaryKey = "";
+        String viewName = createView.getView().getName();
+        String sinkName = String.format(sinkFormat, database, viewName);
 
-        return String.format(sqlFormat, table, primaryKey, bootstrapServer, schemaRegistry);
+        return String.format(sqlFormat, sinkName, viewName, bootstrapServer, sinkName, schemaRegistry);
     }
 }

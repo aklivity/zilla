@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -32,8 +32,8 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities"
-      "SELECT id, DISTINCT city FROM weather;"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities "
+      "AS SELECT id, city FROM weather GROUP BY city;"
       [0x00]
 write flush
 
@@ -66,8 +66,8 @@ read advised zilla:flush ${pgsql:flushEx()
                                     .name("id")
                                     .tableOid(0)
                                     .index(0)
-                                    .typeOid(701)
-                                    .length(8)
+                                    .typeOid(1043)
+                                    .length(2)
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
@@ -75,8 +75,8 @@ read advised zilla:flush ${pgsql:flushEx()
                                     .name("city")
                                     .tableOid(0)
                                     .index(0)
-                                    .typeOid(701)
-                                    .length(8)
+                                    .typeOid(1043)
+                                    .length(4)
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
@@ -102,17 +102,18 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK dev_distinct_cities_sink"
-      "FROM distinct_cities"
-      "WITH ("
-      "   connector='kafka',"
-      "   topic='distinct_cities',"
-      "   properties.bootstrap.server='localhost:9092',"
-      "   primary_key='id'"
-      ") FORMAT UPSERT ENCODE AVRO ("
-      "    schema.registry = 'http://localhost:8081'"
+write "CREATE SINK dev.distinct_cities_sink\n"
+      "FROM distinct_cities\n"
+      "WITH (\n"
+      "   connector='kafka',\n"
+      "   properties.bootstrap.server='localhost:9092',\n"
+      "   topic='dev.distinct_cities',\n"
+      "   primary_key='key'\n"
+      ") FORMAT UPSERT ENCODE AVRO (\n"
+      "   schema.registry='http://localhost:8081'\n"
       ");"
-      [0x00]
+     [0x00]
+write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -128,10 +129,7 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-read closed
-write close
-
-connect "zilla://streams/app1"
+connect "zilla://streams/app2"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -168,6 +166,3 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-
-read closed
-write close

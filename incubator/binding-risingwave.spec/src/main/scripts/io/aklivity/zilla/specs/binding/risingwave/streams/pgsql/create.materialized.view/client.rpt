@@ -33,7 +33,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities "
-      "SELECT id, DISTINCT city FROM weather;"
+      "AS SELECT id, city FROM weather GROUP BY city;"
       [0x00]
 
 write flush
@@ -51,6 +51,3 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-
-read closed
-write close

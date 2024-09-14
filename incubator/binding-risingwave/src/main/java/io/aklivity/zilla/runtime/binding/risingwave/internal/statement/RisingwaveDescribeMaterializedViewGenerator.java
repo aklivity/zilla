@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.DescribeStatement;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public class RisingwaveDescribeMaterializedViewGenerator extends CommandGenerator
 {
     private final String sqlFormat = """
-        DESCRIBE MATERIALIZED VIEW %s;"\u0000
-        """;
+        DESCRIBE MATERIALIZED VIEW %s;\u0000""";
 
     public RisingwaveDescribeMaterializedViewGenerator()
     {
@@ -30,8 +29,8 @@ public class RisingwaveDescribeMaterializedViewGenerator extends CommandGenerato
     public String generate(
         Statement statement)
     {
-        DescribeStatement describeView = (DescribeStatement) statement;
-        String view = describeView.getTable().getName();
+        CreateView createView = (CreateView) statement;
+        String view = createView.getView().getName();
 
         return String.format(sqlFormat, view);
     }

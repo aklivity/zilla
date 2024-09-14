@@ -79,4 +79,15 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/create.materialized.view/client",
+        "${effective}/create.materialized.view/server"
+    })
+    public void shouldCreateMaterializedView() throws Exception
+    {
+        k3po.finish();
+    }
 }

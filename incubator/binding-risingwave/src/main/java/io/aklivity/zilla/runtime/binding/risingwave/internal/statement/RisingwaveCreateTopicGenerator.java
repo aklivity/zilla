@@ -14,14 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.Map;
+
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public class RisingwaveCreateTopicGenerator extends CommandGenerator
 {
     private final String sqlFormat = """
-        CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000
-        """;
+        CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
     private final String primaryKeyFormat = ", PRIMARY KEY (%s)";
     private final String fieldFormat = "%s %s, ";
 
@@ -47,5 +49,19 @@ public class RisingwaveCreateTopicGenerator extends CommandGenerator
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
         return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
+    }
+
+    public String generate(
+        CreateView createView,
+        Map<String, String> columns)
+    {
+        String topic = createView.getView().getName();
+
+        fieldBuilder.setLength(0);
+
+        columns.forEach((k, v) -> fieldBuilder.append(String.format(fieldFormat, k, v)));
+        fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+
+        return String.format(sqlFormat, topic, fieldBuilder, "");
     }
 }
