@@ -52,6 +52,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHead
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ConfigResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.CreateTopicsRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.CreateTopicsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -82,8 +84,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final short DESCRIBE_CONFIGS_API_KEY = 19;
-    private static final short DESCRIBE_CONFIGS_API_VERSION = 3;
+    private static final short CREATE_TOPICS_API_KEY = 19;
+    private static final short CREATE_TOPICS_API_VERSION = 3;
     private static final byte RESOURCE_TYPE_TOPIC = 2;
 
     private final BeginFW beginRO = new BeginFW();
@@ -108,12 +110,12 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
-    private final CreateTopicsConfigsRequestFW.Builder createTopicsConfigsRequestRW = new CreateTopicsConfigsRequestFW.Builder();
+    private final CreateTopicsRequestFW.Builder createTopicsRequestRW = new CreateTopicsRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
     private final String16FW.Builder configNameRW = new String16FW.Builder(ByteOrder.BIG_ENDIAN);
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
-    private final CreateTopicsConfigsResponseFW createTopicsConfigsResponseRO = new CreateTopicsConfigsResponseFW();
+    private final CreateTopicsResponseFW createTopicsResponseRO = new CreateTopicsResponseFW();
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
 
@@ -511,18 +513,18 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             {
                 progress = responseHeader.limit();
 
-                final CreateTopicsConfigsResponseFW createTopicsConfigsResponse =
-                        createTopicsConfigsResponseRO.tryWrap(buffer, progress, limit);
+                final CreateTopicsResponseFW createTopicsResponse =
+                        createTopicsResponseRO.tryWrap(buffer, progress, limit);
 
-                if (createTopicsConfigsResponse == null)
+                if (createTopicsResponse == null)
                 {
                     client.decoder = decodeIgnoreAll;
                     break decode;
                 }
 
-                progress = createTopicsConfigsResponse.limit();
+                progress = createTopicsResponse.limit();
 
-                final int resourceCount = createTopicsConfigsResponse.resourceCount();
+                final int resourceCount = createTopicsResponse.resourceCount();
                 for (int resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
                 {
                     final ResourceResponseFW resource = resourceResponseRO.tryWrap(buffer, progress, limit);
@@ -984,7 +986,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 long originId,
                 int errorCode)
             {
-                super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION,
+                super.onDecodeResponseErrorCode(traceId, originId, CREATE_TOPICS_API_KEY, CREATE_TOPICS_API_VERSION,
                     errorCode);
             }
 
@@ -1330,17 +1332,17 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
                 final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .length(0)
-                        .apiKey(DESCRIBE_CONFIGS_API_KEY)
-                        .apiVersion(DESCRIBE_CONFIGS_API_VERSION)
+                        .apiKey(CREATE_TOPICS_API_KEY)
+                        .apiVersion(CREATE_TOPICS_API_VERSION)
                         .correlationId(0)
                         .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
 
-                final CreateTopicsConfigsRequestFW createTopicsConfigsRequest =
-                        createTopicsConfigsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                                .resourceCount(1)
+                final CreateTopicsRequestFW createTopicsConfigsRequest =
+                        createTopicsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                                                .topicCount(1)
                                                 .build();
 
                 encodeProgress = createTopicsConfigsRequest.limit();

@@ -581,7 +581,7 @@ scope protocol
             }
         }
 
-        scope topic
+        scope create_topics
         {
             struct CreateTopicsRequest
             {
@@ -604,7 +604,7 @@ scope protocol
 
             struct BrokerRequest
             {
-                int32 brokerId
+                int32 brokerId;
             }
 
             struct ConfigsRequest
