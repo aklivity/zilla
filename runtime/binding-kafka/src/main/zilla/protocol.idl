@@ -581,6 +581,63 @@ scope protocol
             }
         }
 
+        scope topic
+        {
+            struct CreateTopicsRequest
+            {
+                int32 topicCount;
+            }
+
+            struct TopicRequest
+            {
+                string16 name;
+                int32 numPartitions;
+                int16 replicas;
+                int32 assignmentCount;
+            }
+
+            struct AssignmentRequest
+            {
+               int32 partitionIndex;
+               int32 brokerCount;
+            }
+
+            struct BrokerRequest
+            {
+                int32 brokerId
+            }
+
+            struct ConfigsRequest
+            {
+                int32 configCount;
+            }
+
+            struct ConfigRequest
+            {
+                string16 name;
+                string16 value = null;
+            }
+
+            struct TimeoutRequest
+            {
+                int32 timeout;
+            }
+
+            struct CreateTopicsResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct TopicResponse
+            {
+                string16 name;
+                int16 error;
+                string16 message = null;
+            }
+        }
+
         scope sasl
         {
             struct SaslHandshakeRequest // v1

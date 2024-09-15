@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -83,8 +82,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final short DESCRIBE_CONFIGS_API_KEY = 32;
-    private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
+    private static final short DESCRIBE_CONFIGS_API_KEY = 19;
+    private static final short DESCRIBE_CONFIGS_API_VERSION = 3;
     private static final byte RESOURCE_TYPE_TOPIC = 2;
 
     private final BeginFW beginRO = new BeginFW();
@@ -205,10 +204,16 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 int partitionCount = t.partitionCount();
                 short replicas = t.replicas();
                 List<Assignment> assignments = new ArrayList<>();
-                t.assignments().forEach(a -> assignments.add(new Assignment()));
-            });
+                t.assignments().forEach(a -> assignments.add(new Assignment(a.partitionId(), List.of(a.leaderId()))));
+                List<Config> configs = new ArrayList<>();
+                t.configs().forEach(c -> configs.add(new Config(c.name().asString(), c.value().asString())));
 
-            final CreateTopicsRequest request = new CreateTopicsRequest()
+                topics.add(new Topic(name, partitionCount, replicas, assignments, configs));
+            });
+            int timeout = kafkaCreateTopicsBeginEx.timeout();
+            boolean validateOnly = kafkaCreateTopicsBeginEx.validateOnly() == 1;
+
+            final CreateTopicsRequest request = new CreateTopicsRequest(topics, timeout, validateOnly);
             newStream = new KafkaCreateTopicsStream(
                     application,
                     originId,
@@ -216,9 +221,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                     initialId,
                     affinity,
                     resolvedId,
-                    topicName,
-                    configs,
-                    binding.servers(),
+                    request,
                     sasl)::onApp;
         }
 
@@ -634,9 +637,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long initialId,
             long affinity,
             long resolvedId,
-            String topic,
-            List<String> configs,
-            List<KafkaServerConfig> servers,
+            CreateTopicsRequest request,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -645,7 +646,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaCreateTopicsClient(routedId, resolvedId, topic, configs, servers, sasl);
+            this.client = new KafkaCreateTopicsClient(routedId, resolvedId, request, servers, sasl);
         }
 
         private void onApp(
@@ -908,9 +909,9 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
             private final LongLongConsumer encodeCreateTopicsRequest = this::doEncodeCreateTopicsRequest;
 
+            private final CreateTopicsRequest request;
+
             private MessageConsumer network;
-            private final String topic;
-            private final Map<String, String> configs;
 
             private int state;
             private long authorization;
@@ -944,15 +945,12 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             KafkaCreateTopicsClient(
                 long originId,
                 long routedId,
-                String topic,
-                List<String> configs,
+                CreateTopicsRequest request,
                 List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
                 super(servers, sasl, originId, routedId);
-                this.topic = requireNonNull(topic);
-                this.configs = new LinkedHashMap<>(configs.size());
-                configs.forEach(c -> this.configs.put(c, null));
+                this.request = request;
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeCreateTopicsRequest;
                 this.decoder = decodeReject;
@@ -1324,11 +1322,6 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 long traceId,
                 long budgetId)
             {
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("[client] %s DESCRIBE\n", topic);
-                }
-
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int encodeLimit = encodeBuffer.capacity();
