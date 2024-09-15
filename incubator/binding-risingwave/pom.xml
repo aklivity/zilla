@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.87</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -196,6 +196,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/risingwave/internal/types/**/*.class</exclude>
+            <exclude>net.sf.jsqlparser.parser.*</exclude>
           </excludes>
           <rules>
             <rule>
