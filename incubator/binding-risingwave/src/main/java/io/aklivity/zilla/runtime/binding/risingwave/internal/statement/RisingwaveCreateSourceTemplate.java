@@ -15,42 +15,43 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public class RisingwaveCreateSinkGenerator extends RisingwaveCommandGenerator
+public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE SINK %s_sink
-        FROM %s
+        CREATE SOURCE IF NOT EXISTS %s (*)
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
            topic='%s',
-           primary_key='key'
+           scan.startup.mode='latest',
+           scan.startup.timestamp.millis='%d'
+        )
         ) FORMAT UPSERT ENCODE AVRO (
-           schema.registry='%s'
+           schema.registry = '%s'
         );\u0000""";
-    private final String sinkFormat = "%s.%s";
 
     private final String bootstrapServer;
     private final String schemaRegistry;
+    private final long scanStartupMil;
 
-    public RisingwaveCreateSinkGenerator(
+    public RisingwaveCreateSourceTemplate(
         String bootstrapServer,
-        String schemaRegistry)
+        String schemaRegistry,
+        long scanStartupMil)
     {
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
+        this.scanStartupMil = scanStartupMil;
     }
 
     public String generate(
-        Statement statement,
-        String database)
+        Statement statement)
     {
-        CreateView createView = (CreateView) statement;
-        String viewName = createView.getView().getName();
-        String sinkName = String.format(sinkFormat, database, viewName);
+        CreateTable createTable = (CreateTable) statement;
+        String table = createTable.getTable().getName();
 
-        return String.format(sqlFormat, sinkName, viewName, bootstrapServer, sinkName, schemaRegistry);
+        return String.format(sqlFormat, table, bootstrapServer, table, scanStartupMil, schemaRegistry);
     }
 }

@@ -15,47 +15,42 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public class RisingwaveCreateTableGenerator extends RisingwaveCommandGenerator
+public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE TABLE IF NOT EXISTS %s (
-            *,
-            PRIMARY KEY (%s)
-        ) INCLUDE KEY AS key
+        CREATE SINK %s_sink
+        FROM %s
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
            topic='%s',
-           scan.startup.mode='latest',
-           scan.startup.timestamp.millis='%d'
-        )
+           primary_key='key'
         ) FORMAT UPSERT ENCODE AVRO (
-           schema.registry = '%s'
+           schema.registry='%s'
         );\u0000""";
+    private final String sinkFormat = "%s.%s";
 
     private final String bootstrapServer;
     private final String schemaRegistry;
-    private final long scanStartupMil;
 
-    public RisingwaveCreateTableGenerator(
+    public RisingwaveCreateSinkTemplate(
         String bootstrapServer,
-        String schemaRegistry,
-        long scanStartupMil)
+        String schemaRegistry)
     {
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
-        this.scanStartupMil = scanStartupMil;
     }
 
     public String generate(
-        Statement statement)
+        Statement statement,
+        String database)
     {
-        CreateTable createTable = (CreateTable) statement;
-        String table = createTable.getTable().getName();
-        String primaryKey = getPrimaryKey(createTable);
+        CreateView createView = (CreateView) statement;
+        String viewName = createView.getView().getName();
+        String sinkName = String.format(sinkFormat, database, viewName);
 
-        return String.format(sqlFormat, table, primaryKey, bootstrapServer, table, scanStartupMil, schemaRegistry);
+        return String.format(sqlFormat, sinkName, viewName, bootstrapServer, sinkName, schemaRegistry);
     }
 }

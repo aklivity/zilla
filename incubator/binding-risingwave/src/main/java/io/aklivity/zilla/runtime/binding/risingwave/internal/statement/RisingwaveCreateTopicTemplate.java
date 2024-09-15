@@ -20,7 +20,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public class RisingwaveCreateTopicGenerator extends RisingwaveCommandGenerator
+public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
@@ -29,7 +29,7 @@ public class RisingwaveCreateTopicGenerator extends RisingwaveCommandGenerator
 
     private final StringBuilder fieldBuilder = new StringBuilder();
 
-    public RisingwaveCreateTopicGenerator()
+    public RisingwaveCreateTopicTemplate()
     {
     }
 

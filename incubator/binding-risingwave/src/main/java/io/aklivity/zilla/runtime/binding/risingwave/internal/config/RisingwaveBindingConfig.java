@@ -23,12 +23,12 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewGenerator;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkGenerator;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceGenerator;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableGenerator;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicGenerator;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeMaterializedViewGenerator;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeMaterializedViewTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -41,12 +41,12 @@ public final class RisingwaveBindingConfig
     public final RisingwaveOptionsConfig options;
     public final KindConfig kind;
     public final List<RisingwaveRouteConfig> routes;
-    public final RisingwaveCreateTopicGenerator createTopic;
-    public final RisingwaveCreateMaterializedViewGenerator createView;
-    public final RisingwaveDescribeMaterializedViewGenerator describeView;
-    public final RisingwaveCreateTableGenerator createTable;
-    public final RisingwaveCreateSourceGenerator createSource;
-    public final RisingwaveCreateSinkGenerator createSink;
+    public final RisingwaveCreateTopicTemplate createTopic;
+    public final RisingwaveCreateMaterializedViewTemplate createView;
+    public final RisingwaveDescribeMaterializedViewTemplate describeView;
+    public final RisingwaveCreateTableTemplate createTable;
+    public final RisingwaveCreateSourceTemplate createSource;
+    public final RisingwaveCreateSinkTemplate createSink;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -63,15 +63,15 @@ public final class RisingwaveBindingConfig
         cataloged.id = binding.resolveId.applyAsLong(cataloged.name);
 
         final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
-        this.createTable = new RisingwaveCreateTableGenerator(options.kafka.properties.bootstrapServer,
+        this.createTable = new RisingwaveCreateTableTemplate(options.kafka.properties.bootstrapServer,
             catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
-        this.createSource = new RisingwaveCreateSourceGenerator(options.kafka.properties.bootstrapServer,
+        this.createSource = new RisingwaveCreateSourceTemplate(options.kafka.properties.bootstrapServer,
             catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkGenerator(
+        this.createSink = new RisingwaveCreateSinkTemplate(
             options.kafka.properties.bootstrapServer, catalogHandler.location());
-        this.createTopic = new RisingwaveCreateTopicGenerator();
-        this.createView = new RisingwaveCreateMaterializedViewGenerator();
-        this.describeView = new RisingwaveDescribeMaterializedViewGenerator();
+        this.createTopic = new RisingwaveCreateTopicTemplate();
+        this.createView = new RisingwaveCreateMaterializedViewTemplate();
+        this.describeView = new RisingwaveDescribeMaterializedViewTemplate();
     }
 
     public RisingwaveRouteConfig resolve(

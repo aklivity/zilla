@@ -17,12 +17,12 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public class RisingwaveDescribeMaterializedViewGenerator extends RisingwaveCommandGenerator
+public class RisingwaveDescribeMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         DESCRIBE MATERIALIZED VIEW %s;\u0000""";
 
-    public RisingwaveDescribeMaterializedViewGenerator()
+    public RisingwaveDescribeMaterializedViewTemplate()
     {
     }
 

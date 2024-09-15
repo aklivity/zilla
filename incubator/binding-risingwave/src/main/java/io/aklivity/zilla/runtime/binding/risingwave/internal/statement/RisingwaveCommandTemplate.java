@@ -19,7 +19,7 @@ import java.util.List;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.Index;
 
-public abstract class RisingwaveCommandGenerator
+public abstract class RisingwaveCommandTemplate
 {
     public String getPrimaryKey(
         CreateTable statement)

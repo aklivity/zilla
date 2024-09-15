@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public class RisingwaveCreateSourceGenerator extends RisingwaveCommandGenerator
+public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE SOURCE IF NOT EXISTS %s (*)
+        CREATE TABLE IF NOT EXISTS %s (
+            *,
+            PRIMARY KEY (%s)
+        ) INCLUDE KEY AS key
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
@@ -36,7 +39,7 @@ public class RisingwaveCreateSourceGenerator extends RisingwaveCommandGenerator
     private final String schemaRegistry;
     private final long scanStartupMil;
 
-    public RisingwaveCreateSourceGenerator(
+    public RisingwaveCreateTableTemplate(
         String bootstrapServer,
         String schemaRegistry,
         long scanStartupMil)
@@ -51,7 +54,8 @@ public class RisingwaveCreateSourceGenerator extends RisingwaveCommandGenerator
     {
         CreateTable createTable = (CreateTable) statement;
         String table = createTable.getTable().getName();
+        String primaryKey = getPrimaryKey(createTable);
 
-        return String.format(sqlFormat, table, bootstrapServer, table, scanStartupMil, schemaRegistry);
+        return String.format(sqlFormat, table, primaryKey, bootstrapServer, table, scanStartupMil, schemaRegistry);
     }
 }
