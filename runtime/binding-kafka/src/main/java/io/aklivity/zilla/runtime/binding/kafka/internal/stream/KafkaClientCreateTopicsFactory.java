@@ -198,6 +198,16 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
+            List<Topic> topics = new ArrayList<>();
+            kafkaCreateTopicsBeginEx.topics().forEach(t ->
+            {
+                String name = t.name().asString();
+                int partitionCount = t.partitionCount();
+                short replicas = t.replicas();
+                List<Assignment> assignments = new ArrayList<>();
+                t.assignments().forEach(a -> assignments.add(new Assignment()));
+            });
+
             final CreateTopicsRequest request = new CreateTopicsRequest()
             newStream = new KafkaCreateTopicsStream(
                     application,
