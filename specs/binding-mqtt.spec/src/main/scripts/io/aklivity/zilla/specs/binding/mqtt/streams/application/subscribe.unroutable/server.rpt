@@ -60,5 +60,5 @@ write ${mqtt:session()
                .build()}
 write flush
 
+write aborted
 read aborted
-
