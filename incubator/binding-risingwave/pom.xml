@@ -44,7 +44,7 @@
     <dependency>
       <groupId>com.github.jsqlparser</groupId>
       <artifactId>jsqlparser</artifactId>
-      <version>5.0</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -196,7 +196,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/risingwave/internal/types/**/*.class</exclude>
-            <exclude>net.sf.jsqlparser.parser.*</exclude>
+            <exclude>net/sf/jsqlparser/parser/*</exclude>
           </excludes>
           <rules>
             <rule>

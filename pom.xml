@@ -205,6 +205,11 @@
         <version>0.1.4</version>
       </dependency>
       <dependency>
+      <groupId>com.github.jsqlparser</groupId>
+      <artifactId>jsqlparser</artifactId>
+      <version>5.0</version>
+    </dependency>
+      <dependency>
         <groupId>io.aklivity.k3po</groupId>
         <artifactId>driver</artifactId>
         <version>${k3po.version}</version>
