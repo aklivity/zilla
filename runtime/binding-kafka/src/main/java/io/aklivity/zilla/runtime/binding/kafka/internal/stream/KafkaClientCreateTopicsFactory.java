@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
