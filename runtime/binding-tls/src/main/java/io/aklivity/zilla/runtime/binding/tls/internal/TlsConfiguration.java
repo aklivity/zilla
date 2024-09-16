@@ -17,18 +17,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 
-import java.security.KeyStore;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class TlsConfiguration extends Configuration
 {
     public static final IntPropertyDef TLS_HANDSHAKE_WINDOW_BYTES;
     public static final IntPropertyDef TLS_HANDSHAKE_TIMEOUT;
-    public static final PropertyDef<String> TLS_KEY_MANAGER_ALGORITHM;
-    public static final PropertyDef<String> TLS_CACERTS_STORE_TYPE;
-    public static final PropertyDef<String> TLS_CACERTS_STORE;
-    public static final PropertyDef<String> TLS_CACERTS_STORE_PASS;
     public static final BooleanPropertyDef TLS_IGNORE_EMPTY_VAULT_REFS;
     public static final LongPropertyDef TLS_AWAIT_SYNC_CLOSE_MILLIS;
     public static final BooleanPropertyDef TLS_PROACTIVE_CLIENT_REPLY_BEGIN;
@@ -41,10 +35,6 @@ public class TlsConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.tls");
         TLS_HANDSHAKE_WINDOW_BYTES = config.property("handshake.window.bytes", 65536);
         TLS_HANDSHAKE_TIMEOUT = config.property("handshake.timeout", 10);
-        TLS_KEY_MANAGER_ALGORITHM = config.property("handshake.key.manager.algorithm", "PKIX");
-        TLS_CACERTS_STORE_TYPE = config.property("cacerts.store.type", TlsConfiguration::cacertsStoreTypeDefault);
-        TLS_CACERTS_STORE = config.property("cacerts.store", TlsConfiguration::cacertsStoreDefault);
-        TLS_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
         TLS_IGNORE_EMPTY_VAULT_REFS = config.property("ignore.empty.vault.refs", false);
         TLS_AWAIT_SYNC_CLOSE_MILLIS = config.property("await.sync.close.millis", 3000L);
         TLS_PROACTIVE_CLIENT_REPLY_BEGIN = config.property("proactive.client.reply.begin", false);
@@ -68,26 +58,6 @@ public class TlsConfiguration extends Configuration
         return TLS_HANDSHAKE_TIMEOUT.getAsInt(this);
     }
 
-    public String keyManagerAlgorithm()
-    {
-        return TLS_KEY_MANAGER_ALGORITHM.get(this);
-    }
-
-    public String cacertsStoreType()
-    {
-        return TLS_CACERTS_STORE_TYPE.get(this);
-    }
-
-    public String cacertsStore()
-    {
-        return TLS_CACERTS_STORE.get(this);
-    }
-
-    public String cacertsStorePass()
-    {
-        return TLS_CACERTS_STORE_PASS.get(this);
-    }
-
     public boolean ignoreEmptyVaultRefs()
     {
         return TLS_IGNORE_EMPTY_VAULT_REFS.getAsBoolean(this);
@@ -106,18 +76,6 @@ public class TlsConfiguration extends Configuration
     public boolean verbose()
     {
         return TLS_VERBOSE.getAsBoolean(this);
-    }
-
-    private static String cacertsStoreTypeDefault(
-        Configuration config)
-    {
-        return System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
-    }
-
-    private static String cacertsStoreDefault(
-        Configuration config)
-    {
-        return System.getProperty("javax.net.ssl.trustStore");
     }
 
     private static boolean verboseDefault(

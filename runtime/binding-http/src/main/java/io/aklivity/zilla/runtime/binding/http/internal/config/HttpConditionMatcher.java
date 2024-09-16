@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,11 +27,34 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 public final class HttpConditionMatcher
 {
     private final Map<String, Matcher> headersMatch;
+    private Consumer<HttpConditionMatcher> observer;
 
     public HttpConditionMatcher(
         HttpConditionConfig condition)
     {
         this.headersMatch = condition.headers != null ? asMatcherMap(condition.headers) : null;
+    }
+
+    public void observe(
+        Consumer<HttpConditionMatcher> observer)
+    {
+        this.observer = observer;
+    }
+
+    private boolean observeMatched()
+    {
+        if (observer != null)
+        {
+            observer.accept(this);
+        }
+
+        return true;
+    }
+
+    public String parameter(
+        String name)
+    {
+        return headersMatch.get(":path").group(name);
     }
 
     public boolean matches(
@@ -49,7 +73,7 @@ public final class HttpConditionMatcher
             }
         }
 
-        return match;
+        return match && observeMatched();
     }
 
     private static Map<String, Matcher> asMatcherMap(
@@ -64,7 +88,10 @@ public final class HttpConditionMatcher
         String header,
         String wildcard)
     {
-        String pattern = wildcard.replace(".", "\\.").replace("*", ".*");
+        String pattern = wildcard
+            .replace(".", "\\.")
+            .replace("*", ".*")
+            .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)");
 
         if (":path".equals(header) && !pattern.endsWith(".*"))
         {

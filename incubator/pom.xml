@@ -19,10 +19,12 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-pgsql.spec</module>
+    <module>binding-pgsql-kafka.spec</module>
     <module>binding-risingwave.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
+    <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
 
     <module>command-log</module>
@@ -40,6 +42,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-pgsql</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-pgsql-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

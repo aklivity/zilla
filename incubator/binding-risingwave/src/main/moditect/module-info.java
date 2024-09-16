@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
@@ -14,9 +14,9 @@
  */
 module io.aklivity.zilla.runtime.binding.risingwave
 {
+    requires net.sf.jsqlparser;
     requires io.aklivity.zilla.runtime.engine;
 
-/*
     exports io.aklivity.zilla.runtime.binding.risingwave.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
@@ -27,8 +27,4 @@ module io.aklivity.zilla.runtime.binding.risingwave
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveEventFormatterFactory;
-*/
 }

@@ -30,6 +30,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.util.Properties;
 import java.util.function.Function;
 
@@ -76,6 +77,9 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
     public static final IntPropertyDef ENGINE_WORKERS;
+    public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
+    public static final PropertyDef<String> ENGINE_CACERTS_STORE;
+    public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -120,6 +124,9 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
+        ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
+        ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
+        ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
         ENGINE_CONFIG = config;
     }
 
@@ -299,6 +306,21 @@ public class EngineConfiguration extends Configuration
         return ENGINE_WORKERS.getAsInt(this);
     }
 
+    public String cacertsStoreType()
+    {
+        return ENGINE_CACERTS_STORE_TYPE.get(this);
+    }
+
+    public String cacertsStore()
+    {
+        return ENGINE_CACERTS_STORE.get(this);
+    }
+
+    public String cacertsStorePass()
+    {
+        return ENGINE_CACERTS_STORE_PASS.get(this);
+    }
+
     public Function<String, InetAddress[]> hostResolver()
     {
         return ENGINE_HOST_RESOLVER.get(this)::resolve;
@@ -447,5 +469,17 @@ public class EngineConfiguration extends Configuration
     {
         URL url = ENGINE_CONFIG_URL.get(config);
         return decodeConfigURI(config, url.toString());
+    }
+
+    private static String cacertsStoreTypeDefault(
+        Configuration config)
+    {
+        return System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
+    }
+
+    private static String cacertsStoreDefault(
+        Configuration config)
+    {
+        return System.getProperty("javax.net.ssl.trustStore");
     }
 }

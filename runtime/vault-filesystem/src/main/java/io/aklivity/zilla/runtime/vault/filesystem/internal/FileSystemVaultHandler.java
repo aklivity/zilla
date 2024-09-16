@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.vault.filesystem.internal;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -27,10 +28,13 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
@@ -41,117 +45,72 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class FileSystemVaultHandler implements VaultHandler
 {
-    private static final String TYPE_DEFAULT = "pkcs12";
+    private static final String STORE_TYPE_DEFAULT = "pkcs12";
 
-    private final Function<String, KeyStore.PrivateKeyEntry> lookupKey;
-    private final Function<String, KeyStore.TrustedCertificateEntry> lookupTrust;
-    private final Function<String, KeyStore.TrustedCertificateEntry> lookupSigner;
-    private final Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys;
+    private final Function<List<String>, KeyManagerFactory> supplyKeys;
+    private final Function<List<String>, KeyManagerFactory> supplySigners;
+    private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
         Function<String, Path> resolvePath)
     {
-        lookupKey = supplyLookupPrivateKeyEntry(resolvePath, options.keys);
-        lookupTrust = supplyLookupTrustedCertificateEntry(resolvePath, options.trust);
-        lookupSigner = supplyLookupTrustedCertificateEntry(resolvePath, options.signers);
-        lookupKeys = supplyLookupPrivateKeyEntries(resolvePath, options.keys);
+        FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
+        supplyKeys = keys != null
+            ? keys::newKeysFactory
+            : aliases -> null;
+
+        FileSystemStoreInfo signers = supplyStoreInfo(resolvePath, options.signers);
+        supplySigners = signers != null && keys != null
+            ? aliases -> newSignersFactory(aliases, signers, keys)
+            : aliases -> null;
+
+        FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
+        supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
 
     @Override
-    public KeyStore.PrivateKeyEntry key(
-        String alias)
+    public KeyManagerFactory initKeys(
+        List<String> aliases)
     {
-        return lookupKey.apply(alias);
+        return supplyKeys.apply(aliases);
     }
 
     @Override
-    public KeyStore.TrustedCertificateEntry certificate(
-        String alias)
+    public TrustManagerFactory initTrust(
+        List<String> aliases,
+        KeyStore cacerts)
     {
-        return lookupTrust.apply(alias);
+        return supplyTrust.apply(aliases, cacerts);
     }
 
     @Override
-    public PrivateKeyEntry[] keys(
-        String signer)
+    public KeyManagerFactory initSigners(
+        List<String> aliases)
     {
-        KeyStore.PrivateKeyEntry[] keys = null;
-
-        TrustedCertificateEntry trusted = lookupSigner.apply(signer);
-        if (trusted != null)
-        {
-            Certificate certificate = trusted.getTrustedCertificate();
-            if (certificate instanceof X509Certificate)
-            {
-                X509Certificate x509 = (X509Certificate) certificate;
-                X500Principal issuer = x509.getSubjectX500Principal();
-                keys = lookupKeys.apply(issuer::equals);
-            }
-        }
-
-        return keys;
+        return supplySigners.apply(aliases);
     }
 
-    private static Function<String, KeyStore.PrivateKeyEntry> supplyLookupPrivateKeyEntry(
+    private static FileSystemStoreInfo supplyStoreInfo(
         Function<String, Path> resolvePath,
-        FileSystemStoreConfig aliases)
+        FileSystemStoreConfig config)
     {
-        return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupPrivateKeyEntry);
-    }
+        FileSystemStoreInfo info = null;
 
-    private static Function<String, KeyStore.TrustedCertificateEntry> supplyLookupTrustedCertificateEntry(
-        Function<String, Path> resolvePath,
-        FileSystemStoreConfig aliases)
-    {
-        return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupTrustedCertificateEntry);
-    }
-
-    private Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> supplyLookupPrivateKeyEntries(
-        Function<String, Path> resolvePath,
-        FileSystemStoreConfig entries)
-    {
-        Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys = p -> null;
-
-        if (entries != null)
+        if (config != null)
         {
             try
             {
-                Path storePath = resolvePath.apply(entries.store);
+                Path storePath = resolvePath.apply(config.store);
                 try (InputStream input = Files.newInputStream(storePath))
                 {
-                    String type = Optional.ofNullable(entries.type).orElse(TYPE_DEFAULT);
-                    char[] password = Optional.ofNullable(entries.password).map(String::toCharArray).orElse(null);
+                    String type = Optional.ofNullable(config.type).orElse(STORE_TYPE_DEFAULT);
+                    char[] password = Optional.ofNullable(config.password).map(String::toCharArray).orElse(null);
 
                     KeyStore store = KeyStore.getInstance(type);
                     store.load(input, password);
-                    KeyStore.PasswordProtection protection = new KeyStore.PasswordProtection(password);
 
-                    List<String> aliases = Collections.list(store.aliases());
-
-                    lookupKeys = matchSigner ->
-                    {
-                        List<KeyStore.PrivateKeyEntry> keys = null;
-
-                        for (String alias : aliases)
-                        {
-                            PrivateKeyEntry key = lookupPrivateKeyEntry(alias, store, protection);
-                            Certificate certificate = key.getCertificate();
-                            if (key != null &&
-                                certificate instanceof X509Certificate &&
-                                matchSigner.test(((X509Certificate) certificate).getIssuerX500Principal()))
-                            {
-                                if (keys == null)
-                                {
-                                    keys = new ArrayList<>();
-                                }
-
-                                keys.add(key);
-                            }
-                        }
-
-                        return keys != null ? keys.toArray(KeyStore.PrivateKeyEntry[]::new) : null;
-                    };
+                    info = new FileSystemStoreInfo(store, password);
                 }
             }
             catch (Exception ex)
@@ -160,92 +119,202 @@ public class FileSystemVaultHandler implements VaultHandler
             }
         }
 
-        return lookupKeys;
+        return info;
     }
 
-    private static <R> Function<String, R> supplyLookupAlias(
-        Function<String, Path> resolvePath,
-        FileSystemStoreConfig aliases,
-        Lookup<R> lookup)
+    private KeyManagerFactory newSignersFactory(
+        List<String> aliases,
+        FileSystemStoreInfo signers,
+        FileSystemStoreInfo keys)
     {
-        Function<String, R> lookupAlias = a -> null;
+        KeyManagerFactory factory = null;
 
         if (aliases != null)
         {
+            factory = keys.newKeysFactory(aliases.stream()
+                .map(signers::certificate)
+                .filter(Objects::nonNull)
+                .map(TrustedCertificateEntry::getTrustedCertificate)
+                .filter(X509Certificate.class::isInstance)
+                .map(X509Certificate.class::cast)
+                .map(X509Certificate::getSubjectX500Principal)
+                .map(keys::issuedKeys)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .toList());
+        }
+
+        return factory;
+    }
+
+    private TrustManagerFactory newTrustFactory(
+        FileSystemStoreInfo store,
+        List<String> aliases,
+        KeyStore cacerts)
+    {
+        TrustManagerFactory factory = null;
+
+        try
+        {
+            if (aliases != null || cacerts != null)
+            {
+                KeyStore trust = KeyStore.getInstance(STORE_TYPE_DEFAULT);
+                trust.load(null, null);
+
+                if (aliases != null && store != null)
+                {
+                    for (String alias : aliases)
+                    {
+                        TrustedCertificateEntry cert = store.certificate(alias);
+                        if (cert != null)
+                        {
+                            trust.setEntry(alias, cert, null);
+                        }
+                    }
+                }
+
+                if (cacerts != null)
+                {
+                    for (String alias : aliases)
+                    {
+                        TrustedCertificateEntry cacert = FileSystemStoreInfo.certificate(cacerts, alias);
+                        if (cacert != null)
+                        {
+                            trust.setEntry(alias, cacert, null);
+                        }
+                    }
+                }
+
+                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(trust);
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return factory;
+    }
+
+    private static final class FileSystemStoreInfo
+    {
+        private final KeyStore store;
+        private final KeyStore.PasswordProtection protection;
+
+        private FileSystemStoreInfo(
+            KeyStore store,
+            char[] password)
+        {
+            this.store = store;
+            this.protection = password != null ? new KeyStore.PasswordProtection(password) : null;
+        }
+
+        private KeyManagerFactory newKeysFactory(
+            List<String> aliases)
+        {
+            KeyManagerFactory factory = null;
+
             try
             {
-                Path storePath = resolvePath.apply(aliases.store);
-                try (InputStream input = Files.newInputStream(storePath))
+                if (aliases != null)
                 {
-                    String type = Optional.ofNullable(aliases.type).orElse(TYPE_DEFAULT);
-                    char[] password = Optional.ofNullable(aliases.password).map(String::toCharArray).orElse(null);
+                    KeyStore keys = KeyStore.getInstance(STORE_TYPE_DEFAULT);
+                    keys.load(null, protection.getPassword());
 
-                    KeyStore store = KeyStore.getInstance(type);
-                    store.load(input, password);
-                    KeyStore.PasswordProtection protection = new KeyStore.PasswordProtection(password);
+                    for (String alias : aliases)
+                    {
+                        PrivateKeyEntry key = key(alias);
+                        if (key != null)
+                        {
+                            keys.setEntry(alias, key, protection);
+                        }
+                    }
 
-                    lookupAlias = alias -> lookup.apply(alias, store, protection);
+                    factory = KeyManagerFactory.getInstance("PKIX");
+                    factory.init(keys, protection.getPassword());
                 }
             }
             catch (Exception ex)
             {
                 LangUtil.rethrowUnchecked(ex);
             }
+
+            return factory;
         }
 
-        return lookupAlias;
-    }
-
-    private static KeyStore.Entry lookupEntry(
-        String alias,
-        KeyStore store,
-        KeyStore.PasswordProtection protection)
-    {
-        KeyStore.Entry entry = null;
-
-        try
+        private PrivateKeyEntry key(
+            String alias)
         {
-            entry = store.getEntry(alias, protection);
+            return entry(store, protection, alias, PrivateKeyEntry.class);
         }
-        catch (Exception ex)
+
+        private TrustedCertificateEntry certificate(
+            String alias)
         {
+            return entry(store, null, alias, TrustedCertificateEntry.class);
+        }
+
+        private static TrustedCertificateEntry certificate(
+            KeyStore store,
+            String alias)
+        {
+            return entry(store, null, alias, TrustedCertificateEntry.class);
+        }
+
+        private static <T extends Entry> T entry(
+            KeyStore store,
+            KeyStore.PasswordProtection protection,
+            String alias,
+            Class<T> type)
+        {
+            T typed = null;
+
             try
             {
-                entry = store.getEntry(alias, null);
+                Entry entry = store.getEntry(alias, protection);
+                if (type.isInstance(entry))
+                {
+                    typed = type.cast(entry);
+                }
             }
-            catch (Exception e)
+            catch (GeneralSecurityException ex)
             {
-                e.addSuppressed(ex);
-                LangUtil.rethrowUnchecked(e);
             }
+
+            return typed;
         }
 
-        return entry;
-    }
+        private List<String> issuedKeys(
+            X500Principal issuer)
+        {
+            List<String> keys = null;
 
-    private static KeyStore.PrivateKeyEntry lookupPrivateKeyEntry(
-        String alias,
-        KeyStore store,
-        KeyStore.PasswordProtection protection)
-    {
-        Entry entry = lookupEntry(alias, store, protection);
+            try
+            {
+                for (String alias : Collections.list(store.aliases()))
+                {
+                    PrivateKeyEntry key = key(alias);
+                    Certificate certificate = key.getCertificate();
+                    if (key != null &&
+                        certificate instanceof X509Certificate &&
+                        issuer.equals(((X509Certificate) certificate).getIssuerX500Principal()))
+                    {
+                        if (keys == null)
+                        {
+                            keys = new ArrayList<>();
+                        }
 
-        return entry instanceof KeyStore.PrivateKeyEntry ? (KeyStore.PrivateKeyEntry) entry : null;
-    }
+                        keys.add(alias);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // ignore
+            }
 
-    private static KeyStore.TrustedCertificateEntry lookupTrustedCertificateEntry(
-        String alias,
-        KeyStore store,
-        KeyStore.PasswordProtection protection)
-    {
-        Entry entry = lookupEntry(alias, store, protection);
-
-        return entry instanceof KeyStore.TrustedCertificateEntry ? (KeyStore.TrustedCertificateEntry) entry : null;
-    }
-
-    @FunctionalInterface
-    private interface Lookup<T>
-    {
-        T apply(String alias, KeyStore store, KeyStore.PasswordProtection protection);
+            return keys;
+        }
     }
 }

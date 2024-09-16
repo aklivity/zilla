@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 
 public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, TestBindingOptionsConfigBuilder<T>>
 {
@@ -34,6 +35,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
     private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
+    private VaultAssertion vaultAssertion;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -101,9 +103,17 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> vaultAssertion(
+        TestBindingOptionsConfig.VaultAssertion assertion)
+    {
+        this.vaultAssertion = assertion;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(value, mode, authorization, catalogs, events, catalogAssertions));
+        return mapper.apply(new TestBindingOptionsConfig(value, mode, authorization, catalogs, events,
+                catalogAssertions, vaultAssertion));
     }
 }

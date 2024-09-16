@@ -30,6 +30,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
     public final List<CatalogAssertions> catalogAssertions;
+    public final VaultAssertion vaultAssertion;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -48,7 +49,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         TestAuthorizationConfig authorization,
         List<CatalogedConfig> cataloged,
         List<Event> events,
-        List<CatalogAssertions> catalogAssertions)
+        List<CatalogAssertions> catalogAssertions,
+        VaultAssertion vaultAssertion)
     {
         super(value != null ? List.of(value) : List.of(), List.of());
         this.value = value;
@@ -57,6 +59,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.cataloged = cataloged;
         this.events = events;
         this.catalogAssertions = catalogAssertions;
+        this.vaultAssertion = vaultAssertion;
     }
 
     public static final class Event
@@ -72,6 +75,24 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.message = message;
         }
     }
+
+    public static final class VaultAssertion
+    {
+        public final String key;
+        public final String signer;
+        public final String trust;
+
+        public VaultAssertion(
+            String key,
+            String signer,
+            String trust)
+        {
+            this.key = key;
+            this.signer = signer;
+            this.trust = trust;
+        }
+    }
+
 
     public static final class CatalogAssertions
     {

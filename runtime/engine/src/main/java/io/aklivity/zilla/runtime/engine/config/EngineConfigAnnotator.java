@@ -79,7 +79,7 @@ public final class EngineConfigAnnotator
             else if (jsonObject.containsKey("type") &&
                 isPrimitiveType(jsonObject.get("type")))
             {
-                if (key.equals("title") || key.equals("description"))
+                if (key.equals("title") || key.equals("description") || key.equals("default"))
                 {
                     builder.add(key, value);
                 }
@@ -137,7 +137,7 @@ public final class EngineConfigAnnotator
 
         properties.forEach((key, value) ->
         {
-            if (!"title".equals(key) && !"description".equals(key))
+            if (!"title".equals(key) && !"description".equals(key) && !"default".equals(key))
             {
                 objectBuilder.add(key, value);
             }

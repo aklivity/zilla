@@ -21,7 +21,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestVaultOptionsConfig extends OptionsConfig
 {
-    public final String mode;
+    public final TestVaultEntryConfig key;
+    public final TestVaultEntryConfig signer;
+    public final TestVaultEntryConfig trust;
 
     public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
     {
@@ -35,8 +37,12 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     }
 
     TestVaultOptionsConfig(
-        String mode)
+        TestVaultEntryConfig key,
+        TestVaultEntryConfig signer,
+        TestVaultEntryConfig trust)
     {
-        this.mode = mode;
+        this.key = key;
+        this.signer = signer;
+        this.trust = trust;
     }
 }

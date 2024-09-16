@@ -70,6 +70,16 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("server.with.route.header.overrides.yaml")
+    @Specification({
+        "${net}/request.with.route.header.overrides/client",
+        "${app}/request.with.route.header.overrides/server" })
+    public void shouldSendRequestWithRouteHeaderOverrides() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.connection.close/client",

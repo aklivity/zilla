@@ -28,6 +28,7 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
     private static final String SCHEMA_NAME = "schema";
     private static final String ID_NAME = "id";
     private static final String PREFIX_NAME = "prefix";
+    private static final String URL_NAME = "url";
 
     private static final int ID_DEFAULT = 0;
 
@@ -102,6 +103,11 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
             if (object.containsKey(PREFIX_NAME))
             {
                 config.prefix(object.getString(PREFIX_NAME));
+            }
+
+            if (object.containsKey(URL_NAME))
+            {
+                config.url(object.getString(URL_NAME));
             }
         }
         return config.build();

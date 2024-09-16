@@ -16,15 +16,20 @@
 package io.aklivity.zilla.runtime.engine.vault;
 
 import java.security.KeyStore;
+import java.util.List;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 public interface VaultHandler
 {
-    KeyStore.PrivateKeyEntry key(
-            String ref);
+    KeyManagerFactory initKeys(
+        List<String> keyRefs);
 
-    KeyStore.TrustedCertificateEntry certificate(
-        String ref);
+    KeyManagerFactory initSigners(
+        List<String> signerRefs);
 
-    KeyStore.PrivateKeyEntry[] keys(
-        String signerRef);
+    TrustManagerFactory initTrust(
+        List<String> certRefs,
+        KeyStore cacerts);
 }

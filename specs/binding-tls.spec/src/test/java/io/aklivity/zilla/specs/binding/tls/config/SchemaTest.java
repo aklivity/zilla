@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.nullValue;
 
 import jakarta.json.JsonObject;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -32,7 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/vault/filesystem/schema/filesystem.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/tls/config");
 
     @Test
@@ -151,15 +150,6 @@ public class SchemaTest
     public void shouldValidateServerMutualRequested()
     {
         JsonObject config = schema.validate("server.mutual.requested.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Ignore("TODO: realms")
-    @Test
-    public void shouldValidateServerRealm()
-    {
-        JsonObject config = schema.validate("server.realm.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -102,6 +102,7 @@
             <exclude>**/signers</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
+            <exclude>**/*.pem</exclude>
           </excludes>
         </configuration>
       </plugin>

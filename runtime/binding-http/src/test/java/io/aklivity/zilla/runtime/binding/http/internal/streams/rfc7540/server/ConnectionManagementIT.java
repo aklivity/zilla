@@ -83,6 +83,16 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("server.with.route.header.overrides.yaml")
+    @Specification({
+        "${net}/http.get.exchange.with.route.header.overrides/client",
+        "${app}/http.get.exchange.with.route.header.overrides/server" })
+    public void httpGetExchangeWithRouteHeaderOverrides() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/http.unknown.authority/client" })

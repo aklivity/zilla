@@ -34,14 +34,20 @@
                     "vault": false,
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "method":
@@ -134,6 +140,7 @@
                             {
                                 "const": "client"
                             },
+                            "catalog": false,
                             "options": false
                         }
                     }
