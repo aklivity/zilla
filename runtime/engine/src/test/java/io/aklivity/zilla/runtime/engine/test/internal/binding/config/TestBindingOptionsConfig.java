@@ -26,6 +26,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final ModelConfig value;
     public final String mode;
+    public final String schema;
     public final TestAuthorizationConfig authorization;
     public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
@@ -46,6 +47,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     TestBindingOptionsConfig(
         ModelConfig value,
         String mode,
+        String schema,
         TestAuthorizationConfig authorization,
         List<CatalogedConfig> cataloged,
         List<Event> events,
@@ -55,6 +57,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         super(value != null ? List.of(value) : List.of(), List.of());
         this.value = value;
         this.mode = mode;
+        this.schema = schema;
         this.authorization = authorization;
         this.cataloged = cataloged;
         this.events = events;

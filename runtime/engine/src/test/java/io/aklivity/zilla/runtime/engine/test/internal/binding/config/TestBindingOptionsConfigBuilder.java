@@ -31,6 +31,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
 
     private ModelConfig value;
     private String mode;
+    private String schema;
     private TestAuthorizationConfig authorization;
     private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
@@ -61,6 +62,13 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         String mode)
     {
         this.mode = mode;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> schema(
+        String schema)
+    {
+        this.schema = schema;
         return this;
     }
 
@@ -113,7 +121,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(value, mode, authorization, catalogs, events,
+        return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
                 catalogAssertions, vaultAssertion));
     }
 }
