@@ -757,8 +757,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
-                final long timestamp = data.timestamp();
-                flushClientFanInitialIfNecessary(traceId, timestamp);
+                flushClientFanInitialIfNecessary(traceId);
             }
 
             if ((flags & FLAGS_INCOMPLETE) != 0x00)
@@ -802,8 +801,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
                 markEntryDirty(traceId, stream.partitionOffset);
-                final long timestamp = flush.timestamp();
-                flushClientFanInitialIfNecessary(traceId, timestamp);
+                flushClientFanInitialIfNecessary(traceId);
             }
             else
             {
@@ -820,8 +818,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
 
         private void flushClientFanInitialIfNecessary(
-            long traceId,
-            long timestamp)
+            long traceId)
         {
             final long oldOffsetHighWaterMark = offsetHighWatermark;
             long newOffsetHighWatermark = cursor.offset;

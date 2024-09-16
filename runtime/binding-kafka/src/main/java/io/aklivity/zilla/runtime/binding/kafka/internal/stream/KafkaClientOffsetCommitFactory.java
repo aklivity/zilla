@@ -1310,6 +1310,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             int minReplyMax)
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
             if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
             {
                 replyAck = newReplyAck;
@@ -1318,6 +1319,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 replyMax = minReplyMax;
 
                 state = KafkaState.openedReply(state);
+
                 doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }

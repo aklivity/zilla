@@ -1046,7 +1046,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                     if (responseBytes == 0)
                     {
-                        //TODO: make sure we elevating the ack when we abort. The same thing onStreamReset
                         replyAck = replySeq;
                         flushStreamWindow(traceId);
                     }
@@ -1438,12 +1437,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     {
                         if (!stream.replySeqOffsets.isEmpty())
                         {
-                            long replySeqOffsets = stream.replySeqOffsets.peekLong();
-                            maxReplyAck = replySeqOffsets + stream.replyAck - stream.replyAckSnapshot;
+                            maxReplyAck = stream.replySeqOffsets.peekLong() + stream.replyAck - stream.replyAckSnapshot;
                         }
                         break ack;
                     }
                     maxReplyAck = stream.replyAckOffsets.removeLong();
+
                     if (KafkaState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
                     {
                         streamsByInitialId.remove(responseAck);

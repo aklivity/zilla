@@ -927,22 +927,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         return progress;
     }
 
-
-    private int decodeFindCoordinatorResponseComplete(
-        ClusterClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        client.decoder = decodeFindCoordinatorResponse;
-        return progress;
-    }
-
     private int decodeClusterReject(
         ClusterClient client,
         long traceId,
@@ -2374,7 +2358,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             KafkaGroupClusterClientDecoder previous = null;
             int progress = offset;
-            //TODO: Kafka can send 2 findCoordinatorResponse as 1 packet -> previous != decoder
             while (progress <= limit && previous != decoder)
             {
                 previous = decoder;
