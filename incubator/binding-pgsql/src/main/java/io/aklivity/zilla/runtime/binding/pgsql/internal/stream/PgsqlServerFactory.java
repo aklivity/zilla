@@ -965,6 +965,8 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization,
             Consumer<OctetsFW.Builder> extension)
         {
+            state = PgsqlState.openingInitial(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)

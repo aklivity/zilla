@@ -122,4 +122,9 @@ public interface CatalogHandler
     {
         return 0;
     }
+
+    default String location()
+    {
+        throw new UnsupportedOperationException("location");
+    }
 }

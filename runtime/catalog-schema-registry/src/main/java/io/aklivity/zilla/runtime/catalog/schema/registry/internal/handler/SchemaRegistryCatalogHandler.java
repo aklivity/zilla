@@ -370,10 +370,10 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         String body)
     {
         HttpRequest httpRequest = HttpRequest
-                .newBuilder(toURI(baseUrl, path))
-                .header("content-type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
+            .newBuilder(toURI(baseUrl, path))
+            .header("content-type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
         // TODO: introduce interrupt/timeout for request to schema registry
 
         String responseBody;
@@ -387,6 +387,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             responseBody = null;
         }
         return responseBody;
+    }
+
+    @Override
+    public String location()
+    {
+        return baseUrl;
     }
 
     private URI toURI(

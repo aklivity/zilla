@@ -31,6 +31,7 @@
                     {
                         "enum": [ "proxy" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {
@@ -111,14 +112,20 @@
                     },
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "anyOf":
                                         [
                                             {
@@ -130,6 +137,7 @@
                                                         "type": "array",
                                                         "items":
                                                         {
+                                                            "type": "object",
                                                             "properties":
                                                             {
                                                                 "topic":
@@ -152,6 +160,7 @@
                                                         "type": "array",
                                                         "items":
                                                         {
+                                                            "type": "object",
                                                             "properties":
                                                             {
                                                                 "topic":

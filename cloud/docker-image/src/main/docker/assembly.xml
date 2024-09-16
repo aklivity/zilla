@@ -66,6 +66,7 @@
         <include>org/junit/**</include>
         <include>com/google/**</include>
         <include>org/checkerframework/**</include>
+        <include>com/github/jsqlparser/**</include>
       </includes>
     </fileSet>
   </fileSets>
