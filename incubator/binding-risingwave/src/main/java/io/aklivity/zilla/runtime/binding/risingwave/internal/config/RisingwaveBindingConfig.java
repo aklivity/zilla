@@ -23,6 +23,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateFunctionTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceTemplate;
@@ -47,6 +48,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveCreateTableTemplate createTable;
     public final RisingwaveCreateSourceTemplate createSource;
     public final RisingwaveCreateSinkTemplate createSink;
+    public final RisingwaveCreateFunctionTemplate createFunction;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -72,6 +74,7 @@ public final class RisingwaveBindingConfig
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeMaterializedViewTemplate();
+        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udf.url);
     }
 
     public RisingwaveRouteConfig resolve(

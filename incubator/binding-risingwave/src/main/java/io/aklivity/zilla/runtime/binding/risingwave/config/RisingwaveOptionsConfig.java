@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class RisingwaveOptionsConfig extends OptionsConfig
 {
     public final RisingwaveKafkaConfig kafka;
+    public final RisingwaveUdfConfig udf;
 
     public static RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder()
     {
@@ -26,8 +27,10 @@ public final class RisingwaveOptionsConfig extends OptionsConfig
     }
 
     RisingwaveOptionsConfig(
-        RisingwaveKafkaConfig kafka)
+        RisingwaveKafkaConfig kafka,
+        RisingwaveUdfConfig udf)
     {
         this.kafka = kafka;
+        this.udf = udf;
     }
 }

@@ -28,8 +28,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String KAFKA_NAME = "kafka";
+    private static final String UDF_NAME = "udf";
 
     private final RisingwaveKafkaConfigAdapter kafka = new RisingwaveKafkaConfigAdapter();
+    private final RisingwaveUdfConfigAdapter udf = new RisingwaveUdfConfigAdapter();
 
     @Override
     public Kind kind()
@@ -56,6 +58,11 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
             object.add(KAFKA_NAME, kafka.adaptToJson(options.kafka));
         }
 
+        if (options.udf != null)
+        {
+            object.add(UDF_NAME, udf.adaptToJson(options.udf));
+        }
+
         return object.build();
     }
 
@@ -67,6 +74,11 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
         if (object.containsKey(KAFKA_NAME))
         {
             options.kafka(kafka.adaptFromJson(object.getJsonObject(KAFKA_NAME)));
+        }
+
+        if (object.containsKey(UDF_NAME))
+        {
+            options.udf(udf.adaptFromJson(object.getJsonObject(UDF_NAME)));
         }
 
         return options.build();

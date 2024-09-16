@@ -59,6 +59,21 @@
                                         "$ref": "#/$defs/converter"
                                     }
                                 }
+                            },
+                            "udf":
+                            {
+                                "title": "UDF",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "url":
+                                    {
+                                        "title": "URL",
+                                        "type": "string",
+                                        "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false
@@ -83,7 +98,11 @@
                                                 "items":
                                                 {
                                                     "type": "string",
-                                                    "enum": [ "CREATE TOPIC" ]
+                                                    "enum":
+                                                    [
+                                                        "CREATE TOPIC",
+                                                        "CREATE FUNCTION"
+                                                    ]
                                                 }
                                             }
                                         }

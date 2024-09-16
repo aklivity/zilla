@@ -12,24 +12,28 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
+package io.aklivity.zilla.runtime.binding.risingwave.config;
 
-public enum RisingwaveCompletionCommand
+import java.util.function.Function;
+
+public class RisingwaveUdfConfig
 {
-    UNKNOWN_COMMAND("UNKNOWN".getBytes()),
-    CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes()),
-    CREATE_MATERIALIZED_VIEW_COMMAND("CREATE_MATERIALIZED_VIEW".getBytes()),
-    CREATE_FUNCTION_COMMAND("CREATE_FUNCTION".getBytes());
+    public final String url;
 
-    private final byte[] value;
-
-    RisingwaveCompletionCommand(byte[] value)
+    public static RisingwaveUdfConfigBuilder<RisingwaveUdfConfig> builder()
     {
-        this.value = value;
+        return new RisingwaveUdfConfigBuilder<>(RisingwaveUdfConfig.class::cast);
     }
 
-    public byte[] value()
+    public static <T> RisingwaveUdfConfigBuilder<T> builder(
+        Function<RisingwaveUdfConfig, T> mapper)
     {
-        return value;
+        return new RisingwaveUdfConfigBuilder<>(mapper);
+    }
+
+    RisingwaveUdfConfig(
+        String url)
+    {
+        this.url = url;
     }
 }

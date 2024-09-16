@@ -23,6 +23,7 @@ public class RisingwaveOptionConfigBuilder<T> extends ConfigBuilder<T, Risingwav
     private final Function<RisingwaveOptionsConfig, T> mapper;
 
     private RisingwaveKafkaConfig kafka;
+    private RisingwaveUdfConfig udf;
 
     RisingwaveOptionConfigBuilder(
         Function<RisingwaveOptionsConfig, T> mapper)
@@ -49,8 +50,20 @@ public class RisingwaveOptionConfigBuilder<T> extends ConfigBuilder<T, Risingwav
         return RisingwaveKafkaConfig.builder(this::kafka);
     }
 
+    public RisingwaveOptionConfigBuilder<T> udf(
+        RisingwaveUdfConfig udf)
+    {
+        this.udf = udf;
+        return this;
+    }
+
+    public RisingwaveUdfConfigBuilder<RisingwaveOptionConfigBuilder<T>> udf()
+    {
+        return RisingwaveUdfConfig.builder(this::udf);
+    }
+
     public T build()
     {
-        return mapper.apply(new RisingwaveOptionsConfig(kafka));
+        return mapper.apply(new RisingwaveOptionsConfig(kafka, udf));
     }
 }
