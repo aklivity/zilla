@@ -805,7 +805,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.replyMax = maximum;
             this.replyPad = padding;
             this.replyBudgetId = budgetId;
-            System.out.printf("Got window with replySeq: %d, replyAck: %d%n", replySeq, replyAck);
 
             assert replyAck <= replySeq;
         }
@@ -885,7 +884,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             initialAck = newInitialAck;
             assert initialAck <= initialSeq;
 
-            System.out.printf("Sending window with initialSeq: %d, initialAck: %d%n", initialAck, initialSeq);
             state = KafkaState.openedInitial(state);
 
             doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1320,8 +1318,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 replyMax = minReplyMax;
 
                 state = KafkaState.openedReply(state);
-                System.out.printf("Sending OffsetCommit network window with replySeq: %d, replyAck %d, replyMax: %d%n",
-                    replySeq, replyAck, replyMax);
                 doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
@@ -1549,12 +1545,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 {
                     doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
                 }
-            }
-
-            if (nextResponseId == nextRequestId)
-            {
-                System.out.printf("OffsetCommit decoded. replyId: %s, replySeq: %d, replyAck: %d%n", Long.toHexString(replyId),
-                    replySeq, replyAck);
             }
         }
 

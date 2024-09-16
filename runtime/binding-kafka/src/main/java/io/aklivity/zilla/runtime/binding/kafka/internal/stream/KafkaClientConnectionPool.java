@@ -834,7 +834,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             state = KafkaState.closedInitial(state);
 
-            System.out.printf("onStreamAbort: %s, initialId: %s%n", Long.toHexString(traceId), Long.toHexString(initialId));
             if (KafkaState.closed(state))
             {
                 connection.onStreamClosed(initialId);
@@ -849,7 +848,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            System.out.printf("onStreamReset, traceId: %s, timestamp: %d%n", Long.toHexString(traceId), System.nanoTime());
 
             state = KafkaState.closedReply(state);
 
@@ -879,7 +877,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             final long budgetId = window.budgetId();
             final int padding = window.padding();
             final int maximum = window.maximum();
-            System.out.printf("onStreamWindow, traceId: %s, timestamp: %d%n", Long.toHexString(traceId), System.nanoTime());
 
             assert replyAck <= replySeq;
 
@@ -940,7 +937,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             int length,
             Flyweight extension)
         {
-            System.out.println("doStreamData, traceId = " + Long.toHexString(traceId));
             if (responseBytes == 0)
             {
                 replySeqOffsets.add(connection.replySeq - reserved);
@@ -966,21 +962,17 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
             else
             {
-                System.out.printf("Got data while stream is aborting. replySeq: %d, reserved: %d, initialId: %s%n",
-                    replySeq, reserved, Long.toHexString(initialId));
                 replySeq += reserved;
 
                 // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    System.out.printf("responseBytes is 0%n");
                     if (KafkaState.replyAborting(state))
                     {
                         doStreamAbort(traceId);
                     }
                     else
                     {
-                        System.out.printf("Setting replyAck to replySeq: %d%n", replySeq);
                         replyAck = replySeq;
                         flushStreamWindow(traceId);
                     }
@@ -993,17 +985,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long replySeqOffsetPeek = replySeqOffsets.peekLong();
 
-            System.out.printf("replySeqOffsetPeek: %d%n", replySeqOffsetPeek);
             if (replySeqOffsetPeek != NO_OFFSET)
             {
                 assert replyAck >= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
 
-                System.out.printf("replySeq: %d, replyAck: %d%n", replySeq, replyAck);
                 // TODO: && responseAckBytes == 0
                 if (replyAck == replySeq)
                 {
-                    //System.out.printf("Add to replyAckOffsets. replySeqOffsetPeek: %d, replyAck: %d, replyAckSnapshot: %d%n",
-                    //    replySeqOffsetPeek, replyAck, replyAckSnapshot);
                     replyAckOffsets.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
 
                     replySeqOffsets.removeLong();
@@ -1017,7 +1005,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamEnd(
             long traceId)
         {
-            System.out.println("doStreamEnd, traceId = " + Long.toHexString(traceId));
             if (!KafkaState.replyClosed(state))
             {
                 state = KafkaState.closingReply(state);
@@ -1046,12 +1033,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamAbort(
             long traceId)
         {
-            System.out.println("doStreamAbort, traceId = " + Long.toHexString(traceId));
             if (!KafkaState.replyClosed(state))
             {
                 state = KafkaState.abortingReply(state);
 
-                System.out.printf("nextRequestId: %d, nextResponseId: %d%n", nextRequestId, nexResponseId);
                 if (nextRequestId == nexResponseId)
                 {
                     state = KafkaState.closedReply(state);
@@ -1059,7 +1044,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
 
-                    System.out.printf("responseBytes: %d%n", responseBytes);
                     if (responseBytes == 0)
                     {
                         //TODO: make sure we elevating the ack when we abort. The same thing onStreamReset
@@ -1437,7 +1421,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             int maxReplyPad = replyPad;
             int minReplyMax = replyMax;
 
-            System.out.printf("doConnectionWindow.%n");
             if (!responseAcks.isEmpty())
             {
                 final int streamsSize = streamsByInitialId.size();
@@ -1451,38 +1434,21 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     maxReplyPad = stream.replyPad;
                     minReplyMax = stream.replyMax;
 
-                    System.out.printf("stream.replyAck: %d, stream.replySeq: %d, replyAckOffsets.size(): %d, " +
-                            "stream.initialId: %s%n", stream.replyAck, stream.replySeq, stream.replyAckOffsets.size(),
-                        stream.initialId);
                     if (stream.replyAck < stream.replySeq || stream.replyAckOffsets.isEmpty())
                     {
-                        //System.out.println("In the condition:");
                         if (!stream.replySeqOffsets.isEmpty())
                         {
                             long replySeqOffsets = stream.replySeqOffsets.peekLong();
                             maxReplyAck = replySeqOffsets + stream.replyAck - stream.replyAckSnapshot;
-                            //System.out.printf("replySeqOffsets not empty. maxReplyAck: %d, replySeqOffsets: %d, " +
-                            //        "stream.replyAck: %d, stream.replyAckSnapshot: %d%n", maxReplyAck, replySeqOffsets,
-                            //    stream.replyAck, stream.replyAckSnapshot);
-                            //System.out.printf("responseAck: %s%n", Long.toHexString(responseAck));
                         }
-                        //System.out.printf("stream.replySeq: %d, stream.replyAck: %d, stream.replySeqOffsets: %s, " +
-                        //    "stream.replyAckOffsets: %s, stream.state: %d, stream.replyAckSnapshot: %d, " +
-                        //    "stream.nextRequestId: %d, stream.nextResponseId: %d, stream.responseBytes: %d%n",
-                        //    stream.replySeq, stream.replyAck, stream.replySeqOffsets, stream.replyAckOffsets, stream.state,
-                        //    stream.replyAckSnapshot, stream.nextRequestId, stream.nexResponseId, stream.responseBytes);
                         break ack;
                     }
                     maxReplyAck = stream.replyAckOffsets.removeLong();
-                    //System.out.printf("maxReplyAck set to %d%n", maxReplyAck);
                     if (KafkaState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
                     {
-                        //System.out.printf("Removed stream from streamsByInitialId (doConnectionWindow): %s%n",
-                        //    Long.toHexString(responseAck));
                         streamsByInitialId.remove(responseAck);
                     }
 
-                    //System.out.printf("Removed from responseAcks: %s%n", Long.toHexString(responseAck));
                     responseAcks.removeLong();
                 }
 
@@ -1493,8 +1459,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             final long newReplyAck = Math.max(maxReplyAck, replyAck);
-            //System.out.printf("newReplyAck: %d, maxReplyAck: %d, replyAck: %d, minReplyMax: %d, replyOpened: %b%n",
-            //    newReplyAck, maxReplyAck, replyAck, minReplyMax, KafkaState.replyOpened(state));
             if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
             {
                 replyAck = newReplyAck;
@@ -1506,7 +1470,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, maxReplyPad);
-                //System.out.println("Juhhuuuuu.");
             }
         }
 
@@ -1686,7 +1649,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 KafkaClientStream stream = streamsByInitialId.get(s);
                 stream.cleanup(traceId);
                 streamsByInitialId.remove(s);
-                //System.out.printf("cleanupStreams: %s%n", Long.toHexString(s));
             });
             streams.clear();
             signalerCorrelations.clear();
@@ -1863,7 +1825,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long streamId)
         {
             streams.remove(streamId);
-            //System.out.printf("Stream removed from streams: %s%n", Long.toHexString(streamId));
 
             if (!responseAcks.contains(streamId))
             {
@@ -1871,7 +1832,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 if (stream != null && stream.initialAck == stream.initialSeq)
                 {
                     streamsByInitialId.remove(streamId);
-                    //System.out.printf("Stream removed from streamsByInitialId: %s%n", Long.toHexString(streamId));
                     doSignalStreamCleanup();
                 }
             }
@@ -1891,8 +1851,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             final long initialId = begin.streamId();
             final long authorization = begin.authorization();
 
-            System.out.printf("Creating new stream with initialId: %d, traceId: %s%n",
-                initialId, Long.toHexString(begin.traceId()));
             KafkaClientStream stream = new KafkaClientStream(this, sender, originId, routedId, initialId, authorization);
             streamsByInitialId.put(initialId, stream);
             streams.add(initialId);

@@ -239,8 +239,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final KafkaGroupClusterClientDecoder decodeClusterSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
     private final KafkaGroupClusterClientDecoder decodeClusterSaslAuthenticate = this::decodeSaslAuthenticate;
     private final KafkaGroupClusterClientDecoder decodeFindCoordinatorResponse = this::decodeFindCoordinatorResponse;
-    private final KafkaGroupClusterClientDecoder decodeFindCoordinatorResponseComplete =
-        this::decodeFindCoordinatorResponseComplete;
     private final KafkaGroupClusterClientDecoder decodeClusterReject = this::decodeClusterReject;
     private final KafkaGroupClusterClientDecoder decodeClusterIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
@@ -914,7 +912,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 case ERROR_NONE:
                     client.onFindCoordinator(traceId, authorization, findCoordinatorResponse.nodeId(),
                         findCoordinatorResponse.host(), findCoordinatorResponse.port());
-                    //client.decoder = decodeFindCoordinatorResponseComplete;
                     break;
                 default:
                     client.onDecodeResponseErrorCode(traceId, client.originId, FIND_COORDINATOR_API_KEY,

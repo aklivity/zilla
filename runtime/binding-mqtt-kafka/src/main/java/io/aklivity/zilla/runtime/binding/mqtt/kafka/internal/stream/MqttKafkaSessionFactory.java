@@ -4938,8 +4938,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialMax = maximum;
             state = MqttKafkaState.openInitial(state);
 
-            System.out.printf("Got window in MqttKafka OffsetCommit stream with initialSeq: %d, initialAck: %d%n",
-                initialAck, initialSeq);
             assert initialAck <= initialSeq;
 
             if (!wasOpen)
