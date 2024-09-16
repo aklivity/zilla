@@ -1458,6 +1458,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             final long newReplyAck = Math.max(maxReplyAck, replyAck);
+
             if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
             {
                 replyAck = newReplyAck;
