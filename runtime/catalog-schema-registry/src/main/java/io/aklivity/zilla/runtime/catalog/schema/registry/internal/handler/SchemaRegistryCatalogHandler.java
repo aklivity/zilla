@@ -348,6 +348,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         return responseBody;
     }
 
+    @Override
+    public String location()
+    {
+        return baseUrl;
+    }
+
     private URI toURI(
         String baseUrl,
         String path)
