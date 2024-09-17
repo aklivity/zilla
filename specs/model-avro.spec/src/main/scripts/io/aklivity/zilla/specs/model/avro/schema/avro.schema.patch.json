@@ -37,6 +37,7 @@
                     },
                     "catalog":
                     {
+                        "title": "Catalog",
                         "type": "object",
                         "patternProperties":
                         {
@@ -66,29 +67,10 @@
                                             "type": "object",
                                             "properties":
                                             {
-                                                "schema":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "schema"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
                                                 "strategy":
                                                 {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "enum": [ "topic" ]
                                                 },
                                                 "version":
                                                 {

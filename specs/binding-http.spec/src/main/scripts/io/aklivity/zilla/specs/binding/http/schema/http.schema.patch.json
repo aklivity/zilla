@@ -31,6 +31,7 @@
                     {
                         "enum": [ "server", "client" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "options":
                     {
@@ -57,7 +58,9 @@
                                     "policy":
                                     {
                                         "title": "Policy",
-                                        "type": "string"
+                                        "type": "string",
+                                        "enum": [ "same-origin" , "cross-origin" ],
+                                        "default": "same-origin"
                                     }
                                 },
                                 "oneOf":
@@ -346,14 +349,20 @@
                     },
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "headers":

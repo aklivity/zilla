@@ -31,17 +31,24 @@
                     {
                         "enum": [ "cache_client", "cache_server", "client" ]
                     },
+                    "catalog": false,
                     "vault": false,
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "properties":
                                         {
                                             "topic":
@@ -314,119 +321,129 @@
         "path": "/$defs/options/binding/kafka/cache_server_topics",
         "value":
         {
-            "topics":
+            "title": "Topics",
+            "type": "array",
+            "items":
             {
-                "title": "Topics",
-                "type": "array",
-                "items":
+                "type": "object",
+                "additionalProperties": false,
+                "properties":
                 {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties":
+                    "name":
                     {
-                        "name":
-                        {
-                            "type": "string"
-                        },
-                        "defaultOffset":
-                        {
-                            "type": "string",
-                            "enum": [ "live", "historical" ]
-                        },
-                        "deltaType":
-                        {
-                            "type": "string",
-                            "enum": [ "none", "json_patch" ],
-                            "deprecated": true
-                        },
-                        "transforms":
-                        {
-                            "title": "Transforms",
-                            "type": "array",
-                            "oneOf":
-                            [
-                                {
-                                    "items":
-                                    [
+                        "type": "string"
+                    },
+                    "defaultOffset":
+                    {
+                        "type": "string",
+                        "enum": [ "live", "historical" ]
+                    },
+                    "deltaType":
+                    {
+                        "type": "string",
+                        "enum": [ "none", "json_patch" ],
+                        "deprecated": true
+                    },
+                    "transforms":
+                    {
+                        "title": "Transforms",
+                        "type": "array",
+                        "oneOf":
+                        [
+                            {
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items":
+                                [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
                                         {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
+                                            "extract-key":
                                             {
-                                                "extract-headers":
+                                                "type": "string",
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "extract-headers":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
                                                 {
-                                                    "type": "object",
-                                                    "patternProperties":
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                     {
-                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
+                                                        "type": "string",
+                                                        "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                    }
                                                 },
-                                                "extract-key":
-                                                {
-                                                    "type": "string",
-                                                    "additionalProperties": false
-                                                }
+                                                "additionalProperties": false
                                             }
                                         }
-                                    ]
-                                },
-                                {
-                                    "items":
-                                    [
+                                    }
+                                ]
+                            },
+                            {
+                                "minItems": 1,
+                                "maxItems": 1,
+                                "items":
+                                [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
                                         {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
+                                            "extract-headers":
                                             {
-                                                "extract-headers":
+                                                "type": "object",
+                                                "patternProperties":
                                                 {
-                                                    "type": "object",
-                                                    "patternProperties":
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                     {
-                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
+                                                        "type": "string",
+                                                        "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         }
-                                    ]
-                                },
-                                {
-                                    "items":
-                                    [
+                                    }
+                                ]
+                            },
+                            {
+                                "minItems": 1,
+                                "maxItems": 1,
+                                "items":
+                                [
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
                                         {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties":
+                                            "extract-key":
                                             {
-                                                "extract-key":
-                                                {
-                                                    "type": "string",
-                                                    "additionalProperties": false
-                                                }
+                                                "type": "string",
+                                                "additionalProperties": false
                                             }
                                         }
-                                    ]
-                                }
-                            ]
-                        },
-                        "key":
-                        {
-                            "$ref": "#/$defs/converter"
-                        },
-                        "value":
-                        {
-                            "$ref": "#/$defs/converter"
-                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "key":
+                    {
+                        "$ref": "#/$defs/converter"
+                    },
+                    "value":
+                    {
+                        "$ref": "#/$defs/converter"
                     }
                 }
             }
