@@ -28,31 +28,33 @@ connect "zilla://streams/net0"
 
 connected
 
-write 125                               # size
+write 144                                 # size
       19s                               # create topics
       3s                                # v3
       ${newRequestId}
+      5s "zilla"                        # client id
       2                                 # topic count
         6s "events"                     # name
         1                               # number of partitions
         1s                              # replication factor
         1                               # assignments
             0                           # partition index
-            0                           # broker ids
+            1                           # broker ids
+                0                       # broker id
         1                               # configs
             14s "cleanup.policy"        # name
-            6s "delete" 66              # value
-        6s "snapshots"                  # name
+            6s "delete"                 # value
+        9s "snapshots"                  # name
         1                               # number of partitions
         1s                              # replication factor
         1                               # assignments
             0                           # partition index
-            0                           # broker ids
+            1                           # broker ids
+                0                       # broker id
         1                               # configs
             14s "cleanup.policy"        # name
             7s "compact"                # value
       0                                 # timeout
-
 
 read  39                                 # size
       (int:newRequestId)

@@ -618,9 +618,10 @@ scope protocol
                 string16 value = null;
             }
 
-            struct TimeoutRequest
+            struct PropertiesRequest
             {
                 int32 timeout;
+                uint8 validate_only;
             }
 
             struct CreateTopicsResponse
