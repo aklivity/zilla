@@ -12,31 +12,29 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal;
-
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveProxyFactory;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveStreamFactory;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream.PgsqlKafkaProxyFactory;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream.PgsqlKafkaStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
-final class RisingwaveBindingContext implements BindingContext
+final class PgsqlKafkaBindingContext implements BindingContext
 {
-    private final Map<KindConfig, RisingwaveStreamFactory> factories;
+    private final Map<KindConfig, PgsqlKafkaStreamFactory> factories;
 
-    RisingwaveBindingContext(
-        RisingwaveConfiguration config,
+    PgsqlKafkaBindingContext(
+        PgsqlKafkaConfiguration config,
         EngineContext context)
     {
-        final EnumMap<KindConfig, RisingwaveStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(KindConfig.PROXY, new RisingwaveProxyFactory(config, context));
+        final EnumMap<KindConfig, PgsqlKafkaStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(KindConfig.PROXY, new PgsqlKafkaProxyFactory(config, context));
         this.factories = factories;
     }
 
@@ -44,7 +42,7 @@ final class RisingwaveBindingContext implements BindingContext
     public BindingHandler attach(
         BindingConfig binding)
     {
-        RisingwaveStreamFactory factory = factories.get(binding.kind);
+        PgsqlKafkaStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {
@@ -58,7 +56,7 @@ final class RisingwaveBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        RisingwaveStreamFactory factory = factories.get(binding.kind);
+        PgsqlKafkaStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {

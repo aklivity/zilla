@@ -12,26 +12,25 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal;
 
-import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 
 @Incubating
-public final class RisingwaveBindingFactorySpi implements BindingFactorySpi
+public final class PgsqlKafkaBindingFactorySpi implements BindingFactorySpi
 {
     @Override
     public String type()
     {
-        return RisingwaveBinding.NAME;
+        return PgsqlKafkaBinding.NAME;
     }
 
     @Override
-    public RisingwaveBinding create(
+    public PgsqlKafkaBinding create(
         Configuration config)
     {
-        return new RisingwaveBinding(new RisingwaveConfiguration(config));
+        return new PgsqlKafkaBinding(new PgsqlKafkaConfiguration(config));
     }
 }

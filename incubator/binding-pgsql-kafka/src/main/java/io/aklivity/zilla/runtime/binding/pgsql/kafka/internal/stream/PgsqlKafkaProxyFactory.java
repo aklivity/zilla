@@ -12,14 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal.stream;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -28,50 +27,37 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
-import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwavePgsqlTypeMapping;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveState;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveStreamFactory;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlBeginExFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlColumnInfoFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlDataExFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlStatus;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaBindingConfig;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlBeginExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
 
-public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
+public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 {
     private static final Byte STATEMENT_SEMICOLON = ';';
 
@@ -94,6 +80,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
+    private final SignalFW signalRO = new SignalFW();
     private final FlushFW flushRO = new FlushFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -117,11 +104,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
 
-    private final Array32FW.Builder<PgsqlColumnInfoFW.Builder, PgsqlColumnInfoFW> columnsRW =
-        new Array32FW.Builder<>(new PgsqlColumnInfoFW.Builder(), new PgsqlColumnInfoFW());
-
     private final BufferPool bufferPool;
-    private final RisingwaveConfiguration config;
+    private final PgsqlKafkaConfiguration config;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer statementBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -132,25 +116,23 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private final int decodeMax;
 
-    private final Long2ObjectHashMap<RisingwaveBindingConfig> bindings;
+    private final Long2ObjectHashMap<PgsqlKafkaBindingConfig> bindings;
     private final int pgsqlTypeId;
+    private final int kafkaTypeId;
 
-    private final PgsqlFlushCommand typeFlushCommand = this::typeFlushCommand;
-    private final PgsqlFlushCommand proxyFlushCommand = this::proxyFlushCommand;
-    private final PgsqlFlushCommand ignoreFlushCommand = this::ignoreFlushCommand;
+    private final Object2ObjectHashMap<PgsqlommandType, PgsqlDecoder> clientTransforms;
 
-    private final Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms;
     {
-        Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
+        Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> clientTransforms =
             new Object2ObjectHashMap<>();
-        clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
-        clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::onDecodeCreateMaterializedViewCommand);
-        clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
+        clientTransforms.put(PgsqlKafkaCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
+        clientTransforms.put(PgsqlKafkaCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::onDecodeCreateMaterializedViewCommand);
+        clientTransforms.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
 
-    public RisingwaveProxyFactory(
-        RisingwaveConfiguration config,
+    public PgsqlKafkaProxyFactory(
+        PgsqlKafkaConfiguration config,
         EngineContext context)
     {
         this.config = config;
@@ -167,14 +149,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
 
         this.pgsqlTypeId = context.supplyTypeId("pgsql");
+        this.kafkaTypeId = context.supplyTypeId("kafka");
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        RisingwaveBindingConfig risingwaveBinding = new RisingwaveBindingConfig(config, binding, supplyCatalog);
-        bindings.put(binding.id, risingwaveBinding);
+        PgsqlKafkaBindingConfig pgsqlKafkaBinding = new PgsqlKafkaBindingConfig(config, binding, supplyCatalog);
+        bindings.put(binding.id, pgsqlKafkaBinding);
     }
 
     @Override
@@ -203,20 +186,21 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final Map<String, String> parameters = new LinkedHashMap<>();
         pgsqlBeginEx.parameters().forEach(p -> parameters.put(p.name().asString(), p.value().asString()));
 
-        RisingwaveBindingConfig binding = bindings.get(routedId);
+        PgsqlKafkaBindingConfig binding = bindings.get(routedId);
 
         MessageConsumer newStream = null;
 
         if (binding != null)
         {
-            RisingwaveRouteConfig route = binding.resolve(authorization, extBuffer, 0, 0);
+            PgsqlKafkaRouteConfig route = binding.resolve(authorization);
 
             if (route != null)
             {
-                newStream = new PgsqlServer(
+                newStream = new PgsqlProxy(
                     app,
                     originId,
                     routedId,
+                    route.id,
                     initialId,
                     parameters)::onAppMessage;
             }
@@ -225,21 +209,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         return newStream;
     }
 
-    private final class PgsqlServer
+    private final class PgsqlProxy
     {
         private final MessageConsumer app;
-        private final Long2ObjectHashMap<PgsqlClient> streamsByRouteIds;
-        private final RisingwaveBindingConfig binding;
+        private final PgsqlKafkaBindingConfig binding;
         private final Map<String, String> parameters;
-        private final LongArrayQueue responses;
-        private final IntArrayQueue queries;
-        private final Map<String, String> columns;
         private final String database;
 
         private final long initialId;
         private final long replyId;
         private final long originId;
         private final long routedId;
+        private final KafkaProxy delegate;
 
         private long initialSeq;
         private long initialAck;
@@ -261,10 +242,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int commandsProcessed = 0;
         private int queryProgressOffset;
 
-        private PgsqlServer(
+        private PgsqlProxy(
             MessageConsumer app,
             long originId,
             long routedId,
+            long resolvedId,
             long initialId,
             Map<String, String> parameters)
         {
@@ -280,12 +262,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
 
-            this.columns = new Object2ObjectHashMap<>();
-            this.streamsByRouteIds = new Long2ObjectHashMap<>();
-            this.responses = new LongArrayQueue();
-            this.queries = new IntArrayQueue();
-
-            binding.routes.forEach(r -> streamsByRouteIds.put(r.id, new PgsqlClient(this, routedId, r.id)));
+            this.delegate = new KafkaProxy(this, routedId, resolvedId);
         }
 
         private void onAppMessage(
@@ -333,7 +310,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
 
-            state = RisingwaveState.openingInitial(state);
+            state = PgsqlKafkaState.openingInitial(state);
 
             streamsByRouteIds.values().forEach(c -> c.doAppBegin(traceId, authorization, affinity));
 
@@ -407,7 +384,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = RisingwaveState.closeInitial(state);
+            state = PgsqlKafkaState.closeInitial(state);
 
             doAppEnd(traceId, authorization);
 
@@ -420,7 +397,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = RisingwaveState.closeInitial(state);
+            state = PgsqlKafkaState.closeInitial(state);
 
         }
 
@@ -430,7 +407,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = RisingwaveState.closeReply(state);
+            state = PgsqlKafkaState.closeReply(state);
 
             cleanup(traceId, authorization);
         }
@@ -467,7 +444,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             while (credit > 0 && !responses.isEmpty())
             {
                 final long routeId = responses.peekLong();
-                PgsqlClient client = streamsByRouteIds.get(routeId);
+                KafkaProxy client = streamsByRouteIds.get(routeId);
 
                 if (client != null)
                 {
@@ -491,7 +468,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization,
             int progress,
-            RisingwaveCompletionCommand command)
+            PgsqlKafkaCompletionCommand command)
         {
             commandsProcessed = 0;
             parserSlotOffset -= progress;
@@ -546,7 +523,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, EMPTY_OCTETS);
 
-            state = RisingwaveState.openingReply(state);
+            state = PgsqlKafkaState.openingReply(state);
         }
 
         private void doAppData(
@@ -575,9 +552,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpened(state))
+            if (PgsqlKafkaState.replyOpened(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = PgsqlKafkaState.closeInitial(state);
 
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -589,9 +566,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpened(state))
+            if (PgsqlKafkaState.replyOpened(state))
             {
-                state = RisingwaveState.closeReply(state);
+                state = PgsqlKafkaState.closeReply(state);
 
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -602,9 +579,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpened(state))
+            if (PgsqlKafkaState.initialOpened(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = PgsqlKafkaState.closeInitial(state);
 
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -625,12 +602,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - parserSlotOffset, initialAck);
 
-            if (newInitialAck > initialAck || !RisingwaveState.initialOpened(state))
+            if (newInitialAck > initialAck || !PgsqlKafkaState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                state = RisingwaveState.openInitial(state);
+                state = PgsqlKafkaState.openInitial(state);
 
                 doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, initialBudgetId, initialPad);
@@ -662,9 +639,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private void doCommandCompletion(
             long traceId,
             long authorization,
-            RisingwaveCompletionCommand command)
+            PgsqlKafkaCompletionCommand command)
         {
-            if (command != RisingwaveCompletionCommand.UNKNOWN_COMMAND)
+            if (command != PgsqlKafkaCompletionCommand.UNKNOWN_COMMAND)
             {
                 extBuffer.putBytes(0, command.value());
                 extBuffer.putInt(command.value().length, END_OF_FIELD);
@@ -712,9 +689,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                         {
                             length += Byte.BYTES;
                         }
-                        final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
-                        final PgsqlTransform transform = clientTransforms.get(command);
-                        transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
+                        final PgsqlKafkaCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
+                        final PgsqlDecoder transform = clientTransforms.get(command);
+                        transform.decode(this, traceId, authorizationId, parserBuffer, statementOffset, length);
                         break parse;
                     }
 
@@ -745,103 +722,161 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
     }
 
-    private final class PgsqlClient
+    private final class KafkaProxy
     {
-        private final PgsqlServer server;
-
-        private MessageConsumer app;
-
-        private final long initialId;
-        private final long replyId;
+        private MessageConsumer kafka;
         private final long originId;
         private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final PgsqlProxy delegate;
+
+        private int state;
 
         private long initialSeq;
         private long initialAck;
         private int initialMax;
-        private int initialPad;
-        private long initialBudgetId;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
-        private int state;
-        private int messageOffset;
-
-        private PgsqlFlushCommand typeCommand;
-        private PgsqlFlushCommand completionCommand;
-
-        private PgsqlClient(
-            PgsqlServer server,
+        private KafkaProxy(
             long originId,
-            long routedId)
+            long routedId,
+            PgsqlProxy delegate)
         {
-            this.server = server;
             this.originId = originId;
             this.routedId = routedId;
+            this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-
-            this.typeCommand = proxyFlushCommand;
-            this.completionCommand = ignoreFlushCommand;
         }
 
-        private void onAppMessage(
-            final int msgTypeId,
-            final DirectBuffer buffer,
-            final int index,
-            final int length)
+        private void doKafkaBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            initialSeq = delegate.initialSeq;
+            initialAck = delegate.initialAck;
+            initialMax = delegate.initialMax;
+            state = PgsqlKafkaState.openingInitial(state);
+
+            kafka = newKafkaFetcher(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, result);
+        }
+
+        private void doKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!PgsqlKafkaState.initialClosed(state))
+            {
+                initialSeq = delegate.initialSeq;
+                initialAck = delegate.initialAck;
+                initialMax = delegate.initialMax;
+                state = PgsqlKafkaState.closeInitial(state);
+
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private void doKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!PgsqlKafkaState.initialClosed(state))
+            {
+                initialSeq = delegate.initialSeq;
+                initialAck = delegate.initialAck;
+                initialMax = delegate.initialMax;
+                state = PgsqlKafkaState.closeInitial(state);
+
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
         {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onAppBegin(begin);
+                onKafkaBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onAppData(data);
+                onKafkaData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onAppEnd(end);
+                onKafkaEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onAppAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onAppFlush(flush);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onAppReset(reset);
+                onKafkaAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onAppWindow(window);
+                onKafkaWindow(window);
                 break;
-            default:
-                // ignore
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onKafkaSignal(signal);
                 break;
             }
         }
 
-        private void onAppBegin(
-            final BeginFW begin)
+        private void onKafkaBegin(
+            BeginFW begin)
         {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
 
-            state = RisingwaveState.openingReply(state);
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge >= replyAck;
 
-            doAppWindow(traceId, authorization);
+            replySeq = sequence;
+            replyAck = acknowledge;
+            state = PgsqlKafkaState.openingReply(state);
+
+            assert replyAck <= replySeq;
+
+            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
+            final KafkaBeginExFW kafkaBeginEx =
+                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
+            final KafkaMergedBeginExFW kafkaMergedBeginEx =
+                kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
+            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ?
+                kafkaMergedBeginEx.partitions() : null;
+
+            if (kafkaMergedBeginEx != null)
+            {
+                Varuint32FW len = lenRW.set(partitions.length()).build();
+                int lenSize = len.sizeof();
+                replyPad = result.fieldId().sizeof() + lenSize + partitions.sizeof();
+            }
         }
 
-        private void onAppData(
-            final DataFW data)
+        private void onKafkaData(
+            DataFW data)
         {
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
@@ -849,316 +884,132 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long authorization = data.authorization();
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
-            final int flags = data.flags();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
-            assert acknowledge <= replyAck;
-            assert budgetId == server.replyBudgetId;
 
             replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
 
-            if (replySeq > replyAck + replyMax)
-            {
-                server.cleanup(traceId, authorization);
-            }
-            else
-            {
-                final OctetsFW extension = data.extension();
-                final OctetsFW payload = data.payload();
-                server.doAppData(routedId, traceId, authorization, flags,
-                    payload.buffer(), payload.offset(), payload.limit(), extension);
-            }
+            delegate.cleanup(traceId, authorization);
         }
 
-        private void onAppFlush(
-            final FlushFW flush)
+        private void onKafkaEnd(
+            EndFW end)
         {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final int reserved = flush.reserved();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-            assert acknowledge <= replyAck;
-
-            replySeq = sequence;
-
-            assert replyAck <= replySeq;
-
-            if (replySeq > replySeq + replyMax)
-            {
-                server.cleanup(traceId, authorization);
-            }
-
-            final OctetsFW extension = flush.extension();
-            final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
-
-            final PgsqlFlushExFW pgsqlFlushEx = flushEx != null && flushEx.typeId() == pgsqlTypeId ?
-                    extension.get(pgsqlFlushExRO::tryWrap) : null;
-
-            assert pgsqlFlushEx != null;
-
-            switch (pgsqlFlushEx.kind())
-            {
-            case PgsqlFlushExFW.KIND_TYPE:
-                onAppTypeFlush(traceId, authorization, pgsqlFlushEx);
-                break;
-            case PgsqlFlushExFW.KIND_COMPLETION:
-                onAppCompletionFlush(traceId, authorization, pgsqlFlushEx);
-                break;
-            case PgsqlFlushExFW.KIND_READY:
-                onAppReadyFlush(traceId, authorization, pgsqlFlushEx);
-                break;
-            default:
-                assert false;
-                break;
-            }
-        }
-
-        private void onAppEnd(
-            final EndFW end)
-        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            if (!RisingwaveState.closed(server.state))
-            {
-                state = RisingwaveState.closeReply(state);
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
 
-                doAppEnd(traceId, authorization);
+            replySeq = sequence;
+            state = PgsqlKafkaState.closeReply(state);
 
-                server.cleanup(traceId, authorization);
-            }
+            assert replyAck <= replySeq;
+
+            delegate.onKafkaEnd(traceId, authorization);
         }
 
-        private void onAppAbort(
-            final AbortFW abort)
+        private void onKafkaAbort(
+            AbortFW abort)
         {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = RisingwaveState.closeReply(state);
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
 
-            server.cleanup(traceId, authorization);
+            replySeq = sequence;
+            state = PgsqlKafkaState.closeReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.onKafkaAbort(traceId, authorization);
         }
 
-        private void onAppReset(
-            final ResetFW reset)
-        {
-            final long traceId = reset.traceId();
-            final long authorization = reset.authorization();
-
-            state = RisingwaveState.closeInitial(state);
-
-            server.cleanup(traceId, authorization);
-        }
-
-        private void onAppWindow(
-            final WindowFW window)
+        private void onKafkaWindow(
+            WindowFW window)
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
-            final long traceId = window.traceId();
             final long authorization = window.authorization();
+            final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
+            final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= initialAck;
-            assert maximum + acknowledge >= initialMax + initialAck;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
 
-            initialBudgetId = budgetId;
             initialAck = acknowledge;
             initialMax = maximum;
-            initialPad = padding;
+            state = PgsqlKafkaState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
-            state = RisingwaveState.openInitial(state);
-
-            server.doParseQuery(traceId, authorization);
+            delegate.onKafkaWindow(authorization, traceId, budgetId, padding, capabilities);
         }
 
-        private void onAppTypeFlush(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW pgsqlFlushEx)
+        private void onKafkaReset(
+            ResetFW reset)
         {
-            typeCommand.handle(server, traceId, authorization, pgsqlFlushEx);
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+
+            delegate.initialAck = acknowledge;
+            state = PgsqlKafkaState.closeInitial(state);
+
+            assert delegate.initialAck <= delegate.initialSeq;
+
+            delegate.onKafkaReset(traceId, authorization);
         }
 
-        private void onAppCompletionFlush(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW pgsqlFlushEx)
+        private void onKafkaSignal(
+            SignalFW signal)
         {
-            messageOffset = 0;
-            completionCommand.handle(server, traceId, authorization, pgsqlFlushEx);
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+
+            doKafkaEnd(traceId, authorization);
         }
 
-        private void onAppReadyFlush(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW pgsqlFlushEx)
-        {
-            server.onQueryReady(traceId, authorization, pgsqlFlushEx);
-        }
-
-        private void doAppBegin(
-            long traceId,
-            long authorization,
-            long affinity)
-        {
-            if (!RisingwaveState.initialOpening(state))
-            {
-                Consumer<OctetsFW.Builder> beginEx = e -> e.set((b, o, l) -> beginExRW.wrap(b, o, l)
-                    .typeId(pgsqlTypeId)
-                    .parameters(p -> server.parameters.forEach((k, v) -> p.item(i -> i.name(k).value(v))))
-                    .build().sizeof());
-
-                state = RisingwaveState.openingInitial(state);
-
-                final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .originId(originId)
-                        .routedId(routedId)
-                        .streamId(initialId)
-                        .sequence(initialSeq)
-                        .acknowledge(initialAck)
-                        .maximum(initialMax)
-                        .traceId(traceId)
-                        .authorization(authorization)
-                        .affinity(affinity)
-                        .extension(beginEx)
-                        .build();
-
-                app = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(),
-                        this::onAppMessage);
-
-                app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-            }
-        }
-
-        private void doAppData(
-            long traceId,
-            long authorization,
-            int flags,
-            DirectBuffer buffer,
-            int offset,
-            int length,
-            Consumer<OctetsFW.Builder> extension)
-        {
-            final int reserved = length + initialPad;
-
-            doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                flags, initialBudgetId, reserved, buffer, offset, length, extension);
-
-            initialSeq += reserved;
-            assert initialSeq <= initialAck + initialMax;
-        }
-
-        private void doAppEnd(
+        private void doKafkaReset(
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpened(state))
+            if (!PgsqlKafkaState.replyClosed(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = PgsqlKafkaState.closeReply(state);
 
-                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
 
-        private void doAppAbort(
-            long traceId,
-            long authorization)
-        {
-            if (RisingwaveState.initialOpened(state))
-            {
-                state = RisingwaveState.closeInitial(state);
-
-                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-        }
-
-        private void doAppReset(
-            long traceId,
-            long authorization)
-        {
-            if (RisingwaveState.replyOpened(state))
-            {
-                state = RisingwaveState.closeReply(state);
-
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-        }
-
-        private void doAppAbortAndReset(
-            long traceId,
-            long authorization)
-        {
-            doAppAbort(traceId, authorization);
-            doAppReset(traceId, authorization);
-        }
-
-        private void doAppWindow(
-            long traceId,
-            long authorization)
-        {
-            if (RisingwaveState.replyOpening(state))
-            {
-                state = RisingwaveState.openReply(state);
-
-                doWindow(app, originId, routedId, replyId, replySeq, replyAck, server.replyMax,
-                    traceId, authorization, server.replyBudgetId, server.replyPadding);
-            }
-        }
-
-        private void doPgsqlQuery(
+        private void doKafkaWindow(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
-            int offset,
-            int length)
+            long budgetId,
+            int padding)
         {
-            final int remaining = length - messageOffset;
-            final int initialWin = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
-            final int lengthMax = Math.min(initialWin - initialPad, remaining);
+            replyAck = Math.max(delegate.replyAck - replyPad, 0);
+            replyMax = delegate.replyMax;
 
-            if (RisingwaveState.initialOpened(state) &&
-                lengthMax > 0 && remaining > 0)
-            {
-                final int deferred = remaining - length;
-
-                int flags = 0x00;
-                if (messageOffset == 0)
-                {
-                    flags |= FLAGS_INIT;
-                }
-                if (length == remaining)
-                {
-                    flags |= FLAGS_FIN;
-                }
-
-                Consumer<OctetsFW.Builder> queryEx = (flags & FLAGS_INIT) != 0x00
-                    ? e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
-                        .typeId(pgsqlTypeId)
-                        .query(q -> q.deferred(deferred))
-                        .build().sizeof())
-                    : EMPTY_EXTENSION;
-
-                doAppData(traceId, authorization, flags, buffer, offset, lengthMax, queryEx);
-
-                messageOffset += lengthMax;
-            }
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, padding + replyPad);
         }
     }
 
@@ -1439,7 +1290,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     }
 
     private void onDecodeCreateTableCommand(
-        PgsqlServer server,
+        PgsqlProxy server,
         long traceId,
         long authorization,
         DirectBuffer buffer,
@@ -1448,11 +1299,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         if (server.commandsProcessed == 2)
         {
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.CREATE_TABLE_COMMAND);
         }
         else
         {
-            final RisingwaveBindingConfig binding = server.binding;
+            final PgsqlKafkaBindingConfig binding = server.binding;
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
             final String primaryKey = binding.createTable.getPrimaryKey(statement);
 
@@ -1475,17 +1326,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             statementBuffer.putBytes(progress, newStatement.getBytes());
             progress += newStatement.length();
 
-            final RisingwaveRouteConfig route =
+            final PgsqlKafkaRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            final KafkaProxy client = server.streamsByRouteIds.get(route.id);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = ignoreFlushCommand;
         }
     }
 
     private void onDecodeCreateMaterializedViewCommand(
-        PgsqlServer server,
+        PgsqlProxy server,
         long traceId,
         long authorization,
         DirectBuffer buffer,
@@ -1495,11 +1346,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         if (server.commandsProcessed == 4)
         {
             server.onCommandCompleted(traceId, authorization, length,
-                RisingwaveCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
+                PgsqlKafkaCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
         }
         else
         {
-            final RisingwaveBindingConfig binding = server.binding;
+            final PgsqlKafkaBindingConfig binding = server.binding;
             final CreateView statement = (CreateView) parseStatement(buffer, offset, length);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
 
@@ -1527,85 +1378,25 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             statementBuffer.putBytes(progress, newStatement.getBytes());
             progress += newStatement.length();
 
-            final RisingwaveRouteConfig route =
+            final PgsqlKafkaRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            final KafkaProxy client = server.streamsByRouteIds.get(route.id);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = typeCommand;
             client.completionCommand = ignoreFlushCommand;
         }
     }
 
-    private void onDecodeUnknownCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
+    private PgsqlKafkaCommandType decodeCommandType(
         DirectBuffer buffer,
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 1)
-        {
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.UNKNOWN_COMMAND);
-        }
-        else
-        {
-            final RisingwaveRouteConfig route =
-                server.binding.resolve(authorization, buffer, offset, length);
-
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, buffer, offset, length);
-            client.completionCommand = proxyFlushCommand;
-        }
-    }
-
-    private void ignoreFlushCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        PgsqlFlushExFW flushEx)
-    {
-        //NOOP
-    }
-
-    private void proxyFlushCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        PgsqlFlushExFW flushEx)
-    {
-        server.doAppFlush(traceId, authorization, flushEx);
-    }
-
-    private void typeFlushCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        PgsqlFlushExFW flushEx)
-    {
-        server.columns.clear();
-        flushEx.type().columns()
-            .forEach(c ->
-            {
-                String name = c.name().asString();
-                name = name.substring(0, name.length() - 1);
-                String type = RisingwavePgsqlTypeMapping.typeName(c.typeOid());
-                server.columns.put(name, type);
-            });
-
-        server.doParseQuery(traceId, authorization);
-    }
-
-    private RisingwaveCommandType decodeCommandType(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        RisingwaveCommandType matchingCommand = RisingwaveCommandType.UNKNOWN_COMMAND;
+        PgsqlKafkaCommandType matchingCommand = PgsqlKafkaCommandType.UNKNOWN_COMMAND;
 
         command:
-        for (RisingwaveCommandType command : RisingwaveCommandType.values())
+        for (PgsqlKafkaCommandType command : PgsqlKafkaCommandType.values())
         {
             int progressOffset = offset;
 
@@ -1638,22 +1429,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Statement statement = null;
         try
         {
-            //TODO: Try to generalize it
-            if (decodeCommandType(buffer, offset, length).
-                    equals(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND))
-            {
-                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
-                // Replace "CREATE MATERIALIZED VIEW" with "CREATE VIEW" for compatibility
-                sql = sql.replace("CREATE MATERIALIZED VIEW", "CREATE VIEW");
-                // Remove "IF NOT EXISTS" clause because JSqlParser doesn't support it
-                sql = sql.replace("IF NOT EXISTS", "");
-                statement = parserManager.parse(new StringReader(sql));
-            }
-            else
-            {
-                inputStream.wrap(buffer, offset, length);
-                statement = parserManager.parse(reader);
-            }
+            inputStream.wrap(buffer, offset, length);
+            statement = parserManager.parse(reader);
         }
         catch (Exception ignored)
         {
@@ -1664,24 +1441,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     }
 
     @FunctionalInterface
-    private interface PgsqlTransform
+    private interface PgsqlDecoder
     {
-        void transform(
-            PgsqlServer server,
+        void decode(
+            PgsqlProxy server,
             long traceId,
             long authorization,
             DirectBuffer writeBuffer,
             int offset,
             int length);
-    }
-
-    @FunctionalInterface
-    private interface PgsqlFlushCommand
-    {
-        void handle(
-            PgsqlServer server,
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx);
     }
 }

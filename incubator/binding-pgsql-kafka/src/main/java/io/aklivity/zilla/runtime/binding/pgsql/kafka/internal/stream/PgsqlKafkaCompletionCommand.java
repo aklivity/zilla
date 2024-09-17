@@ -12,11 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.pgsql.kafka
-{
-    requires net.sf.jsqlparser;
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaBindingFactorySpi;
+public enum PgsqlKafkaCompletionCommand
+{
+    CREATE_TABLE_COMMAND("CREATE_TOPIC".getBytes());
+
+    private final byte[] value;
+
+    PgsqlKafkaCompletionCommand(byte[] value)
+    {
+        this.value = value;
+    }
+
+    public byte[] value()
+    {
+        return value;
+    }
 }

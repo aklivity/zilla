@@ -12,9 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal.stream;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
-public final class RisingwaveState
+public final class PgsqlKafkaState
 {
     private static final int INITIAL_OPENING = 0x10;
     private static final int INITIAL_OPENED = 0x20;
@@ -121,7 +121,7 @@ public final class RisingwaveState
         return (state & REPLY_CLOSED) != 0;
     }
 
-    private RisingwaveState()
+    private PgsqlKafkaState()
     {
         // utility
     }

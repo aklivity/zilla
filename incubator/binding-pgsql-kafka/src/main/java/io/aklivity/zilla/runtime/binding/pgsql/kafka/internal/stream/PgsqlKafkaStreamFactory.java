@@ -12,12 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal.stream;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public interface RisingwaveStreamFactory extends BindingHandler
+public interface PgsqlKafkaStreamFactory extends BindingHandler
 {
     void attach(
         BindingConfig binding);

@@ -42,6 +42,10 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>com.github.jsqlparser</groupId>
+      <artifactId>jsqlparser</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
@@ -96,7 +100,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core pgsql protocol</scopeNames>
+          <scopeNames>core pgsql kafka protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types</packageName>
         </configuration>
         <executions>
@@ -191,6 +195,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/pgsql/kafka/internal/types/**/*.class</exclude>
+            <exclude>net/sf/jsqlparser/parser/*</exclude>
           </excludes>
           <rules>
             <rule>

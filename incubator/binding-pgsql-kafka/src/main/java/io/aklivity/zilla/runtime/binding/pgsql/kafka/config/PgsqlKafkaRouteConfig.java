@@ -12,34 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal.config;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.config;
 
-import static java.util.stream.Collectors.toList;
-
-import java.util.List;
 import java.util.function.LongPredicate;
 
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveConditionMatcher;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class RisingwaveRouteConfig
+public final class PgsqlKafkaRouteConfig
 {
     public final long id;
+    public final int order;
 
-    private final List<RisingwaveConditionMatcher> when;
     private final LongPredicate authorized;
 
-    public RisingwaveRouteConfig(
+    public PgsqlKafkaRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
-        this.when = route.when.stream()
-            .map(RisingwaveConditionConfig.class::cast)
-            .map(RisingwaveConditionMatcher::new)
-            .collect(toList());
+        this.order = route.order;
         this.authorized = route.authorized;
     }
 
@@ -47,14 +37,5 @@ public final class RisingwaveRouteConfig
         long authorization)
     {
         return authorized.test(authorization);
-    }
-
-    boolean matches(
-        DirectBuffer statement,
-        int offset,
-        int length)
-    {
-        return when.isEmpty() ||
-            statement != null && when.stream().anyMatch(m -> m.matches(statement, offset, length));
     }
 }

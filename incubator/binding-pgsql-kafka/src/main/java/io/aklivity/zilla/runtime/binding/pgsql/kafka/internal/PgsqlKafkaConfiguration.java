@@ -12,31 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class RisingwaveConfiguration extends Configuration
+public class PgsqlKafkaConfiguration extends Configuration
 {
-    private static final ConfigurationDef RISINGWAVE_CONFIG;
-
-    public static final LongPropertyDef KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS;
+    private static final ConfigurationDef PGSQL_KAFKA_CONFIG;
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", RisingwaveBinding.NAME));
-        KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS = config.property("kafka.scan.startup.timestamp.millis", 140000000L);
-        RISINGWAVE_CONFIG = config;
+        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", PgsqlKafkaBinding.NAME));
+        PGSQL_KAFKA_CONFIG = config;
     }
 
-    public RisingwaveConfiguration(
+    public PgsqlKafkaConfiguration(
         Configuration config)
     {
-        super(RISINGWAVE_CONFIG, config);
-    }
-
-    public long kafkaScanStartupTimestampMillis()
-    {
-        return KAFKA_SCAN_STARTUP_TIMESTAMP_MILLIS.getAsLong(this);
+        super(PGSQL_KAFKA_CONFIG, config);
     }
 }

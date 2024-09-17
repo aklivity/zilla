@@ -12,17 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package risingwave.internal.stream;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
-public enum RisingwaveCompletionCommand
+import java.util.Arrays;
+
+public enum PgsqlKafkaCommandType
 {
-    UNKNOWN_COMMAND("UNKNOWN".getBytes()),
-    CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes()),
-    CREATE_MATERIALIZED_VIEW_COMMAND("CREATE_MATERIALIZED_VIEW".getBytes());
+    CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
+    UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;
 
-    RisingwaveCompletionCommand(byte[] value)
+    PgsqlKafkaCommandType(byte[] value)
     {
         this.value = value;
     }
@@ -30,5 +31,23 @@ public enum RisingwaveCompletionCommand
     public byte[] value()
     {
         return value;
+    }
+
+    public static PgsqlKafkaCommandType valueOf(
+        byte[] value)
+    {
+        PgsqlKafkaCommandType command = UNKNOWN_COMMAND;
+
+        command:
+        for (PgsqlKafkaCommandType commandType : PgsqlKafkaCommandType.values())
+        {
+            if (Arrays.equals(commandType.value, value))
+            {
+                command = commandType;
+                break command;
+            }
+        }
+
+        return command;
     }
 }
