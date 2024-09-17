@@ -45,6 +45,4 @@ public class DeleteTopicsIT
     {
         k3po.finish();
     }
-
-
 }
