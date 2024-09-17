@@ -33,7 +33,7 @@ read  16                                # size
       [0x00]                            # resources
 
 
-write 79                                 # size
+write 97                                 # size
       ${newRequestId}
       0                                  # throttle time ms
       0s                                 # error code
@@ -41,12 +41,12 @@ write 79                                 # size
       9s "cluster-0"                     # cluster id
       0                                  # controller id
       2                                  # brokers
-        0                                # broker id
-        10s "localhost0"                 # host
+        1                                # broker id
+        19s "broker1.example.com"        # host
         9092                             # port
         -1s                              # rack
-        1                                # broker id
-        10s "localhost1"                 # host
+        2                                # broker id
+        19s "broker2.example.com"        # host
         9092                             # port
         -1s                              # rack
       0                                  # cluster authorized operations
