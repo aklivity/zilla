@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 public enum PgsqlKafkaCompletionCommand
 {
-    CREATE_TABLE_COMMAND("CREATE_TOPIC".getBytes());
+    CREATE_TABLE_COMMAND("CREATE_TOPIC".getBytes()),
+    UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;
 

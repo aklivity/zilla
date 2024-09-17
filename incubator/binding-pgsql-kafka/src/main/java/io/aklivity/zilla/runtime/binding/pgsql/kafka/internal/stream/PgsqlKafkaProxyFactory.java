@@ -27,24 +27,26 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaBindingConfig;
-import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
-import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
@@ -56,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
 
 public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 {
@@ -98,7 +101,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final PgsqlBeginExFW pgsqlBeginExRO = new PgsqlBeginExFW();
     private final PgsqlDataExFW pgsqlDataExRO = new PgsqlDataExFW();
-    private final PgsqlFlushExFW pgsqlFlushExRO = new PgsqlFlushExFW();
+    private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
 
     private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
@@ -120,15 +123,14 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final int pgsqlTypeId;
     private final int kafkaTypeId;
 
-    private final Object2ObjectHashMap<PgsqlommandType, PgsqlDecoder> clientTransforms;
+    private final Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder;
 
     {
-        Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> clientTransforms =
+        Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder =
             new Object2ObjectHashMap<>();
-        clientTransforms.put(PgsqlKafkaCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
-        clientTransforms.put(PgsqlKafkaCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::onDecodeCreateMaterializedViewCommand);
-        clientTransforms.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
-        this.clientTransforms = clientTransforms;
+        pgsqlDecoder.put(PgsqlKafkaCommandType.CREATE_TOPIC_COMMAND, this::onDecodeCreateTableCommand);
+        pgsqlDecoder.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
+        this.pgsqlDecoder = pgsqlDecoder;
     }
 
     public PgsqlKafkaProxyFactory(
@@ -214,6 +216,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final MessageConsumer app;
         private final PgsqlKafkaBindingConfig binding;
         private final Map<String, String> parameters;
+        private final IntArrayQueue queries;
         private final String database;
 
         private final long initialId;
@@ -261,6 +264,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
+            this.queries = new IntArrayQueue();
 
             this.delegate = new KafkaProxy(this, routedId, resolvedId);
         }
@@ -308,11 +312,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long affinity = begin.affinity();
 
             state = PgsqlKafkaState.openingInitial(state);
-
-            streamsByRouteIds.values().forEach(c -> c.doAppBegin(traceId, authorization, affinity));
 
             doAppWindow(traceId, authorization);
 
@@ -434,34 +435,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (responses.isEmpty())
-            {
-                streamsByRouteIds.values().forEach(c -> c.doAppWindow(authorization, traceId));
-            }
-
-            int credit = (int)(acknowledge - initialAck) + (maximum - initialMax);
-
-            while (credit > 0 && !responses.isEmpty())
-            {
-                final long routeId = responses.peekLong();
-                KafkaProxy client = streamsByRouteIds.get(routeId);
-
-                if (client != null)
-                {
-                    final long streamAckSnapshot = client.initialAck;
-
-                    client.doAppWindow(authorization, traceId);
-
-                    credit = Math.max(credit - (int)(client.initialAck - streamAckSnapshot), 0);
-
-                    if (client.initialAck != client.initialSeq)
-                    {
-                        break;
-                    }
-                }
-
-                responses.removeLong();
-            }
         }
 
         private void onCommandCompleted(
@@ -499,23 +472,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doAppWindow(traceId, authorization);
         }
 
-        private void onQueryReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW pgsqlFlushEx)
-        {
-            PgsqlStatus pgsqlStatus = pgsqlFlushEx.ready().status().get();
-            if (pgsqlStatus == PgsqlStatus.IDLE)
-            {
-                commandsProcessed++;
-                doParseQuery(traceId, authorization);
-            }
-            else
-            {
-                cleanup(traceId, authorization);
-            }
-        }
-
         private void doAppBegin(
             long traceId,
             long authorization)
@@ -527,7 +483,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
 
         private void doAppData(
-            long clientRouteId,
             long traceId,
             long authorization,
             int flags,
@@ -536,8 +491,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             int limit,
             OctetsFW extension)
         {
-            responses.add(clientRouteId);
-
             final int length = limit - offset;
             final int reserved = length + initialPad;
 
@@ -641,7 +594,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long authorization,
             PgsqlKafkaCompletionCommand command)
         {
-            if (command != PgsqlKafkaCompletionCommand.UNKNOWN_COMMAND)
+            if (command != PgsqlKafkaCompletionCommand.)
             {
                 extBuffer.putBytes(0, command.value());
                 extBuffer.putInt(command.value().length, END_OF_FIELD);
@@ -690,7 +643,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                             length += Byte.BYTES;
                         }
                         final PgsqlKafkaCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
-                        final PgsqlDecoder transform = clientTransforms.get(command);
+                        final PgsqlDecoder transform = pgsqlDecoder.get(command);
                         transform.decode(this, traceId, authorizationId, parserBuffer, statementOffset, length);
                         break parse;
                     }
@@ -704,8 +657,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            streamsByRouteIds.values().forEach(c -> c.doAppAbortAndReset(traceId, authorization));
-
             doAppAbortAndReset(traceId, authorization);
 
             cleanupParserSlotIfNecessary();
@@ -862,17 +813,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
             final KafkaBeginExFW kafkaBeginEx =
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
-            final KafkaMergedBeginExFW kafkaMergedBeginEx =
-                kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ?
-                kafkaMergedBeginEx.partitions() : null;
-
-            if (kafkaMergedBeginEx != null)
-            {
-                Varuint32FW len = lenRW.set(partitions.length()).build();
-                int lenSize = len.sizeof();
-                replyPad = result.fieldId().sizeof() + lenSize + partitions.sizeof();
-            }
         }
 
         private void onKafkaData(
@@ -1305,7 +1245,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             final PgsqlKafkaBindingConfig binding = server.binding;
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-            final String primaryKey = binding.createTable.getPrimaryKey(statement);
 
             String newStatement = "";
             int progress = 0;
@@ -1335,7 +1274,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
     }
 
-    private void onDecodeCreateMaterializedViewCommand(
+    private void onDecodeUnknownCommand(
         PgsqlProxy server,
         long traceId,
         long authorization,
@@ -1343,49 +1282,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 4)
-        {
-            server.onCommandCompleted(traceId, authorization, length,
-                PgsqlKafkaCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
-        }
-        else
-        {
-            final PgsqlKafkaBindingConfig binding = server.binding;
-            final CreateView statement = (CreateView) parseStatement(buffer, offset, length);
-            PgsqlFlushCommand typeCommand = ignoreFlushCommand;
-
-            String newStatement = "";
-            int progress = 0;
-
-            if (server.commandsProcessed == 0)
-            {
-                newStatement = binding.createView.generate(statement);
-            }
-            else if (server.commandsProcessed == 1)
-            {
-                newStatement = binding.describeView.generate(statement);
-                typeCommand = typeFlushCommand;
-            }
-            else if (server.commandsProcessed == 2)
-            {
-                newStatement = binding.createTopic.generate(statement, server.columns);
-            }
-            else if (server.commandsProcessed == 3)
-            {
-                newStatement = binding.createSink.generate(statement, server.database);
-            }
-
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-
-            final PgsqlKafkaRouteConfig route =
-                server.binding.resolve(authorization, statementBuffer, 0, progress);
-
-            final KafkaProxy client = server.streamsByRouteIds.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
-            client.typeCommand = typeCommand;
-            client.completionCommand = ignoreFlushCommand;
-        }
     }
 
     private PgsqlKafkaCommandType decodeCommandType(
