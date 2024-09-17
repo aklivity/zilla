@@ -2877,6 +2877,29 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchDescribeClusterRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .describeCluster()
+                                                .includeAuthorizedOperations("false")
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .describeCluster(d -> d.includeAuthorizedOperations(0))
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
