@@ -19,7 +19,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -93,12 +95,11 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
+    private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
-
-    private final ResetFW.Builder resetRW = new ResetFW.Builder();
-    private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final PgsqlBeginExFW pgsqlBeginExRO = new PgsqlBeginExFW();
@@ -108,6 +109,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
+
+    private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
 
     private final BufferPool bufferPool;
     private final PgsqlKafkaConfiguration config;
@@ -218,6 +221,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final MessageConsumer app;
         private final PgsqlKafkaBindingConfig binding;
         private final Map<String, String> parameters;
+        private final List<String> topics;
         private final IntArrayQueue queries;
         private final String database;
 
@@ -270,6 +274,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
             this.queries = new IntArrayQueue();
+            this.topics = new ArrayList<>();
         }
 
         private void onAppMessage(
@@ -475,6 +480,33 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doAppWindow(traceId, authorization);
         }
 
+        private void onKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        private void onKafkaReset(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        public void onKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        private void onKafkaWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+        }
+
         private void doAppBegin(
             long traceId,
             long authorization)
@@ -674,54 +706,27 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 parserSlotOffset = 0;
             }
         }
-
-        private void onKafkaAbort(
-            long traceId,
-            long authorization)
-        {
-        }
-
-        private void onKafkaReset(
-            long traceId,
-            long authorization)
-        {
-        }
-
-        public void onKafkaEnd(
-            long traceId,
-            long authorization)
-        {
-        }
-
-        private void onKafkaWindow(
-            long authorization,
-            long traceId,
-            long budgetId,
-            int padding,
-            int capabilities)
-        {
-        }
     }
 
-    private final class KafkaProxy
+    private abstract class KafkaProxy
     {
-        private MessageConsumer kafka;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final PgsqlProxy delegate;
+        protected MessageConsumer kafka;
+        protected final long originId;
+        protected final long routedId;
+        protected final long initialId;
+        protected final long replyId;
+        protected final PgsqlProxy delegate;
 
-        private int state;
+        protected int state;
 
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
+        protected long initialSeq;
+        protected long initialAck;
+        protected int initialMax;
 
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-        private int replyPad;
+        protected long replySeq;
+        protected long replyAck;
+        protected int replyMax;
+        protected int replyPad;
 
         private KafkaProxy(
             long originId,
@@ -735,7 +740,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
-        private void doKafkaBegin(
+        protected void doKafkaBegin(
             long traceId,
             long authorization,
             long affinity)
@@ -746,7 +751,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             state = PgsqlKafkaState.openingInitial(state);
         }
 
-        private void doKafkaEnd(
+        protected void doKafkaEnd(
             long traceId,
             long authorization)
         {
@@ -762,7 +767,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             }
         }
 
-        private void doKafkaAbort(
+        protected void doKafkaAbort(
             long traceId,
             long authorization)
         {
@@ -779,7 +784,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
 
 
-        private void onKafkaMessage(
+        protected void onKafkaMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -842,7 +847,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
         }
 
-        private void onKafkaData(
+        protected void onKafkaData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -862,7 +867,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             delegate.cleanup(traceId, authorization);
         }
 
-        private void onKafkaEnd(
+        protected void onKafkaEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -881,7 +886,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             delegate.onKafkaEnd(traceId, authorization);
         }
 
-        private void onKafkaAbort(
+        protected void onKafkaAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -900,7 +905,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             delegate.onKafkaAbort(traceId, authorization);
         }
 
-        private void onKafkaWindow(
+        protected void onKafkaWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -925,7 +930,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             delegate.onKafkaWindow(authorization, traceId, budgetId, padding, capabilities);
         }
 
-        private void onKafkaReset(
+        protected void onKafkaReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -944,7 +949,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             delegate.onKafkaReset(traceId, authorization);
         }
 
-        private void onKafkaSignal(
+        protected void onKafkaSignal(
             SignalFW signal)
         {
             final long traceId = signal.traceId();
@@ -953,7 +958,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doKafkaEnd(traceId, authorization);
         }
 
-        private void doKafkaReset(
+        protected void doKafkaReset(
             long traceId,
             long authorization)
         {
@@ -966,7 +971,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             }
         }
 
-        private void doKafkaWindow(
+        protected void doKafkaWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -977,6 +982,31 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
+        }
+    }
+
+    private final class KafkaCreateTopicsProxy extends KafkaProxy
+    {
+        private KafkaCreateTopicsProxy(
+            long originId,
+            long routedId,
+            PgsqlProxy delegate)
+        {
+            super(originId, routedId, delegate);
+        }
+
+        protected void doKafkaBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            initialSeq = delegate.initialSeq;
+            initialAck = delegate.initialAck;
+            initialMax = delegate.initialMax;
+            state = PgsqlKafkaState.openingInitial(state);
+
+            kafka = newKafkaCreateTopics(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, delegate.topics);
         }
     }
 
@@ -1254,6 +1284,51 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .build();
 
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+    }
+
+    private MessageConsumer newKafkaCreateTopics(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        List<String> topics)
+    {
+        final KafkaBeginExFW kafkaBeginEx =
+            kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .request(r -> r
+                    .createTopics(c -> c
+                            .topics(ct -> topics.forEach(t -> ct.item(i -> i
+                                    .name(t)
+                                )))
+                        ))
+                .build();
+
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(kafkaBeginEx.buffer(), kafkaBeginEx.offset(), kafkaBeginEx.sizeof())
+            .build();
+
+        MessageConsumer receiver =
+            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+        return receiver;
     }
 
     private void onDecodeCreateTableCommand(
