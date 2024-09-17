@@ -588,14 +588,6 @@ scope protocol
                 uint8 includeAuthorizedOperations;
             }
 
-            struct ClusterBroker
-            {
-                int32 brokerId;
-                string16 host;
-                int32 port;
-                string16 rack = null;
-            }
-
             struct DescribeClusterResponse
             {
                 int32 correlationId;
@@ -605,6 +597,14 @@ scope protocol
                 string16 clusterId = null;
                 int32 controllerId;
                 int32 brokerCount;
+            }
+
+            struct ClusterBroker
+            {
+                int32 brokerId;
+                string16 host;
+                int32 port;
+                string16 rack = null;
             }
 
             struct DescribeClusterResponsePart2
