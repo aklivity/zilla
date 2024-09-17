@@ -36,6 +36,7 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.config.PgsqlKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.BeginFW;
@@ -47,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Kafka
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
@@ -594,7 +596,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long authorization,
             PgsqlKafkaCompletionCommand command)
         {
-            if (command != PgsqlKafkaCompletionCommand.)
+            if (command != PgsqlKafkaCompletionCommand.UNKNOWN_COMMAND)
             {
                 extBuffer.putBytes(0, command.value());
                 extBuffer.putInt(command.value().length, END_OF_FIELD);
@@ -671,6 +673,33 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 parserSlotOffset = 0;
             }
         }
+
+        private void onKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        private void onKafkaReset(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        public void onKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+        }
+
+        private void onKafkaWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+        }
     }
 
     private final class KafkaProxy
@@ -714,9 +743,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
             state = PgsqlKafkaState.openingInitial(state);
-
-            kafka = newKafkaFetcher(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, result);
         }
 
         private void doKafkaEnd(
@@ -1246,31 +1272,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final PgsqlKafkaBindingConfig binding = server.binding;
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
 
-            String newStatement = "";
-            int progress = 0;
-
-            if (server.commandsProcessed == 0)
-            {
-                newStatement = binding.createTopic.generate(statement);
-            }
-            else if (server.commandsProcessed == 1 && primaryKey != null)
-            {
-                newStatement = binding.createTable.generate(statement);
-            }
-            else if (server.commandsProcessed == 1)
-            {
-                newStatement = binding.createSource.generate(statement);
-            }
-
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-
-            final PgsqlKafkaRouteConfig route =
-                server.binding.resolve(authorization, statementBuffer, 0, progress);
-
             final KafkaProxy client = server.streamsByRouteIds.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
-            client.typeCommand = ignoreFlushCommand;
         }
     }
 
