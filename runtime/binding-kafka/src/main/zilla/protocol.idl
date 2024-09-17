@@ -598,6 +598,7 @@ scope protocol
 
             struct DescribeClusterResponse
             {
+                int32 correlationId;
                 int32 throttle;
                 int16 error;
                 string16 message;

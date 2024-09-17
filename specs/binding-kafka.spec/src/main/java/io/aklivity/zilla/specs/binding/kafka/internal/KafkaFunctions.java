@@ -7572,7 +7572,7 @@ public final class KafkaFunctions
                 private boolean match(
                     KafkaBeginExFW beginEx)
                 {
-                    KafkaDescribeClusterResponseBeginExFW describeCluster = beginEx.response().describeCluster();
+                    final KafkaDescribeClusterResponseBeginExFW describeCluster = beginEx.response().describeCluster();
                     return matchThrottle(describeCluster) &&
                         matchError(describeCluster) &&
                         matchMessage(describeCluster) &&

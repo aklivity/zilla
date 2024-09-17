@@ -26,7 +26,7 @@ accepted
 connected
 
 read  16                                # size
-      32s                               # describe configs
+      60s                               # describe cluster
       0s                                # v0
       (int:newRequestId)
       5s "zilla"                        # client id

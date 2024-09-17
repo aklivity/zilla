@@ -53,7 +53,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .authorizedOperations(0)
                                    .build()
                                 .build()}
+write flush
 
-write close
 read closed
-
+write close
