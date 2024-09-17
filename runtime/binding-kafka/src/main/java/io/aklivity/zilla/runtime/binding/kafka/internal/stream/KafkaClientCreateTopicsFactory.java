@@ -135,7 +135,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final List<CreateTopicsResponse> responseTopics;
+    private final List<CreateTopicsResponseInfo> responseTopics;
 
     public KafkaClientCreateTopicsFactory(
         KafkaConfiguration config,
@@ -195,23 +195,23 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
-            List<Topic> topics = new ArrayList<>();
+            List<TopicInfo> topics = new ArrayList<>();
             kafkaCreateTopicsBeginEx.topics().forEach(t ->
             {
                 String name = t.name().asString();
                 int partitionCount = t.partitionCount();
                 short replicas = t.replicas();
-                List<Assignment> assignments = new ArrayList<>();
-                t.assignments().forEach(a -> assignments.add(new Assignment(a.partitionId(), List.of(a.leaderId()))));
-                List<Config> configs = new ArrayList<>();
-                t.configs().forEach(c -> configs.add(new Config(c.name().asString(), c.value().asString())));
+                List<AssignmentInfo> assignments = new ArrayList<>();
+                t.assignments().forEach(a -> assignments.add(new AssignmentInfo(a.partitionId(), List.of(a.leaderId()))));
+                List<ConfigInfo> configs = new ArrayList<>();
+                t.configs().forEach(c -> configs.add(new ConfigInfo(c.name().asString(), c.value().asString())));
 
-                topics.add(new Topic(name, partitionCount, replicas, assignments, configs));
+                topics.add(new TopicInfo(name, partitionCount, replicas, assignments, configs));
             });
             int timeout = kafkaCreateTopicsBeginEx.timeout();
             byte validateOnly = (byte) kafkaCreateTopicsBeginEx.validateOnly();
 
-            final CreateTopicsRequest request = new CreateTopicsRequest(topics, timeout, validateOnly);
+            final CreateTopicsRequestInfo request = new CreateTopicsRequestInfo(topics, timeout, validateOnly);
 
             newStream = new KafkaCreateTopicsStream(
                     application,
@@ -533,7 +533,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
                 progress = topic.limit();
 
-                responseTopics.add(new CreateTopicsResponse(
+                responseTopics.add(new CreateTopicsResponseInfo(
                     topic.name().asString(), topic.error(), topic.message().asString()));
             }
 
@@ -603,7 +603,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long initialId,
             long affinity,
             long resolvedId,
-            CreateTopicsRequest request,
+            CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
@@ -692,7 +692,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             state = KafkaState.closedInitial(state);
 
-            client.doNetworkAbortIfNecessary(traceId);
+            client.doNetworkAbort(traceId);
         }
 
         private void onApplicationWindow(
@@ -724,7 +724,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             state = KafkaState.closedReply(state);
 
-            client.doNetworkResetIfNecessary(traceId);
+            client.doNetworkReset(traceId);
         }
 
         private boolean isApplicationReplyOpen()
@@ -736,7 +736,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization,
             int throttle,
-            List<CreateTopicsResponse> topics)
+            List<CreateTopicsResponseInfo> topics)
         {
             if (!KafkaState.replyOpening(state))
             {
@@ -773,9 +773,12 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         private void doApplicationAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closedReply(state);
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
+            }
         }
 
         private void doApplicationWindow(
@@ -805,28 +808,12 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             Flyweight extension)
         {
-            state = KafkaState.closedInitial(state);
-
-            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, client.authorization, extension);
-        }
-
-        private void doApplicationAbortIfNecessary(
-            long traceId)
-        {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
-            {
-                doApplicationAbort(traceId);
-            }
-        }
-
-        private void doApplicationResetIfNecessary(
-            long traceId,
-            Flyweight extension)
-        {
             if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
-                doApplicationReset(traceId, extension);
+                state = KafkaState.closedInitial(state);
+
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, client.authorization, extension);
             }
         }
 
@@ -846,8 +833,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             Flyweight extension)
         {
-            doApplicationResetIfNecessary(traceId, extension);
-            doApplicationAbortIfNecessary(traceId);
+            doApplicationReset(traceId, extension);
+            doApplicationAbort(traceId);
         }
     }
 
@@ -858,7 +845,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         private final LongLongConsumer encodeCreateTopicsRequest = this::doEncodeCreateTopicsRequest;
 
         private final KafkaCreateTopicsStream delegate;
-        private final CreateTopicsRequest request;
+        private final CreateTopicsRequestInfo request;
 
         private MessageConsumer network;
         private int state;
@@ -894,7 +881,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             KafkaCreateTopicsStream delegate,
             long originId,
             long routedId,
-            CreateTopicsRequest request,
+            CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
@@ -1080,16 +1067,16 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
             {
                 initialDeb = supplyDebitor.apply(initialBudgetId);
-                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkData);
                 assert initialDebIndex != NO_DEBITOR_INDEX;
             }
 
-            doNetworkDataIfNecessary(budgetId);
+            doNetworkData(budgetId);
 
-            doEncodeRequestIfNecessary(traceId, budgetId);
+            doEncodeRequest(traceId, budgetId);
         }
 
-        private void doNetworkDataIfNecessary(
+        private void doNetworkData(
             long traceId)
         {
             if (encodeSlot != NO_SLOT)
@@ -1109,7 +1096,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             if (signalId == SIGNAL_NEXT_REQUEST)
             {
-                doEncodeRequestIfNecessary(traceId, initialBudgetId);
+                doEncodeRequest(traceId, initialBudgetId);
             }
         }
 
@@ -1176,7 +1163,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 traceId, authorization, EMPTY_EXTENSION);
         }
 
-        private void doNetworkAbortIfNecessary(
+        private void doNetworkAbort(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -1190,7 +1177,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             cleanupBudgetIfNecessary();
         }
 
-        private void doNetworkResetIfNecessary(
+        private void doNetworkReset(
             long traceId)
         {
             if (!KafkaState.replyClosed(state))
@@ -1226,7 +1213,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             }
         }
 
-        private void doEncodeRequestIfNecessary(
+        private void doEncodeRequest(
             long traceId,
             long budgetId)
         {
@@ -1263,18 +1250,18 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             encodeProgress = createTopicsRequest.limit();
 
-            for (Topic topic : request.topics)
+            for (TopicInfo topic : request.topics)
             {
                 final TopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(topic.name)
-                    .partitions(topic.numPartitions)
+                    .partitions(topic.partitions)
                     .replicas(topic.replicas)
                     .assignmentCount(topic.assignments.size())
                     .build();
 
                 encodeProgress = topicRequest.limit();
 
-                for (Assignment assignment : topic.assignments)
+                for (AssignmentInfo assignment : topic.assignments)
                 {
                     AssignmentRequestFW assignmentRequest = assignmentRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .partitionIndex(assignment.partitionIndex)
@@ -1299,7 +1286,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
                 encodeProgress = configsRequest.limit();
 
-                for (Config config : topic.configs)
+                for (ConfigInfo config : topic.configs)
                 {
                     ConfigRequestFW configRequest = configRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .name(config.name)
@@ -1544,7 +1531,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization,
             int throttle,
-            List<CreateTopicsResponse> topics)
+            List<CreateTopicsResponseInfo> topics)
         {
             delegate.doApplicationBegin(traceId, authorization, throttle, topics);
         }
@@ -1552,8 +1539,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         private void cleanupNetwork(
             long traceId)
         {
-            doNetworkResetIfNecessary(traceId);
-            doNetworkAbortIfNecessary(traceId);
+            doNetworkReset(traceId);
+            doNetworkAbort(traceId);
 
             delegate.cleanupApplication(traceId, ERROR_NONE);
         }
@@ -1590,88 +1577,38 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         }
     }
 
-    private final class CreateTopicsRequest
+    private record CreateTopicsRequestInfo(
+        List<TopicInfo> topics,
+        int timeoutMs,
+        byte validateOnly)
     {
-        private final List<Topic> topics;
-        private final int timeoutMs;
-        private final byte validateOnly;
-
-        private CreateTopicsRequest(
-            List<Topic> topics,
-            int timeoutMs,
-            byte validateOnly)
-        {
-            this.topics = topics;
-            this.timeoutMs = timeoutMs;
-            this.validateOnly = validateOnly;
-        }
     }
 
-    private final class Topic
+    private record TopicInfo(
+        String name,
+        int partitions,
+        short replicas,
+        List<AssignmentInfo> assignments,
+        List<ConfigInfo> configs)
     {
-        private final String name;
-        private final int numPartitions;
-        private final short replicas;
-        private final List<Assignment> assignments;
-        private final List<Config> configs;
-
-        private Topic(
-            String name,
-            int numPartitions,
-            short replicas,
-            List<Assignment> assignments,
-            List<Config> configs)
-        {
-            this.name = name;
-            this.numPartitions = numPartitions;
-            this.replicas = replicas;
-            this.assignments = assignments;
-            this.configs = configs;
-        }
     }
 
-    private final class Assignment
+    private record AssignmentInfo(
+        int partitionIndex,
+        List<Integer> brokerIds)
     {
-        private final int partitionIndex;
-        private final List<Integer> brokerIds;
-
-        private Assignment(
-            int partitionIndex,
-            List<Integer> brokerIds)
-        {
-            this.partitionIndex = partitionIndex;
-            this.brokerIds = brokerIds;
-        }
     }
 
-    private final class Config
+    private record ConfigInfo(
+        String name,
+        String value)
     {
-        private final String name;
-        private final String value; // Nullable
-
-        private Config(
-            String name,
-            String value)
-        {
-            this.name = name;
-            this.value = value;
-        }
     }
 
-    private final class CreateTopicsResponse
+    private record CreateTopicsResponseInfo(
+        String name,
+        short error,
+        String message)
     {
-        private final String name;
-        private final short error;
-        private final String message;
-
-        private CreateTopicsResponse(
-            String name,
-            short error,
-            String message)
-        {
-            this.name = name;
-            this.error = error;
-            this.message = message;
-        }
     }
 }
