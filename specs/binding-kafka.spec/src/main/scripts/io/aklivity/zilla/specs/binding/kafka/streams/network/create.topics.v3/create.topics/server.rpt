@@ -25,7 +25,7 @@ accepted
 
 connected
 
-read 144                                 # size
+read 144                                # size
       19s                               # create topics
       3s                                # v3
       (int:newRequestId)

@@ -28,7 +28,7 @@ connect "zilla://streams/net0"
 
 connected
 
-write 144                                 # size
+write 144                               # size
       19s                               # create topics
       3s                                # v3
       ${newRequestId}

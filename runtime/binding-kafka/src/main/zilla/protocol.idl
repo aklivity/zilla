@@ -583,42 +583,42 @@ scope protocol
 
         scope create_topics
         {
-            struct CreateTopicsRequest
+            struct CreateTopicsRequest // v3
             {
                 int32 topicCount;
             }
 
-            struct TopicRequest
+            struct CreateTopicsRequest_Topic
             {
                 string16 name;
-                int32 numPartitions;
+                int32 partitions;
                 int16 replicas;
                 int32 assignmentCount;
             }
 
-            struct AssignmentRequest
+            struct CreateTopicsRequest_Assignment
             {
                int32 partitionIndex;
                int32 brokerCount;
             }
 
-            struct BrokerRequest
+            struct CreateTopicsRequest_Broker
             {
                 int32 brokerId;
             }
 
-            struct ConfigsRequest
+            struct CreateTopicsRequest_Configs
             {
                 int32 configCount;
             }
 
-            struct ConfigRequest
+            struct CreateTopicsRequest_Config
             {
                 string16 name;
                 string16 value = null;
             }
 
-            struct PropertiesRequest
+            struct CreateTopicsRequest_Continued
             {
                 int32 timeout;
                 uint8 validate_only;
@@ -631,7 +631,7 @@ scope protocol
                 int32 topicCount;
             }
 
-            struct TopicResponse
+            struct CreateTopicsResponse_Topic
             {
                 string16 name;
                 int16 error;
