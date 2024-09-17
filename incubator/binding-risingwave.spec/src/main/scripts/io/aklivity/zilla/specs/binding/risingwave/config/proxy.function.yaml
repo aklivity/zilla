@@ -15,16 +15,24 @@
 
 ---
 name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      url: http://localhost:8081
 bindings:
   app0:
     type: risingwave
     kind: proxy
     options:
       udf:
-        url: http://localhost:8815
-    routes:
-      - exit: app1
-        when:
-          - commands:
-              - "CREATE FUNCTION"
+        - server: http://localhost:8815
+      kafka:
+        properties:
+          bootstrap.server: localhost:9092
+        format:
+          model: test
+          catalog:
+            catalog0:
+              - strategy: topic
     exit: app1

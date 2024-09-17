@@ -63,17 +63,27 @@
                             "udf":
                             {
                                 "title": "UDF",
-                                "type": "object",
-                                "properties":
+                                "type": "array",
+                                "items":
                                 {
-                                    "url":
+                                    "type": "object",
+                                    "properties":
                                     {
-                                        "title": "URL",
-                                        "type": "string",
-                                        "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
-                                    }
-                                },
-                                "additionalProperties": false
+                                        "server":
+                                        {
+                                            "title": "Server",
+                                            "type": "string",
+                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                        },
+                                        "language":
+                                        {
+                                            "title": "Language",
+                                            "type": "string",
+                                            "default": "java"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false
@@ -98,11 +108,7 @@
                                                 "items":
                                                 {
                                                     "type": "string",
-                                                    "enum":
-                                                    [
-                                                        "CREATE TOPIC",
-                                                        "CREATE FUNCTION"
-                                                    ]
+                                                    "enum": [ "CREATE TOPIC" ]
                                                 }
                                             }
                                         }

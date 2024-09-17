@@ -24,7 +24,8 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfigBu
 
 public final class RisingwaveUdfConfigAdapter implements JsonbAdapter<RisingwaveUdfConfig, JsonObject>
 {
-    private static final String URL_NAME = "url";
+    private static final String SERVER_NAME = "server";
+    private static final String LANGUAGE_NAME = "language";
 
     @Override
     public JsonObject adaptToJson(
@@ -32,9 +33,14 @@ public final class RisingwaveUdfConfigAdapter implements JsonbAdapter<Risingwave
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (udf.url != null)
+        if (udf.server != null)
         {
-            object.add(URL_NAME, udf.url);
+            object.add(SERVER_NAME, udf.server);
+        }
+
+        if (udf.language != null)
+        {
+            object.add(LANGUAGE_NAME, udf.language);
         }
 
         return object.build();
@@ -46,9 +52,14 @@ public final class RisingwaveUdfConfigAdapter implements JsonbAdapter<Risingwave
     {
         RisingwaveUdfConfigBuilder<RisingwaveUdfConfig> builder = RisingwaveUdfConfig.builder();
 
-        if (object.containsKey(URL_NAME))
+        if (object.containsKey(SERVER_NAME))
         {
-            builder.url(object.getString(URL_NAME));
+            builder.server(object.getString(SERVER_NAME));
+        }
+
+        if (object.containsKey(LANGUAGE_NAME))
+        {
+            builder.language(object.getString(LANGUAGE_NAME));
         }
 
         return builder.build();

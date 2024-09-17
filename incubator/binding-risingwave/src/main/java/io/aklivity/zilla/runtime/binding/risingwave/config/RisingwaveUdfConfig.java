@@ -18,7 +18,8 @@ import java.util.function.Function;
 
 public class RisingwaveUdfConfig
 {
-    public final String url;
+    public final String server;
+    public final String language;
 
     public static RisingwaveUdfConfigBuilder<RisingwaveUdfConfig> builder()
     {
@@ -32,8 +33,10 @@ public class RisingwaveUdfConfig
     }
 
     RisingwaveUdfConfig(
-        String url)
+        String server,
+        String language)
     {
-        this.url = url;
+        this.server = server;
+        this.language = language;
     }
 }

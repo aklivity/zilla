@@ -74,7 +74,7 @@ public final class RisingwaveBindingConfig
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeMaterializedViewTemplate();
-        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udf.url);
+        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs.get(0));
     }
 
     public RisingwaveRouteConfig resolve(

@@ -22,7 +22,8 @@ public class RisingwaveUdfConfigBuilder<T> extends ConfigBuilder<T, RisingwaveUd
 {
     private final Function<RisingwaveUdfConfig, T> mapper;
 
-    private String url;
+    private String server;
+    private String language;
 
     RisingwaveUdfConfigBuilder(
         Function<RisingwaveUdfConfig, T> mapper)
@@ -37,15 +38,23 @@ public class RisingwaveUdfConfigBuilder<T> extends ConfigBuilder<T, RisingwaveUd
         return (Class<RisingwaveUdfConfigBuilder<T>>) getClass();
     }
 
-    public RisingwaveUdfConfigBuilder<T> url(
-        String url)
+    public RisingwaveUdfConfigBuilder<T> server(
+        String server)
     {
-        this.url = url;
+        this.server = server;
+        return this;
+    }
+
+    public RisingwaveUdfConfigBuilder<T> language(
+        String language)
+    {
+        this.language = language;
         return this;
     }
 
     public T build()
     {
-        return mapper.apply(new RisingwaveUdfConfig(url));
+        String language = this.language != null ? this.language : "java";
+        return mapper.apply(new RisingwaveUdfConfig(server, language));
     }
 }

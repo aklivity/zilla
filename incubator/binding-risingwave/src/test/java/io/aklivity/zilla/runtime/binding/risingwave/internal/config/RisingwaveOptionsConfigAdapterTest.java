@@ -82,7 +82,17 @@ public class RisingwaveOptionsConfigAdapterTest
                         ]
                       }
                     }
-                  }
+                  },
+                  "udf": [
+                    {
+                      "server": "http://udf.zillabase.dev:8815",
+                      "language": "java"
+                    },
+                    {
+                      "server": "http://udf-python.zillabase.dev:8815",
+                      "language": "python"
+                    }
+                    ]
                 }""";
 
         RisingwaveOptionsConfig options = jsonb.fromJson(text, RisingwaveOptionsConfig.class);

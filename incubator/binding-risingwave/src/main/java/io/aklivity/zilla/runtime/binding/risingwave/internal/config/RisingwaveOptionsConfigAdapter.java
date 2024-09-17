@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -58,9 +60,12 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
             object.add(KAFKA_NAME, kafka.adaptToJson(options.kafka));
         }
 
-        if (options.udf != null)
+        if (options.udfs != null && !options.udfs.isEmpty())
         {
-            object.add(UDF_NAME, udf.adaptToJson(options.udf));
+            JsonArrayBuilder udfs = Json.createArrayBuilder();
+            options.udfs.forEach(f -> udfs.add(udf.adaptToJson(f)));
+
+            object.add(UDF_NAME, udfs);
         }
 
         return object.build();
@@ -78,7 +83,8 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
 
         if (object.containsKey(UDF_NAME))
         {
-            options.udf(udf.adaptFromJson(object.getJsonObject(UDF_NAME)));
+            JsonArray udfs = object.getJsonArray(UDF_NAME);
+            udfs.forEach(f -> options.udf(udf.adaptFromJson((JsonObject) f)));
         }
 
         return options.build();

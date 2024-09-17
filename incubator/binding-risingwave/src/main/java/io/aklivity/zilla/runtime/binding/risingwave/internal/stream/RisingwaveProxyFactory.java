@@ -1684,6 +1684,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 sql = sql.replace("IF NOT EXISTS", "");
                 statement = parserManager.parse(new StringReader(sql));
             }
+            else if (commandType.equals(RisingwaveCommandType.CREATE_FUNCTION_COMMAND))
+            {
+                if (buffer.getByte(offset + length + Byte.BYTES) == END_OF_FIELD)
+                {
+                    length -= Byte.BYTES;
+                }
+                inputStream.wrap(buffer, offset, length);
+                statement = parserManager.parse(reader);
+                /*String sql = buffer.getStringWithoutLengthUtf8(offset, length);
+                statement = parserManager.parse(new StringReader(sql));*/
+            }
             else
             {
                 inputStream.wrap(buffer, offset, length);

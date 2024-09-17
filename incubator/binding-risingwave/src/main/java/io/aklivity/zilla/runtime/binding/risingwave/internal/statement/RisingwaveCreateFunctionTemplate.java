@@ -14,32 +14,40 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.List;
+
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.function.CreateFunction;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
-    private final String sqlFormat = """
-        CREATE FUNCTION IF NOT EXISTS IF NOT EXISTS %s(%s)
-        RETURNS %s
-        LANGUAGE %s
-        AS %s
-        USING LINK '%s';
-        \u0000""";
-
-    private final String link;
+    private final RisingwaveUdfConfig udf;
 
     public RisingwaveCreateFunctionTemplate(
-        String link)
+        RisingwaveUdfConfig udf)
     {
-        this.link = link;
+        this.udf = udf;
     }
 
     public String generate(
         Statement statement)
     {
         CreateFunction createFunction = (CreateFunction) statement;
+        List<String> parts = createFunction.getFunctionDeclarationParts();
+        if (!parts.stream().anyMatch(item -> item.equalsIgnoreCase("LANGUAGE")))
+        {
+            createFunction.addFunctionDeclarationParts("LANGUAGE", udf.language);
+        }
 
-        return null; //sqlFormat.formatted(name, parameters, returnType, lang, as, link);
+        if (!parts.stream().anyMatch(item -> item.equalsIgnoreCase("LINK")))
+        {
+            createFunction.addFunctionDeclarationParts("USING", "LINK", "'%s'".formatted(udf.server));
+        }
+
+        parts.removeIf(part -> part.equals(";"));
+        createFunction.addFunctionDeclarationParts(";");
+
+        return createFunction.toString();
     }
 }

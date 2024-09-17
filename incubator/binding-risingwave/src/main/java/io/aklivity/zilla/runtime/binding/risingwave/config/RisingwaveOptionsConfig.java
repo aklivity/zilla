@@ -14,12 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.config;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class RisingwaveOptionsConfig extends OptionsConfig
 {
     public final RisingwaveKafkaConfig kafka;
-    public final RisingwaveUdfConfig udf;
+    public final List<RisingwaveUdfConfig> udfs;
 
     public static RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder()
     {
@@ -28,9 +30,9 @@ public final class RisingwaveOptionsConfig extends OptionsConfig
 
     RisingwaveOptionsConfig(
         RisingwaveKafkaConfig kafka,
-        RisingwaveUdfConfig udf)
+        List<RisingwaveUdfConfig> udfs)
     {
         this.kafka = kafka;
-        this.udf = udf;
+        this.udfs = udfs;
     }
 }

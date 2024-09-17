@@ -32,9 +32,9 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE FUNCTION IF NOT EXISTS series(int) RETURNS TABLE (x int) "
-      "AS series"
-      "LANGUAGE java"
+write "CREATE FUNCTION series ( int ) RETURNS TABLE ( x int ) "
+      "AS series "
+      "LANGUAGE java "
       "USING LINK 'http://localhost:8815';"
       [0x00]
 
