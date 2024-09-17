@@ -46,8 +46,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topic
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.ConfigRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.ConfigsRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.CreateTopicsRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.CreateTopicsRequestPart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.CreateTopicsResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.PropertiesRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.TopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.TopicResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -108,7 +108,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final BrokerRequestFW.Builder brokerRequestRW = new BrokerRequestFW.Builder();
     private final ConfigsRequestFW.Builder configsRequestRW = new ConfigsRequestFW.Builder();
     private final ConfigRequestFW.Builder configRequestRW = new ConfigRequestFW.Builder();
-    private final PropertiesRequestFW.Builder propertiesRequestRW = new PropertiesRequestFW.Builder();
+    private final CreateTopicsRequestPart2FW.Builder createTopicsRequestPart2RW = new CreateTopicsRequestPart2FW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final CreateTopicsResponseFW createTopicsResponseRO = new CreateTopicsResponseFW();
@@ -1267,7 +1267,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             {
                 final TopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(topic.name)
-                    .numPartitions(topic.numPartitions)
+                    .partitions(topic.numPartitions)
                     .replicas(topic.replicas)
                     .assignmentCount(topic.assignments.size())
                     .build();
@@ -1310,12 +1310,13 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 }
             }
 
-            PropertiesRequestFW propertiesRequest = propertiesRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+            CreateTopicsRequestPart2FW createTopicsRequestPart2 = createTopicsRequestPart2RW
+                .wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .timeout(request.timeoutMs)
                 .validate_only(request.validateOnly)
                 .build();
 
-            encodeProgress = propertiesRequest.limit();
+            encodeProgress = createTopicsRequestPart2.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
