@@ -221,11 +221,11 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final IntArrayQueue queries;
         private final String database;
 
+        private final long resolvedId;
         private final long initialId;
         private final long replyId;
         private final long originId;
         private final long routedId;
-        private final KafkaProxy delegate;
 
         private long initialSeq;
         private long initialAck;
@@ -247,6 +247,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private int commandsProcessed = 0;
         private int queryProgressOffset;
 
+        private KafkaProxy delegate;
+
         private PgsqlProxy(
             MessageConsumer app,
             long originId,
@@ -258,6 +260,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.app = app;
             this.originId = originId;
             this.routedId = routedId;
+            this.resolvedId = resolvedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.initialMax = decodeMax;
@@ -267,8 +270,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
             this.queries = new IntArrayQueue();
-
-            this.delegate = new KafkaProxy(this, routedId, resolvedId);
         }
 
         private void onAppMessage(
@@ -1271,8 +1272,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             final PgsqlKafkaBindingConfig binding = server.binding;
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-
-            final KafkaProxy client = server.streamsByRouteIds.get(route.id);
         }
     }
 
