@@ -27,7 +27,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .request()
                                  .describeCluster()
                                     .includeAuthorizedOperations("false")
-                                    .timeout(0)
                                  .build()
                                .build()}
 

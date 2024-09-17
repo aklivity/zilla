@@ -2998,6 +2998,47 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchDescribeClusterResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .describeCluster()
+                                                    .throttle(0)
+                                                    .error((short) 0)
+                                                    .clusterId("cluster-0")
+                                                    .controllerId(0)
+                                                    .broker()
+                                                       .brokerId(1)
+                                                       .host("broker1.example.com")
+                                                       .port(9092)
+                                                       .build()
+                                                    .authorizedOperations(0)
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .describeCluster(d -> d
+                    .throttle(0)
+                    .error((short) 0)
+                    .clusterId("cluster-0")
+                    .controllerId(0)
+                    .brokers(t -> t.item(i -> i
+                        .brokerId(1)
+                        .host("broker1.example.com")
+                        .port(9092)))
+                    .authorizedOperations(0)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchFetchBeginExtensionTopic() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()

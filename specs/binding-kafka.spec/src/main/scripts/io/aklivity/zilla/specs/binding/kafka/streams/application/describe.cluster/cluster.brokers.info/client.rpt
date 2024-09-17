@@ -23,7 +23,6 @@ write zilla:begin.ext ${kafka:beginEx()
                                .request()
                                  .describeCluster()
                                     .includeAuthorizedOperations("false")
-                                    .timeout(0)
                                  .build()
                                .build()}
 
