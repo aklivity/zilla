@@ -588,7 +588,7 @@ scope protocol
                 uint8 includeAuthorizedOperations;
             }
 
-             struct ClusterBroker
+            struct ClusterBroker
             {
                 int32 brokerId;
                 string16 host;

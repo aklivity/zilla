@@ -179,6 +179,7 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            DESCRIBE_CLUSTER (60),
             ALTER_CONFIGS (33),
             INIT_PRODUCER_ID (22),
             DELETE_TOPICS (20),
