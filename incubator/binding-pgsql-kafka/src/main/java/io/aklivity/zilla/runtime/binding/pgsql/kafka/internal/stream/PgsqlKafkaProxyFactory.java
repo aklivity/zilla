@@ -1264,15 +1264,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
-        {
-            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.CREATE_TABLE_COMMAND);
-        }
-        else
-        {
-            final PgsqlKafkaBindingConfig binding = server.binding;
-            final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-        }
+        final PgsqlKafkaBindingConfig binding = server.binding;
+        final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
     }
 
     private void onDecodeUnknownCommand(
