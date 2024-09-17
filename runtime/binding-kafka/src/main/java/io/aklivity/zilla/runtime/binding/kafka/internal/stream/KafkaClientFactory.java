@@ -85,6 +85,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
             ? signaler
             : context.signaler();
 
+        final KafkaClientRequestFactory clientRequestFactory = new KafkaClientRequestFactory(
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
+
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
                 signaler, streamFactory, resolveSasl);
@@ -115,6 +118,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant.creditor());
 
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
+        factories.put(KafkaBeginExFW.KIND_REQUEST, clientRequestFactory);
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_GROUP, clientGroupFactory);
