@@ -20,7 +20,27 @@ catalogs:
     type: test
     options:
       url: http://localhost:8081
-
+      id: 1
+      schema: |-
+        {
+        "type": "record",
+        "name": "cities",
+        "namespace": "dev",
+        "fields": [
+          {
+            "name": "description",
+            "type": string
+          },
+          {
+            "name": "id",
+            "type": string
+          },
+          {
+            "name": "name",
+            "type": string
+          }
+        ]
+        }
 bindings:
   app0:
     type: pgsql-kafka

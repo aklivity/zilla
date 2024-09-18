@@ -40,8 +40,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         schemaBuilder.setLength(0);
 
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-
-        final String recordName = String.format("%s.%s", database, createTable.getTable().getName());
+        final String recordName = createTable.getTable().getName();
 
         schemaBuilder.append("{\n");
         schemaBuilder.append("\"type\": \"record\",\n");

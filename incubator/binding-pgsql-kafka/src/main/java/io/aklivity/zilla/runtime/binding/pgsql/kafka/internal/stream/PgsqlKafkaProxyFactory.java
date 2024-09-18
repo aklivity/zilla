@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_VERSION_ID;
 import static java.util.Objects.requireNonNull;
 
 import java.io.InputStreamReader;
@@ -1346,14 +1347,20 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final PgsqlKafkaBindingConfig binding = server.binding;
             final String schema = binding.avroValueSchema.generateSchema(server.database, statement);
             final String subject = String.format("%s.%s-value", server.database, topic);
-            binding.catalog.register(subject, schema);
 
-            final String policy = binding.avroValueSchema.primaryKey(statement) != null
-                ? "compact"
-                : "delete";
+            if (binding.catalog.register(subject, schema) != NO_VERSION_ID)
+            {
+                final String policy = binding.avroValueSchema.primaryKey(statement) != null
+                    ? "compact"
+                    : "delete";
 
-            final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
-            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, policy);
+                final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
+                createTopicsProxy.doKafkaBegin(traceId, authorization, topics, policy);
+            }
+            else
+            {
+                server.cleanup(traceId, authorization);
+            }
         }
     }
 
