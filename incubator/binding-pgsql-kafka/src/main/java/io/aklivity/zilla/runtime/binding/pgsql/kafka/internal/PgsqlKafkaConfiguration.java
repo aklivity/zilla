@@ -20,12 +20,16 @@ public class PgsqlKafkaConfiguration extends Configuration
 {
     private static final ConfigurationDef PGSQL_KAFKA_CONFIG;
 
-    public static final IntPropertyDef KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS;
+    public static final IntPropertyDef KAFKA_TOPIC_REQUEST_TIMEOUT_MS;
+    public static final IntPropertyDef KAFKA_CREATE_TOPICS_PARTITION_COUNT;
+    public static final ShortPropertyDef KAFKA_CREATE_TOPICS_REPLICAS;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", PgsqlKafkaBinding.NAME));
-        KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS = config.property("kafka.create.topics.request.timeout.ms", 30000);
+        KAFKA_TOPIC_REQUEST_TIMEOUT_MS = config.property("kafka.topic.request.timeout.ms", 30000);
+        KAFKA_CREATE_TOPICS_PARTITION_COUNT = config.property("kafka.create.topics.partition.count", 1);
+        KAFKA_CREATE_TOPICS_REPLICAS = config.property("kafka.create.topics.replicas", (short) 1);
         PGSQL_KAFKA_CONFIG = config;
     }
 
@@ -35,8 +39,18 @@ public class PgsqlKafkaConfiguration extends Configuration
         super(PGSQL_KAFKA_CONFIG, config);
     }
 
-    public int kafkaCreateTopicsRequestTimeoutMs()
+    public int kafkaTopicRequestTimeoutMs()
     {
-        return KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS.getAsInt(this);
+        return KAFKA_TOPIC_REQUEST_TIMEOUT_MS.getAsInt(this);
+    }
+
+    public int kafkaCreateTopicsPartitionCount()
+    {
+        return KAFKA_CREATE_TOPICS_PARTITION_COUNT.getAsInt(this);
+    }
+
+    public short kafkaCreateTopicsReplicas()
+    {
+        return KAFKA_CREATE_TOPICS_REPLICAS.getAsShort(this);
     }
 }

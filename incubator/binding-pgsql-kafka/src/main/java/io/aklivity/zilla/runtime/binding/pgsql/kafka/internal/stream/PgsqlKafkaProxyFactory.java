@@ -229,10 +229,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final KafkaCreateTopicsProxy createTopicsProxy;
         private final KafkaDescribeClusterProxy describeClusterProxy;
 
-        private final IntHashSet brokers;
+        private final List<Integer> brokers;
         private final IntArrayQueue queries;
 
-        private final long resolvedId;
         private final long initialId;
         private final long replyId;
         private final long originId;
@@ -269,7 +268,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.app = app;
             this.originId = originId;
             this.routedId = routedId;
-            this.resolvedId = resolvedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.initialMax = decodeMax;
@@ -278,7 +276,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
             this.queries = new IntArrayQueue();
-            this.brokers = new IntHashSet();
+            this.brokers = new ArrayList<>();
 
             this.createTopicsProxy = new KafkaCreateTopicsProxy(routedId, resolvedId, this);
             this.describeClusterProxy = new KafkaDescribeClusterProxy(routedId, resolvedId, this);
@@ -970,7 +968,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization,
             List<String> topics,
-            IntHashSet brokers,
             String deletionPolicy)
         {
             initialSeq = delegate.initialSeq;
@@ -978,9 +975,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = PgsqlKafkaState.openingInitial(state);
 
-            final int brokerId = brokers.stream().findFirst().get();
+            final int numBrokers = delegate.brokers.size();
+            final int partitionCount = config.kafkaCreateTopicsPartitionCount();
 
-            //TODO: Use configuration on hard coded parameters
             final KafkaBeginExFW kafkaBeginEx =
                     kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
@@ -990,12 +987,20 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                                     topics.forEach(t -> ct.item(i -> i
                                         .name(t)
                                         .partitionCount(1)
-                                        .replicas((short) 1)
+                                        .replicas(config.kafkaCreateTopicsReplicas())
                                         .assignments(a -> a
-                                            .item(ai -> ai.partitionId(0).leaderId(brokerId)))
+                                            .item(ai ->
+                                            {
+                                                for (int p = 0; p < partitionCount; p++)
+                                                {
+                                                    int brokerIndex = p % numBrokers;
+                                                    int brokerId = delegate.brokers.get(brokerIndex);
+                                                    ai.partitionId(p).leaderId(brokerId);
+                                                }
+                                            }))
                                         .configs(cf -> cf
                                             .item(ci -> ci.name("cleanup.policy").value(deletionPolicy))))))
-                                .timeout(30000)
+                                .timeout(config.kafkaTopicRequestTimeoutMs())
                                 .validateOnly(0)
                             ))
                         .build();
@@ -1455,7 +1460,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 : "delete";
 
             final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
-            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, server.brokers, policy);
+            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, policy);
         }
     }
 
