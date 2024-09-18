@@ -135,8 +135,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     {
         Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder =
             new Object2ObjectHashMap<>();
-        pgsqlDecoder.put(PgsqlKafkaCommandType.CREATE_TOPIC_COMMAND, this::onDecodeCreateTopicCommand);
-        pgsqlDecoder.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
+        pgsqlDecoder.put(PgsqlKafkaCommandType.CREATE_TOPIC_COMMAND, this::decodeCreateTopicCommand);
+        pgsqlDecoder.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.pgsqlDecoder = pgsqlDecoder;
     }
 
@@ -1319,7 +1319,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         return receiver;
     }
 
-    private void onDecodeCreateTopicCommand(
+    private void decodeCreateTopicCommand(
         PgsqlProxy server,
         long traceId,
         long authorization,
@@ -1357,7 +1357,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
     }
 
-    private void onDecodeUnknownCommand(
+    private void decodeUnknownCommand(
         PgsqlProxy server,
         long traceId,
         long authorization,

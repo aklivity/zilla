@@ -36,6 +36,7 @@
                     "routes": false,
                     "required":
                     [
+                        "catalog",
                         "exit"
                     ]
                 }

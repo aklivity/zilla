@@ -31,7 +31,7 @@ public class PgsqlKafkaConfiguration extends Configuration
         KAFKA_TOPIC_REQUEST_TIMEOUT_MS = config.property("kafka.topic.request.timeout.ms", 30000);
         KAFKA_CREATE_TOPICS_PARTITION_COUNT = config.property("kafka.create.topics.partition.count", 1);
         KAFKA_CREATE_TOPICS_REPLICAS = config.property("kafka.create.topics.replicas", (short) 1);
-        KAFKA_AVRO_SCHEMA_NAMESPACE = config.property("kafka.avro.schema.namespace", "io.aklivity.zilla");
+        KAFKA_AVRO_SCHEMA_NAMESPACE = config.property("kafka.avro.schema.namespace", "{database}");
         PGSQL_KAFKA_CONFIG = config;
     }
 

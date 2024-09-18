@@ -22,6 +22,8 @@ import net.sf.jsqlparser.statement.create.table.Index;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
+    private static final String DATABASE_PLACEHOLDER = "{database}";
+
     private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
@@ -37,12 +39,14 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     {
         schemaBuilder.setLength(0);
 
+        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
+
         final String recordName = String.format("%s.%s", database, createTable.getTable().getName());
 
         schemaBuilder.append("{\n");
         schemaBuilder.append("\"type\": \"record\",\n");
         schemaBuilder.append("\"name\": \"").append(recordName).append("\",\n");
-        schemaBuilder.append("\"namespace\": \"").append(namespace).append("\",\n");
+        schemaBuilder.append("\"namespace\": \"").append(newNamespace).append("\",\n");
         schemaBuilder.append("\"fields\": [\n");
 
         for (ColumnDefinition column : createTable.getColumnDefinitions())

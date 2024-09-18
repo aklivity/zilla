@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import java.util.Arrays;
+import java.util.Map;
+
+import org.agrona.collections.Object2ObjectHashMap;
 
 public enum PgsqlKafkaCommandType
 {
@@ -22,6 +25,16 @@ public enum PgsqlKafkaCommandType
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;
+
+    private static final Map<String, PgsqlKafkaCommandType> COMMAND_MAP = new Object2ObjectHashMap<>();
+
+    static
+    {
+        for (PgsqlKafkaCommandType commandType : PgsqlKafkaCommandType.values())
+        {
+            COMMAND_MAP.put(Arrays.toString(commandType.value), commandType);
+        }
+    }
 
     PgsqlKafkaCommandType(byte[] value)
     {
@@ -33,21 +46,8 @@ public enum PgsqlKafkaCommandType
         return value;
     }
 
-    public static PgsqlKafkaCommandType valueOf(
-        byte[] value)
+    public static PgsqlKafkaCommandType valueOf(byte[] value)
     {
-        PgsqlKafkaCommandType command = UNKNOWN_COMMAND;
-
-        command:
-        for (PgsqlKafkaCommandType commandType : PgsqlKafkaCommandType.values())
-        {
-            if (Arrays.equals(commandType.value, value))
-            {
-                command = commandType;
-                break command;
-            }
-        }
-
-        return command;
+        return COMMAND_MAP.getOrDefault(Arrays.toString(value), UNKNOWN_COMMAND);
     }
 }
