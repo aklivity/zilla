@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+accept "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -44,7 +44,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write notify CREATE_TOPIC_COMPLETED
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -52,3 +51,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+
+write close
+read closed

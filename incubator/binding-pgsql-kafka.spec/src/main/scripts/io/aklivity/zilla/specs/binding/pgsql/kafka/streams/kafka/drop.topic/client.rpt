@@ -22,7 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .request()
                                  .deleteTopics()
                                     .topic("dev.cities")
-                                    .timeout(0)
+                                    .timeout(30000)
                                  .build()
                                .build()}
 
@@ -40,5 +40,5 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .build()
                                 .build()}
 
-read closed
 write close
+read closed

@@ -46,4 +46,14 @@ public class KafkaIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/drop.topic/client",
+        "${app}/drop.topic/server"
+    })
+    public void shouldDropTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
