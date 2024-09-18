@@ -7524,8 +7524,8 @@ public final class KafkaFunctions
 
                     KafkaBrokerBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-                        brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                        MutableDirectBuffer brokerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        brokerRW.wrap(brokerBuffer, 0, brokerBuffer.capacity());
                     }
 
                     public KafkaBrokerBuilder brokerId(

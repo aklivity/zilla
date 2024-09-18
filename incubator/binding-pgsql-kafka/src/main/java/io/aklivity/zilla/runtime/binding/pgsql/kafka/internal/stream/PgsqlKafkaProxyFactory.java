@@ -768,41 +768,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
-        protected void doKafkaEnd(
-            long traceId,
-            long authorization)
-        {
-            if (!PgsqlKafkaState.initialClosed(state))
-            {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
-                state = PgsqlKafkaState.closeInitial(state);
-
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-        }
-
-        protected void doKafkaAbort(
-            long traceId,
-            long authorization)
-        {
-            if (!PgsqlKafkaState.initialClosed(state))
-            {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
-                state = PgsqlKafkaState.closeInitial(state);
-
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-        }
-
-        protected abstract void onKafkaBegin(
-            BeginFW begin);
-
         protected void onKafkaMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -841,6 +806,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 break;
             }
         }
+
+        protected abstract void onKafkaBegin(
+            BeginFW begin);
 
         protected void onKafkaData(
             DataFW data)
@@ -913,8 +881,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
 
             initialAck = acknowledge;
             initialMax = maximum;
@@ -953,11 +919,43 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doKafkaEnd(traceId, authorization);
         }
 
+        protected void doKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+            if (PgsqlKafkaState.initialOpening(state) &&
+                !PgsqlKafkaState.initialClosed(state))
+            {
+                initialSeq = delegate.initialSeq;
+                initialAck = delegate.initialAck;
+                initialMax = delegate.initialMax;
+                state = PgsqlKafkaState.closeInitial(state);
+
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        protected void doKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+            if (PgsqlKafkaState.initialOpening(state) &&
+                !PgsqlKafkaState.initialClosed(state))
+            {
+                state = PgsqlKafkaState.closeInitial(state);
+
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
         protected void doKafkaReset(
             long traceId,
             long authorization)
         {
-            if (!PgsqlKafkaState.replyClosed(state))
+            if (PgsqlKafkaState.replyOpening(state) &&
+                !PgsqlKafkaState.replyClosed(state))
             {
                 state = PgsqlKafkaState.closeReply(state);
 
@@ -1088,9 +1086,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            initialSeq = delegate.initialSeq;
-            initialAck = delegate.initialAck;
-            initialMax = delegate.initialMax;
             state = PgsqlKafkaState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx =
