@@ -39,7 +39,6 @@ import org.agrona.io.DirectBufferInputStream;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.BeginFW;
@@ -1143,111 +1142,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doData(
-        final MessageConsumer receiver,
-        final long originId,
-        final long routedId,
-        final long streamId,
-        final long sequence,
-        final long acknowledge,
-        final int maximum,
-        final long traceId,
-        final long authorization,
-        final int flags,
-        final long budgetId,
-        final int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int length,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .flags(flags)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .payload(buffer, offset, length)
-                .extension(extension)
-                .build();
-
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
-    private void doData(
-        final MessageConsumer receiver,
-        final long originId,
-        final long routedId,
-        final long streamId,
-        final long sequence,
-        final long acknowledge,
-        final int maximum,
-        final long traceId,
-        final long authorization,
-        final int flags,
-        final long budgetId,
-        final int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int length,
-        OctetsFW extension)
-    {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .flags(flags)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .payload(buffer, offset, length)
-                .extension(extension)
-                .build();
-
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
-    private void doFlush(
-        final MessageConsumer receiver,
-        final long originId,
-        final long routedId,
-        final long streamId,
-        final long sequence,
-        final long acknowledge,
-        final int maximum,
-        final long traceId,
-        final long authorization,
-        final long budgetId,
-        final int reserved,
-        Flyweight extension)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doFlush(

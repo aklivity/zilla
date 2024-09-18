@@ -45,7 +45,7 @@ public final class PgsqlKafkaBindingConfig
         this.routes = binding.routes.stream().map(PgsqlKafkaRouteConfig::new).collect(toList());
 
         this.catalog = supplyCatalog.apply(binding.catalogs.get(0).id);
-        this.avroValueSchema = new PgsqlKafkaValueAvroSchemaTemplate("io.aklivity");
+        this.avroValueSchema = new PgsqlKafkaValueAvroSchemaTemplate(config.kafkaAvroSchemaNamespace());
     }
 
     public PgsqlKafkaRouteConfig resolve(

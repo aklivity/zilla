@@ -16,15 +16,13 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.List;
 
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.Index;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
+    private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
     public PgsqlKafkaValueAvroSchemaTemplate(
@@ -37,10 +35,15 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         String database,
         CreateTable createTable)
     {
-        SchemaBuilder.FieldAssembler<Schema> fieldAssembler = SchemaBuilder
-            .record(String.format("%s.%s", database, createTable.getTable().getName()))
-                .namespace(namespace)
-                .fields();
+        schemaBuilder.setLength(0);
+
+        final String recordName = String.format("%s.%s", database, createTable.getTable().getName());
+
+        schemaBuilder.append("{\n");
+        schemaBuilder.append("\"type\": \"record\",\n");
+        schemaBuilder.append("\"name\": \"").append(recordName).append("\",\n");
+        schemaBuilder.append("\"namespace\": \"").append(namespace).append("\",\n");
+        schemaBuilder.append("\"fields\": [\n");
 
         for (ColumnDefinition column : createTable.getColumnDefinitions())
         {
@@ -49,21 +52,17 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
-            fieldAssembler = switch (avroType.toLowerCase())
-            {
-            case "string" -> fieldAssembler.name(fieldName).type().stringType().noDefault();
-            case "int" -> fieldAssembler.name(fieldName).type().intType().noDefault();
-            case "long" -> fieldAssembler.name(fieldName).type().longType().noDefault();
-            case "boolean" -> fieldAssembler.name(fieldName).type().booleanType().noDefault();
-            case "float" -> fieldAssembler.name(fieldName).type().floatType().noDefault();
-            case "double" -> fieldAssembler.name(fieldName).type().doubleType().noDefault();
-            default -> fieldAssembler;
-            };
+            schemaBuilder.append("  {\n");
+            schemaBuilder.append("    \"name\": \"").append(fieldName).append("\",\n");
+            schemaBuilder.append("    \"type\": ").append(avroType).append("\n");
+            schemaBuilder.append("  },\n");
         }
 
-        Schema schema = fieldAssembler.endRecord();
+        // Remove the last comma after the last field and close the JSON array
+        schemaBuilder.setLength(schemaBuilder.length() - 2); // Remove last comma
+        schemaBuilder.append("\n]\n}");
 
-        return schema.toString(true);
+        return schemaBuilder.toString();
     }
 
     public String primaryKey(

@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.80</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.83</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -45,10 +45,6 @@
       <groupId>com.github.jsqlparser</groupId>
       <artifactId>jsqlparser</artifactId>
     </dependency>
-    <dependency>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro</artifactId>
-      </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
