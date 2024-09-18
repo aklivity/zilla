@@ -581,6 +581,96 @@ scope protocol
             }
         }
 
+        scope describe_cluster
+        {
+            struct DescribeClusterRequest // v0
+            {
+                uint8 includeAuthorizedOperations;
+            }
+
+            struct DescribeClusterResponse
+            {
+                int32 correlationId;
+                int32 throttle;
+                int16 error;
+                string16 message;
+                string16 clusterId = null;
+                int32 controllerId;
+                int32 brokerCount;
+            }
+
+            struct ClusterBroker
+            {
+                int32 brokerId;
+                string16 host;
+                int32 port;
+                string16 rack = null;
+            }
+
+            struct DescribeClusterResponsePart2
+            {
+                int32 authorizedOperations;
+            }
+        }
+
+        scope create_topics
+        {
+            struct CreateTopicsRequest // v3
+            {
+                int32 topicCount;
+            }
+
+            struct TopicRequest
+            {
+                string16 name;
+                int32 partitions;
+                int16 replicas;
+                int32 assignmentCount;
+            }
+
+            struct AssignmentRequest
+            {
+               int32 partitionIndex;
+               int32 brokerCount;
+            }
+
+            struct BrokerRequest
+            {
+                int32 brokerId;
+            }
+
+            struct ConfigsRequest
+            {
+                int32 configCount;
+            }
+
+            struct ConfigRequest
+            {
+                string16 name;
+                string16 value = null;
+            }
+
+            struct CreateTopicsRequestPart2
+            {
+                int32 timeout;
+                uint8 validate_only;
+            }
+
+            struct CreateTopicsResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct TopicResponse
+            {
+                string16 name;
+                int16 error;
+                string16 message = null;
+            }
+        }
+
         scope sasl
         {
             struct SaslHandshakeRequest // v1

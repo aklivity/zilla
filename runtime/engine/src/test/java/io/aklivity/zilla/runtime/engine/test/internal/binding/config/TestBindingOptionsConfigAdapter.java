@@ -184,6 +184,11 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 testOptions.mode(object.getString(MODE_NAME));
             }
 
+            if (object.containsKey(SCHEMA_NAME))
+            {
+                testOptions.schema(object.getString(SCHEMA_NAME));
+            }
+
             if (object.containsKey(CATALOG_NAME))
             {
                 JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);

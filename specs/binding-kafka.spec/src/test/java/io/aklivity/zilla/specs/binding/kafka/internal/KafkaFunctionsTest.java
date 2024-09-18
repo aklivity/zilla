@@ -52,6 +52,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
@@ -89,7 +90,9 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
 
 public class KafkaFunctionsTest
 {
@@ -332,6 +335,228 @@ public class KafkaFunctionsTest
         assertNotNull(describeDataEx.configs()
                 .matchFirst(c -> "cleanup.policy".equals(c.name().asString()) &&
                                  "compact".equals(c.value().asString())));
+    }
+
+    @Test
+    public void shouldGenerateCreateTopicsRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .request()
+                                         .createTopics()
+                                            .topic()
+                                               .name("events")
+                                               .partitionCount(1)
+                                               .replicas((short) 1)
+                                               .assignment(0, 0)
+                                               .config("cleanup.policy", "delete")
+                                               .build()
+                                            .topic()
+                                               .name("snapshots")
+                                               .partitionCount(1)
+                                               .replicas((short) 1)
+                                               .assignment(0, 0)
+                                               .config("cleanup.policy", "compact")
+                                               .build()
+                                            .timeout(0)
+                                            .validateOnly("false")
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.createTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateDeleteTopicsRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .deleteTopics()
+                                    .topic("events")
+                                    .topic("snapshots")
+                                    .timeout(0)
+                                 .build()
+                               .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.deleteTopics().names().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateAlterConfigsRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .alterConfigs()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .config("cleanup.policy", "delete")
+                                       .build()
+                                    .resource()
+                                       .type("TOPIC")
+                                       .name("snapshots")
+                                       .config("cleanup.policy", "compact")
+                                       .build()
+                                   .validateOnly("false")
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.alterConfigs().resources().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateDescribeClusterRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .describeCluster()
+                                    .includeAuthorizedOperations("false")
+                                 .build()
+                               .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.describeCluster().includeAuthorizedOperations(), 0);
+    }
+
+    @Test
+    public void shouldGenerateCreateTopicsResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .createTopics()
+                                    .throttle(0)
+                                    .topic()
+                                       .name("events")
+                                       .error((short) 0)
+                                       .build()
+                                    .topic()
+                                       .name("snapshots")
+                                       .error((short) 0)
+                                       .build()
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.createTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateDeleteTopicsResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .response()
+                                         .deleteTopics()
+                                            .throttle(0)
+                                            .topic()
+                                               .name("events")
+                                               .error((short) 0)
+                                               .build()
+                                            .topic()
+                                               .name("snapshots")
+                                               .error((short) 0)
+                                               .build()
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.deleteTopics().topics().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateAlterConfigsResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .alterConfigs()
+                                    .throttle(0)
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .build()
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("snapshots")
+                                       .build()
+                                   .build()
+                                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.alterConfigs().resources().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateDescribeClusterResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .response()
+                                         .describeCluster()
+                                            .throttle(0)
+                                            .error((short) 0)
+                                            .clusterId("cluster-0")
+                                            .controllerId(0)
+                                            .broker()
+                                               .brokerId(1)
+                                               .host("broker1.example.com")
+                                               .port(9092)
+                                               .build()
+                                            .authorizedOperations(0)
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.describeCluster().brokers().fieldCount(), 1);
     }
 
     @Test
@@ -2543,6 +2768,271 @@ public class KafkaFunctionsTest
                             .valueLen(5)
                             .value(v -> v.set("value".getBytes(UTF_8))))))
                 .deltaType(d -> d.set(KafkaDeltaType.NONE)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchCreateTopicsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .createTopics()
+                                                .topic()
+                                                   .name("events")
+                                                   .partitionCount(1)
+                                                   .replicas((short) 1)
+                                                   .assignment(0, 0)
+                                                   .config("cleanup.policy", "delete")
+                                                   .build()
+                                               .timeout(0)
+                                               .validateOnly("false")
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .createTopics(c -> c
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .partitionCount(1)
+                            .replicas((short) 1)
+                            .assignments(a -> a.item(ai -> ai.partitionId(0).leaderId(0)))
+                            .configs(f -> f.item(af -> af.name("cleanup.policy").value("delete")))))
+                    .timeout(0)
+                    .validateOnly(0)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDeleteTopicsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .deleteTopics()
+                                                .topic("events")
+                                                .topic("snapshots")
+                                                .timeout(0)
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .deleteTopics(c -> c
+                    .names(n -> n
+                        .item(i -> i.set("events", UTF_8))
+                        .item(i -> i.set("snapshots", UTF_8)))
+                    .timeout(0))
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchAlterConfigsRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .request()
+                                                 .alterConfigs()
+                                                    .resource()
+                                                       .type("TOPIC")
+                                                       .name("events")
+                                                       .config("cleanup.policy", "delete")
+                                                       .build()
+                                                   .validateOnly("false")
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .alterConfigs(c -> c
+                    .resources(t -> t
+                        .item(i -> i
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name("events")
+                            .configs(f -> f.item(af -> af.name("cleanup.policy").value("delete")))))
+                    .validateOnly(0)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDescribeClusterRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .describeCluster()
+                                                .includeAuthorizedOperations("false")
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .describeCluster(d -> d.includeAuthorizedOperations(0))
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .createTopics()
+                                                    .throttle(0)
+                                                    .topic()
+                                                       .name("events")
+                                                       .error((short) 0)
+                                                       .build()
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .createTopics(c -> c
+                    .throttle(0)
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .error((short) 0)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDeleteTopicsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .deleteTopics()
+                                                    .throttle(0)
+                                                    .topic()
+                                                       .name("events")
+                                                       .error((short) 0)
+                                                       .build()
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .deleteTopics(c -> c
+                    .throttle(0)
+                    .topics(t -> t
+                        .item(i -> i
+                            .name("events")
+                            .error((short) 0)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchAlterConfigsResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                               .typeId(0x01)
+                               .response()
+                                 .alterConfigs()
+                                    .throttle(0)
+                                    .resource()
+                                       .error((short) 0)
+                                       .type("TOPIC")
+                                       .name("events")
+                                       .build()
+                                   .build()
+                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .alterConfigs(c -> c
+                    .throttle(0)
+                    .resources(t -> t
+                        .item(i -> i
+                            .error((short) 0)
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name("events")))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDescribeClusterResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .describeCluster()
+                                                    .throttle(0)
+                                                    .error((short) 0)
+                                                    .clusterId("cluster-0")
+                                                    .controllerId(0)
+                                                    .broker()
+                                                       .brokerId(1)
+                                                       .host("broker1.example.com")
+                                                       .port(9092)
+                                                       .build()
+                                                    .authorizedOperations(0)
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .describeCluster(d -> d
+                    .throttle(0)
+                    .error((short) 0)
+                    .clusterId("cluster-0")
+                    .controllerId(0)
+                    .brokers(t -> t.item(i -> i
+                        .brokerId(1)
+                        .host("broker1.example.com")
+                        .port(9092)))
+                    .authorizedOperations(0)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

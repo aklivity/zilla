@@ -56,6 +56,12 @@ scope kafka
         HEADERS (3)
     }
 
+    enum KafkaResourceType (uint8)
+    {
+        BROKER(4),
+        TOPIC(2)
+    }
+
     union KafkaCondition switch (uint8)
     {
         case 0: kafka::KafkaKey key;
@@ -167,11 +173,17 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            REQUEST (250),
+            RESPONSE (251),
             CONSUMER (252),
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            DESCRIBE_CLUSTER (60),
+            ALTER_CONFIGS (33),
             INIT_PRODUCER_ID (22),
+            DELETE_TOPICS (20),
+            CREATE_TOPICS (19),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -182,6 +194,8 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 250: kafka::stream::KafkaRequestBeginEx request;
+            case 251: kafka::stream::KafkaResponseBeginEx response;
             case 252: kafka::stream::KafkaConsumerBeginEx consumer;
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
@@ -500,6 +514,120 @@ scope kafka
         {
             int64 producerId;
             int16 producerEpoch;
+        }
+
+        struct KafkaCreateTopic
+        {
+            string16 name;
+            int32 partitionCount;
+            int16 replicas;
+            KafkaPartition[] assignments;
+            KafkaConfig[] configs;
+        }
+
+        struct KafkaCreateTopicsRequestBeginEx
+        {
+            KafkaCreateTopic[] topics;
+            int32 timeout;
+            uint8 validateOnly;
+        }
+
+        struct KafkaDeleteTopicsRequestBeginEx
+        {
+            string16[] names;
+            int32 timeout;
+        }
+
+        struct KafkaResource
+        {
+            KafkaResourceType type;
+            string16 name;
+            KafkaConfig[] configs;
+        }
+
+        struct KafkaAlterConfigsRequestBeginEx
+        {
+            KafkaResource[] resources;
+            uint8 validateOnly;
+        }
+
+        struct KafkaDescribeClusterRequestBeginEx
+        {
+            uint8 includeAuthorizedOperations;
+        }
+
+        union KafkaRequestBeginEx switch (uint8)
+        {
+            case 19: kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
+            case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
+            case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
+            case 60: kafka::stream::KafkaDescribeClusterRequestBeginEx describeCluster;
+        }
+
+        struct KafkaCreateTopicStatus
+        {
+            string16 name;
+            int16 error;
+            string16 message = null;
+        }
+
+        struct KafkaCreateTopicsResponseBeginEx
+        {
+            int32 throttle;
+            KafkaCreateTopicStatus[] topics;
+        }
+
+        struct KafkaDeleteTopicStatus
+        {
+            string16 name;
+            int16 error;
+        }
+
+        struct KafkaDeleteTopicsResponseBeginEx
+        {
+            int32 throttle;
+            KafkaDeleteTopicStatus[] topics;
+        }
+
+        struct KafkaResourceStatus
+        {
+            int16 error;
+            string16 message = null;
+            KafkaResourceType type;
+            string16 name;
+        }
+
+        struct KafkaAlterConfigsResponseBeginEx
+        {
+            int32 throttle;
+            KafkaResourceStatus[] resources;
+        }
+
+        struct KafkaClusterBroker
+        {
+            int32 brokerId;
+            string16 host;
+            int32 port;
+            string16 rack = null;
+        }
+
+        struct KafkaDescribeClusterResponseBeginEx
+        {
+            int32 throttle;
+            int16 error;
+            string16 message = null;
+            string16 clusterId = null;
+            int32 controllerId;
+            KafkaClusterBroker[] brokers;
+            int32 authorizedOperations;
+        }
+
+        union KafkaResponseBeginEx switch (uint8)
+        {
+            case 19: kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
+            case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
+            case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
+            case 60: kafka::stream::KafkaDescribeClusterResponseBeginEx describeCluster;
         }
     }
 

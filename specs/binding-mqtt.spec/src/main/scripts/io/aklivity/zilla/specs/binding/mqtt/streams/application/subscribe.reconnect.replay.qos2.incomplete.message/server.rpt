@@ -60,6 +60,7 @@ write ${mqtt:session()
                .build()}
 write flush
 
+write aborted
 read aborted
 
 
@@ -76,6 +77,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write aborted
 read aborted
 
 
@@ -92,6 +94,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write aborted
 read aborted
 
 
@@ -129,6 +132,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
+write aborted
 read aborted
 
 
