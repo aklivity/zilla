@@ -581,6 +581,38 @@ scope protocol
             }
         }
 
+        scope describe_cluster
+        {
+            struct DescribeClusterRequest // v0
+            {
+                uint8 includeAuthorizedOperations;
+            }
+
+            struct DescribeClusterResponse
+            {
+                int32 correlationId;
+                int32 throttle;
+                int16 error;
+                string16 message;
+                string16 clusterId = null;
+                int32 controllerId;
+                int32 brokerCount;
+            }
+
+            struct ClusterBroker
+            {
+                int32 brokerId;
+                string16 host;
+                int32 port;
+                string16 rack = null;
+            }
+
+            struct DescribeClusterResponsePart2
+            {
+                int32 authorizedOperations;
+            }
+        }
+
         scope create_topics
         {
             struct CreateTopicsRequest // v3

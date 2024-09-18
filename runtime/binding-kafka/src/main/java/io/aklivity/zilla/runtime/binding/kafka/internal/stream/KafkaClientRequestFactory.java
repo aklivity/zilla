@@ -57,9 +57,12 @@ public final class KafkaClientRequestFactory implements BindingHandler
     {
         final KafkaClientCreateTopicsFactory clientCreateTopicsFactory = new KafkaClientCreateTopicsFactory(
             config, context, supplyBinding, supplyDebitor, signaler, streamFactory, resolveSasl);
+        final KafkaClientDescribeClusterFactory clientDescribeClusterFactory = new KafkaClientDescribeClusterFactory(
+            config, context, supplyBinding, supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaApi.CREATE_TOPICS.value(), clientCreateTopicsFactory);
+        factories.put(KafkaApi.DESCRIBE_CLUSTER.value(), clientDescribeClusterFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;

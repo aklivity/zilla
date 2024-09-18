@@ -68,6 +68,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterCon
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaClusterBrokerFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
@@ -81,6 +82,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTo
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTopicsRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTopicsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
@@ -1056,6 +1059,13 @@ public final class KafkaFunctions
                 return new KafkaRequestAlterConfigsBeginExBuilder();
             }
 
+            public KafkaDescribeClusterRequestBeginExBuilder describeCluster()
+            {
+                requestBeginExRW.kind(KafkaApi.DESCRIBE_CLUSTER.value());
+
+                return new KafkaDescribeClusterRequestBeginExBuilder();
+            }
+
             public KafkaBeginExBuilder build()
             {
                 final KafkaRequestBeginExFW requestBeginEx = requestBeginExRW.build();
@@ -1275,6 +1285,34 @@ public final class KafkaFunctions
                     }
                 }
             }
+
+            public final class KafkaDescribeClusterRequestBeginExBuilder
+            {
+                private final KafkaDescribeClusterRequestBeginExFW.Builder describeClusterBeginExRW =
+                    new KafkaDescribeClusterRequestBeginExFW.Builder();
+
+                private KafkaDescribeClusterRequestBeginExBuilder()
+                {
+                    describeClusterBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaRequestBeginExFW.FIELD_OFFSET_DESCRIBE_CLUSTER,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaDescribeClusterRequestBeginExBuilder includeAuthorizedOperations(
+                    String include)
+                {
+                    describeClusterBeginExRW.includeAuthorizedOperations(Boolean.parseBoolean(include) ? 1 : 0);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDescribeClusterRequestBeginExFW requestBeginEx = describeClusterBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+            }
         }
 
         public final class KafkaResponseBeginExBuilder
@@ -1305,6 +1343,13 @@ public final class KafkaFunctions
                 responseBeginExRW.kind(KafkaApi.ALTER_CONFIGS.value());
 
                 return new KafkaAlterConfigsResponseBeginExBuilder();
+            }
+
+            public KafkaDescribeClusterResponseBeginExBuilder describeCluster()
+            {
+                responseBeginExRW.kind(KafkaApi.DESCRIBE_CLUSTER.value());
+
+                return new KafkaDescribeClusterResponseBeginExBuilder();
             }
 
             public KafkaBeginExBuilder build()
@@ -1538,6 +1583,125 @@ public final class KafkaFunctions
                             .name(resource.name()));
 
                         return KafkaAlterConfigsResponseBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaDescribeClusterResponseBeginExBuilder
+            {
+                private final KafkaDescribeClusterResponseBeginExFW.Builder describeClusterBeginExRW =
+                    new KafkaDescribeClusterResponseBeginExFW.Builder();
+
+                private KafkaDescribeClusterResponseBeginExBuilder()
+                {
+                    describeClusterBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaResponseBeginExFW.FIELD_OFFSET_DESCRIBE_CLUSTER,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder throttle(
+                    int throttle)
+                {
+                    describeClusterBeginExRW.throttle(throttle);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder error(
+                    short error)
+                {
+                    describeClusterBeginExRW.error(error);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder message(
+                    String message)
+                {
+                    describeClusterBeginExRW.message(message);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder clusterId(
+                    String clusterId)
+                {
+                    describeClusterBeginExRW.clusterId(clusterId);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder controllerId(
+                    int controllerId)
+                {
+                    describeClusterBeginExRW.controllerId(controllerId);
+                    return this;
+                }
+
+                public KafkaBrokerBuilder broker()
+                {
+                    return new KafkaBrokerBuilder();
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder authorizedOperations(
+                    int authorizedOperations)
+                {
+                    describeClusterBeginExRW.authorizedOperations(authorizedOperations);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDescribeClusterResponseBeginExFW responseBeginEx = describeClusterBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaBrokerBuilder
+                {
+                    private final KafkaClusterBrokerFW.Builder brokerRW = new KafkaClusterBrokerFW.Builder();
+
+                    KafkaBrokerBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaBrokerBuilder brokerId(
+                        int brokerId)
+                    {
+                        brokerRW.brokerId(brokerId);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder host(
+                        String host)
+                    {
+                        brokerRW.host(host);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder port(
+                        int port)
+                    {
+                        brokerRW.port(port);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder rack(
+                        String rack)
+                    {
+                        brokerRW.rack(rack);
+                        return this;
+                    }
+
+                    public KafkaDescribeClusterResponseBeginExBuilder build()
+                    {
+                        KafkaClusterBrokerFW broker = brokerRW.build();
+                        describeClusterBeginExRW.brokersItem(b -> b
+                            .brokerId(broker.brokerId())
+                            .host(broker.host())
+                            .port(broker.port())
+                            .rack(broker.rack()));
+
+                        return KafkaDescribeClusterResponseBeginExBuilder.this;
                     }
                 }
             }
@@ -6633,12 +6797,19 @@ public final class KafkaFunctions
                 return alterConfigsMatcher;
             }
 
+            public KafkaDescribeClusterRequestMatcherBuilder describeCluster()
+            {
+                KafkaDescribeClusterRequestMatcherBuilder describeClusterMatcher =
+                    new KafkaDescribeClusterRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = describeClusterMatcher::match;
+                return describeClusterMatcher;
+            }
+
             public final class KafkaCreateTopicsRequestMatcherBuilder
             {
                 private Array32FW.Builder<KafkaCreateTopicFW.Builder, KafkaCreateTopicFW> topicsRW;
                 private Integer timeout;
                 private Boolean validateOnly;
-
 
                 private KafkaCreateTopicsRequestMatcherBuilder()
                 {
@@ -6918,6 +7089,41 @@ public final class KafkaFunctions
                     return validateOnly == null || validateOnly == (alterConfigsRequestBeginEx.validateOnly() != 0);
                 }
             }
+
+            public final class KafkaDescribeClusterRequestMatcherBuilder
+            {
+                private Boolean includeAuthorizedOperations;
+
+                private KafkaDescribeClusterRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaDescribeClusterRequestMatcherBuilder includeAuthorizedOperations(
+                    String includeAuthorizedOperations)
+                {
+                    this.includeAuthorizedOperations = Boolean.valueOf(includeAuthorizedOperations);
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDescribeClusterRequestBeginExFW describeCluster = beginEx.request().describeCluster();
+                    return matchIncludeAuthorizedOperations(describeCluster);
+                }
+
+                private boolean matchIncludeAuthorizedOperations(
+                    final KafkaDescribeClusterRequestBeginExFW describeClusterRequestBeginEx)
+                {
+                    return includeAuthorizedOperations == null ||
+                        includeAuthorizedOperations == (describeClusterRequestBeginEx.includeAuthorizedOperations() != 0);
+                }
+            }
         }
 
         public final class KafkaResponseBeginExMatcherBuilder
@@ -6950,6 +7156,14 @@ public final class KafkaFunctions
                 KafkaAlterConfigsResponseMatcherBuilder alterConfigsMatcher = new KafkaAlterConfigsResponseMatcherBuilder();
                 KafkaBeginExMatcherBuilder.this.caseMatcher = alterConfigsMatcher::match;
                 return alterConfigsMatcher;
+            }
+
+            public KafkaDescribeClusterResponseMatcherBuilder describeCluster()
+            {
+                KafkaDescribeClusterResponseMatcherBuilder describeClusterMatcher =
+                    new KafkaDescribeClusterResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = describeClusterMatcher::match;
+                return describeClusterMatcher;
             }
 
             public final class KafkaCreateTopicsResponseMatcherBuilder
@@ -7229,6 +7443,186 @@ public final class KafkaFunctions
                     final KafkaAlterConfigsResponseBeginExFW alterConfigsResponseBeginEx)
                 {
                     return resourcesRW == null || resourcesRW.build().equals(alterConfigsResponseBeginEx.resources());
+                }
+            }
+
+            public final class KafkaDescribeClusterResponseMatcherBuilder
+            {
+                private Integer throttle;
+                private Short error;
+                private String16FW message;
+                private String16FW clusterId;
+                private Integer controllerId;
+                private Array32FW.Builder<KafkaClusterBrokerFW.Builder, KafkaClusterBrokerFW> brokersRW;
+                private Integer authorizedOperations;
+
+                private KafkaDescribeClusterResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder error(
+                    short error)
+                {
+                    this.error = error;
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder message(
+                    String message)
+                {
+                    this.message = new String16FW(message);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder clusterId(
+                    String clusterId)
+                {
+                    this.clusterId = new String16FW(clusterId);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder controllerId(
+                    int controllerId)
+                {
+                    this.controllerId = controllerId;
+                    return this;
+                }
+
+                public KafkaBrokerBuilder broker()
+                {
+                    if (brokersRW == null)
+                    {
+                        brokersRW = new Array32FW.Builder<>(new KafkaClusterBrokerFW.Builder(), new KafkaClusterBrokerFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaBrokerBuilder();
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder authorizedOperations(
+                    int authorizedOperations)
+                {
+                    this.authorizedOperations = authorizedOperations;
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaBrokerBuilder
+                {
+                    private final KafkaClusterBrokerFW.Builder brokerRW = new KafkaClusterBrokerFW.Builder();
+
+                    KafkaBrokerBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaBrokerBuilder brokerId(
+                        int brokerId)
+                    {
+                        brokerRW.brokerId(brokerId);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder host(
+                        String host)
+                    {
+                        brokerRW.host(host);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder port(
+                        int port)
+                    {
+                        brokerRW.port(port);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder rack(
+                        String rack)
+                    {
+                        brokerRW.rack(rack);
+                        return this;
+                    }
+
+                    public KafkaDescribeClusterResponseMatcherBuilder build()
+                    {
+                        KafkaClusterBrokerFW broker = brokerRW.build();
+                        brokersRW.item(b -> b
+                            .brokerId(broker.brokerId())
+                            .host(broker.host())
+                            .port(broker.port())
+                            .rack(broker.rack()));
+
+                        return KafkaDescribeClusterResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    final KafkaDescribeClusterResponseBeginExFW describeCluster = beginEx.response().describeCluster();
+                    return matchThrottle(describeCluster) &&
+                        matchError(describeCluster) &&
+                        matchMessage(describeCluster) &&
+                        matchClusterId(describeCluster) &&
+                        matchControllerId(describeCluster) &&
+                        matchBrokers(describeCluster) &&
+                        matchAuthorizedOperations(describeCluster);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return throttle == null || throttle == describeClusterResponseBeginEx.throttle();
+                }
+
+                private boolean matchError(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return error == null || error == describeClusterResponseBeginEx.error();
+                }
+
+                private boolean matchMessage(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return message == null || message.equals(describeClusterResponseBeginEx.message());
+                }
+
+                private boolean matchClusterId(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return clusterId == null || clusterId.equals(describeClusterResponseBeginEx.clusterId());
+                }
+
+                private boolean matchControllerId(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return controllerId == null || controllerId == describeClusterResponseBeginEx.controllerId();
+                }
+
+                private boolean matchBrokers(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return brokersRW == null || brokersRW.build().equals(describeClusterResponseBeginEx.brokers());
+                }
+
+                private boolean matchAuthorizedOperations(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return authorizedOperations == null ||
+                        authorizedOperations == describeClusterResponseBeginEx.authorizedOperations();
                 }
             }
         }

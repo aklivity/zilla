@@ -179,6 +179,7 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            DESCRIBE_CLUSTER (60),
             ALTER_CONFIGS (33),
             INIT_PRODUCER_ID (22),
             DELETE_TOPICS (20),
@@ -550,11 +551,17 @@ scope kafka
             uint8 validateOnly;
         }
 
+        struct KafkaDescribeClusterRequestBeginEx
+        {
+            uint8 includeAuthorizedOperations;
+        }
+
         union KafkaRequestBeginEx switch (uint8)
         {
-            case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
-            case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
             case 19: kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
+            case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
+            case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
+            case 60: kafka::stream::KafkaDescribeClusterRequestBeginEx describeCluster;
         }
 
         struct KafkaCreateTopicStatus
@@ -596,11 +603,31 @@ scope kafka
             KafkaResourceStatus[] resources;
         }
 
+        struct KafkaClusterBroker
+        {
+            int32 brokerId;
+            string16 host;
+            int32 port;
+            string16 rack = null;
+        }
+
+        struct KafkaDescribeClusterResponseBeginEx
+        {
+            int32 throttle;
+            int16 error;
+            string16 message = null;
+            string16 clusterId = null;
+            int32 controllerId;
+            KafkaClusterBroker[] brokers;
+            int32 authorizedOperations;
+        }
+
         union KafkaResponseBeginEx switch (uint8)
         {
-            case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
-            case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
             case 19: kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
+            case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
+            case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
+            case 60: kafka::stream::KafkaDescribeClusterResponseBeginEx describeCluster;
         }
     }
 

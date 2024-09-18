@@ -425,6 +425,26 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateDescribeClusterRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                               .typeId(0x01)
+                               .request()
+                                 .describeCluster()
+                                    .includeAuthorizedOperations("false")
+                                 .build()
+                               .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaRequestBeginExFW requestBeginEx = beginEx.request();
+
+        assertEquals(requestBeginEx.describeCluster().includeAuthorizedOperations(), 0);
+    }
+
+    @Test
     public void shouldGenerateCreateTopicsResponseBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
@@ -508,6 +528,35 @@ public class KafkaFunctionsTest
         final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
 
         assertEquals(responseBeginEx.alterConfigs().resources().fieldCount(), 2);
+    }
+
+    @Test
+    public void shouldGenerateDescribeClusterResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                       .typeId(0x01)
+                                       .response()
+                                         .describeCluster()
+                                            .throttle(0)
+                                            .error((short) 0)
+                                            .clusterId("cluster-0")
+                                            .controllerId(0)
+                                            .broker()
+                                               .brokerId(1)
+                                               .host("broker1.example.com")
+                                               .port(9092)
+                                               .build()
+                                            .authorizedOperations(0)
+                                           .build()
+                                        .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x1, beginEx.typeId());
+
+        final KafkaResponseBeginExFW responseBeginEx = beginEx.response();
+
+        assertEquals(responseBeginEx.describeCluster().brokers().fieldCount(), 1);
     }
 
     @Test
@@ -2828,6 +2877,29 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchDescribeClusterRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                           .typeId(0x01)
+                                           .request()
+                                             .describeCluster()
+                                                .includeAuthorizedOperations("false")
+                                               .build()
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .request(r -> r
+                .describeCluster(d -> d.includeAuthorizedOperations(0))
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchCreateTopicsResponseBeginExtension() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchBeginEx()
@@ -2920,6 +2992,47 @@ public class KafkaFunctionsTest
                             .error((short) 0)
                             .type(rt -> rt.set(KafkaResourceType.TOPIC))
                             .name("events")))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDescribeClusterResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                               .typeId(0x01)
+                                               .response()
+                                                 .describeCluster()
+                                                    .throttle(0)
+                                                    .error((short) 0)
+                                                    .clusterId("cluster-0")
+                                                    .controllerId(0)
+                                                    .broker()
+                                                       .brokerId(1)
+                                                       .host("broker1.example.com")
+                                                       .port(9092)
+                                                       .build()
+                                                    .authorizedOperations(0)
+                                                   .build()
+                                                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .response(r -> r
+                .describeCluster(d -> d
+                    .throttle(0)
+                    .error((short) 0)
+                    .clusterId("cluster-0")
+                    .controllerId(0)
+                    .brokers(t -> t.item(i -> i
+                        .brokerId(1)
+                        .host("broker1.example.com")
+                        .port(9092)))
+                    .authorizedOperations(0)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
