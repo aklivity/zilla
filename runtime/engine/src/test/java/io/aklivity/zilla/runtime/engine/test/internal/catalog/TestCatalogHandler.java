@@ -39,6 +39,14 @@ public class TestCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public int register(
+        String subject,
+        String schema)
+    {
+        return this.schema.equals(schema) ? this.id : NO_VERSION_ID;
+    }
+
+    @Override
     public int resolve(
         String subject,
         String version)

@@ -14,10 +14,9 @@
  */
 module io.aklivity.zilla.runtime.binding.pgsql.kafka
 {
+    requires net.sf.jsqlparser;
     requires io.aklivity.zilla.runtime.engine;
 
-/*
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaBindingFactorySpi;
-*/
 }

@@ -24,7 +24,7 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
-           topic='%s',
+           topic='%s.%s',
            scan.startup.mode='latest',
            scan.startup.timestamp.millis='%d'
         )
@@ -47,11 +47,12 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
+        String database,
         Statement statement)
     {
         CreateTable createTable = (CreateTable) statement;
         String table = createTable.getTable().getName();
 
-        return String.format(sqlFormat, table, bootstrapServer, table, scanStartupMil, schemaRegistry);
+        return String.format(sqlFormat, table, bootstrapServer, database, table, scanStartupMil, schemaRegistry);
     }
 }

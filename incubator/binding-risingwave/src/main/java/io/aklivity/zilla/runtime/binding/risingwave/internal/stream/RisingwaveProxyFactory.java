@@ -455,6 +455,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             assert replyAck <= replySeq;
 
+            state = RisingwaveState.openReply(state);
+
             if (responses.isEmpty())
             {
                 streamsByRouteIds.values().forEach(c -> c.doAppWindow(authorization, traceId));
@@ -575,7 +577,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             if (RisingwaveState.replyOpened(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = RisingwaveState.closeReply(state);
 
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1463,11 +1465,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1 && primaryKey != null)
             {
-                newStatement = binding.createTable.generate(statement);
+                newStatement = binding.createTable.generate(server.database, statement);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(statement);
+                newStatement = binding.createSource.generate(server.database, statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
