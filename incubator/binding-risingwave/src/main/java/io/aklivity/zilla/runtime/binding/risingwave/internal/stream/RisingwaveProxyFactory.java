@@ -64,6 +64,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.function.CreateFunction;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
@@ -141,6 +142,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::onDecodeCreateTableCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::onDecodeCreateMaterializedViewCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::onDecodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::onDecodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -1533,6 +1535,43 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
     }
 
+    private void onDecodeCreateFunctionCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        if (server.commandsProcessed == 1)
+        {
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_FUNCTION_COMMAND);
+        }
+        else
+        {
+            final RisingwaveBindingConfig binding = server.binding;
+            final CreateFunction statement = (CreateFunction) parseStatement(buffer, offset, length);
+
+            String newStatement = "";
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                newStatement = binding.createFunction.generate(statement);
+            }
+
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.typeCommand = ignoreFlushCommand;
+        }
+    }
+
     private void onDecodeUnknownCommand(
         PgsqlServer server,
         long traceId,
@@ -1635,14 +1674,23 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         try
         {
             //TODO: Try to generalize it
-            if (decodeCommandType(buffer, offset, length).
-                    equals(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND))
+            RisingwaveCommandType commandType = decodeCommandType(buffer, offset, length);
+            if (commandType.equals(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND))
             {
                 String sql = buffer.getStringWithoutLengthUtf8(offset, length);
                 // Replace "CREATE MATERIALIZED VIEW" with "CREATE VIEW" for compatibility
                 sql = sql.replace("CREATE MATERIALIZED VIEW", "CREATE VIEW");
                 // Remove "IF NOT EXISTS" clause because JSqlParser doesn't support it
                 sql = sql.replace("IF NOT EXISTS", "");
+                statement = parserManager.parse(new StringReader(sql));
+            }
+            else if (commandType.equals(RisingwaveCommandType.CREATE_FUNCTION_COMMAND))
+            {
+                if (buffer.getByte(offset + length + Byte.BYTES) == END_OF_FIELD)
+                {
+                    length -= Byte.BYTES;
+                }
+                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
                 statement = parserManager.parse(new StringReader(sql));
             }
             else
@@ -1653,7 +1701,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
         catch (Exception ignored)
         {
-            //NOOP
         }
 
         return statement;

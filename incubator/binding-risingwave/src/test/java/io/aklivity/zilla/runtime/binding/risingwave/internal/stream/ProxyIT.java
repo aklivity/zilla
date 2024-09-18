@@ -90,4 +90,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function/client",
+        "${effective}/create.function/server" })
+    public void shouldCreateFunction() throws Exception
+    {
+        k3po.finish();
+    }
 }

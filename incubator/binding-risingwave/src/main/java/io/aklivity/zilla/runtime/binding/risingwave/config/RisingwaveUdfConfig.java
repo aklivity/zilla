@@ -14,25 +14,29 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.config;
 
-import java.util.List;
+import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class RisingwaveOptionsConfig extends OptionsConfig
+public class RisingwaveUdfConfig
 {
-    public final RisingwaveKafkaConfig kafka;
-    public final List<RisingwaveUdfConfig> udfs;
+    public final String server;
+    public final String language;
 
-    public static RisingwaveOptionConfigBuilder<RisingwaveOptionsConfig> builder()
+    public static RisingwaveUdfConfigBuilder<RisingwaveUdfConfig> builder()
     {
-        return new RisingwaveOptionConfigBuilder<>(RisingwaveOptionsConfig.class::cast);
+        return new RisingwaveUdfConfigBuilder<>(RisingwaveUdfConfig.class::cast);
     }
 
-    RisingwaveOptionsConfig(
-        RisingwaveKafkaConfig kafka,
-        List<RisingwaveUdfConfig> udfs)
+    public static <T> RisingwaveUdfConfigBuilder<T> builder(
+        Function<RisingwaveUdfConfig, T> mapper)
     {
-        this.kafka = kafka;
-        this.udfs = udfs;
+        return new RisingwaveUdfConfigBuilder<>(mapper);
+    }
+
+    RisingwaveUdfConfig(
+        String server,
+        String language)
+    {
+        this.server = server;
+        this.language = language;
     }
 }

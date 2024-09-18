@@ -36,6 +36,7 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -82,18 +83,30 @@ public class RisingwaveOptionsConfigAdapterTest
                         ]
                       }
                     }
-                  }
+                  },
+                  "udf": [
+                    {
+                      "server": "http://udf.zillabase.dev:8815"
+                    },
+                    {
+                      "server": "http://udf-python.zillabase.dev:8815",
+                      "language": "python"
+                    }
+                    ]
                 }""";
 
         RisingwaveOptionsConfig options = jsonb.fromJson(text, RisingwaveOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
+        assertEquals(options.udfs.get(0).server, "http://udf.zillabase.dev:8815");
+        assertEquals(options.udfs.get(0).language, "java");
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"kafka\":{\"properties\":{\"bootstrap.server\":\"localhost:9092\"},\"format\":\"test\"}}";
+        String expected = "{\"kafka\":{\"properties\":{\"bootstrap.server\":\"localhost:9092\"},\"format\":\"test\"}," +
+            "\"udf\":[{\"server\":\"http://udf-python.zillabase.dev:8815\",\"language\":\"python\"}]}";
 
         RisingwaveKafkaPropertiesConfig properties = RisingwaveKafkaPropertiesConfig.builder()
             .inject(identity())
@@ -112,10 +125,16 @@ public class RisingwaveOptionsConfigAdapterTest
             .format(model)
             .build();
 
+        RisingwaveUdfConfig udf = RisingwaveUdfConfig.builder()
+            .server("http://udf-python.zillabase.dev:8815")
+            .language("python")
+            .build();
+
 
         RisingwaveOptionsConfig options = RisingwaveOptionsConfig.builder()
             .inject(identity())
             .kafka(kafka)
+            .udf(udf)
             .build();
 
         String text = jsonb.toJson(options);

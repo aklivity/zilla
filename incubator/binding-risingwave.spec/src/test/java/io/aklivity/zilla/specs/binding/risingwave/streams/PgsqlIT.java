@@ -75,4 +75,14 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.function/client",
+        "${app}/create.function/server"
+    })
+    public void shouldCreateFunction() throws Exception
+    {
+        k3po.finish();
+    }
 }

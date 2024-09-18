@@ -22,7 +22,9 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateFunctionTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceTemplate;
@@ -47,6 +49,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveCreateTableTemplate createTable;
     public final RisingwaveCreateSourceTemplate createSource;
     public final RisingwaveCreateSinkTemplate createSink;
+    public final RisingwaveCreateFunctionTemplate createFunction;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -59,19 +62,34 @@ public final class RisingwaveBindingConfig
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
-        final CatalogedConfig cataloged = options.kafka.format.cataloged.get(0);
-        cataloged.id = binding.resolveId.applyAsLong(cataloged.name);
+        String bootstrapServer = null;
+        String location = null;
+        RisingwaveUdfConfig udf = null;
 
-        final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
-        this.createTable = new RisingwaveCreateTableTemplate(options.kafka.properties.bootstrapServer,
-            catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
-        this.createSource = new RisingwaveCreateSourceTemplate(options.kafka.properties.bootstrapServer,
-            catalogHandler.location(), config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkTemplate(
-            options.kafka.properties.bootstrapServer, catalogHandler.location());
+        if (options.kafka != null)
+        {
+            final CatalogedConfig cataloged = options.kafka.format.cataloged.get(0);
+            cataloged.id = binding.resolveId.applyAsLong(cataloged.name);
+
+            final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
+            bootstrapServer = options.kafka.properties.bootstrapServer;
+            location = catalogHandler.location();
+        }
+
+        if (options.udfs != null)
+        {
+            udf = options.udfs.get(0);
+        }
+
+        this.createTable = new RisingwaveCreateTableTemplate(bootstrapServer,
+            location, config.kafkaScanStartupTimestampMillis());
+        this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
+            location, config.kafkaScanStartupTimestampMillis());
+        this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeMaterializedViewTemplate();
+        this.createFunction = new RisingwaveCreateFunctionTemplate(udf);
     }
 
     public RisingwaveRouteConfig resolve(

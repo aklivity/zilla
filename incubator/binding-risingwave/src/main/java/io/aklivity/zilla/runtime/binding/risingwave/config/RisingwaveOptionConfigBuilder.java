@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -23,6 +25,7 @@ public class RisingwaveOptionConfigBuilder<T> extends ConfigBuilder<T, Risingwav
     private final Function<RisingwaveOptionsConfig, T> mapper;
 
     private RisingwaveKafkaConfig kafka;
+    private List<RisingwaveUdfConfig> udfs;
 
     RisingwaveOptionConfigBuilder(
         Function<RisingwaveOptionsConfig, T> mapper)
@@ -49,8 +52,24 @@ public class RisingwaveOptionConfigBuilder<T> extends ConfigBuilder<T, Risingwav
         return RisingwaveKafkaConfig.builder(this::kafka);
     }
 
+    public RisingwaveOptionConfigBuilder<T> udf(
+        RisingwaveUdfConfig udf)
+    {
+        if (udfs == null)
+        {
+            udfs = new ArrayList<>();
+        }
+        udfs.add(udf);
+        return this;
+    }
+
+    public RisingwaveUdfConfigBuilder<RisingwaveOptionConfigBuilder<T>> udf()
+    {
+        return RisingwaveUdfConfig.builder(this::udf);
+    }
+
     public T build()
     {
-        return mapper.apply(new RisingwaveOptionsConfig(kafka));
+        return mapper.apply(new RisingwaveOptionsConfig(kafka, udfs));
     }
 }

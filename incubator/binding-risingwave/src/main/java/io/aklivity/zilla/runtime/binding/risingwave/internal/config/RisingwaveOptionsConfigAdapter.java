@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -28,8 +30,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String KAFKA_NAME = "kafka";
+    private static final String UDF_NAME = "udf";
 
     private final RisingwaveKafkaConfigAdapter kafka = new RisingwaveKafkaConfigAdapter();
+    private final RisingwaveUdfConfigAdapter udf = new RisingwaveUdfConfigAdapter();
 
     @Override
     public Kind kind()
@@ -56,6 +60,14 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
             object.add(KAFKA_NAME, kafka.adaptToJson(options.kafka));
         }
 
+        if (options.udfs != null && !options.udfs.isEmpty())
+        {
+            JsonArrayBuilder udfs = Json.createArrayBuilder();
+            options.udfs.forEach(f -> udfs.add(udf.adaptToJson(f)));
+
+            object.add(UDF_NAME, udfs);
+        }
+
         return object.build();
     }
 
@@ -67,6 +79,12 @@ public final class RisingwaveOptionsConfigAdapter implements OptionsConfigAdapte
         if (object.containsKey(KAFKA_NAME))
         {
             options.kafka(kafka.adaptFromJson(object.getJsonObject(KAFKA_NAME)));
+        }
+
+        if (object.containsKey(UDF_NAME))
+        {
+            JsonArray udfs = object.getJsonArray(UDF_NAME);
+            udfs.forEach(f -> options.udf(udf.adaptFromJson((JsonObject) f)));
         }
 
         return options.build();

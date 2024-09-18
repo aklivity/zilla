@@ -59,6 +59,34 @@
                                         "$ref": "#/$defs/converter"
                                     }
                                 }
+                            },
+                            "udf":
+                            {
+                                "title": "UDF",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "server":
+                                        {
+                                            "title": "Server",
+                                            "type": "string",
+                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                        },
+                                        "language":
+                                        {
+                                            "title": "Language",
+                                            "type": "string",
+                                            "default": "java",
+                                            "const": "java"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "minItems": 1,
+                                "maxItems": 1
                             }
                         },
                         "additionalProperties": false
