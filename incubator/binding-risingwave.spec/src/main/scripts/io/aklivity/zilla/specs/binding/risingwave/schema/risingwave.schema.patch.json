@@ -79,7 +79,8 @@
                                         {
                                             "title": "Language",
                                             "type": "string",
-                                            "default": "java"
+                                            "default": "java",
+                                            "const": "java"
                                         }
                                     },
                                     "additionalProperties": false
