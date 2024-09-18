@@ -12,20 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.pgsql.kafka.config;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Set;
 import java.util.function.LongFunction;
 
-import org.agrona.collections.ObjectHashSet;
-
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema.PgsqlKafkaValueAvroSchemaTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class PgsqlKafkaBindingConfig
@@ -34,7 +31,8 @@ public final class PgsqlKafkaBindingConfig
     public final String name;
     public final KindConfig kind;
     public final List<PgsqlKafkaRouteConfig> routes;
-    public final Set<CatalogHandler> catalogs;
+    public final CatalogHandler catalog;
+    public final PgsqlKafkaValueAvroSchemaTemplate avroValueSchema;
 
     public PgsqlKafkaBindingConfig(
         PgsqlKafkaConfiguration config,
@@ -46,13 +44,8 @@ public final class PgsqlKafkaBindingConfig
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(PgsqlKafkaRouteConfig::new).collect(toList());
 
-        Set<CatalogHandler> catalogs = new ObjectHashSet<>();
-        for (CatalogedConfig catalog : binding.catalogs)
-        {
-            CatalogHandler handler = supplyCatalog.apply(catalog.id);
-            catalogs.add(handler);
-        }
-        this.catalogs = catalogs;
+        this.catalog = supplyCatalog.apply(binding.catalogs.get(0).id);
+        this.avroValueSchema = new PgsqlKafkaValueAvroSchemaTemplate("io.aklivity");
     }
 
     public PgsqlKafkaRouteConfig resolve(
