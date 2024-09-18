@@ -20,6 +20,8 @@ import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class RisingwaveUdfConfigBuilder<T> extends ConfigBuilder<T, RisingwaveUdfConfigBuilder<T>>
 {
+    private static final String LANGUAGE_DEFAULT = "java";
+
     private final Function<RisingwaveUdfConfig, T> mapper;
 
     private String server;
@@ -54,7 +56,7 @@ public class RisingwaveUdfConfigBuilder<T> extends ConfigBuilder<T, RisingwaveUd
 
     public T build()
     {
-        String language = this.language != null ? this.language : "java";
+        String language = this.language != null ? this.language : LANGUAGE_DEFAULT;
         return mapper.apply(new RisingwaveUdfConfig(server, language));
     }
 }

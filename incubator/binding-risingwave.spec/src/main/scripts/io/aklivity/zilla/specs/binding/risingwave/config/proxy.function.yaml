@@ -15,11 +15,6 @@
 
 ---
 name: test
-catalogs:
-  catalog0:
-    type: test
-    options:
-      url: http://localhost:8081
 bindings:
   app0:
     type: risingwave
@@ -27,12 +22,4 @@ bindings:
     options:
       udf:
         - server: http://localhost:8815
-      kafka:
-        properties:
-          bootstrap.server: localhost:9092
-        format:
-          model: test
-          catalog:
-            catalog0:
-              - strategy: topic
     exit: app1
