@@ -1690,10 +1690,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 {
                     length -= Byte.BYTES;
                 }
-                inputStream.wrap(buffer, offset, length);
-                statement = parserManager.parse(reader);
-                /*String sql = buffer.getStringWithoutLengthUtf8(offset, length);
-                statement = parserManager.parse(new StringReader(sql));*/
+                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
+                statement = parserManager.parse(new StringReader(sql));
             }
             else
             {
@@ -1703,7 +1701,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
         catch (Exception ignored)
         {
-            ignored.printStackTrace();
         }
 
         return statement;

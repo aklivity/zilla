@@ -22,6 +22,13 @@ import net.sf.jsqlparser.statement.create.function.CreateFunction;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
+    private final String sqlFormat = """
+        CREATE FUNCTION %s(%s)
+        RETURNS %s
+        AS %s
+        LANGUAGE %s
+        USING LINK '%s';\u0000""";
+
     private final RisingwaveUdfConfig udf;
 
     public RisingwaveCreateFunctionTemplate(
@@ -35,19 +42,45 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
     {
         CreateFunction createFunction = (CreateFunction) statement;
         List<String> parts = createFunction.getFunctionDeclarationParts();
-        if (!parts.stream().anyMatch(item -> item.equalsIgnoreCase("LANGUAGE")))
+
+        String functionName = parts.get(0);
+
+        int paramStartIndex = parts.indexOf("(");
+        int paramEndIndex = parts.indexOf(")");
+        String parameters = paramStartIndex >= 0 && paramEndIndex > paramStartIndex
+            ? String.join(" ", parts.subList(paramStartIndex + 1, paramEndIndex))
+            : "";
+
+        int returnsIndex = parts.indexOf("RETURNS");
+        String returnType = returnsIndex >= 0 ? parts.get(returnsIndex + 1) : "";
+
+        if ("TABLE".equalsIgnoreCase(returnType))
         {
-            createFunction.addFunctionDeclarationParts("LANGUAGE", udf.language);
+            int tableStartIndex = -1;
+            int tableEndIndex = -1;
+            for (int i = returnsIndex; i < parts.size(); i++)
+            {
+                if (parts.get(i).equals("("))
+                {
+                    tableStartIndex = i;
+                }
+                else if (parts.get(i).equals(")"))
+                {
+                    tableEndIndex = i;
+                    break;
+                }
+            }
+
+            if (tableStartIndex >= 0 && tableEndIndex > tableStartIndex)
+            {
+                String tableDefinition = String.join(" ", parts.subList(tableStartIndex + 1, tableEndIndex));
+                returnType += " (" + tableDefinition + ")";
+            }
         }
 
-        if (!parts.stream().anyMatch(item -> item.equalsIgnoreCase("LINK")))
-        {
-            createFunction.addFunctionDeclarationParts("USING", "LINK", "'%s'".formatted(udf.server));
-        }
+        int asIndex = parts.indexOf("AS");
+        String body = asIndex >= 0 ? parts.get(asIndex + 1) : "";
 
-        parts.removeIf(part -> part.equals(";"));
-        createFunction.addFunctionDeclarationParts(";");
-
-        return createFunction.toString();
+        return sqlFormat.formatted(functionName, parameters, returnType, body, udf.language, udf.server);
     }
 }
