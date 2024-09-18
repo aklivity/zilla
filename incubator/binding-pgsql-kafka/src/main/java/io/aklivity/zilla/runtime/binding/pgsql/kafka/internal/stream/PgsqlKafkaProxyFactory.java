@@ -127,6 +127,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
     private final int decodeMax;
 
+    private final List<String> topics;
     private final Long2ObjectHashMap<PgsqlKafkaBindingConfig> bindings;
     private final int pgsqlTypeId;
     private final int kafkaTypeId;
@@ -157,6 +158,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         this.supplyCatalog = context::supplyCatalog;
 
         this.bindings = new Long2ObjectHashMap<>();
+        this.topics = new ArrayList<>();
 
         this.pgsqlTypeId = context.supplyTypeId("pgsql");
         this.kafkaTypeId = context.supplyTypeId("kafka");
@@ -227,7 +229,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final KafkaCreateTopicsProxy createTopicsProxy;
         private final KafkaDescribeClusterProxy describeClusterProxy;
 
-        private final List<String> topics;
         private final IntHashSet brokers;
         private final IntArrayQueue queries;
 
@@ -274,9 +275,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.initialMax = decodeMax;
             this.binding = bindings.get(routedId);
 
-            this.database = parameters.get("database");
+            String dbValue = parameters.get("database\u0000");
+            this.database = dbValue.substring(0, dbValue.length() - 1);
             this.queries = new IntArrayQueue();
-            this.topics = new ArrayList<>();
             this.brokers = new IntHashSet();
 
             this.createTopicsProxy = new KafkaCreateTopicsProxy(routedId, resolvedId, this);
@@ -450,6 +451,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            state = PgsqlKafkaState.openReply(state);
         }
 
         private void onCommandCompleted(
@@ -543,32 +545,13 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             state = PgsqlKafkaState.openingReply(state);
         }
 
-        private void doAppData(
-            long traceId,
-            long authorization,
-            int flags,
-            DirectBuffer buffer,
-            int offset,
-            int limit,
-            OctetsFW extension)
-        {
-            final int length = limit - offset;
-            final int reserved = length + initialPad;
-
-            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                flags, replyBudgetId, reserved, buffer, offset, length, extension);
-
-            replySeq += reserved;
-            assert replySeq <= replyAck + replyMax;
-        }
-
         private void doAppEnd(
             long traceId,
             long authorization)
         {
             if (PgsqlKafkaState.replyOpened(state))
             {
-                state = PgsqlKafkaState.closeInitial(state);
+                state = PgsqlKafkaState.closeReply(state);
 
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -625,17 +608,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, initialBudgetId, initialPad);
             }
-        }
-
-        private void doAppFlush(
-            long traceId,
-            long authorization,
-            Flyweight extension)
-        {
-            int reserved = (int) replySeq;
-
-            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                    authorization, replyBudgetId, reserved, extension);
         }
 
         private void doAppFlush(
@@ -1468,16 +1440,22 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         else if (server.commandsProcessed == 1)
         {
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
+            final String topic = statement.getTable().getName();
+
+            topics.clear();
+            topics.add(String.format("%s.%s", server.database, topic));
 
             final PgsqlKafkaBindingConfig binding = server.binding;
             final String schema = binding.avroValueSchema.generateSchema(server.database, statement);
-            final String subject = String.format("%s.%s-value", server.database, statement.getTable().getName());
+            final String subject = String.format("%s.%s-value", server.database, topic);
             binding.catalog.register(subject, schema);
+
             final String policy = binding.avroValueSchema.primaryKey(statement) != null
                 ? "compact"
                 : "delete";
+
             final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
-            createTopicsProxy.doKafkaBegin(traceId, authorization, server.topics, server.brokers, policy);
+            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, server.brokers, policy);
         }
     }
 

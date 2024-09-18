@@ -20,9 +20,12 @@ public class PgsqlKafkaConfiguration extends Configuration
 {
     private static final ConfigurationDef PGSQL_KAFKA_CONFIG;
 
+    public static final IntPropertyDef KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS;
+
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", PgsqlKafkaBinding.NAME));
+        KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS = config.property("kafka.create.topics.request.timeout.ms", 30000);
         PGSQL_KAFKA_CONFIG = config;
     }
 
@@ -30,5 +33,10 @@ public class PgsqlKafkaConfiguration extends Configuration
         Configuration config)
     {
         super(PGSQL_KAFKA_CONFIG, config);
+    }
+
+    public int kafkaCreateTopicsRequestTimeoutMs()
+    {
+        return KAFKA_CREATE_TOPICS_REQUEST_TIMEOUT_MS.getAsInt(this);
     }
 }

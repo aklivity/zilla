@@ -52,10 +52,6 @@ write flush
 read closed
 write close
 
-accept ${serverAddress}
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
@@ -69,7 +65,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                        .assignment(0, 1)
                                        .config("cleanup.policy", "compact")
                                        .build()
-                                   .timeout(0)
+                                   .timeout(30000)
                                    .validateOnly("false")
                                    .build()
                                 .build()}
