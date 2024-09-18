@@ -1463,11 +1463,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1 && primaryKey != null)
             {
-                newStatement = binding.createTable.generate(statement);
+                newStatement = binding.createTable.generate(server.database, statement);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(statement);
+                newStatement = binding.createSource.generate(server.database, statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
