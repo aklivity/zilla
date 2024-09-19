@@ -244,6 +244,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int initialMax;
         private int initialPad;
         private long initialBudgetId;
+        private long affinity;
 
         private long replySeq;
         private long replyAck;
@@ -329,7 +330,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long affinity = begin.affinity();
+
+            this.affinity = begin.affinity();
 
             state = RisingwaveState.openingInitial(state);
 
@@ -751,10 +753,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         private MessageConsumer app;
 
-        private final long initialId;
-        private final long replyId;
         private final long originId;
         private final long routedId;
+
+        private long initialId;
+        private long replyId;
 
         private long initialSeq;
         private long initialAck;
@@ -780,8 +783,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.server = server;
             this.originId = originId;
             this.routedId = routedId;
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
 
             this.typeCommand = proxyFlushCommand;
             this.completionCommand = ignoreFlushCommand;
@@ -926,12 +927,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            if (!RisingwaveState.closed(server.state))
-            {
-                state = RisingwaveState.closeReply(state);
+            state = RisingwaveState.closeReply(state);
 
-                doAppEnd(traceId, authorization);
-            }
+            doAppEnd(traceId, authorization);
         }
 
         private void onAppAbort(
@@ -1013,8 +1011,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             long affinity)
         {
+            if (RisingwaveState.closed(state))
+            {
+                state = 0;
+            }
+
             if (!RisingwaveState.initialOpening(state))
             {
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+
                 Consumer<OctetsFW.Builder> beginEx = e -> e.set((b, o, l) -> beginExRW.wrap(b, o, l)
                     .typeId(pgsqlTypeId)
                     .parameters(p -> server.parameters.forEach((k, v) -> p.item(i -> i.name(k).value(v))))
@@ -1064,7 +1070,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpened(state))
+            if (RisingwaveState.initialOpening(state))
             {
                 state = RisingwaveState.closeInitial(state);
 
@@ -1132,6 +1138,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final int lengthMax = Math.min(initialWin - initialPad, remaining);
 
             if (RisingwaveState.initialOpened(state) &&
+                !RisingwaveState.initialClosing(state) &&
                 lengthMax > 0 && remaining > 0)
             {
                 final int deferred = remaining - length;
@@ -1156,6 +1163,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 doAppData(traceId, authorization, flags, buffer, offset, lengthMax, queryEx);
 
                 messageOffset += lengthMax;
+            }
+            else
+            {
+                doAppBegin(traceId, authorization, server.affinity);
             }
         }
     }

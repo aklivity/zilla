@@ -488,14 +488,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doAppWindow(traceId, authorization);
         }
 
-        private void onKafkaDescribeClusterBegin(
-            long traceId,
-            long authorization)
-        {
-            commandsProcessed++;
-            doParseQuery(traceId, authorization);
-        }
-
         public void onKafkaCreateTopicsBegin(
             long traceId,
             long authorization)
