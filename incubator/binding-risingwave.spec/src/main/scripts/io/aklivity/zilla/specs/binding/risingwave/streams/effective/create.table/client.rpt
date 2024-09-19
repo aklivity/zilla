@@ -39,7 +39,7 @@ write "CREATE SOURCE IF NOT EXISTS weather (*)\n"
       "   topic='dev.weather',\n"
       "   scan.startup.mode='latest',\n"
       "   scan.startup.timestamp.millis='140000000'\n"
-      ") FORMAT UPSERT ENCODE AVRO (\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
       "   schema.registry = 'http://localhost:8081'\n"
       ");"
       [0x00]
