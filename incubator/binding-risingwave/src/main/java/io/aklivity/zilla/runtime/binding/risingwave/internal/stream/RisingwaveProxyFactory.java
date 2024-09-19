@@ -931,8 +931,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 state = RisingwaveState.closeReply(state);
 
                 doAppEnd(traceId, authorization);
-
-                server.cleanup(traceId, authorization);
             }
         }
 
