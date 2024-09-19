@@ -104,14 +104,12 @@ read [0x00 0x03]                                                                
      [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67     # Data
      [0xff 0xff 0xff 0xff]                                                                     # Length
 
-write flush
-
-write zilla:data.ext ${pgsql:dataEx()
+read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .row()
                                 .build()
                               .build()}
-write [0x00 0x03]                                                                                # Field Count
+read [0x00 0x03]                                                                                # Field Count
       [0x00 0x00 0x00 0x04]                                                                      # Length
       [0x63 0x69 0x74 0x79]                                                                      # Data
       [0x00 0x00 0x00 0x011]                                                                     # Length
