@@ -43,10 +43,14 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         final String recordName = createTable.getTable().getName();
 
         schemaBuilder.append("{\n");
-        schemaBuilder.append("\"type\": \"record\",\n");
-        schemaBuilder.append("\"name\": \"").append(recordName).append("\",\n");
-        schemaBuilder.append("\"namespace\": \"").append(newNamespace).append("\",\n");
-        schemaBuilder.append("\"fields\": [\n");
+        schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
+        schemaBuilder.append("\"schema\": \""); // Begin the schema field
+
+        // Building the actual Avro schema
+        schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
+        schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
+        schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
+        schemaBuilder.append(" \\\"fields\\\": [");
 
         for (ColumnDefinition column : createTable.getColumnDefinitions())
         {
@@ -55,15 +59,16 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
-            schemaBuilder.append("  {\n");
-            schemaBuilder.append("    \"name\": \"").append(fieldName).append("\",\n");
-            schemaBuilder.append("    \"type\": ").append(avroType).append("\n");
-            schemaBuilder.append("  },\n");
+            schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
+            schemaBuilder.append(" \\\"type\\\": \\\"").append(avroType).append("\\\"},");
         }
 
-        // Remove the last comma after the last field and close the JSON array
-        schemaBuilder.setLength(schemaBuilder.length() - 2); // Remove last comma
-        schemaBuilder.append("\n]\n}");
+        // Remove the last comma and close the fields array
+        schemaBuilder.setLength(schemaBuilder.length() - 1);
+        schemaBuilder.append("]");
+
+        // Closing the Avro schema
+        schemaBuilder.append("}\"\n}");
 
         return schemaBuilder.toString();
     }
