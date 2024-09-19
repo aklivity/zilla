@@ -27,7 +27,6 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
            topic='%s.%s',
            scan.startup.mode='latest',
            scan.startup.timestamp.millis='%d'
-        )
         ) FORMAT UPSERT ENCODE AVRO (
            schema.registry = '%s'
         );\u0000""";
