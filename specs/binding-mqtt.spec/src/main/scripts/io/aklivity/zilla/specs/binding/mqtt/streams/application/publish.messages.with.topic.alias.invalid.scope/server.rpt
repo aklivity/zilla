@@ -101,5 +101,4 @@ connected
 write zilla:data.empty
 write flush
 
-write aborted
 read aborted

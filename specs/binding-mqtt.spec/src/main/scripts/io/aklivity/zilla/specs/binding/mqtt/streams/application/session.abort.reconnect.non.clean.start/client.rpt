@@ -56,7 +56,6 @@ read ${mqtt:session()
                .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
-read abort
 write abort
 write notify SESSION_READY
 
@@ -76,7 +75,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 read abort
-write abort
 write notify ABORTED
 
 

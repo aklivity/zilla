@@ -45,7 +45,6 @@ connected
 write zilla:data.empty
 write flush
 
-write aborted
 read aborted
 
 
@@ -62,4 +61,3 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 write aborted
-read aborted
