@@ -48,7 +48,6 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.EndFW
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.KafkaDescribeClusterResponseBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.PgsqlFlushExFW;
@@ -226,9 +225,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final String database;
         private final PgsqlKafkaBindingConfig binding;
         private final KafkaCreateTopicsProxy createTopicsProxy;
-        private final KafkaDescribeClusterProxy describeClusterProxy;
 
-        private final List<Integer> brokers;
         private final IntArrayQueue queries;
 
         private final long initialId;
@@ -275,10 +272,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             String dbValue = parameters.get("database\u0000");
             this.database = dbValue.substring(0, dbValue.length() - 1);
             this.queries = new IntArrayQueue();
-            this.brokers = new ArrayList<>();
 
             this.createTopicsProxy = new KafkaCreateTopicsProxy(routedId, resolvedId, this);
-            this.describeClusterProxy = new KafkaDescribeClusterProxy(routedId, resolvedId, this);
         }
 
         private void onAppMessage(
@@ -686,7 +681,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            describeClusterProxy.doKafkaAbortAndReset(traceId, authorization);
             createTopicsProxy.doKafkaAbortAndReset(traceId, authorization);
 
             doAppAbortAndReset(traceId, authorization);
@@ -974,7 +968,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = PgsqlKafkaState.openingInitial(state);
 
-            final int numBrokers = delegate.brokers.size();
             final int partitionCount = config.kafkaCreateTopicsPartitionCount();
 
             final KafkaBeginExFW kafkaBeginEx =
@@ -985,18 +978,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                                 .topics(ct ->
                                     topics.forEach(t -> ct.item(i -> i
                                         .name(t)
-                                        .partitionCount(1)
+                                        .partitionCount(partitionCount)
                                         .replicas(config.kafkaCreateTopicsReplicas())
-                                        .assignments(a -> a
-                                            .item(ai ->
-                                            {
-                                                for (int p = 0; p < partitionCount; p++)
-                                                {
-                                                    int brokerIndex = p % numBrokers;
-                                                    int brokerId = delegate.brokers.get(brokerIndex);
-                                                    ai.partitionId(p).leaderId(brokerId);
-                                                }
-                                            }))
                                         .configs(cf -> cf
                                             .item(ci -> ci.name("cleanup.policy").value(deletionPolicy))))))
                                 .timeout(config.kafkaTopicRequestTimeoutMs())
@@ -1037,74 +1020,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             if (!errorExits)
             {
                 delegate.onKafkaCreateTopicsBegin(traceId, authorization);
-
-                doKafkaWindow(traceId, authorization);
-                doKafkaEnd(traceId, authorization);
-            }
-            else
-            {
-                delegate.cleanup(traceId, authorization);
-            }
-        }
-    }
-
-    private final class KafkaDescribeClusterProxy extends KafkaProxy
-    {
-        private KafkaDescribeClusterProxy(
-            long originId,
-            long routedId,
-            PgsqlProxy delegate)
-        {
-            super(originId, routedId, delegate);
-        }
-
-        protected void doKafkaBegin(
-            long traceId,
-            long authorization)
-        {
-            state = PgsqlKafkaState.openingInitial(state);
-
-            final KafkaBeginExFW kafkaBeginEx =
-                    kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .request(r -> r
-                            .describeCluster(d -> d.includeAuthorizedOperations(0)))
-                        .build();
-
-            kafka = newKafkaConsumer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0, kafkaBeginEx);
-        }
-
-        @Override
-        protected void onKafkaBegin(
-            BeginFW begin)
-        {
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
-            final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final OctetsFW extension = begin.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-            assert acknowledge >= replyAck;
-
-            replySeq = sequence;
-            replyAck = acknowledge;
-            state = PgsqlKafkaState.openingReply(state);
-
-            assert replyAck <= replySeq;
-
-            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
-            final KafkaBeginExFW kafkaBeginEx =
-                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
-
-            final KafkaDescribeClusterResponseBeginExFW describeCluster = kafkaBeginEx.response().describeCluster();
-
-            if (describeCluster.error() == NO_ERROR)
-            {
-                describeCluster.brokers().forEach(b -> delegate.brokers.add(b.brokerId()));
-                delegate.onKafkaDescribeClusterBegin(traceId, authorization);
 
                 doKafkaWindow(traceId, authorization);
                 doKafkaEnd(traceId, authorization);
@@ -1328,15 +1243,11 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
+        if (server.commandsProcessed == 1)
         {
             server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.CREATE_TOPIC_COMMAND);
         }
         else if (server.commandsProcessed == 0)
-        {
-            server.describeClusterProxy.doKafkaBegin(traceId, authorization);
-        }
-        else if (server.commandsProcessed == 1)
         {
             final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
             final String topic = statement.getTable().getName();

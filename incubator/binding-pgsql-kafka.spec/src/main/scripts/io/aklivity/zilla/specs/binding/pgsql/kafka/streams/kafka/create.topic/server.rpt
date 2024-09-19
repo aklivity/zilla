@@ -24,45 +24,11 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .request()
-                                 .describeCluster()
-                                    .includeAuthorizedOperations("false")
-                                 .build()
-                               .build()}
-
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .response()
-                                 .describeCluster()
-                                    .throttle(0)
-                                    .error(0)
-                                    .clusterId("cluster-0")
-                                    .controllerId(0)
-                                    .broker()
-                                       .brokerId(1)
-                                       .host("broker1.example.com")
-                                       .port(9092)
-                                       .build()
-                                   .authorizedOperations(0)
-                                   .build()
-                                .build()}
-write flush
-
-read closed
-write close
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                               .typeId(zilla:id("kafka"))
-                               .request()
                                  .createTopics()
                                     .topic()
                                        .name("dev.cities")
                                        .partitionCount(1)
                                        .replicas(1)
-                                       .assignment(0, 1)
                                        .config("cleanup.policy", "compact")
                                        .build()
                                    .timeout(30000)
