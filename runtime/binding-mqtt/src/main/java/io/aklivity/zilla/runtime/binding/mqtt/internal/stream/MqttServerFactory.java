@@ -5551,7 +5551,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doSessionEnd(traceId, EMPTY_OCTETS);
+                doSessionAbort(traceId);
             }
 
             private void cleanupEnd(
@@ -6126,7 +6126,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doPublishEnd(traceId);
+                doPublishReset(traceId);
+                doPublishAbort(traceId);
                 doCancelPublishExpiration();
             }
 
@@ -6618,7 +6619,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doSubscribeEnd(traceId);
+                doSubscribeReset(traceId);
+                doSubscribeAbort(traceId);
             }
 
 

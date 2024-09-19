@@ -56,7 +56,7 @@ read ${mqtt:session()
                .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
-write close
+write abort
 write notify SESSION_READY
 
 
@@ -74,11 +74,11 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .build()}
 connected
 
-write close
-write notify STREAM_ENDED
+read abort
+write notify ABORTED
 
 
-connect await STREAM_ENDED
+connect await ABORTED
         "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"

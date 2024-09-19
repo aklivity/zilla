@@ -19,19 +19,19 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                              .flags("CLEAN_START")
-                              .clientId("client")
-                              .build()
-                            .build()}
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                              .build()}
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .flags("CLEAN_START")
-                                .subscribeQosMax(0)
-                                .publishQosMax(0)
+                                .subscribeQosMax(2)
+                                .publishQosMax(2)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
                                 .clientId("client")
@@ -42,4 +42,4 @@ connected
 
 read zilla:data.empty
 
-write abort
+write close

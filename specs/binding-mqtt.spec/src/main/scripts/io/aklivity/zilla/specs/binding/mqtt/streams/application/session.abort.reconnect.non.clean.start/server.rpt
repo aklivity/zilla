@@ -61,7 +61,7 @@ write ${mqtt:session()
 write flush
 
 
-read closed
+read aborted
 
 accepted
 
@@ -75,7 +75,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read closed
+write aborted
 
 accepted
 

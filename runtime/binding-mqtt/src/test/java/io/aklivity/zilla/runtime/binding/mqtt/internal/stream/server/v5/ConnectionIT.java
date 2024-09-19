@@ -263,7 +263,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.close/client",
-        "${app}/client.sent.abort/server"})
+        "${app}/client.sent.close/server"})
     public void shouldReceiveClientSentClose() throws Exception
     {
         k3po.finish();
