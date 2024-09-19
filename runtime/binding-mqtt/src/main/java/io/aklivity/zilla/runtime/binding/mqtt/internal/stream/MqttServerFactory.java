@@ -2644,7 +2644,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 state = MqttState.closeInitial(state);
 
-                cleanupStreamsUsingAbort(traceId);
+                closeStreams(traceId, authorization);
 
                 doNetworkEnd(traceId, authorization);
 
@@ -2990,7 +2990,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (session != null)
                 {
-                    session.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    session.doSessionEnd(traceId, EMPTY_OCTETS);
                 }
                 doNetworkEnd(traceId, authorization);
 
@@ -3062,7 +3062,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (session != null)
                 {
-                    session.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    session.doSessionEnd(traceId, EMPTY_OCTETS);
                 }
                 doNetworkEnd(traceId, authorization);
 
@@ -3902,7 +3902,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    session.doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    session.doSessionEnd(traceId, EMPTY_OCTETS);
                 }
             }
 
@@ -4893,8 +4893,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            publishes.values().forEach(s -> s.doPublishAppEnd(traceId));
-            subscribes.values().forEach(ss -> ss.values().forEach(s -> s.doSubscribeAppEnd(traceId)));
+            publishes.values().forEach(s -> s.doPublishEnd(traceId));
+            subscribes.values().forEach(ss -> ss.values().forEach(s -> s.doSubscribeEnd(traceId)));
             if (session != null)
             {
                 session.cleanupEnd(traceId);
@@ -5187,7 +5187,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
                 {
-                    doSessionAppEnd(traceId, EMPTY_OCTETS);
+                    doSessionEnd(traceId, EMPTY_OCTETS);
                 }
             }
 
@@ -5551,14 +5551,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doSessionReset(traceId);
-                doSessionAbort(traceId);
+                doSessionEnd(traceId, EMPTY_OCTETS);
             }
 
             private void cleanupEnd(
                 long traceId)
             {
-                doSessionAppEnd(traceId, EMPTY_OCTETS);
+                doSessionEnd(traceId, EMPTY_OCTETS);
             }
 
             private void doSessionAbort(
@@ -5573,7 +5572,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            private void doSessionAppEnd(
+            private void doSessionEnd(
                 long traceId,
                 Flyweight extension)
             {
@@ -5909,7 +5908,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (MqttState.initialClosing(state))
                 {
-                    doPublishAppEnd(traceId);
+                    doPublishEnd(traceId);
                 }
                 else if (decodePublisherKey == topicKey)
                 {
@@ -6014,7 +6013,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long now = System.currentTimeMillis();
                 if (now >= publishExpiresAt && decodeablePublishPayloadBytes == 0)
                 {
-                    doPublishAppEnd(traceId);
+                    doPublishEnd(traceId);
                 }
                 else
                 {
@@ -6081,7 +6080,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            private void doPublishAppEnd(
+            private void doPublishEnd(
                 long traceId)
             {
                 if (!MqttState.initialClosed(state))
@@ -6127,8 +6126,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doPublishReset(traceId);
-                doPublishAbort(traceId);
+                doPublishEnd(traceId);
                 doCancelPublishExpiration();
             }
 
@@ -6590,7 +6588,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (MqttState.initialClosing(state) &&
                     !MqttState.initialClosed(state))
                 {
-                    doSubscribeAppEnd(traceId);
+                    doSubscribeEnd(traceId);
                 }
             }
 
@@ -6620,8 +6618,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void cleanupAbort(
                 long traceId)
             {
-                doSubscribeReset(traceId);
-                doSubscribeAbort(traceId);
+                doSubscribeEnd(traceId);
             }
 
 
@@ -6661,7 +6658,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            private void doSubscribeAppEnd(
+            private void doSubscribeEnd(
                 long traceId)
             {
                 if (MqttState.initialOpening(state) && !MqttState.initialClosed(state))
