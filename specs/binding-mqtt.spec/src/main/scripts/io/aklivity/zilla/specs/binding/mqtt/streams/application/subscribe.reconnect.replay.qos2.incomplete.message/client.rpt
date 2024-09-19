@@ -59,8 +59,7 @@ read ${mqtt:session()
            .build()}
 read notify RECEIVED_SESSION_STATE
 
-read abort
-write abort
+write close
 write notify SENT_SESSION_ABORT
 
 
@@ -80,8 +79,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read abort
-write abort
+write close
 
 
 connect await RECEIVED_SESSION_STATE
@@ -100,8 +98,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read abort
-write abort
+write close
 
 
 connect await RECEIVED_SESSION_STATE
@@ -141,8 +138,7 @@ write advise zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-read abort
-write abort
+write close
 
 
 connect await SENT_SESSION_ABORT

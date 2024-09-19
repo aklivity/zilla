@@ -36,4 +36,4 @@ write  [0x20 0x03]                   # CONNACK
        [0x00]                        # reason code
        [0x00]                        # properties = none
 
-read aborted
+read closed
