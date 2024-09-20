@@ -52,7 +52,7 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 
     public String generate(
         String database,
-        CreateTableCommand command)
+        RisingwaveCreateTableCommand command)
     {
         CreateTable createTable = command.createTable;
         String table = createTable.getTable().getName();

@@ -102,6 +102,16 @@ public class ProxyIT
     }
 
     @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.embedded/client",
+        "${effective}/create.function.embedded/server" })
+    public void shouldCreateFunctionEmbedded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${pgsql}/create.table.with.includes/client",
