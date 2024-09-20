@@ -36,26 +36,25 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS cities (\n"
-     "    *,\n"
-     "    PRIMARY KEY (key)\n"
-     ")\n"
-     "INCLUDE KEY AS key\n"
-     "WITH (\n"
-     "   connector='kafka',\n"
-     "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.cities',\n"
-     "   scan.startup.mode='latest',\n"
-     "   scan.startup.timestamp.millis='140000000'\n"
-     ") FORMAT UPSERT ENCODE AVRO (\n"
-     "   schema.registry = 'http://localhost:8081'\n"
-     ");"
-     [0x00]
+read  "CREATE SOURCE IF NOT EXISTS weather (*)\n"
+      "INCLUDE header 'zilla:correlation-id' AS correlation_id\n"
+      "INCLUDE timestamp AS timestamp\n"
+      "INCLUDE header 'zilla:identity' AS owner_id\n"
+      "WITH (\n"
+      "   connector='kafka',\n"
+      "   properties.bootstrap.server='localhost:9092',\n"
+      "   topic='dev.weather',\n"
+      "   scan.startup.mode='latest',\n"
+      "   scan.startup.timestamp.millis='140000000'\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
+      "   schema.registry = 'http://localhost:8081'\n"
+      ");"
+      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_SOURCE")
                                 .build()
                               .build()}
 
@@ -66,27 +65,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-read zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .query()
-                                .build()
-                              .build()}
-read "UPDATE weather SET id = 'SF';"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("UPDATE 1")
-                                .build()
-                              .build()}
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
 
 accept "zilla://streams/app2"
     option zilla:window 8192
@@ -109,9 +87,9 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE TOPIC IF NOT EXISTS cities "
-      "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));"
-      [0x00]
+read "CREATE TOPIC IF NOT EXISTS weather "
+     "(city VARCHAR, temperature DOUBLE, date DATE);"
+     [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -128,3 +106,4 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+

@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.CreateTableCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -66,7 +67,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.function.CreateFunction;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
@@ -1475,23 +1475,23 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-            final String primaryKey = binding.createTable.getPrimaryKey(statement);
+            final CreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
+            final String primaryKey = binding.createTable.primaryKey(command.createTable);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(statement);
+                newStatement = binding.createTopic.generate(command.createTable);
             }
             else if (server.commandsProcessed == 1 && primaryKey != null)
             {
-                newStatement = binding.createTable.generate(server.database, statement);
+                newStatement = binding.createTable.generate(server.database, command);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, statement);
+                newStatement = binding.createSource.generate(server.database, command);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
