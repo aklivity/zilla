@@ -28,6 +28,7 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     private final String fieldFormat = "%s %s, ";
 
     private final StringBuilder fieldBuilder = new StringBuilder();
+    private final StringBuilder primaryKeyBuilder = new StringBuilder();
 
     public RisingwaveCreateTopicTemplate()
     {
@@ -57,11 +58,18 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     {
         String topic = createView.getView().getName();
 
+        primaryKeyBuilder.setLength(0);
+        columns.keySet().forEach(k -> primaryKeyBuilder.append(k).append(", "));
+        primaryKeyBuilder.delete(primaryKeyBuilder.length() - 2, primaryKeyBuilder.length());
+
+        String primaryKey = String.format(primaryKeyFormat, primaryKeyBuilder);
+
         fieldBuilder.setLength(0);
 
-        columns.forEach((k, v) -> fieldBuilder.append(String.format(fieldFormat, k, v)));
+        columns.forEach((k, v) -> fieldBuilder.append(String.format(fieldFormat, k,
+            RisingwavePgsqlTypeMapping.typeName(v))));
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
-        return String.format(sqlFormat, topic, fieldBuilder, "");
+        return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
     }
 }

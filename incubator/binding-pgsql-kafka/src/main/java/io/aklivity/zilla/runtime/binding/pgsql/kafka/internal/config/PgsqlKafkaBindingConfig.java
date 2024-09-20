@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema.PgsqlKafkaKeyAvroSchemaTemplate;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema.PgsqlKafkaValueAvroSchemaTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -33,6 +34,7 @@ public final class PgsqlKafkaBindingConfig
     public final List<PgsqlKafkaRouteConfig> routes;
     public final CatalogHandler catalog;
     public final PgsqlKafkaValueAvroSchemaTemplate avroValueSchema;
+    public final PgsqlKafkaKeyAvroSchemaTemplate avroKeySchema;
 
     public PgsqlKafkaBindingConfig(
         PgsqlKafkaConfiguration config,
@@ -46,6 +48,7 @@ public final class PgsqlKafkaBindingConfig
 
         this.catalog = supplyCatalog.apply(binding.catalogs.get(0).id);
         this.avroValueSchema = new PgsqlKafkaValueAvroSchemaTemplate(config.kafkaAvroSchemaNamespace());
+        this.avroKeySchema = new PgsqlKafkaKeyAvroSchemaTemplate(config.kafkaAvroSchemaNamespace());
     }
 
     public PgsqlKafkaRouteConfig resolve(
