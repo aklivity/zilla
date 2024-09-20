@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
+import java.util.Map;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE SOURCE IF NOT EXISTS %s (*)
+        CREATE SOURCE IF NOT EXISTS %s (*)%s
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
@@ -47,11 +46,19 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generate(
         String database,
-        Statement statement)
+        CreateTableCommand command)
     {
-        CreateTable createTable = (CreateTable) statement;
-        String table = createTable.getTable().getName();
+        String table = command.createTable.getTable().getName();
 
-        return String.format(sqlFormat, table, bootstrapServer, database, table, scanStartupMil, schemaRegistry);
+        includeBuilder.setLength(0);
+        final Map<String, String> includes = command.includes;
+        if (includes != null && !includes.isEmpty())
+        {
+            includeBuilder.append("\n");
+            includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v)));
+            includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
+        }
+
+        return String.format(sqlFormat, table, includeBuilder, bootstrapServer, database, table, scanStartupMil, schemaRegistry);
     }
 }

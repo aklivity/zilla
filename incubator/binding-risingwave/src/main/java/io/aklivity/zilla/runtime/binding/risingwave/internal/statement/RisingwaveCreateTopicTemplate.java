@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
 
-import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
@@ -35,11 +34,10 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        Statement statement)
+        CreateTable createTable)
     {
-        CreateTable createTable = (CreateTable) statement;
         String topic = createTable.getTable().getName();
-        String primaryKeyField = getPrimaryKey(createTable);
+        String primaryKeyField = primaryKey(createTable);
         String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
 
         fieldBuilder.setLength(0);

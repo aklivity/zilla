@@ -36,10 +36,10 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE)\n"
+read  "CREATE TABLE IF NOT EXISTS cities "
+      "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id))\n"
       "INCLUDE zilla_correlation_id AS correlation_id\n"
-      "INCLUDE zilla_identity AS ownerid\n"
+      "INCLUDE zilla_identity AS owner_id\n"
       "INCLUDE timestamp as timestamp;"
       [0x00]
 
@@ -56,3 +56,4 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+

@@ -33,17 +33,16 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE SOURCE IF NOT EXISTS weather (*)\n"
-      "INCLUDE header'zilla:correlation-id' AS correlation_id\n"
-      "INCLUDE header 'zilla:identity' AS owner_id"
-      "INCLUDE timestamp as timestamp\n"
+      "INCLUDE header 'zilla:correlation-id' AS correlation_id\n"
+      "INCLUDE timestamp AS timestamp\n"
+      "INCLUDE header 'zilla:identity' AS owner_id\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
       "   topic='dev.weather',\n"
       "   scan.startup.mode='latest',\n"
       "   scan.startup.timestamp.millis='140000000'\n"
-      ")\n"
-      ") FORMAT UPSERT ENCODE AVRO (\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
       "   schema.registry = 'http://localhost:8081'\n"
       ");"
       [0x00]

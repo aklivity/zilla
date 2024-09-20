@@ -85,4 +85,22 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.table.with.includes/client",
+        "${app}/create.table.with.includes/server" })
+    public void shouldCreateTableWithIncludes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.table.with.primary.key.and.includes/client",
+        "${app}/create.table.with.primary.key.and.includes/server" })
+    public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+    {
+        k3po.finish();
+    }
 }

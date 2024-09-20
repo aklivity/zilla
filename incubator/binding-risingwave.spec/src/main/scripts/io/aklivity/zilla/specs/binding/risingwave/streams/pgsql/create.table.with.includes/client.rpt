@@ -35,7 +35,7 @@ write zilla:data.ext ${pgsql:dataEx()
 write "CREATE TABLE IF NOT EXISTS weather "
       "(city VARCHAR, temperature DOUBLE, date DATE)\n"
       "INCLUDE zilla_correlation_id AS correlation_id\n"
-      "INCLUDE zilla_identity AS ownerid\n"
+      "INCLUDE zilla_identity AS owner_id\n"
       "INCLUDE timestamp as timestamp;"
       [0x00]
 

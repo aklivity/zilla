@@ -100,4 +100,24 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/create.table.with.includes/client",
+        "${effective}/create.table.with.includes/server" })
+    public void shouldCreateTableWithIncludes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/create.table.with.primary.key.and.includes/client",
+        "${effective}/create.table.with.primary.key.and.includes/server" })
+    public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+    {
+        k3po.finish();
+    }
 }
