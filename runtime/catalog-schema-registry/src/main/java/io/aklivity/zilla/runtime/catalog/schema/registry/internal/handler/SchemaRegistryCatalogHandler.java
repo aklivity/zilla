@@ -371,6 +371,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         HttpRequest httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, path))
+            .version(HttpClient.Version.HTTP_1_1)
             .header("content-type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build();
