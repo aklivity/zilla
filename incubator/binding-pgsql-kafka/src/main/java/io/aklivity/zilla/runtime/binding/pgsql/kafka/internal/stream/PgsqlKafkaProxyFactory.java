@@ -1248,30 +1248,31 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            final CreateTable statement = (CreateTable) parseStatement(buffer, offset, length);
-            final String topic = statement.getTable().getName();
+            final CreateTable createTable = (CreateTable) parseStatement(buffer, offset, length);
+            final String topic = createTable.getTable().getName();
 
             topics.clear();
             topics.add(String.format("%s.%s", server.database, topic));
 
             final PgsqlKafkaBindingConfig binding = server.binding;
-            final String primaryKey = binding.avroValueSchema.primaryKey(statement);
-
-            final String subjectKey = primaryKey != null
-                ? String.format("%s.%s-key", server.database, topic)
-                : null;
-
-            final String subjectValue = String.format("%s.%s-value", server.database, topic);
-            final String schemaValue = binding.avroValueSchema.generateSchema(server.database, statement);
+            final String primaryKey = binding.avroValueSchema.primaryKey(createTable);
 
             int versionId = NO_ERROR_SCHEMA_VERSION_ID;
-            if (subjectKey != null)
+            if (primaryKey != null)
             {
                 //TODO: assign versionId to avoid test failure
-                binding.catalog.register(subjectKey, AVRO_KEY_SCHEMA);
+                final String subjectKey = String.format("%s.%s-key", server.database, topic);
+
+                final int primaryKeyCount = binding.avroValueSchema.primaryKeyCount(createTable);
+                String keySchema = primaryKeyCount > 1
+                    ? binding.avroKeySchema.generateSchema(server.database, createTable)
+                    : AVRO_KEY_SCHEMA;
+                binding.catalog.register(subjectKey, keySchema);
             }
             if (versionId != NO_VERSION_ID)
             {
+                final String subjectValue = String.format("%s.%s-value", server.database, topic);
+                final String schemaValue = binding.avroValueSchema.generateSchema(server.database, createTable);
                 versionId = binding.catalog.register(subjectValue, schemaValue);
             }
 

@@ -81,6 +81,15 @@ read advised zilla:flush ${pgsql:flushEx()
                                     .format("TEXT")
                                     .build()
                                 .column()
+                                    .name("Is Hidden")
+                                    .tableOid(0)
+                                    .index(0)
+                                    .typeOid(1043)
+                                    .length(4)
+                                    .modifier(-1)
+                                    .format("TEXT")
+                                    .build()
+                                .column()
                                     .name("Description")
                                     .tableOid(0)
                                     .index(0)
@@ -92,16 +101,18 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write zilla:data.ext ${pgsql:dataEx()
+read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .row()
                                 .build()
                               .build()}
-read [0x00 0x03]                                                                               # Field Count
+read [0x00 0x04]                                                                               # Field Count
      [0x00 0x00 0x00 0x02]                                                                     # Length
-     [0x69 0x64]                                                                               # Data
-     [0x00 0x00 0x00 0x011]                                                                    # Length
-     [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67     # Data
+     "id"                                                                                      # Data
+     [0x00 0x00 0x00 0x11]                                                                     # Length
+     [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67]    # Data
+     [0x00 0x00 0x00 0x05]                                                                     # Length
+     "false"                                                                                   # Data
      [0xff 0xff 0xff 0xff]                                                                     # Length
 
 read zilla:data.ext ${pgsql:dataEx()
@@ -109,11 +120,13 @@ read zilla:data.ext ${pgsql:dataEx()
                               .row()
                                 .build()
                               .build()}
-read [0x00 0x03]                                                                                # Field Count
+read  [0x00 0x04]                                                                                # Field Count
       [0x00 0x00 0x00 0x04]                                                                      # Length
       [0x63 0x69 0x74 0x79]                                                                      # Data
-      [0x00 0x00 0x00 0x011]                                                                     # Length
+      [0x00 0x00 0x00 0x11]                                                                      # Length
       [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67]     # Data
+      [0x00 0x00 0x00 0x05]                                                                      # Length
+      "false"                                                                                    # Data
       [0xff 0xff 0xff 0xff]
 
 read advised zilla:flush ${pgsql:flushEx()
@@ -135,13 +148,13 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK dev.distinct_cities_sink\n"
+write "CREATE SINK distinct_cities_sink\n"
       "FROM distinct_cities\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
       "   topic='dev.distinct_cities',\n"
-      "   primary_key='key'\n"
+      "   primary_key='city'\n"
       ") FORMAT UPSERT ENCODE AVRO (\n"
       "   schema.registry='http://localhost:8081'\n"
       ");"
@@ -182,7 +195,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS distinct_cities "
-      "(id VARCHAR, city VARCHAR);"
+      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id, city));"
       [0x00]
 write flush
 

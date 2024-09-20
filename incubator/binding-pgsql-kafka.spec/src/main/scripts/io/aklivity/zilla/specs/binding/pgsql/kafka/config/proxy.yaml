@@ -24,7 +24,7 @@ catalogs:
       schema: |-
         {
         "schemaType": "AVRO",
-        "schema": "{\"type\": \"record\", \"name\": \"cities\", \"namespace\": \"dev\", \"fields\": [ {\"name\": \"description\", \"type\": \"string\"}, {\"name\": \"id\", \"type\": \"string\"}, {\"name\": \"name\", \"type\": \"string\"}]}"
+        "schema": "{\"type\": \"record\", \"name\": \"cities\", \"namespace\": \"dev\", \"fields\": [ {\"name\": \"id\", \"type\": \"string\"}, {\"name\": \"city\", \"type\": \"string\"}]}"
         }
 bindings:
   app0:
