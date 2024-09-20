@@ -106,28 +106,28 @@ read zilla:data.ext ${pgsql:dataEx()
                               .row()
                                 .build()
                               .build()}
-read [0x00 0x04]                                                                               # Field Count
-     [0x00 0x00 0x00 0x02]                                                                     # Length
-     "id"                                                                                      # Data
-     [0x00 0x00 0x00 0x11]                                                                     # Length
-     [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67]    # Data
-     [0x00 0x00 0x00 0x05]                                                                     # Length
-     "false"                                                                                   # Data
-     [0xff 0xff 0xff 0xff]                                                                     # Length
+read [0x00 0x04]                                  # Field Count
+     [0x00 0x00 0x00 0x02]                        # Length
+     "id"                                         # Data
+     [0x00 0x00 0x00 0x11]                        # Length
+     "character varying"                          # Data
+     [0x00 0x00 0x00 0x05]                        # Length
+     "false"                                      # Data
+     [0xff 0xff 0xff 0xff]                        # Length
 
 read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .row()
                                 .build()
                               .build()}
-read  [0x00 0x04]                                                                                # Field Count
-      [0x00 0x00 0x00 0x04]                                                                      # Length
-      [0x63 0x69 0x74 0x79]                                                                      # Data
-      [0x00 0x00 0x00 0x11]                                                                      # Length
-      [0x63 0x68 0x61 0x72 0x61 0x63 0x74 0x65 0x72 0x20 0x76 0x61 0x72 0x79 0x69 0x6e 0x67]     # Data
-      [0x00 0x00 0x00 0x05]                                                                      # Length
-      "false"                                                                                    # Data
-      [0xff 0xff 0xff 0xff]
+read  [0x00 0x04]                                 # Field Count
+      [0x00 0x00 0x00 0x04]                       # Length
+      "city"                                      # Data
+      [0x00 0x00 0x00 0x11]                       # Length
+      "character varying"                         # Data
+      [0x00 0x00 0x00 0x05]                       # Length
+      "false"                                     # Data
+      [0xff 0xff 0xff 0xff]                       # Length
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
