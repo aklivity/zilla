@@ -585,31 +585,40 @@ scope protocol
         {
             struct DescribeClusterRequest // v0
             {
+                varuint32 taggedFields;
+            }
+
+            struct DescribeClusterRequestPart2
+            {
                 uint8 includeAuthorizedOperations;
+                varuint32 taggedFields;
             }
 
             struct DescribeClusterResponse
             {
                 int32 correlationId;
+                varuint32 taggedFields;
                 int32 throttle;
                 int16 error;
-                string16 message;
-                string16 clusterId = null;
+                varstring message;
+                varstring clusterId;
                 int32 controllerId;
-                int32 brokerCount;
+                varuint32n brokerCount;
             }
 
             struct ClusterBroker
             {
                 int32 brokerId;
-                string16 host;
+                varstring host;
                 int32 port;
-                string16 rack = null;
+                varstring rack;
+                varuint32 taggedFields;
             }
 
             struct DescribeClusterResponsePart2
             {
-                int32 authorizedOperations;
+                int32 clusterAuthorizedOperations;
+                varuint32 taggedFields;
             }
         }
 

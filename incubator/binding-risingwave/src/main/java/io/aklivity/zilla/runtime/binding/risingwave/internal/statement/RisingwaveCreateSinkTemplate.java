@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.Map;
+
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
@@ -25,12 +27,11 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         WITH (
            connector='kafka',
            properties.bootstrap.server='%s',
-           topic='%s',
-           primary_key='key'
+           topic='%s.%s',
+           primary_key='%s'
         ) FORMAT UPSERT ENCODE AVRO (
            schema.registry='%s'
         );\u0000""";
-    private final String sinkFormat = "%s.%s";
 
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -44,13 +45,14 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        Statement statement,
-        String database)
+        String database,
+        Map<String, String> columns,
+        Statement statement)
     {
         CreateView createView = (CreateView) statement;
         String viewName = createView.getView().getName();
-        String sinkName = String.format(sinkFormat, database, viewName);
+        String primaryKey = columns.keySet().iterator().next();
 
-        return String.format(sqlFormat, sinkName, viewName, bootstrapServer, sinkName, schemaRegistry);
+        return String.format(sqlFormat, viewName, viewName, bootstrapServer, database, viewName, primaryKey, schemaRegistry);
     }
 }

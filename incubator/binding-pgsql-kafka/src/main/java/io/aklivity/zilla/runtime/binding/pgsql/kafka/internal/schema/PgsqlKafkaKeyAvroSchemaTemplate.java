@@ -20,14 +20,14 @@ import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.Index;
 
-public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
+public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
     private static final String DATABASE_PLACEHOLDER = "{database}";
 
     private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
-    public PgsqlKafkaValueAvroSchemaTemplate(
+    public PgsqlKafkaKeyAvroSchemaTemplate(
         String namespace)
     {
         this.namespace = namespace;
@@ -40,7 +40,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         schemaBuilder.setLength(0);
 
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = createTable.getTable().getName();
+        final String recordName = String.format("%s_key", createTable.getTable().getName());
 
         schemaBuilder.append("{\n");
         schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
@@ -60,7 +60,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
             schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": \\\"").append(avroType).append("\\\"},");
+            schemaBuilder.append(" \\\"type\\\": [\\\"").append(avroType).append("\\\", \\\"null\\\"] },");
         }
 
         // Remove the last comma and close the fields array
@@ -95,28 +95,5 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         }
 
         return primaryKey;
-    }
-
-    public int primaryKeyCount(
-        CreateTable statement)
-    {
-        int primaryKeyCount = 0;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    primaryKeyCount = index.getColumns().size();
-                    break match;
-                }
-            }
-        }
-
-        return primaryKeyCount;
     }
 }

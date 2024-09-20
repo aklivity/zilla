@@ -22,7 +22,7 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         CREATE TABLE IF NOT EXISTS %s (
             *,
-            PRIMARY KEY (%s)
+            PRIMARY KEY (key)
         ) INCLUDE KEY AS key
         WITH (
            connector='kafka',
@@ -30,7 +30,6 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
            topic='%s.%s',
            scan.startup.mode='latest',
            scan.startup.timestamp.millis='%d'
-        )
         ) FORMAT UPSERT ENCODE AVRO (
            schema.registry = '%s'
         );\u0000""";
@@ -55,9 +54,8 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     {
         CreateTable createTable = (CreateTable) statement;
         String table = createTable.getTable().getName();
-        String primaryKey = getPrimaryKey(createTable);
 
-        return String.format(sqlFormat, table, primaryKey, bootstrapServer, database,
+        return String.format(sqlFormat, table, bootstrapServer, database,
             table, scanStartupMil, schemaRegistry);
     }
 }

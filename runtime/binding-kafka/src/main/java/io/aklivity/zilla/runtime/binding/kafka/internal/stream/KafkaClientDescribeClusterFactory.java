@@ -39,11 +39,11 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.describe_cluster.ClusterBrokerFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.describe_cluster.DescribeClusterRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.describe_cluster.DescribeClusterRequestPart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.describe_cluster.DescribeClusterResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.describe_cluster.DescribeClusterResponsePart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -99,6 +99,8 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final DescribeClusterRequestFW.Builder describeClusterRequestRW = new DescribeClusterRequestFW.Builder();
+    private final DescribeClusterRequestPart2FW.Builder describeClusterRequestPart2RW =
+        new DescribeClusterRequestPart2FW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final DescribeClusterResponseFW describeClusterResponseRO = new DescribeClusterResponseFW();
@@ -494,8 +496,8 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
 
             final int throttle = describeClusterResponse.throttle();
             final short error = describeClusterResponse.error();
-            final String16FW message = describeClusterResponse.message();
-            final String16FW clusterId = describeClusterResponse.clusterId();
+            final String message = describeClusterResponse.message().asString();
+            final String clusterId = describeClusterResponse.clusterId().asString();
             final int controllerId = describeClusterResponse.controllerId();
             final int brokerCount = describeClusterResponse.brokerCount();
 
@@ -517,7 +519,9 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
 
             final DescribeClusterResponsePart2FW responsePart2 =
                 describeClusterResponsePart2RO.wrap(buffer, progress, limit);
-            final int authorizedOperations = responsePart2.authorizedOperations();
+            final int authorizedOperations = responsePart2.clusterAuthorizedOperations();
+
+            progress = responsePart2.limit();
 
             client.onDecodeDescribeClusterResponse(traceId, authorization, throttle,
                 error, message, clusterId, controllerId, brokers, authorizedOperations);
@@ -720,8 +724,8 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
             long authorization,
             int throttle,
             short error,
-            String16FW message,
-            String16FW clusterId,
+            String message,
+            String clusterId,
             int controllerId,
             List<ClusterBrokerInfo> brokers,
             int authorizedOperations)
@@ -1239,10 +1243,18 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
 
             final DescribeClusterRequestFW describeClusterRequest =
                 describeClusterRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .includeAuthorizedOperations(authorizedOperations)
+                    .taggedFields(0)
                     .build();
 
             encodeProgress = describeClusterRequest.limit();
+
+            DescribeClusterRequestPart2FW describeClusterRequestPart2 =
+                describeClusterRequestPart2RW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .includeAuthorizedOperations(authorizedOperations)
+                    .taggedFields(0)
+                    .build();
+
+            encodeProgress = describeClusterRequestPart2.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -1470,8 +1482,8 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
             long authorization,
             int throttle,
             short error,
-            String16FW message,
-            String16FW clusterId,
+            String message,
+            String clusterId,
             int controllerId,
             List<ClusterBrokerInfo> brokers,
             int authorizedOperations)

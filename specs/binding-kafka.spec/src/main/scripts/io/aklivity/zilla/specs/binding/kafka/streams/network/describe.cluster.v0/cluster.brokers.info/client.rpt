@@ -28,27 +28,33 @@ connect "zilla://streams/net0"
 
 connected
 
-write 16                                # size
+write 18                                # size
       60s                               # describe cluster
       0s                                # v0
       ${newRequestId}
       5s "zilla"                        # client id
-      [0x00]                            # resources
+      [0x00]                            # tagged fields
+      [0x00]                            # include cluster authorized ops
+      [0x00]                            # tagged fields
 
-read  97                                 # size
+read  92                                 # size
       (int:newRequestId)
+      [0x00]                             # tagged fields
       0                                  # throttle time ms
       0s                                 # error code
-      -1s                                # error message
-      9s "cluster-0"                     # cluster id
+      [0x00]                             # error message
+      [0x0a] "cluster-0"                 # cluster id
       0                                  # controller id
-      2                                  # brokers
+      [0x03]                             # brokers
         1                                # broker id
-        19s "broker1.example.com"        # host
+        [0x14] "broker1.example.com"     # host
         9092                             # port
-        -1s                              # rack
+        [0x00]                           # rack
+        [0x00]                           # tagged fields
         2                                # broker id
-        19s "broker2.example.com"        # host
+        [0x14] "broker2.example.com"     # host
         9092                             # port
-        -1s                              # rack
+        [0x00]                           # rack
+        [0x00]                           # tagged fields
       0                                  # cluster authorized operations
+      [0x00]                             # tagged fields
