@@ -72,6 +72,26 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${pgsql}/create.tables/client",
+        "${effective}/create.tables/server" })
+    public void shouldCreateTables() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.tables.with.newline/client",
+        "${effective}/show.tables.with.newline/server" })
+    public void shouldShowTablesWithNewline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${pgsql}/query.with.multiple.statements/client",
         "${effective}/query.with.multiple.statements/server"
     })

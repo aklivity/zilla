@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBi
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableCommand;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveSQLCommandParser;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveSqlCommandParser;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -83,7 +83,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private final RisingwaveSQLCommandParser sqlCommandParser = new RisingwaveSQLCommandParser();
+    private final RisingwaveSqlCommandParser sqlCommandParser = new RisingwaveSqlCommandParser();
     private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
     private final DirectBufferInputStream inputStream = new DirectBufferInputStream(EMPTY_BUFFER);
     private final Reader reader = new InputStreamReader(inputStream);
@@ -503,10 +503,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 RisingwaveCompletionCommand command)
         {
             final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
-            if (parserBuffer.getByte(progress) == END_OF_FIELD)
-            {
-                progress += Byte.BYTES;
-            }
 
             commandsProcessed = 0;
             parserSlotOffset -= progress;
@@ -1618,11 +1614,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, buffer, offset, length);
-
-            if (buffer.getByte(length) == END_OF_FIELD)
-            {
-                length += Byte.BYTES;
-            }
 
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
             client.doPgsqlQuery(traceId, authorization, buffer, offset, length);

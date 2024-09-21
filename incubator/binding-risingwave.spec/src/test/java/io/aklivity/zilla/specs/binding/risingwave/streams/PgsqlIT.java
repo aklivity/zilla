@@ -112,4 +112,13 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/show.tables.with.newline/client",
+        "${app}/show.tables.with.newline/server" })
+    public void shouldShowTablesWithNewline() throws Exception
+    {
+        k3po.finish();
+    }
 }
