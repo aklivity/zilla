@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
+    int NO_VERSION_ID = 0;
 
     @FunctionalInterface
     interface Decoder
@@ -59,6 +60,13 @@ public interface CatalogHandler
             int index,
             int length,
             ValueConsumer next);
+    }
+
+    default int register(
+        String subject,
+        String schema)
+    {
+        return NO_VERSION_ID;
     }
 
     String resolve(
@@ -113,5 +121,10 @@ public interface CatalogHandler
         int length)
     {
         return 0;
+    }
+
+    default String location()
+    {
+        throw new UnsupportedOperationException("location");
     }
 }

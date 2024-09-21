@@ -31,6 +31,7 @@
                     {
                         "enum": [ "server", "client", "proxy" ]
                     },
+                    "catalog": false,
                     "options":
                     {
                         "properties":
@@ -78,6 +79,7 @@
                                             },
                                             "catalog":
                                             {
+                                                "title": "Catalog",
                                                 "type": "object",
                                                 "patternProperties":
                                                 {
@@ -201,14 +203,20 @@
                     },
                     "routes":
                     {
+                        "title": "Routes",
+                        "type": "array",
                         "items":
                         {
+                            "type": "object",
                             "properties":
                             {
                                 "when":
                                 {
+                                    "title": "When",
+                                    "type": "array",
                                     "items":
                                     {
+                                        "type": "object",
                                         "additionalProperties": false,
                                         "properties":
                                         {

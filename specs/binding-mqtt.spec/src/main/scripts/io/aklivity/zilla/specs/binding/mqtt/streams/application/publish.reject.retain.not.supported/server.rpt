@@ -60,4 +60,4 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read aborted
+write aborted

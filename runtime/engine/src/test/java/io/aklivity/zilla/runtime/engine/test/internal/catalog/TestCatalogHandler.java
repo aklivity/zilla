@@ -27,6 +27,7 @@ public class TestCatalogHandler implements CatalogHandler
     private final String schema;
     private final int id;
     private final DirectBuffer prefix;
+    private final String url;
 
     public TestCatalogHandler(
         TestCatalogOptionsConfig options)
@@ -34,6 +35,15 @@ public class TestCatalogHandler implements CatalogHandler
         this.id = options != null ? options.id : NO_SCHEMA_ID;
         this.schema = options != null ? options.schema : null;
         this.prefix = options != null ? new String8FW(options.prefix).value() : null;
+        this.url = options != null ? options.url : null;
+    }
+
+    @Override
+    public int register(
+        String subject,
+        String schema)
+    {
+        return this.schema.equals(schema) ? this.id : NO_VERSION_ID;
     }
 
     @Override
@@ -90,5 +100,11 @@ public class TestCatalogHandler implements CatalogHandler
         int length)
     {
         return prefix != null ? prefix.capacity() : 0;
+    }
+
+    @Override
+    public String location()
+    {
+        return url;
     }
 }

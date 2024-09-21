@@ -31,12 +31,17 @@
                     {
                         "enum": [ "server", "proxy" ]
                     },
+                    "catalog": false,
                     "options":
                     {
                         "title": "Options",
                         "type": "object",
                         "properties":
                         {
+                            "schema":
+                            {
+                                "type": "string"
+                            },
                             "value":
                             {
                                 "$ref": "#/$defs/converter"

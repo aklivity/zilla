@@ -23,25 +23,25 @@ read http:version "HTTP/1.1"
 read http:header "Host" "localhost:8081"
 read http:header "content-type" "application/json"
 
-read '{'
-       '"schema":"'
-         '{'
-           '\\"type\\": \\"record\\",'
-           '\\"name\\": \\"test\\",'
-           '\\"fields\\":'
-           '['
-             '{'
-               '\\"type\\": \\"string\\",'
-               '\\"name\\": \\"field1\\"'
-             '},'
-             '{'
-               '\\"type\\": \\"com.acme.Referenced\\",'
-               '\\"name\\": \\"int\\"'
-             '}'
-           ']'
-         '}",'
-       '"schemaType":"AVRO"'
-     '}'
+read "{\n"
+     "  \"schema\":\n"
+     "  {\n"
+     "      \"type\": \"record\",\n"
+     "      \"name\": \"test\",\n"
+     "      \"fields\":\n"
+     "      [\n"
+     "        {\n"
+     "          \"type\": \"string\",\n"
+     "          \"name\": \"field1\"\n"
+     "        },\n"
+     "        {\n"
+     "          \"type\": \"com.acme.Referenced\",\n"
+     "          \"name\": \"int\"\n"
+     "        }\n"
+     "      ]\n"
+     "    },\n"
+     "  \"schemaType\":\"AVRO\"\n"
+     "}\n"
 
 read closed
 

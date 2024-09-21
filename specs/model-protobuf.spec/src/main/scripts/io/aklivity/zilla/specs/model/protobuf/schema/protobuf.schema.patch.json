@@ -37,6 +37,7 @@
                     },
                     "catalog":
                     {
+                        "title": "Catalog",
                         "type": "object",
                         "patternProperties":
                         {
@@ -71,34 +72,10 @@
                                             "type": "object",
                                             "properties":
                                             {
-                                                "schema":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                },
-                                                "record":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "schema",
-                                                "record"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
                                                 "strategy":
                                                 {
-                                                    "type": "string"
+                                                    "type": "string",
+                                                    "enum": [ "topic" ]
                                                 },
                                                 "version":
                                                 {

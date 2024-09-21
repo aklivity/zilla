@@ -48,5 +48,4 @@ read zilla:reset.ext ${mqtt:resetEx()
                            .build()}
 
 write aborted
-read abort
 

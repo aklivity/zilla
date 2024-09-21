@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.93</version>
+  <version>0.9.94</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -203,6 +203,11 @@
         <groupId>com.github.biboudis</groupId>
         <artifactId>jmh-profilers</artifactId>
         <version>0.1.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.jsqlparser</groupId>
+        <artifactId>jsqlparser</artifactId>
+        <version>5.0</version>
       </dependency>
       <dependency>
         <groupId>io.aklivity.k3po</groupId>

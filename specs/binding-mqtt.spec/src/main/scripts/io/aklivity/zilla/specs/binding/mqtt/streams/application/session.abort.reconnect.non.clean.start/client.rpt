@@ -74,7 +74,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .build()}
 connected
 
-write abort
+read abort
 write notify ABORTED
 
 

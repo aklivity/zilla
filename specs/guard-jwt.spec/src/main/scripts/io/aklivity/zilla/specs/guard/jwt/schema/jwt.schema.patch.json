@@ -82,7 +82,7 @@
                             "challenge":
                             {
                                 "title": "Challenge",
-                                "type": "number"
+                                "type": "integer"
                             }
                         },
                         "additionalProperties": false

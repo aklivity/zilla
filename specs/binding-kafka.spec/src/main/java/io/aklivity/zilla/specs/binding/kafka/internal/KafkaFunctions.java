@@ -50,6 +50,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaNotFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
@@ -62,15 +63,27 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.ConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaClusterBrokerFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaCreateTopicFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaCreateTopicStatusFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaCreateTopicsRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaCreateTopicsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTopicStatusFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTopicsRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDeleteTopicsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
@@ -99,7 +112,11 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetFe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceStatusFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 
 public final class KafkaFunctions
@@ -913,6 +930,20 @@ public final class KafkaFunctions
             return this;
         }
 
+        public KafkaRequestBeginExBuilder request()
+        {
+            beginExRW.kind(KafkaApi.REQUEST.value());
+
+            return new KafkaRequestBeginExBuilder();
+        }
+
+        public KafkaResponseBeginExBuilder response()
+        {
+            beginExRW.kind(KafkaApi.RESPONSE.value());
+
+            return new KafkaResponseBeginExBuilder();
+        }
+
         public KafkaBootstrapBeginExBuilder bootstrap()
         {
             beginExRW.kind(KafkaApi.BOOTSTRAP.value());
@@ -996,6 +1027,684 @@ public final class KafkaFunctions
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
             return array;
+        }
+
+        public final class KafkaRequestBeginExBuilder
+        {
+            private final KafkaRequestBeginExFW.Builder requestBeginExRW = new KafkaRequestBeginExFW.Builder();
+
+            private KafkaRequestBeginExBuilder()
+            {
+                requestBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_REQUEST, writeBuffer.capacity());
+            }
+
+            public KafkaCreateTopicsRequestBeginExBuilder createTopics()
+            {
+                requestBeginExRW.kind(KafkaApi.CREATE_TOPICS.value());
+
+                return new KafkaCreateTopicsRequestBeginExBuilder();
+            }
+
+            public KafkaDeleteTopicsRequestBeginExBuilder deleteTopics()
+            {
+                requestBeginExRW.kind(KafkaApi.DELETE_TOPICS.value());
+
+                return new KafkaDeleteTopicsRequestBeginExBuilder();
+            }
+
+            public KafkaRequestAlterConfigsBeginExBuilder alterConfigs()
+            {
+                requestBeginExRW.kind(KafkaApi.ALTER_CONFIGS.value());
+
+                return new KafkaRequestAlterConfigsBeginExBuilder();
+            }
+
+            public KafkaDescribeClusterRequestBeginExBuilder describeCluster()
+            {
+                requestBeginExRW.kind(KafkaApi.DESCRIBE_CLUSTER.value());
+
+                return new KafkaDescribeClusterRequestBeginExBuilder();
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaRequestBeginExFW requestBeginEx = requestBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+
+            public final class KafkaCreateTopicsRequestBeginExBuilder
+            {
+                private final KafkaCreateTopicsRequestBeginExFW.Builder createTopicBeginExRW =
+                    new KafkaCreateTopicsRequestBeginExFW.Builder();
+
+                private KafkaCreateTopicsRequestBeginExBuilder()
+                {
+                    createTopicBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaRequestBeginExFW.FIELD_OFFSET_CREATE_TOPICS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaCreateTopicsRequestBeginExBuilder timeout(
+                    int timeout)
+                {
+                    createTopicBeginExRW.timeout(timeout);
+                    return this;
+                }
+
+                public KafkaCreateTopicsRequestBeginExBuilder validateOnly(
+                    String validateOnly)
+                {
+                    createTopicBeginExRW.validateOnly(Boolean.parseBoolean(validateOnly) ? 1 : 0);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaCreateTopicsRequestBeginExFW requestBeginEx = createTopicBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaCreateTopicFW.Builder topicRW = new KafkaCreateTopicFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder partitionCount(
+                        int partitionCount)
+                    {
+                        topicRW.partitionCount(partitionCount);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder replicas(
+                        short replicas)
+                    {
+                        topicRW.replicas(replicas);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder assignment(
+                        int partitionId,
+                        int brokerId)
+                    {
+                        topicRW.assignmentsItem(a -> a.partitionId(partitionId).leaderId(brokerId));
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder config(
+                        String name,
+                        String value)
+                    {
+                        topicRW.configsItem(c -> c.name(name).value(value));
+                        return this;
+                    }
+
+                    public KafkaCreateTopicsRequestBeginExBuilder build()
+                    {
+                        KafkaCreateTopicFW topic = topicRW.build();
+                        createTopicBeginExRW.topicsItem(t -> t
+                            .name(topic.name())
+                            .partitionCount(topic.partitionCount())
+                            .replicas(topic.replicas())
+                            .assignments(topic.assignments())
+                            .configs(topic.configs()));
+
+                        return KafkaCreateTopicsRequestBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaDeleteTopicsRequestBeginExBuilder
+            {
+                private final KafkaDeleteTopicsRequestBeginExFW.Builder deleteTopicBeginExRW =
+                    new KafkaDeleteTopicsRequestBeginExFW.Builder();
+
+                private KafkaDeleteTopicsRequestBeginExBuilder()
+                {
+                    deleteTopicBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaRequestBeginExFW.FIELD_OFFSET_DELETE_TOPICS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaDeleteTopicsRequestBeginExBuilder topic(
+                    String topic)
+                {
+                    deleteTopicBeginExRW.namesItem(n -> n.set(topic, UTF_8));
+                    return this;
+                }
+
+                public KafkaDeleteTopicsRequestBeginExBuilder timeout(
+                    int timeout)
+                {
+                    deleteTopicBeginExRW.timeout(timeout);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDeleteTopicsRequestBeginExFW requestBeginEx = deleteTopicBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+            }
+
+            public final class KafkaRequestAlterConfigsBeginExBuilder
+            {
+                private final KafkaAlterConfigsRequestBeginExFW.Builder alterConfigsBeginExRW =
+                    new KafkaAlterConfigsRequestBeginExFW.Builder();
+
+                private KafkaRequestAlterConfigsBeginExBuilder()
+                {
+                    alterConfigsBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaRequestBeginExFW.FIELD_OFFSET_ALTER_CONFIGS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaRequestAlterConfigsBeginExBuilder validateOnly(
+                    String validateOnly)
+                {
+                    alterConfigsBeginExRW.validateOnly(Boolean.parseBoolean(validateOnly) ? 1 : 0);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaAlterConfigsRequestBeginExFW requestBeginEx = alterConfigsBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        resourceRW.wrap(resourceBuffer, 0, resourceBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder config(
+                        String name,
+                        String value)
+                    {
+                        resourceRW.configsItem(c -> c.name(name).value(value));
+                        return this;
+                    }
+
+                    public KafkaRequestAlterConfigsBeginExBuilder build()
+                    {
+                        KafkaResourceFW topic = resourceRW.build();
+                        alterConfigsBeginExRW.resourcesItem(t -> t
+                            .type(topic.type())
+                            .name(topic.name())
+                            .configs(topic.configs()));
+
+                        return KafkaRequestAlterConfigsBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaDescribeClusterRequestBeginExBuilder
+            {
+                private final KafkaDescribeClusterRequestBeginExFW.Builder describeClusterBeginExRW =
+                    new KafkaDescribeClusterRequestBeginExFW.Builder();
+
+                private KafkaDescribeClusterRequestBeginExBuilder()
+                {
+                    describeClusterBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaRequestBeginExFW.FIELD_OFFSET_DESCRIBE_CLUSTER,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaDescribeClusterRequestBeginExBuilder includeAuthorizedOperations(
+                    String include)
+                {
+                    describeClusterBeginExRW.includeAuthorizedOperations(Boolean.parseBoolean(include) ? 1 : 0);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDescribeClusterRequestBeginExFW requestBeginEx = describeClusterBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, requestBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+            }
+        }
+
+        public final class KafkaResponseBeginExBuilder
+        {
+            private final KafkaResponseBeginExFW.Builder responseBeginExRW = new KafkaResponseBeginExFW.Builder();
+
+            private KafkaResponseBeginExBuilder()
+            {
+                responseBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_RESPONSE, writeBuffer.capacity());
+            }
+
+            public KafkaCreateTopicsResponseBeginExBuilder createTopics()
+            {
+                responseBeginExRW.kind(KafkaApi.CREATE_TOPICS.value());
+
+                return new KafkaCreateTopicsResponseBeginExBuilder();
+            }
+
+            public KafkaDeleteTopicsResponseBeginExBuilder deleteTopics()
+            {
+                responseBeginExRW.kind(KafkaApi.DELETE_TOPICS.value());
+
+                return new KafkaDeleteTopicsResponseBeginExBuilder();
+            }
+
+            public KafkaAlterConfigsResponseBeginExBuilder alterConfigs()
+            {
+                responseBeginExRW.kind(KafkaApi.ALTER_CONFIGS.value());
+
+                return new KafkaAlterConfigsResponseBeginExBuilder();
+            }
+
+            public KafkaDescribeClusterResponseBeginExBuilder describeCluster()
+            {
+                responseBeginExRW.kind(KafkaApi.DESCRIBE_CLUSTER.value());
+
+                return new KafkaDescribeClusterResponseBeginExBuilder();
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaResponseBeginExFW responseBeginEx = responseBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+
+            public final class KafkaCreateTopicsResponseBeginExBuilder
+            {
+                private final KafkaCreateTopicsResponseBeginExFW.Builder createTopicBeginExRW =
+                    new KafkaCreateTopicsResponseBeginExFW.Builder();
+
+                private KafkaCreateTopicsResponseBeginExBuilder()
+                {
+                    createTopicBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaResponseBeginExFW.FIELD_OFFSET_CREATE_TOPICS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaCreateTopicsResponseBeginExBuilder throttle(
+                    int throttle)
+                {
+                    createTopicBeginExRW.throttle(throttle);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaCreateTopicsResponseBeginExFW responseBeginEx = createTopicBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaCreateTopicStatusFW.Builder topicRW = new KafkaCreateTopicStatusFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder error(
+                        short error)
+                    {
+                        topicRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder message(
+                        String message)
+                    {
+                        topicRW.message(message);
+                        return this;
+                    }
+
+                    public KafkaCreateTopicsResponseBeginExBuilder build()
+                    {
+                        KafkaCreateTopicStatusFW topic = topicRW.build();
+                        createTopicBeginExRW.topicsItem(t -> t
+                            .name(topic.name())
+                            .error(topic.error())
+                            .message(topic.message()));
+
+                        return KafkaCreateTopicsResponseBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaDeleteTopicsResponseBeginExBuilder
+            {
+                private final KafkaDeleteTopicsResponseBeginExFW.Builder deleteTopicBeginExRW =
+                    new KafkaDeleteTopicsResponseBeginExFW.Builder();
+
+                private KafkaDeleteTopicsResponseBeginExBuilder()
+                {
+                    deleteTopicBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaResponseBeginExFW.FIELD_OFFSET_DELETE_TOPICS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaDeleteTopicsResponseBeginExBuilder throttle(
+                    int throttle)
+                {
+                    deleteTopicBeginExRW.throttle(throttle);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDeleteTopicsResponseBeginExFW responseBeginEx = deleteTopicBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaDeleteTopicStatusFW.Builder topicRW = new KafkaDeleteTopicStatusFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder error(
+                        short error)
+                    {
+                        topicRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaDeleteTopicsResponseBeginExBuilder build()
+                    {
+                        KafkaDeleteTopicStatusFW topic = topicRW.build();
+                        deleteTopicBeginExRW.topicsItem(t -> t
+                            .name(topic.name())
+                            .error(topic.error()));
+
+                        return KafkaDeleteTopicsResponseBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaAlterConfigsResponseBeginExBuilder
+            {
+                private final KafkaAlterConfigsResponseBeginExFW.Builder alterConfigsBeginExRW =
+                    new KafkaAlterConfigsResponseBeginExFW.Builder();
+
+                private KafkaAlterConfigsResponseBeginExBuilder()
+                {
+                    alterConfigsBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaResponseBeginExFW.FIELD_OFFSET_ALTER_CONFIGS,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaAlterConfigsResponseBeginExBuilder throttle(
+                    int throttle)
+                {
+                    alterConfigsBeginExRW.throttle(throttle);
+                    return this;
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaAlterConfigsResponseBeginExFW responseBeginEx = alterConfigsBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaResourceStatusFW.Builder resourceRW = new KafkaResourceStatusFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        resourceRW.wrap(resourceBuffer, 0, resourceBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder error(
+                        short error)
+                    {
+                        resourceRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder message(
+                        String message)
+                    {
+                        resourceRW.message(message);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaAlterConfigsResponseBeginExBuilder build()
+                    {
+                        KafkaResourceStatusFW resource = resourceRW.build();
+                        alterConfigsBeginExRW.resourcesItem(r -> r
+                            .error(resource.error())
+                            .message(resource.message())
+                            .type(resource.type())
+                            .name(resource.name()));
+
+                        return KafkaAlterConfigsResponseBeginExBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaDescribeClusterResponseBeginExBuilder
+            {
+                private final KafkaDescribeClusterResponseBeginExFW.Builder describeClusterBeginExRW =
+                    new KafkaDescribeClusterResponseBeginExFW.Builder();
+
+                private KafkaDescribeClusterResponseBeginExBuilder()
+                {
+                    describeClusterBeginExRW.wrap(
+                        writeBuffer,
+                        KafkaBeginExFW.FIELD_OFFSET_REQUEST + KafkaResponseBeginExFW.FIELD_OFFSET_DESCRIBE_CLUSTER,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder throttle(
+                    int throttle)
+                {
+                    describeClusterBeginExRW.throttle(throttle);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder error(
+                    short error)
+                {
+                    describeClusterBeginExRW.error(error);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder message(
+                    String message)
+                {
+                    describeClusterBeginExRW.message(message);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder clusterId(
+                    String clusterId)
+                {
+                    describeClusterBeginExRW.clusterId(clusterId);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder controllerId(
+                    int controllerId)
+                {
+                    describeClusterBeginExRW.controllerId(controllerId);
+                    return this;
+                }
+
+                public KafkaBrokerBuilder broker()
+                {
+                    return new KafkaBrokerBuilder();
+                }
+
+                public KafkaDescribeClusterResponseBeginExBuilder authorizedOperations(
+                    int authorizedOperations)
+                {
+                    describeClusterBeginExRW.authorizedOperations(authorizedOperations);
+                    return this;
+                }
+
+                public KafkaBeginExBuilder build()
+                {
+                    final KafkaDescribeClusterResponseBeginExFW responseBeginEx = describeClusterBeginExRW.build();
+                    beginExRO.wrap(writeBuffer, 0, responseBeginEx.limit());
+                    return KafkaBeginExBuilder.this;
+                }
+
+                public final class KafkaBrokerBuilder
+                {
+                    private final KafkaClusterBrokerFW.Builder brokerRW = new KafkaClusterBrokerFW.Builder();
+
+                    KafkaBrokerBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaBrokerBuilder brokerId(
+                        int brokerId)
+                    {
+                        brokerRW.brokerId(brokerId);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder host(
+                        String host)
+                    {
+                        brokerRW.host(host);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder port(
+                        int port)
+                    {
+                        brokerRW.port(port);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder rack(
+                        String rack)
+                    {
+                        brokerRW.rack(rack);
+                        return this;
+                    }
+
+                    public KafkaDescribeClusterResponseBeginExBuilder build()
+                    {
+                        KafkaClusterBrokerFW broker = brokerRW.build();
+                        describeClusterBeginExRW.brokersItem(b -> b
+                            .brokerId(broker.brokerId())
+                            .host(broker.host())
+                            .port(broker.port())
+                            .rack(broker.rack()));
+
+                        return KafkaDescribeClusterResponseBeginExBuilder.this;
+                    }
+                }
+            }
         }
 
         public final class KafkaBootstrapBeginExBuilder
@@ -5267,6 +5976,22 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaRequestBeginExMatcherBuilder request()
+        {
+            final KafkaRequestBeginExMatcherBuilder matcherBuilder = new KafkaRequestBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.REQUEST.value();
+            return matcherBuilder;
+        }
+
+        public KafkaResponseBeginExMatcherBuilder response()
+        {
+            final KafkaResponseBeginExMatcherBuilder matcherBuilder = new KafkaResponseBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.RESPONSE.value();
+            return matcherBuilder;
+        }
+
         public KafkaMergedBeginExMatcherBuilder merged()
         {
             final KafkaMergedBeginExMatcherBuilder matcherBuilder = new KafkaMergedBeginExMatcherBuilder();
@@ -6037,6 +6762,868 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return ackMode == null || ackMode == mergedBeginEx.ackMode().get();
+            }
+        }
+
+        public final class KafkaRequestBeginExMatcherBuilder
+        {
+            private KafkaRequestBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaRequestBeginExMatcherBuilder build()
+            {
+                return KafkaRequestBeginExMatcherBuilder.this;
+            }
+
+            public KafkaCreateTopicsRequestMatcherBuilder createTopics()
+            {
+                KafkaCreateTopicsRequestMatcherBuilder createTopicMatcher = new KafkaCreateTopicsRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = createTopicMatcher::match;
+                return createTopicMatcher;
+            }
+
+            public KafkaDeleteTopicsRequestMatcherBuilder deleteTopics()
+            {
+                KafkaDeleteTopicsRequestMatcherBuilder deleteTopicMatcher = new KafkaDeleteTopicsRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = deleteTopicMatcher::match;
+                return deleteTopicMatcher;
+            }
+
+            public KafkaAlterConfigsRequestMatcherBuilder alterConfigs()
+            {
+                KafkaAlterConfigsRequestMatcherBuilder alterConfigsMatcher = new KafkaAlterConfigsRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = alterConfigsMatcher::match;
+                return alterConfigsMatcher;
+            }
+
+            public KafkaDescribeClusterRequestMatcherBuilder describeCluster()
+            {
+                KafkaDescribeClusterRequestMatcherBuilder describeClusterMatcher =
+                    new KafkaDescribeClusterRequestMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = describeClusterMatcher::match;
+                return describeClusterMatcher;
+            }
+
+            public final class KafkaCreateTopicsRequestMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaCreateTopicFW.Builder, KafkaCreateTopicFW> topicsRW;
+                private Integer timeout;
+                private Boolean validateOnly;
+
+                private KafkaCreateTopicsRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new KafkaCreateTopicFW.Builder(), new KafkaCreateTopicFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaCreateTopicsRequestMatcherBuilder timeout(
+                    int timeout)
+                {
+                    this.timeout = timeout;
+                    return this;
+                }
+
+                public KafkaCreateTopicsRequestMatcherBuilder validateOnly(
+                    String validateOnly)
+                {
+                    this.validateOnly = Boolean.valueOf(validateOnly);
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final KafkaCreateTopicFW.Builder topicRW = new KafkaCreateTopicFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder partitionCount(
+                        int partitionCount)
+                    {
+                        topicRW.partitionCount(partitionCount);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder replicas(
+                        short replicas)
+                    {
+                        topicRW.replicas(replicas);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder assignment(
+                        int partitionId,
+                        int brokerId)
+                    {
+                        topicRW.assignmentsItem(a -> a.partitionId(partitionId).leaderId(brokerId));
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder config(
+                        String name,
+                        String value)
+                    {
+                        topicRW.configsItem(c -> c.name(name).value(value));
+                        return this;
+                    }
+
+                    public KafkaCreateTopicsRequestMatcherBuilder build()
+                    {
+                        KafkaCreateTopicFW topic = topicRW.build();
+                        topicsRW.item(t -> t
+                            .name(topic.name())
+                            .partitionCount(topic.partitionCount())
+                            .replicas(topic.replicas())
+                            .assignments(topic.assignments())
+                            .configs(topic.configs()));
+
+                        return KafkaCreateTopicsRequestMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaCreateTopicsRequestBeginExFW createTopics = beginEx.request().createTopics();
+                    return matchTopics(createTopics) &&
+                        matchTimeout(createTopics) &&
+                        matchValidateOnly(createTopics);
+                }
+
+                private boolean matchTopics(
+                    final KafkaCreateTopicsRequestBeginExFW createTopicsRequestBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(createTopicsRequestBeginEx.topics());
+                }
+
+                private boolean matchTimeout(
+                    final KafkaCreateTopicsRequestBeginExFW createTopicsRequestBeginEx)
+                {
+                    return timeout == null || timeout == createTopicsRequestBeginEx.timeout();
+                }
+
+                private boolean matchValidateOnly(
+                    final KafkaCreateTopicsRequestBeginExFW createTopicsRequestBeginEx)
+                {
+                    return validateOnly == null || validateOnly == (createTopicsRequestBeginEx.validateOnly() != 0);
+                }
+            }
+
+            public final class KafkaDeleteTopicsRequestMatcherBuilder
+            {
+                private Array32FW.Builder<String16FW.Builder, String16FW> topicsRW;
+                private Integer timeout;
+
+
+                private KafkaDeleteTopicsRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaDeleteTopicsRequestMatcherBuilder topic(
+                    String topic)
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new String16FW.Builder(), new String16FW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    topicsRW.item(i -> i.set(topic, UTF_8));
+
+                    return this;
+                }
+
+                public KafkaDeleteTopicsRequestMatcherBuilder timeout(
+                    int timeout)
+                {
+                    this.timeout = timeout;
+                    return this;
+                }
+
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDeleteTopicsRequestBeginExFW deleteTopics = beginEx.request().deleteTopics();
+                    return matchTopics(deleteTopics) &&
+                        matchTimeout(deleteTopics);
+                }
+
+                private boolean matchTopics(
+                    final KafkaDeleteTopicsRequestBeginExFW deleteTopicsRequestBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(deleteTopicsRequestBeginEx.names());
+                }
+
+                private boolean matchTimeout(
+                    final KafkaDeleteTopicsRequestBeginExFW deleteTopicsRequestBeginEx)
+                {
+                    return timeout == null || timeout == deleteTopicsRequestBeginEx.timeout();
+                }
+            }
+
+            public final class KafkaAlterConfigsRequestMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaResourceFW.Builder, KafkaResourceFW> resourcesRW;
+                private Integer timeout;
+                private Boolean validateOnly;
+
+                private KafkaAlterConfigsRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    if (resourcesRW == null)
+                    {
+                        resourcesRW = new Array32FW.Builder<>(new KafkaResourceFW.Builder(), new KafkaResourceFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaAlterConfigsRequestMatcherBuilder validateOnly(
+                    String validateOnly)
+                {
+                    this.validateOnly = Boolean.valueOf(validateOnly);
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        resourceRW.wrap(resourceBuffer, 0, resourceBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder config(
+                        String name,
+                        String value)
+                    {
+                        resourceRW.configsItem(c -> c.name(name).value(value));
+                        return this;
+                    }
+
+                    public KafkaAlterConfigsRequestMatcherBuilder build()
+                    {
+                        KafkaResourceFW topic = resourceRW.build();
+                        resourcesRW.item(t -> t
+                            .type(topic.type())
+                            .name(topic.name())
+                            .configs(topic.configs()));
+
+                        return KafkaAlterConfigsRequestMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaAlterConfigsRequestBeginExFW alterConfigs = beginEx.request().alterConfigs();
+                    return matchResources(alterConfigs) &&
+                        matchValidateOnly(alterConfigs);
+                }
+
+                private boolean matchResources(
+                    final KafkaAlterConfigsRequestBeginExFW alterConfigsRequestBeginEx)
+                {
+                    return resourcesRW == null || resourcesRW.build().equals(alterConfigsRequestBeginEx.resources());
+                }
+
+                private boolean matchValidateOnly(
+                    final KafkaAlterConfigsRequestBeginExFW alterConfigsRequestBeginEx)
+                {
+                    return validateOnly == null || validateOnly == (alterConfigsRequestBeginEx.validateOnly() != 0);
+                }
+            }
+
+            public final class KafkaDescribeClusterRequestMatcherBuilder
+            {
+                private Boolean includeAuthorizedOperations;
+
+                private KafkaDescribeClusterRequestMatcherBuilder()
+                {
+                }
+
+                public KafkaDescribeClusterRequestMatcherBuilder includeAuthorizedOperations(
+                    String includeAuthorizedOperations)
+                {
+                    this.includeAuthorizedOperations = Boolean.valueOf(includeAuthorizedOperations);
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDescribeClusterRequestBeginExFW describeCluster = beginEx.request().describeCluster();
+                    return matchIncludeAuthorizedOperations(describeCluster);
+                }
+
+                private boolean matchIncludeAuthorizedOperations(
+                    final KafkaDescribeClusterRequestBeginExFW describeClusterRequestBeginEx)
+                {
+                    return includeAuthorizedOperations == null ||
+                        includeAuthorizedOperations == (describeClusterRequestBeginEx.includeAuthorizedOperations() != 0);
+                }
+            }
+        }
+
+        public final class KafkaResponseBeginExMatcherBuilder
+        {
+            private KafkaResponseBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaResponseBeginExMatcherBuilder build()
+            {
+                return KafkaResponseBeginExMatcherBuilder.this;
+            }
+
+            public KafkaCreateTopicsResponseMatcherBuilder createTopics()
+            {
+                KafkaCreateTopicsResponseMatcherBuilder createTopicMatcher = new KafkaCreateTopicsResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = createTopicMatcher::match;
+                return createTopicMatcher;
+            }
+
+            public KafkaDeleteTopicsResponseMatcherBuilder deleteTopics()
+            {
+                KafkaDeleteTopicsResponseMatcherBuilder deleteTopicMatcher = new KafkaDeleteTopicsResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = deleteTopicMatcher::match;
+                return deleteTopicMatcher;
+            }
+
+            public KafkaAlterConfigsResponseMatcherBuilder alterConfigs()
+            {
+                KafkaAlterConfigsResponseMatcherBuilder alterConfigsMatcher = new KafkaAlterConfigsResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = alterConfigsMatcher::match;
+                return alterConfigsMatcher;
+            }
+
+            public KafkaDescribeClusterResponseMatcherBuilder describeCluster()
+            {
+                KafkaDescribeClusterResponseMatcherBuilder describeClusterMatcher =
+                    new KafkaDescribeClusterResponseMatcherBuilder();
+                KafkaBeginExMatcherBuilder.this.caseMatcher = describeClusterMatcher::match;
+                return describeClusterMatcher;
+            }
+
+            public final class KafkaCreateTopicsResponseMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaCreateTopicStatusFW.Builder, KafkaCreateTopicStatusFW> topicsRW;
+                private Integer throttle;
+
+                private KafkaCreateTopicsResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaCreateTopicsResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new KafkaCreateTopicStatusFW.Builder(), new KafkaCreateTopicStatusFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final KafkaCreateTopicStatusFW.Builder topicRW = new KafkaCreateTopicStatusFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder error(
+                        short error)
+                    {
+                        topicRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder message(
+                        String message)
+                    {
+                        topicRW.message(message);
+                        return this;
+                    }
+
+                    public KafkaCreateTopicsResponseMatcherBuilder build()
+                    {
+                        KafkaCreateTopicStatusFW topic = topicRW.build();
+                        topicsRW.item(t -> t
+                            .name(topic.name())
+                            .error(topic.error())
+                            .message(topic.message()));
+
+                        return KafkaCreateTopicsResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaCreateTopicsResponseBeginExFW createTopics = beginEx.response().createTopics();
+                    return matchThrottle(createTopics) &&
+                        matchTopics(createTopics);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaCreateTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return throttle == null || throttle == createTopicsResponseBeginEx.throttle();
+                }
+
+                private boolean matchTopics(
+                    final KafkaCreateTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(createTopicsResponseBeginEx.topics());
+                }
+            }
+
+            public final class KafkaDeleteTopicsResponseMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaDeleteTopicStatusFW.Builder, KafkaDeleteTopicStatusFW> topicsRW;
+                private Integer throttle;
+
+                private KafkaDeleteTopicsResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaDeleteTopicsResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaTopicBuilder topic()
+                {
+                    if (topicsRW == null)
+                    {
+                        topicsRW = new Array32FW.Builder<>(new KafkaDeleteTopicStatusFW.Builder(), new KafkaDeleteTopicStatusFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaTopicBuilder();
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaTopicBuilder
+                {
+                    private final KafkaDeleteTopicStatusFW.Builder topicRW = new KafkaDeleteTopicStatusFW.Builder();
+
+                    KafkaTopicBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaTopicBuilder name(
+                        String name)
+                    {
+                        topicRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaTopicBuilder error(
+                        short error)
+                    {
+                        topicRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaDeleteTopicsResponseMatcherBuilder build()
+                    {
+                        KafkaDeleteTopicStatusFW topic = topicRW.build();
+                        topicsRW.item(t -> t
+                            .name(topic.name())
+                            .error(topic.error()));
+
+                        return KafkaDeleteTopicsResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaDeleteTopicsResponseBeginExFW deleteTopics = beginEx.response().deleteTopics();
+                    return matchThrottle(deleteTopics) &&
+                        matchTopics(deleteTopics);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaDeleteTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return throttle == null || throttle == createTopicsResponseBeginEx.throttle();
+                }
+
+                private boolean matchTopics(
+                    final KafkaDeleteTopicsResponseBeginExFW createTopicsResponseBeginEx)
+                {
+                    return topicsRW == null || topicsRW.build().equals(createTopicsResponseBeginEx.topics());
+                }
+            }
+
+            public final class KafkaAlterConfigsResponseMatcherBuilder
+            {
+                private Array32FW.Builder<KafkaResourceStatusFW.Builder, KafkaResourceStatusFW> resourcesRW;
+                private Integer throttle;
+
+                private KafkaAlterConfigsResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaAlterConfigsResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaResourceBuilder resource()
+                {
+                    if (resourcesRW == null)
+                    {
+                        resourcesRW = new Array32FW.Builder<>(new KafkaResourceStatusFW.Builder(), new KafkaResourceStatusFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaResourceBuilder();
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaResourceBuilder
+                {
+                    private final KafkaResourceStatusFW.Builder resourceRW = new KafkaResourceStatusFW.Builder();
+
+                    KafkaResourceBuilder()
+                    {
+                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        resourceRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaResourceBuilder error(
+                        short error)
+                    {
+                        resourceRW.error(error);
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder type(
+                        String type)
+                    {
+                        resourceRW.type(t -> t.set(KafkaResourceType.valueOf(type)));
+                        return this;
+                    }
+
+                    public KafkaResourceBuilder name(
+                        String name)
+                    {
+                        resourceRW.name(name);
+                        return this;
+                    }
+
+                    public KafkaAlterConfigsResponseMatcherBuilder build()
+                    {
+                        KafkaResourceStatusFW topic = resourceRW.build();
+                        resourcesRW.item(t -> t
+                            .error(topic.error())
+                            .type(rt -> rt.set(KafkaResourceType.TOPIC))
+                            .name(topic.name()));
+
+                        return KafkaAlterConfigsResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    KafkaAlterConfigsResponseBeginExFW alterConfigs = beginEx.response().alterConfigs();
+                    return matchThrottle(alterConfigs) &&
+                        matchResources(alterConfigs);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaAlterConfigsResponseBeginExFW alterConfigsResponseBeginEx)
+                {
+                    return throttle == null || throttle == alterConfigsResponseBeginEx.throttle();
+                }
+
+                private boolean matchResources(
+                    final KafkaAlterConfigsResponseBeginExFW alterConfigsResponseBeginEx)
+                {
+                    return resourcesRW == null || resourcesRW.build().equals(alterConfigsResponseBeginEx.resources());
+                }
+            }
+
+            public final class KafkaDescribeClusterResponseMatcherBuilder
+            {
+                private Integer throttle;
+                private Short error;
+                private String16FW message;
+                private String16FW clusterId;
+                private Integer controllerId;
+                private Array32FW.Builder<KafkaClusterBrokerFW.Builder, KafkaClusterBrokerFW> brokersRW;
+                private Integer authorizedOperations;
+
+                private KafkaDescribeClusterResponseMatcherBuilder()
+                {
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder throttle(
+                    int throttle)
+                {
+                    this.throttle = throttle;
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder error(
+                    short error)
+                {
+                    this.error = error;
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder message(
+                    String message)
+                {
+                    this.message = new String16FW(message);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder clusterId(
+                    String clusterId)
+                {
+                    this.clusterId = new String16FW(clusterId);
+                    return this;
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder controllerId(
+                    int controllerId)
+                {
+                    this.controllerId = controllerId;
+                    return this;
+                }
+
+                public KafkaBrokerBuilder broker()
+                {
+                    if (brokersRW == null)
+                    {
+                        brokersRW = new Array32FW.Builder<>(new KafkaClusterBrokerFW.Builder(), new KafkaClusterBrokerFW())
+                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    }
+
+                    return new KafkaBrokerBuilder();
+                }
+
+                public KafkaDescribeClusterResponseMatcherBuilder authorizedOperations(
+                    int authorizedOperations)
+                {
+                    this.authorizedOperations = authorizedOperations;
+                    return this;
+                }
+
+                public KafkaBeginExMatcherBuilder build()
+                {
+                    return KafkaBeginExMatcherBuilder.this;
+                }
+
+                public final class KafkaBrokerBuilder
+                {
+                    private final KafkaClusterBrokerFW.Builder brokerRW = new KafkaClusterBrokerFW.Builder();
+
+                    KafkaBrokerBuilder()
+                    {
+                        MutableDirectBuffer brokerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        brokerRW.wrap(brokerBuffer, 0, brokerBuffer.capacity());
+                    }
+
+                    public KafkaBrokerBuilder brokerId(
+                        int brokerId)
+                    {
+                        brokerRW.brokerId(brokerId);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder host(
+                        String host)
+                    {
+                        brokerRW.host(host);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder port(
+                        int port)
+                    {
+                        brokerRW.port(port);
+                        return this;
+                    }
+
+                    public KafkaBrokerBuilder rack(
+                        String rack)
+                    {
+                        brokerRW.rack(rack);
+                        return this;
+                    }
+
+                    public KafkaDescribeClusterResponseMatcherBuilder build()
+                    {
+                        KafkaClusterBrokerFW broker = brokerRW.build();
+                        brokersRW.item(b -> b
+                            .brokerId(broker.brokerId())
+                            .host(broker.host())
+                            .port(broker.port())
+                            .rack(broker.rack()));
+
+                        return KafkaDescribeClusterResponseMatcherBuilder.this;
+                    }
+                }
+
+                private boolean match(
+                    KafkaBeginExFW beginEx)
+                {
+                    final KafkaDescribeClusterResponseBeginExFW describeCluster = beginEx.response().describeCluster();
+                    return matchThrottle(describeCluster) &&
+                        matchError(describeCluster) &&
+                        matchMessage(describeCluster) &&
+                        matchClusterId(describeCluster) &&
+                        matchControllerId(describeCluster) &&
+                        matchBrokers(describeCluster) &&
+                        matchAuthorizedOperations(describeCluster);
+                }
+
+                private boolean matchThrottle(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return throttle == null || throttle == describeClusterResponseBeginEx.throttle();
+                }
+
+                private boolean matchError(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return error == null || error == describeClusterResponseBeginEx.error();
+                }
+
+                private boolean matchMessage(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return message == null || message.equals(describeClusterResponseBeginEx.message());
+                }
+
+                private boolean matchClusterId(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return clusterId == null || clusterId.equals(describeClusterResponseBeginEx.clusterId());
+                }
+
+                private boolean matchControllerId(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return controllerId == null || controllerId == describeClusterResponseBeginEx.controllerId();
+                }
+
+                private boolean matchBrokers(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return brokersRW == null || brokersRW.build().equals(describeClusterResponseBeginEx.brokers());
+                }
+
+                private boolean matchAuthorizedOperations(
+                    final KafkaDescribeClusterResponseBeginExFW describeClusterResponseBeginEx)
+                {
+                    return authorizedOperations == null ||
+                        authorizedOperations == describeClusterResponseBeginEx.authorizedOperations();
+                }
             }
         }
     }

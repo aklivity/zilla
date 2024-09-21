@@ -44,7 +44,7 @@
                     },
                     "multiple":
                     {
-                        "type": "number"
+                        "type": "integer"
                     }
                 },
                 "additionalProperties": false

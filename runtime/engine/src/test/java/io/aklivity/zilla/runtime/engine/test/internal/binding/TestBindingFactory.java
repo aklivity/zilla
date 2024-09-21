@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -85,8 +84,9 @@ final class TestBindingFactory implements BindingHandler
     private final TestEventContext event;
 
     private ConverterHandler valueType;
-    private List<CatalogHandler> catalogs;
+    private String schema;
     private SchemaConfig catalog;
+    private List<CatalogHandler> catalogs;
     private List<CatalogAssertion> catalogAssertions;
     private GuardHandler guard;
     private String credentials;
@@ -106,15 +106,9 @@ final class TestBindingFactory implements BindingHandler
     public void attach(
         BindingConfig binding)
     {
-        RouteConfig exit = binding.routes.stream()
+        binding.routes.stream()
             .filter(r -> r.when.isEmpty())
-            .findFirst()
-            .orElse(null);
-
-        if (exit != null)
-        {
-            router.put(binding.id, exit.id);
-        }
+            .findFirst().ifPresent(exit -> router.put(binding.id, exit.id));
 
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
@@ -124,9 +118,11 @@ final class TestBindingFactory implements BindingHandler
                 this.valueType = context.supplyWriteConverter(options.value);
             }
 
+            this.schema = options.schema;
+
             if (options.cataloged != null)
             {
-                this.catalog = options.cataloged.size() != 0 ? options.cataloged.get(0).schemas.get(0) : null;
+                this.catalog = !options.cataloged.isEmpty() ? options.cataloged.get(0).schemas.get(0) : null;
                 this.catalogs = new LinkedList<>();
                 for (CatalogedConfig catalog : options.cataloged)
                 {
@@ -347,7 +343,11 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
-                    if (catalog.subject != null && catalog.version != null)
+                    if (catalog.subject != null && schema != null)
+                    {
+                        handler.register(catalog.subject, schema);
+                    }
+                    else if (catalog.subject != null && catalog.version != null)
                     {
                         handler.resolve(catalog.subject, catalog.version);
                     }

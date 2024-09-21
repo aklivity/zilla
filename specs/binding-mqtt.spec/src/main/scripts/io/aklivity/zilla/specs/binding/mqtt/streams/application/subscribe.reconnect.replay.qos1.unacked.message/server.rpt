@@ -76,7 +76,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read aborted
+write aborted
 
 
 accepted
@@ -104,8 +104,7 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 write "message"
 
-read aborted
-
+write aborted
 
 accepted
 

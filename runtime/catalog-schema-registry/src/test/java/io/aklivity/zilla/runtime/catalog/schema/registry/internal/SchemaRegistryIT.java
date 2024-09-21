@@ -134,4 +134,15 @@ public class SchemaRegistryIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("register/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${remote}/register.schema" })
+    public void shouldRegisterSchema() throws Exception
+    {
+        k3po.finish();
+    }
 }
