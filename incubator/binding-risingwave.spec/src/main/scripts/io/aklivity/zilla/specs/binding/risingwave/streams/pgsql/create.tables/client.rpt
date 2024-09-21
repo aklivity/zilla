@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS weather1 "
+write "CREATE TABLE IF NOT EXISTS weather_c "
       "(city VARCHAR, temperature DOUBLE, date DATE);"
       [0x00]
 
@@ -57,7 +57,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS weather2 "
+write "CREATE TABLE IF NOT EXISTS weather_f "
       "(city VARCHAR, temperature DOUBLE, date DATE);"
       [0x00]
 

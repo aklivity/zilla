@@ -36,11 +36,11 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SOURCE IF NOT EXISTS weather1 (*)\n"
+read "CREATE SOURCE IF NOT EXISTS weather_c (*)\n"
      "WITH (\n"
      "   connector='kafka',\n"
      "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.weather1',\n"
+     "   topic='dev.weather_c',\n"
      "   scan.startup.mode='latest',\n"
      "   scan.startup.timestamp.millis='140000000'\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
@@ -67,11 +67,11 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SOURCE IF NOT EXISTS weather2 (*)\n"
+read "CREATE SOURCE IF NOT EXISTS weather_f (*)\n"
      "WITH (\n"
      "   connector='kafka',\n"
      "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.weather2',\n"
+     "   topic='dev.weather_f',\n"
      "   scan.startup.mode='latest',\n"
      "   scan.startup.timestamp.millis='140000000'\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
@@ -115,7 +115,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC IF NOT EXISTS weather1 "
+read "CREATE TOPIC IF NOT EXISTS weather_c "
      "(city VARCHAR, temperature DOUBLE, date DATE);"
      [0x00]
 
@@ -140,7 +140,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC IF NOT EXISTS weather2 "
+read "CREATE TOPIC IF NOT EXISTS weather_f "
      "(city VARCHAR, temperature DOUBLE, date DATE);"
      [0x00]
 

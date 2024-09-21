@@ -121,4 +121,13 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.tables/client",
+        "${app}/create.tables/server" })
+    public void shouldCreateTables() throws Exception
+    {
+        k3po.finish();
+    }
 }
