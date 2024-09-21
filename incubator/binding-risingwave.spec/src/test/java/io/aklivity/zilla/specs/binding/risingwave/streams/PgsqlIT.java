@@ -88,6 +88,15 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/create.function.embedded/client",
+        "${app}/create.function.embedded/server" })
+    public void shouldCreateFunctionEmbedded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.table.with.includes/client",
         "${app}/create.table.with.includes/server" })
     public void shouldCreateTableWithIncludes() throws Exception

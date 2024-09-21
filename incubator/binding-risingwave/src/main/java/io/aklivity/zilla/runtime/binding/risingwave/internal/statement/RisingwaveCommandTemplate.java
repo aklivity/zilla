@@ -64,7 +64,7 @@ public abstract class RisingwaveCommandTemplate
         return primaryKey;
     }
 
-    public CreateTableCommand parserCreateTable(
+    public RisingwaveCreateTableCommand parserCreateTable(
         DirectBuffer buffer,
         int offset,
         int length)
@@ -102,7 +102,7 @@ public abstract class RisingwaveCommandTemplate
             includes = parseSpecificIncludes(includePart);
         }
 
-        return new CreateTableCommand(createTable, includes);
+        return new RisingwaveCreateTableCommand(createTable, includes);
     }
 
     private Map<String, String> parseSpecificIncludes(

@@ -42,7 +42,8 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.CreateTableCommand;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableCommand;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveSQLCommandParser;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -71,8 +72,6 @@ import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
-    private static final Byte STATEMENT_SEMICOLON = ';';
-
     private static final int END_OF_FIELD = 0x00;
 
     private static final int FLAGS_INIT = 0x02;
@@ -84,6 +83,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
+    private final RisingwaveSQLCommandParser sqlCommandParser = new RisingwaveSQLCommandParser();
     private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
     private final DirectBufferInputStream inputStream = new DirectBufferInputStream(EMPTY_BUFFER);
     private final Reader reader = new InputStreamReader(inputStream);
@@ -497,17 +497,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
 
         private void onCommandCompleted(
-            long traceId,
-            long authorization,
-            int progress,
-            RisingwaveCompletionCommand command)
+                long traceId,
+                long authorization,
+                int progress,
+                RisingwaveCompletionCommand command)
         {
+            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+            if (parserBuffer.getByte(progress) == END_OF_FIELD)
+            {
+                progress += Byte.BYTES;
+            }
+
             commandsProcessed = 0;
             parserSlotOffset -= progress;
 
             doCommandCompletion(traceId, authorization, command);
 
-            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
             final int queryLength = queries.peekInt();
@@ -708,26 +713,23 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
-                int statementOffset = 0;
                 int progress = 0;
 
                 parse:
                 while (progress <= parserSlotOffset)
                 {
-                    if (parserBuffer.getByte(progress) == STATEMENT_SEMICOLON)
+                    final String query = parserBuffer.getStringWithoutLengthUtf8(progress, parserSlotOffset);
+                    final String statement = sqlCommandParser.detectFirstSQLCommand(query);
+                    int statementLength = statement != null ? statement.length() : parserSlotOffset;
+
+                    if (statement != null)
                     {
-                        int length = progress - statementOffset + Byte.BYTES;
-                        if (parserBuffer.getByte(progress + Byte.BYTES) == END_OF_FIELD)
-                        {
-                            length += Byte.BYTES;
-                        }
-                        final RisingwaveCommandType command = decodeCommandType(parserBuffer, statementOffset, length);
+                        final RisingwaveCommandType command = sqlCommandParser.decodeCommandType(statement);
                         final PgsqlTransform transform = clientTransforms.get(command);
-                        transform.transform(this, traceId, authorizationId, parserBuffer, statementOffset, length);
+                        transform.transform(this, traceId, authorizationId, parserBuffer, progress, statementLength);
                         break parse;
                     }
-
-                    progress++;
+                    progress += statementLength;
                 }
             }
         }
@@ -1475,7 +1477,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final CreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
+            final RisingwaveCreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
             final String primaryKey = binding.createTable.primaryKey(command.createTable);
 
             String newStatement = "";
@@ -1617,6 +1619,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, buffer, offset, length);
 
+            if (buffer.getByte(length) == END_OF_FIELD)
+            {
+                length += Byte.BYTES;
+            }
+
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
             client.doPgsqlQuery(traceId, authorization, buffer, offset, length);
             client.completionCommand = proxyFlushCommand;
@@ -1718,39 +1725,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.doAppData(routedId, traceId, authorization, flags, buffer, offset, limit, extension);
     }
 
-    private RisingwaveCommandType decodeCommandType(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        RisingwaveCommandType matchingCommand = RisingwaveCommandType.UNKNOWN_COMMAND;
-
-        command:
-        for (RisingwaveCommandType command : RisingwaveCommandType.values())
-        {
-            int progressOffset = offset;
-
-            boolean match = true;
-            for (byte b : command.value())
-            {
-                if (buffer.getByte(progressOffset) != b)
-                {
-                    match = false;
-                    break;
-                }
-                progressOffset++;
-            }
-
-            if (match)
-            {
-                matchingCommand = command;
-                break command;
-            }
-        }
-
-        return matchingCommand;
-    }
-
     private Statement parseStatement(
         DirectBuffer buffer,
         int offset,
@@ -1759,8 +1733,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Statement statement = null;
         try
         {
-            //TODO: Try to generalize it
-            RisingwaveCommandType commandType = decodeCommandType(buffer, offset, length);
+            //TODO: Avoid object creation
+            String query = buffer.getStringWithoutLengthUtf8(offset, length);
+            RisingwaveCommandType commandType = sqlCommandParser.decodeCommandType(query);
             if (commandType.equals(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND))
             {
                 String sql = buffer.getStringWithoutLengthUtf8(offset, length);
@@ -1772,12 +1747,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (commandType.equals(RisingwaveCommandType.CREATE_FUNCTION_COMMAND))
             {
-                if (buffer.getByte(offset + length + Byte.BYTES) == END_OF_FIELD)
-                {
-                    length -= Byte.BYTES;
-                }
-                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
-                statement = parserManager.parse(new StringReader(sql));
+                query =  query.substring(0, query.length() - 1);
+                statement = parserManager.parse(new StringReader(query));
             }
             else
             {

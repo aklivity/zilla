@@ -18,12 +18,12 @@ import java.util.Map;
 
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 
-public final class CreateTableCommand
+public final class RisingwaveCreateTableCommand
 {
     public final CreateTable createTable;
     public final Map<String, String> includes;
 
-    public CreateTableCommand(
+    public RisingwaveCreateTableCommand(
         CreateTable createTable,
         Map<String, String> includes)
     {
