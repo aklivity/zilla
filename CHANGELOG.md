@@ -1,5 +1,44 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.93...HEAD)
+
+**Implemented enhancements:**
+
+- Add more events to Zilla's connection with Kafka or other tcp clients [\#1123](https://github.com/aklivity/zilla/issues/1123)
+- Ignore case when evaluating enums [\#1109](https://github.com/aklivity/zilla/issues/1109)
+- Support `catalog` register new schema version [\#1060](https://github.com/aklivity/zilla/issues/1060)
+
+**Fixed bugs:**
+
+- Zilla KafkaGroup stream stuck on decoding FindCoordinatorResponse [\#1201](https://github.com/aklivity/zilla/issues/1201)
+- NPE when a schema isn't found in a schema registry [\#1170](https://github.com/aklivity/zilla/issues/1170)
+- Fetching from a log compacted topic pulls all new messages with same key on first call [\#803](https://github.com/aklivity/zilla/issues/803)
+
+**Merged pull requests:**
+
+- Fix parsing newline before end of stream [\#1262](https://github.com/aklivity/zilla/pull/1262) ([akrambek](https://github.com/akrambek))
+- Support embedded risngwave functions [\#1261](https://github.com/aklivity/zilla/pull/1261) ([akrambek](https://github.com/akrambek))
+- Explicitly set http version for schema registration [\#1260](https://github.com/aklivity/zilla/pull/1260) ([akrambek](https://github.com/akrambek))
+- Support risingwave include keyword [\#1259](https://github.com/aklivity/zilla/pull/1259) ([akrambek](https://github.com/akrambek))
+- Use END instead of ABORT at network end in MQTT [\#1256](https://github.com/aklivity/zilla/pull/1256) ([bmaidics](https://github.com/bmaidics))
+- Risingwave demo bug fixes [\#1254](https://github.com/aklivity/zilla/pull/1254) ([akrambek](https://github.com/akrambek))
+- fix: use integer for challenge type [\#1252](https://github.com/aklivity/zilla/pull/1252) ([vordimous](https://github.com/vordimous))
+- fix: add or update the transforms pattern regex [\#1251](https://github.com/aklivity/zilla/pull/1251) ([vordimous](https://github.com/vordimous))
+- Describe cluster API Support [\#1250](https://github.com/aklivity/zilla/pull/1250) ([akrambek](https://github.com/akrambek))
+- Fix mqtt abort issue [\#1249](https://github.com/aklivity/zilla/pull/1249) ([bmaidics](https://github.com/bmaidics))
+- create `function` support in `risingwave` binding [\#1248](https://github.com/aklivity/zilla/pull/1248) ([ankitk-me](https://github.com/ankitk-me))
+- Ensure extract-key precedes extract-headers … [\#1247](https://github.com/aklivity/zilla/pull/1247) ([jfallows](https://github.com/jfallows))
+- Support catalog register new schema version [\#1246](https://github.com/aklivity/zilla/pull/1246) ([akrambek](https://github.com/akrambek))
+- Support pgsql-kafka binding [\#1245](https://github.com/aklivity/zilla/pull/1245) ([akrambek](https://github.com/akrambek))
+- `zilla` build fix [\#1242](https://github.com/aklivity/zilla/pull/1242) ([ankitk-me](https://github.com/ankitk-me))
+- fix: NPE when a schema isn't found in a schema registry [\#1241](https://github.com/aklivity/zilla/pull/1241) ([ankitk-me](https://github.com/ankitk-me))
+- Initialize pgsql-kafka binding [\#1239](https://github.com/aklivity/zilla/pull/1239) ([jfallows](https://github.com/jfallows))
+- Support Kafka topic create, alter, delete [\#1234](https://github.com/aklivity/zilla/pull/1234) ([akrambek](https://github.com/akrambek))
+- fix: fix schema syntax and naming [\#1217](https://github.com/aklivity/zilla/pull/1217) ([vordimous](https://github.com/vordimous))
+- `risingwave` binding support [\#1211](https://github.com/aklivity/zilla/pull/1211) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.93](https://github.com/aklivity/zilla/tree/0.9.93) (2024-09-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.92...0.9.93)
