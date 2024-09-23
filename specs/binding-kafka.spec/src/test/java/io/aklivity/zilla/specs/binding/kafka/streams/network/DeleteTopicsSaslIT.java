@@ -27,11 +27,11 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class CreateTopicsITSaslIT
+public class DeleteTopicsSaslIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.sasl.handshake.v1");
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3.sasl.handshake.v1");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -40,18 +40,18 @@ public class CreateTopicsITSaslIT
 
     @Test
     @Specification({
-        "${net}/create.topics.sasl.plain/client",
-        "${net}/create.topics.sasl.plain/server"})
-    public void shouldCreateTopicsWithSaslPlain() throws Exception
+        "${net}/delete.topics.sasl.plain/client",
+        "${net}/delete.topics.sasl.plain/server"})
+    public void shouldDeleteTopicsWithSaslPlain() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/create.topics.sasl.scram/client",
-        "${net}/create.topics.sasl.scram/server"})
-    public void shouldCreateTopicsWithSaslScram() throws Exception
+        "${net}/delete.topics.sasl.scram/client",
+        "${net}/delete.topics.sasl.scram/server"})
+    public void shouldDeleteTopicsWithSaslScram() throws Exception
     {
         k3po.finish();
     }
