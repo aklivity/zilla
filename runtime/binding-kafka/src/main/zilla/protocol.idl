@@ -680,6 +680,37 @@ scope protocol
             }
         }
 
+        scope delete_topics
+        {
+            struct DeleteTopicsRequest // v3
+            {
+                int32 topicCount;
+            }
+
+            struct TopicRequest // v3
+            {
+                string16 topic;
+            }
+
+            struct DeleteTopicsRequestPart2
+            {
+                int32 timeout;
+            }
+
+            struct DeleteTopicsResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct TopicResponse
+            {
+                string16 name;
+                int16 error;
+            }
+        }
+
         scope sasl
         {
             struct SaslHandshakeRequest // v1
