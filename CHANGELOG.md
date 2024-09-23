@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.94...HEAD)
+
+**Fixed bugs:**
+
+- NPE durring high load: `Cannot invoke "io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation.ordinal()" because "evaluation" is null` [\#1253](https://github.com/aklivity/zilla/issues/1253)
+
+**Merged pull requests:**
+
+- Fix KafkaMerged evaluation storage [\#1264](https://github.com/aklivity/zilla/pull/1264) ([bmaidics](https://github.com/bmaidics))
+- Bump alpine from 3.20.2 to 3.20.3 in /cloud/docker-image/src/main/docker [\#1235](https://github.com/aklivity/zilla/pull/1235) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.94](https://github.com/aklivity/zilla/tree/0.9.94) (2024-09-21)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.93...0.9.94)
