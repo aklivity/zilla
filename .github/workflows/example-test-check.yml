@@ -38,8 +38,7 @@ jobs:
           name: zilla-image
           path: /tmp/zilla.tar
 
-
-  run-test:
+  test-openapi-proxy:
     runs-on: ubuntu-latest
     needs: build-image
     steps:
@@ -57,8 +56,13 @@ jobs:
       - name: Checkout docs repo
         uses: actions/checkout@v4
         with:
-          repository: vordimous/zilla-examples
-          ref: refs/heads/config-check
+          repository: aklivity/zilla-examples
 
-      - name: Run Tests
-        run: echo "run test"
+      - name: Startup
+        run: ./startup.sh openapi.proxy
+
+      - name: Execute Test
+        working-directory: openapi.proxy
+        run: |
+          set -o pipefail
+          ./test.sh | tee $GITHUB_STEP_SUMMARY
