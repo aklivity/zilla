@@ -61,11 +61,14 @@ public final class KafkaClientRequestFactory implements BindingHandler
             config, context, supplyBinding, supplyDebitor, signaler, streamFactory, resolveSasl);
         final KafkaClientDeleteTopicsFactory clientDeleteTopicsFactory = new KafkaClientDeleteTopicsFactory(
             config, context, supplyBinding, supplyDebitor, signaler, streamFactory, resolveSasl);
+        final KafkaClientAlterConfigsFactory clientAlterConfigsFactory = new KafkaClientAlterConfigsFactory(
+            config, context, supplyBinding, supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaApi.DESCRIBE_CLUSTER.value(), clientDescribeClusterFactory);
         factories.put(KafkaApi.CREATE_TOPICS.value(), clientCreateTopicsFactory);
         factories.put(KafkaApi.DELETE_TOPICS.value(), clientDeleteTopicsFactory);
+        factories.put(KafkaApi.ALTER_CONFIGS.value(), clientAlterConfigsFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;

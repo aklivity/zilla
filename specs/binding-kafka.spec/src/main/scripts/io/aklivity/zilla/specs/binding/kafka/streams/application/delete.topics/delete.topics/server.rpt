@@ -50,6 +50,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                 .build()}
 
+write flush
+
 read closed
 write close
 
