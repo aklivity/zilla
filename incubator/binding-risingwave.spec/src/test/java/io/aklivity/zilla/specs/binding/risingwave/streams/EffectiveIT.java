@@ -130,4 +130,13 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/drop.table/client",
+        "${app}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
 }
