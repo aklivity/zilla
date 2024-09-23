@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluationFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
@@ -1039,7 +1039,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private KafkaOffsetType maximumOffset;
         private List<KafkaMergedFilter> filters;
-        private KafkaEvaluationFW evaluation;
+        private KafkaEvaluation evaluation;
 
         private int state;
         private KafkaCapabilities capabilities;
@@ -1181,7 +1181,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             this.maximumOffset = asMaximumOffset(mergedBeginEx.partitions());
             this.filters = asMergedFilters(filters);
-            this.evaluation = mergedBeginEx.evaluation();
+            this.evaluation = mergedBeginEx.evaluation().get();
             this.groupId = mergedBeginEx.groupId().asString();
             this.consumerId = mergedBeginEx.consumerId().asString();
             this.timeout = mergedBeginEx.timeout();
@@ -3563,7 +3563,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                                       .partitionOffset(partitionOffset)
                                                       .latestOffset(merged.maximumOffset.value()))
                                      .filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf))))
-                                     .evaluation(merged.evaluation)
+                                     .evaluation(e -> e.set(merged.evaluation))
                                      .isolation(i -> i.set(merged.isolation))
                                      .deltaType(t -> t.set(merged.deltaType)))
                         .build()
