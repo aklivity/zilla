@@ -747,7 +747,7 @@ scope protocol
             {
                 int16 error;
                 string16 message = null;
-                 uint8 type;
+                uint8 type;
                 string16 name;
             }
         }
