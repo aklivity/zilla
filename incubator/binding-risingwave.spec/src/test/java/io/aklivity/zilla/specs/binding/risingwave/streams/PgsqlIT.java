@@ -139,4 +139,13 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/drop.materialized.view/client",
+        "${app}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
+    {
+        k3po.finish();
+    }
 }

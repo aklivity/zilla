@@ -139,4 +139,22 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/drop.materialized.view/client",
+        "${app}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.table.with.primary.key/client",
+        "${app}/drop.table.with.primary.key/server" })
+    public void shouldDropTableWithPrimaryKey() throws Exception
+    {
+        k3po.finish();
+    }
 }

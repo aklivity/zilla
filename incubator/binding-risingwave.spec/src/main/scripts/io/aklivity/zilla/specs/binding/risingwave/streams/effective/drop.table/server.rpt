@@ -29,6 +29,8 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
+read await DROP_TOPIC_COMPLETED
+
 read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
@@ -135,8 +137,8 @@ write zilla:data.ext ${pgsql:dataEx()
 write  [0x00 0x04]                                 # Field Count
        [0x00 0x00 0x00 0x04]                       # Length
        "primary key"                               # Data
-       [0x00 0x00 0x00 0x0b]                       # Length
-       "character varying"                         # Data
+       [0x00 0x00 0x00 0x07]                       # Length
+       "_row_id"                                   # Data
        [0x00 0x00 0x00 0x05]                       # Length
        "false"                                     # Data
        [0xff 0xff 0xff 0xff]                       # Length
@@ -210,6 +212,7 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+write notify DROP_TOPIC_COMPLETED
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -217,4 +220,3 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-
