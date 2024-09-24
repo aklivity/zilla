@@ -27,8 +27,8 @@ import net.sf.jsqlparser.statement.create.table.Index;
 
 public abstract class RisingwaveCommandTemplate
 {
-    private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
-    private final Map<String, String> includeMap = new Object2ObjectHashMap<>();
+    protected final CCJSqlParserManager parserManager = new CCJSqlParserManager();
+    protected final Map<String, String> includeMap = new Object2ObjectHashMap<>();
 
     protected final StringBuilder includeBuilder = new StringBuilder();
     protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();

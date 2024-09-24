@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -44,6 +45,7 @@ public final class RisingwaveBindingConfig
     public final KindConfig kind;
     public final List<RisingwaveRouteConfig> routes;
     public final RisingwaveCreateTopicTemplate createTopic;
+    public final RisingwaveDropTopicTemplate deleteTopic;
     public final RisingwaveCreateMaterializedViewTemplate createView;
     public final RisingwaveDescribeTemplate describeView;
     public final RisingwaveCreateTableTemplate createTable;
@@ -87,6 +89,7 @@ public final class RisingwaveBindingConfig
             location, config.kafkaScanStartupTimestampMillis());
         this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);
         this.createTopic = new RisingwaveCreateTopicTemplate();
+        this.deleteTopic = new RisingwaveDropTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeTemplate();
         this.createFunction = new RisingwaveCreateFunctionTemplate(udf);
