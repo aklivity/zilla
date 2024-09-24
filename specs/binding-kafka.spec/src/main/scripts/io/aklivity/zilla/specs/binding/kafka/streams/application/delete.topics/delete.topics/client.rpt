@@ -46,5 +46,5 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .build()
                                 .build()}
 
-read closed
 write close
+read closed
