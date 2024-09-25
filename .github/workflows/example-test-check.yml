@@ -63,10 +63,12 @@ jobs:
           ref: refs/heads/example-startup-compose
 
       - name: Startup
+        shell: bash
         run: ./startup.sh openapi.proxy
 
       - name: Execute Test
         working-directory: openapi.proxy
+        shell: bash
         run: |
           set -o pipefail
           ./test.sh | tee $GITHUB_STEP_SUMMARY
