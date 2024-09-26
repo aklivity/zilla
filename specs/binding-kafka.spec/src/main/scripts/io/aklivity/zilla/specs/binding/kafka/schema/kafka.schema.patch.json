@@ -378,7 +378,7 @@
                                                 "type": "object",
                                                 "patternProperties":
                                                 {
-                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    "^[a-zA-Z:]+[a-zA-Z0-9\\._\\-:]*$":
                                                     {
                                                         "type": "string",
                                                         "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
@@ -405,7 +405,7 @@
                                                 "type": "object",
                                                 "patternProperties":
                                                 {
-                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    "^[a-zA-Z:]+[a-zA-Z0-9\\._\\-:]*$":
                                                     {
                                                         "type": "string",
                                                         "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
