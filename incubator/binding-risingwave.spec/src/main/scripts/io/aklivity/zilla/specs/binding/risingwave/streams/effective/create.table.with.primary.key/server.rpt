@@ -36,20 +36,61 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS cities (\n"
-     "    *,\n"
-     "    PRIMARY KEY (key)\n"
-     ")\n"
-     "INCLUDE KEY AS key\n"
-     "WITH (\n"
-     "   connector='kafka',\n"
-     "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.cities',\n"
-     "   scan.startup.mode='latest',\n"
-     "   scan.startup.timestamp.millis='140000000'\n"
-     ") FORMAT UPSERT ENCODE AVRO (\n"
-     "   schema.registry = 'http://localhost:8081'\n"
-     ");"
+read  "CREATE SOURCE IF NOT EXISTS cities_source (*)\n"
+      "WITH (\n"
+      "   connector='kafka',\n"
+      "   properties.bootstrap.server='localhost:9092',\n"
+      "   topic='dev.cities',\n"
+      "   scan.startup.mode='latest',\n"
+      "   scan.startup.timestamp.millis='140000000'\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
+      "   schema.registry = 'http://localhost:8081'\n"
+      ");"
+      [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SOURCE")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "CREATE MATERIALIZED VIEW cities_view AS SELECT * FROM cities_source;"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_MATERIALIZED_VIEW")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "CREATE TABLE IF NOT EXISTS cities "
+     "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -65,6 +106,60 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "CREATE SINK cities_view_sink INTO cities FROM cities_view;"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SINK")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "CREATE SINK cities_sink\n"
+     "FROM cities\n"
+     "WITH (\n"
+     "    connector='kafka',\n"
+     "    topic='dev.cities',\n"
+     "    properties.bootstrap.server='localhost:9092',\n"
+     "    primary_key='id'\n
+     ") FORMAT UPSERT ENCODE AVRO (\n"
+     "    schema.registry = 'http://localhost:8081'\n"
+     ");"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SINK")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
 
 accept "zilla://streams/app2"
     option zilla:window 8192
@@ -106,5 +201,3 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-
-

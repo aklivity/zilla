@@ -32,15 +32,119 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SOURCE IF NOT EXISTS weather (*)\n"
+write "CREATE SOURCE IF NOT EXISTS weather_source (*)\n"
+     "WITH (\n"
+     "   connector='kafka',\n"
+     "   properties.bootstrap.server='localhost:9092',\n"
+     "   topic='dev.weather',\n"
+     "   scan.startup.mode='latest',\n"
+     "   scan.startup.timestamp.millis='140000000'\n"
+     ") FORMAT PLAIN ENCODE AVRO (\n"
+     "   schema.registry = 'http://localhost:8081'\n"
+     ");"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SOURCE")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE MATERIALIZED VIEW weather_view AS SELECT * FROM weather_source;"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_MATERIALIZED_VIEW")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE TABLE weather(\n"
+      "city VARCHAR, temperature DOUBLE, date DATE,\n
+      "PRIMARY KEY (city, temperature, date)"
+      ")"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_TABLE")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE SINK weather_view_sink INTO weather FROM weather_view;"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SINK")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE SINK weather_sink\n"
+      "FROM weather\n"
       "WITH (\n"
-      "   connector='kafka',\n"
-      "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='dev.weather',\n"
-      "   scan.startup.mode='latest',\n"
-      "   scan.startup.timestamp.millis='140000000'\n"
+      "    connector='kafka',\n"
+      "    topic='dev.weather',\n"
+      "    properties.bootstrap.server='localhost:9092',\n"
       ") FORMAT PLAIN ENCODE AVRO (\n"
-      "   schema.registry = 'http://localhost:8081'\n"
+      "   schema.registry = 'http://localhost:8081',\n"
+      "    force_append_only='true'\n"
       ");"
       [0x00]
 write flush
@@ -48,7 +152,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_SOURCE")
+                                .tag("CREATE_SINK")
                                 .build()
                               .build()}
 
