@@ -88,6 +88,16 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/create.function.return.table/client",
+        "${app}/create.function.return.table/server"
+    })
+    public void shouldCreateFunctionReturnTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.embedded/client",
         "${app}/create.function.embedded/server" })
     public void shouldCreateFunctionEmbedded() throws Exception
