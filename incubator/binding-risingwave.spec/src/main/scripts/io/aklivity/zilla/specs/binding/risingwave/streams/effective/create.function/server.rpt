@@ -34,9 +34,9 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE FUNCTION series(int)\n"
-     "RETURNS TABLE (x int)\n"
-     "AS series\n"
+read "CREATE FUNCTION gcd(int , int)\n"
+     "RETURNS int\n"
+     "AS gcd\n"
      "LANGUAGE java\n"
      "USING LINK 'http://localhost:8815';"
      [0x00]
