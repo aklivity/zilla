@@ -34,7 +34,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE TABLE IF NOT EXISTS cities (\n"
       "    *,\n"
-      "    PRIMARY KEY (key)\n"
+      "    PRIMARY KEY (id)\n"
       ")\n"
       "INCLUDE KEY AS key\n"
       "WITH (\n"
@@ -43,7 +43,7 @@ write "CREATE TABLE IF NOT EXISTS cities (\n"
       "   topic='dev.cities',\n"
       "   scan.startup.mode='latest',\n"
       "   scan.startup.timestamp.millis='140000000'\n"
-      ") FORMAT UPSERT ENCODE AVRO (\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
       "   schema.registry = 'http://localhost:8081'\n"
       ");"
       [0x00]

@@ -165,7 +165,7 @@ read "CREATE SINK distinct_cities_sink\n"
      "   primary_key='city'\n"
      ") FORMAT UPSERT ENCODE AVRO (\n"
      "   schema.registry='http://localhost:8081'\n"
-     ");"
+     ") KEY ENCODE TEXT;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
