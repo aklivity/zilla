@@ -154,7 +154,7 @@ write "CREATE SINK distinct_cities_sink\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
       "   topic='dev.distinct_cities',\n"
-      "   primary_key='city'\n"
+      "   primary_key='id'\n"
       ") FORMAT UPSERT ENCODE AVRO (\n"
       "   schema.registry='http://localhost:8081'\n"
       ") KEY ENCODE TEXT;"
@@ -195,7 +195,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS distinct_cities "
-      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id, city));"
+      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id));"
       [0x00]
 write flush
 
