@@ -21,15 +21,15 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
     {
         return switch (pgsqlType.toLowerCase())
         {
-        case "varchar", "text", "char", "bpchar" -> // Blank-padded char in PG
-            "string";
-        case "int", "integer", "serial" -> "int";
-        case "bigint", "bigserial" -> "long";
-        case "boolean", "bool" -> "boolean";
-        case "real", "float4" -> "float";
-        case "double precision", "float8" -> "double"; // Timestamp with time zone
-        case "timestamp", "timestamptz", "date", "time" ->
-            "timestamp-millis"; // Avro logical type for date/time values
+        case "varchar", "text", "char", "bpchar" -> "\\\"string\\\"";
+        case "int", "integer", "serial" -> "\\\"int\\\"";
+        case "numeric" -> "\\\"double\\\"";
+        case "bigint", "bigserial" -> "\\\"long\\\"";
+        case "boolean", "bool" -> "\\\"boolean\\\"";
+        case "real", "float4" -> "\\\"float\\\"";
+        case "double", "double precision", "float8" -> "\\\"double\\\"";
+        case "timestamp", "timestampz", "date", "time" ->
+            "{ \\\"type\\\": \\\"long\\\", \\\"logicalTyp\\\": \\\"timestamp-millis\\\" }";
         default -> null;
         };
     }

@@ -31,6 +31,7 @@ public final class RisingwavePgsqlTypeMapping
         TYPE_MAPPINGS.put("timestamp without time zone", "TIMESTAMP");
         TYPE_MAPPINGS.put("timestamp with time zone", "TIMESTAMPZ");
         TYPE_MAPPINGS.put("double precision", "DOUBLE");
+        TYPE_MAPPINGS.put("numeric", "NUMERIC");
     }
 
     private RisingwavePgsqlTypeMapping()

@@ -60,7 +60,7 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
             schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": [\\\"").append(avroType).append("\\\", \\\"null\\\"] },");
+            schemaBuilder.append(" \\\"type\\\": [").append(avroType).append(", \\\"null\\\"] },");
         }
 
         // Remove the last comma and close the fields array
