@@ -195,7 +195,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS distinct_cities "
-      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id));"
+      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id, city));"
       [0x00]
 write flush
 
