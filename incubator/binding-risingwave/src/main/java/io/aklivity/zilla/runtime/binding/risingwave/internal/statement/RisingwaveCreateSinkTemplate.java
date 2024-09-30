@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
+import java.util.Optional;
 
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.view.CreateView;
@@ -53,11 +54,18 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         CreateView createView = (CreateView) statement;
         String viewName = createView.getView().getName();
 
-        String textPrimaryKey = columns.entrySet().stream()
-            .filter(e -> e.getKey().toLowerCase().contains("id") && "character varying".equals(e.getValue()))
-            .map(Map.Entry::getKey)
-            .findFirst()
-            .orElse(null);
+        Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
+            .filter(e -> "id".equalsIgnoreCase(e.getKey()))
+            .findFirst();
+
+        if (primaryKeyMatch.isEmpty())
+        {
+            primaryKeyMatch = columns.entrySet().stream()
+                .filter(e -> e.getKey().toLowerCase().contains("id"))
+                .findFirst();
+        }
+
+        String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
         return String.format(sqlFormat, viewName, viewName, bootstrapServer, database, viewName, primaryKey, schemaRegistry);
