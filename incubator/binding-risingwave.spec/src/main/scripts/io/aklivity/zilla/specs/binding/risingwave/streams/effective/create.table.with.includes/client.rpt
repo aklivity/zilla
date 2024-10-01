@@ -71,7 +71,7 @@ write "CREATE MATERIALIZED VIEW weather_view AS\n"
       "  SELECT city, temperature, date,"
       "      COALESCE(correlation_id, zilla_correlation_id_header::varchar) as correlation_id,"
       "      COALESCE(identity, zilla_identity_header::varchar) as identity,
-      "      timestamp FROM streampay_users_source;"
+      "      timestamp FROM weather_source;"
       [0x00]
 write flush
 
@@ -98,7 +98,7 @@ write "CREATE TABLE weather("
       " city VARCHAR, temperature DOUBLE, date DATE,
       " correlation_id VARCHAR, identity as VARCHAR, timestamp TIMESTAMP,"
       " PRIMARY KEY (city, temperature, date));"
-      [0x00]
+     [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
@@ -121,7 +121,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE SINK weather_view_sink INTO weather FROM weather_view;"
-     [0x00]
+      [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
@@ -189,11 +189,10 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS weather"
-      " (city VARCHAR, temperature DOUBLE, date DATE,"
-      " correlation_id VARCHAR, identity as VARCHAR, timestamp TIMESTAMP);"
+write  "CREATE TOPIC IF NOT EXISTS weather"
+       " (city VARCHAR, temperature DOUBLE, date DATE,"
+       " correlation_id VARCHAR, identity as VARCHAR, timestamp TIMESTAMP);"
       [0x00]
-
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

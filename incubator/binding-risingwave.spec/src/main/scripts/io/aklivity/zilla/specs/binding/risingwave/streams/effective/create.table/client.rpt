@@ -89,8 +89,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE TABLE weather(\n"
       "city VARCHAR, temperature DOUBLE, date DATE,\n
-      "PRIMARY KEY (city, temperature, date)"
-      ")"
+      "PRIMARY KEY (city, temperature, date));"
      [0x00]
 write flush
 

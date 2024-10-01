@@ -74,7 +74,7 @@ read "CREATE MATERIALIZED VIEW weather_view AS\n"
      "  SELECT city, temperature, date,"
      "      COALESCE(correlation_id, zilla_correlation_id_header::varchar) as correlation_id,"
      "      COALESCE(identity, zilla_identity_header::varchar) as identity,
-     "      timestamp FROM streampay_users_source;"
+     "      timestamp FROM weather_source;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
