@@ -25,10 +25,11 @@ accepted
 
 connected
 
-read  39                                # size
+read  42                                # size
       20s                               # delete topics
       3s                                # v3
       (int:newRequestId)
+      5s "zilla"                        # client id
       2                                 # topic count
         6s "events"                     # name
         9s "snapshots"                  # name

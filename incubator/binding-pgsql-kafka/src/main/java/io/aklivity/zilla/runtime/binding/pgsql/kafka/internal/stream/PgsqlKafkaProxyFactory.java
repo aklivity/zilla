@@ -1256,6 +1256,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             final PgsqlKafkaBindingConfig binding = server.binding;
             final String primaryKey = binding.avroValueSchema.primaryKey(createTable);
+            final int primaryKeyCount = binding.avroValueSchema.primaryKeyCount(createTable);
 
             int versionId = NO_ERROR_SCHEMA_VERSION_ID;
             if (primaryKey != null)
@@ -1263,7 +1264,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 //TODO: assign versionId to avoid test failure
                 final String subjectKey = String.format("%s.%s-key", server.database, topic);
 
-                final int primaryKeyCount = binding.avroValueSchema.primaryKeyCount(createTable);
                 String keySchema = primaryKeyCount > 1
                     ? binding.avroKeySchema.generateSchema(server.database, createTable)
                     : AVRO_KEY_SCHEMA;
@@ -1278,7 +1278,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             if (versionId != NO_VERSION_ID)
             {
-                final String policy = primaryKey != null
+                final String policy = primaryKey != null && primaryKeyCount == 1
                     ? "compact"
                     : "delete";
 

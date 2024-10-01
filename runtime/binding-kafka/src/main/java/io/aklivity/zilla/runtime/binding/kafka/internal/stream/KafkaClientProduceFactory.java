@@ -1017,8 +1017,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             assert initialAck <= initialSeq;
 
-            if (initialSeq > initialAck + initialMax ||
-                extension.sizeof() > produceRecordFramingSize)
+            if (initialSeq > initialAck + initialMax)
             {
                 cleanupApplication(traceId, EMPTY_OCTETS);
                 client.cleanupNetwork(traceId);

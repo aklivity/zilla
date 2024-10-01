@@ -308,9 +308,13 @@ public final class HttpPath implements Path
             }
             break;
         case HTTP_NOT_FOUND:
-            body = EMPTY_BODY;
-            etag = null;
-            changeCount++;
+            if (body != EMPTY_BODY ||
+                etag != null)
+            {
+                body = EMPTY_BODY;
+                etag = null;
+                changeCount++;
+            }
             break;
         case HTTP_NOT_MODIFIED:
             break;

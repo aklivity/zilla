@@ -2,7 +2,29 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.94...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.95...HEAD)
+
+**Implemented enhancements:**
+
+- Support Kafka topics create, alter, delete [\#1059](https://github.com/aklivity/zilla/issues/1059)
+
+**Fixed bugs:**
+
+- `zilla` Fails to Load Configuration from Specified location if the initial attempts are unsuccessful [\#1226](https://github.com/aklivity/zilla/issues/1226)
+
+**Merged pull requests:**
+
+- Risingwave SInk primary key fix [\#1273](https://github.com/aklivity/zilla/pull/1273) ([akrambek](https://github.com/akrambek))
+- Risingwave and PsqlKafka bug fixes [\#1272](https://github.com/aklivity/zilla/pull/1272) ([akrambek](https://github.com/akrambek))
+- create external function issue fix [\#1271](https://github.com/aklivity/zilla/pull/1271) ([ankitk-me](https://github.com/ankitk-me))
+- Remove produceRecordFramingSize constraints [\#1270](https://github.com/aklivity/zilla/pull/1270) ([akrambek](https://github.com/akrambek))
+- External header pattern fix [\#1269](https://github.com/aklivity/zilla/pull/1269) ([ankitk-me](https://github.com/ankitk-me))
+- Detect config update after initial 404 status [\#1267](https://github.com/aklivity/zilla/pull/1267) ([jfallows](https://github.com/jfallows))
+-  Support Kafka topics alter, delete [\#1265](https://github.com/aklivity/zilla/pull/1265) ([akrambek](https://github.com/akrambek))
+
+## [0.9.95](https://github.com/aklivity/zilla/tree/0.9.95) (2024-09-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.94...0.9.95)
 
 **Fixed bugs:**
 
