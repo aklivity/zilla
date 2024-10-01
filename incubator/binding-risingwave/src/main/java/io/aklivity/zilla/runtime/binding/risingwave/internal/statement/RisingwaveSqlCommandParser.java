@@ -26,7 +26,7 @@ public final class RisingwaveSqlCommandParser
         "CREATE\\s+FUNCTION[\\s\\S]+?\\$\\$[\\s\\S]+?\\$\\$";
     private static final String SQL_COMMAND_PATTERN =
         "(?i)\\b(CREATE FUNCTION)\\b.*?\\$\\$(.*?)\\$\\$\\s*;[\\x00\\n]*" +
-        "|\\b(CREATE FUNCTION)\\b.*?RETURNS TABLE.*?AS.*?;[\\x00\\n]*" +
+        "|\\b(CREATE FUNCTION)\\b.*?RETURNS .*?AS.*?;[\\x00\\n]*" +
         "|\\b(CREATE MATERIALIZED VIEW|CREATE SOURCE|CREATE SINK|CREATE INDEX" +
             "|CREATE VIEW|SHOW TABLES|DESCRIBE|SHOW)\\b.*?;[\\x00\\n]*" +
         "|\\b(SELECT|INSERT|UPDATE|DELETE|ALTER|DROP|CREATE TABLE|CREATE SCHEMA|CREATE DATABASE)\\b.*?;[\\x00\\n]*";
