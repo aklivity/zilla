@@ -24,7 +24,7 @@ public class OpenapiSchema
     public String type;
     public String format;
     public OpenapiSchema items;
-    public Map<String, OpenapiItem> properties;
+    public Map<String, OpenapiSchemaItem> properties;
     public List<String> required;
 
     @JsonbProperty("$ref")

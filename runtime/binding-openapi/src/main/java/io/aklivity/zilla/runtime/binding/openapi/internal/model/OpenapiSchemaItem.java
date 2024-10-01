@@ -14,8 +14,29 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiItem
+import java.util.List;
+
+import jakarta.json.bind.annotation.JsonbProperty;
+
+public class OpenapiSchemaItem
 {
     public String type;
+    public String title;
+    public Integer multipleOf;
+    public Integer maximum;
+    public Boolean exclusiveMaximum;
+    public Integer minimum;
+    public Boolean exclusiveMinimum;
+    public Integer maxLength;
+    public Integer minLength;
+    public String pattern;
+    public Integer maxItems;
+    public Integer minItems;
+    public Boolean uniqueItems;
+    public Integer maxProperties;
+    public Integer minProperties;
+    public List<String> required;
+    @JsonbProperty("enum")
+    public List<String> enum_;
     public String description;
 }

@@ -19,8 +19,8 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
 
 @JsonbPropertyOrder({
     "type",
@@ -76,7 +76,7 @@ public final class OpenapiSchemaView extends OpenapiResolvable<OpenapiSchema>
         return schema.items == null ? null : OpenapiSchemaView.of(schemas, schema.items);
     }
 
-    public Map<String, OpenapiItem> getProperties()
+    public Map<String, OpenapiSchemaItem> getProperties()
     {
         return schema.properties;
     }
