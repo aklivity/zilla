@@ -43,7 +43,7 @@ read "CREATE STREAM IF NOT EXISTS weather_c "
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_STREAM")
                                 .build()
                               .build()}
 
@@ -61,7 +61,7 @@ read "CREATE TABLE IF NOT EXISTS weather_f "
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_STREAM")
                                 .build()
                               .build()}
 
