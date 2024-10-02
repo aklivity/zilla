@@ -160,7 +160,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-
 accept "zilla://streams/app2"
     option zilla:window 8192
     option zilla:transmission "duplex"
