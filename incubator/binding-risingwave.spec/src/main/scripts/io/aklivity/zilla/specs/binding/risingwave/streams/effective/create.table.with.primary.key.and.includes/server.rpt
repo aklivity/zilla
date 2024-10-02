@@ -70,8 +70,6 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW cities_view AS SELECT * FROM cities_source;"
-     [0x00]
 read "CREATE MATERIALIZED VIEW cities_view AS\n"
      "  SELECT id, name, description,"
      "      COALESCE(correlation_id, zilla_correlation_id_header::varchar) as correlation_id,"
@@ -171,7 +169,6 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-
 accept "zilla://streams/app2"
     option zilla:window 8192
     option zilla:transmission "duplex"
@@ -195,7 +192,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .build()}
 read "CREATE TOPIC IF NOT EXISTS cities "
      "(id VARCHAR, name VARCHAR, description VARCHAR,"
-     " correlation_id VARCHAR, identity as VARCHAR, timestamp TIMESTAMP"
+     " correlation_id VARCHAR, identity as VARCHAR, timestamp TIMESTAMP,"
      " PRIMARY KEY (id));"
      [0x00]
 
