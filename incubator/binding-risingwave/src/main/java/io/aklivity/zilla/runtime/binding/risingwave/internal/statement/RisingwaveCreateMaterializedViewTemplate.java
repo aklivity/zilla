@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
@@ -27,12 +27,20 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     }
 
     public String generate(
-        Statement statement)
+        CreateView createView)
     {
-        CreateView createView = (CreateView) statement;
         String view = createView.getView().getName();
         String select = createView.getSelect().toString();
 
         return String.format(sqlFormat, view, select);
+    }
+
+    public String generate(
+        RisingwaveCreateTableCommand command)
+    {
+        CreateTable createTable = command.createTable;
+        String name = createTable.getTable().getName();
+
+        return String.format(sqlFormat, "%s_view".formatted(name), "SELECT * FROM %s_source".formatted(name));
     }
 }

@@ -57,7 +57,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS weather_f "
+write "CREATE STREAM IF NOT EXISTS weather_f "
       "(city VARCHAR, temperature DOUBLE, date DATE);"
       [0x00]
 

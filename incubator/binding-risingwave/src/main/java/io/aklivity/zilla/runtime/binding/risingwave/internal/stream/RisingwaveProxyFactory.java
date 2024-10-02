@@ -1467,7 +1467,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
+        if (server.commandsProcessed == 6)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
@@ -1484,13 +1484,25 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 newStatement = binding.createTopic.generate(command.createTable);
             }
-            else if (server.commandsProcessed == 1 && primaryKey != null)
-            {
-                newStatement = binding.createTable.generate(server.database, command);
-            }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, command);
+                newStatement = binding.createSource.generate(server.database, "_source", command);
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                newStatement = binding.createView.generate(command);
+            }
+            else if (server.commandsProcessed == 3)
+            {
+                newStatement = binding.createTable.generate(command);
+            }
+            else if (server.commandsProcessed == 4)
+            {
+                newStatement = binding.createSink.generate(command.createTable);
+            }
+            else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.createSink.generate(server.database, primaryKey, command.createTable);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
