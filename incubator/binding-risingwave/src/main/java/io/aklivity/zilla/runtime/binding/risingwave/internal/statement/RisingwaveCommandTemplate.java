@@ -70,6 +70,7 @@ public abstract class RisingwaveCommandTemplate
         int length)
     {
         String query = buffer.getStringWithoutLengthUtf8(offset, length);
+        query = query.replaceAll("(?i)STREAM", "TABLE");
 
         int includeIndex = query.indexOf("INCLUDE");
 
