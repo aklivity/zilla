@@ -74,7 +74,7 @@ public class OpenapiFunctionsTest
             .typeId(0x00)
             .apiId(1)
             .operationId("operationId")
-            .extension(new byte[] {1})
+            .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(34);

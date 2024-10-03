@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2024 Aklivity Inc.
+# Copyright 2021-2023 Aklivity Inc.
 #
 # Aklivity licenses this file to you under the Apache License,
 # version 2.0 (the "License"); you may not use this file except in compliance
@@ -25,8 +25,8 @@ write zilla:begin.ext ${openapi:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/prod/pets")
-                                  .header(":authority", "localhost:9090")
+                                  .header(":path", "/pets")
+                                  .header(":authority", "localhost:443")
                                   .header("content-type", "application/json")
                                   .header("content-length", "41")
                                   .build())

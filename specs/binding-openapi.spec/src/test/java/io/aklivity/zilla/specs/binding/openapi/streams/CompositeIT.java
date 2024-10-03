@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2023 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class HttpIT
+public class CompositeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/openapi/streams/http");
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -39,8 +39,8 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.pet/client",
-        "${http}/create.pet/server"
+        "${composite}/create.pet/client",
+        "${composite}/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
     {
@@ -49,8 +49,8 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.pet.and.item/client",
-        "${http}/create.pet.and.item/server"
+        "${composite}/create.pet.and.item/client",
+        "${composite}/create.pet.and.item/server"
     })
     public void shouldCreatePetAndItem() throws Exception
     {
@@ -59,42 +59,11 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.pet.port.http.default/client",
-        "${http}/create.pet.port.http.default/server"
-    })
-    public void shouldCreatePetWithHttpDefaultPort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${http}/create.pet.port.https.default/client",
-        "${http}/create.pet.port.https.default/server"
-    })
-    public void shouldCreatePetWithHttpsDefaultPort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${http}/create.pet.prod/client",
-        "${http}/create.pet.prod/server"
+        "${composite}/create.pet.prod/client",
+        "${composite}/create.pet.prod/server"
     })
     public void shouldCreatePetWithProductionEnvironment() throws Exception
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${http}/reject.non.composite.origin/client",
-        "${http}/reject.non.composite.origin/server"
-    })
-    public void shouldRejectNonCompositeOrigin() throws Exception
-    {
-        k3po.finish();
-    }
-
 }

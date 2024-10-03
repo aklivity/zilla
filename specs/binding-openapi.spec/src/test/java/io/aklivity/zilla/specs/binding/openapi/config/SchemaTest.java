@@ -39,9 +39,17 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config");
 
     @Test
-    public void shouldValidateServerWithSpecificUrl()
+    public void shouldValidateServerWithProductionEnvironment()
     {
-        JsonObject config = schema.validate("server-prod.yaml");
+        JsonObject config = schema.validate("server.env.prod.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithMultipleSpecifications()
+    {
+        JsonObject config = schema.validate("server.multiple.specs.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -55,9 +63,25 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithHttpDefaultPort()
+    {
+        JsonObject config = schema.validate("server.port.http.default.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithHttpsDefaultPort()
+    {
+        JsonObject config = schema.validate("server.port.https.default.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerSecure()
     {
-        JsonObject config = schema.validate("server-secure.yaml");
+        JsonObject config = schema.validate("server.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -66,6 +90,14 @@ public class SchemaTest
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithMultipleSpecifications()
+    {
+        JsonObject config = schema.validate("client.multiple.specs.yaml");
 
         assertThat(config, not(nullValue()));
     }

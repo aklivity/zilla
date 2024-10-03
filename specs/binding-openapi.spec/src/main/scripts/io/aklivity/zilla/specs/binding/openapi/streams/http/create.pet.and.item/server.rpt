@@ -28,19 +28,19 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":path", "/pets")
                              .header(":authority", "localhost:8080")
                              .header("content-type", "application/json")
-                             .header("content-length", "39")
+                             .header("content-length", "41")
                              .build()}
 
 connected
 
-read "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
+read "{\"id\": 1, \"name\": \"rocky\", \"tag\": \"test\"}"
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "application/json")
-                              .header("content-length", "34")
+                              .header("content-length", "31")
                               .build()}
 
 write "{\"code\": 0,\"message\": \"string\"}"
@@ -67,7 +67,7 @@ write zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
                              .header("content-type", "application/json")
-                             .header("content-length", "34")
+                             .header("content-length", "31")
                              .build()}
 
 write "{\"code\": 0,\"message\": \"string\"}"

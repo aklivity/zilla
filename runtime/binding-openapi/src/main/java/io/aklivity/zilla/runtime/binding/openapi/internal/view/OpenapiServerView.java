@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,6 +28,8 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
 public final class OpenapiServerView
 {
     private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
+    private static final ToIntFunction<String> RESOLVE_PORT = s -> Map.of("http", 80, "https", 443).getOrDefault(s, -1);
+
     private final Matcher variable = VARIABLE.matcher("");
 
     private final OpenapiServer server;
@@ -41,7 +44,14 @@ public final class OpenapiServerView
 
     public int getPort()
     {
-        return URI.create(server.url).getPort();
+        URI serverURI = URI.create(server.url);
+        int port = serverURI.getPort();
+        if (port == -1)
+        {
+            String scheme = serverURI.getScheme();
+            port = RESOLVE_PORT.applyAsInt(scheme);
+        }
+        return port;
     }
 
     public void resolveURL(

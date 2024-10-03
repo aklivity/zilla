@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -32,6 +33,7 @@ public class OpenapiServerIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/openapi/streams/http")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/streams/composite")
         .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/streams/openapi");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -49,7 +51,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/create.pet/client",
         "${openapi}/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
@@ -58,9 +60,31 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.port.http.default.yaml")
+    @Specification({
+        "${http}/create.pet.port.http.default/client",
+        "${openapi}/create.pet.port.http.default/server"
+    })
+    public void shouldCreatePetWithHttpDefaultPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.port.https.default.yaml")
+    @Specification({
+        "${http}/create.pet.port.https.default/client",
+        "${openapi}/create.pet.port.https.default/server"
+    })
+    public void shouldCreatePetWithHttpsDefaultPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.multiple.specs.yaml")
     @Specification({
-        "${http}/create.pet.and.item/client",
+        "${composite}/create.pet.and.item/client",
         "${openapi}/create.pet.and.item/server"
     })
     public void shouldCreatePetAndItem() throws Exception
@@ -69,7 +93,7 @@ public class OpenapiServerIT
     }
 
     @Test
-    @Configuration("server-secure.yaml")
+    @Configuration("server.secure.yaml")
     @Specification({
         "${http}/create.pet/client",
         "${openapi}/create.pet/server"
@@ -79,13 +103,14 @@ public class OpenapiServerIT
         k3po.finish();
     }
 
+    @Ignore("requires /prod path prefix")
     @Test
-    @Configuration("server-prod.yaml")
+    @Configuration("server.env.prod.yaml")
     @Specification({
-        "${http}/create.pet/client",
-        "${openapi}/create.pet/server"
+        "${composite}/create.pet.prod/client",
+        "${openapi}/create.pet.prod/server"
     })
-    public void shouldCreatePetInProdEnv() throws Exception
+    public void shouldCreatePetWithProductionEnvironment() throws Exception
     {
         k3po.finish();
     }

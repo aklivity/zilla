@@ -37,7 +37,7 @@ read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
                              .header("content-type", "application/json")
-                             .header("content-length", "34")
+                             .header("content-length", "31")
                              .build()}
 
 read "{\"code\": 0,\"message\": \"string\"}"

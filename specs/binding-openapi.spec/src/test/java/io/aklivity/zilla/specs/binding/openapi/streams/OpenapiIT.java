@@ -56,4 +56,34 @@ public class OpenapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${openapi}/create.pet.port.http.default/client",
+        "${openapi}/create.pet.port.http.default/server"
+    })
+    public void shouldCreatePetWithHttpDefaultPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${openapi}/create.pet.port.https.default/client",
+        "${openapi}/create.pet.port.https.default/server"
+    })
+    public void shouldCreatePetWithHttpsDefaultPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${openapi}/create.pet.prod/client",
+        "${openapi}/create.pet.prod/server"
+    })
+    public void shouldCreatePetWithProductionEnvironment() throws Exception
+    {
+        k3po.finish();
+    }
 }

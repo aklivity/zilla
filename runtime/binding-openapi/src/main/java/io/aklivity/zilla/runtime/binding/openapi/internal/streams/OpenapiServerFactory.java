@@ -568,9 +568,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.openingReply(state);
 
-            final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
+            final OpenapiBeginExFW beginEx = extension.get(openapiBeginExRO::tryWrap);
+            OctetsFW openapiEx = beginEx != null ? beginEx.extension() : EMPTY_OCTETS;
 
-            delegate.doHttpBegin(traceId, sequence, acknowledge, maximum, openapiBeginEx.extension());
+            delegate.doHttpBegin(traceId, sequence, acknowledge, maximum, openapiEx);
         }
 
         private void onOpenapiData(
