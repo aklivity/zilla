@@ -30,6 +30,7 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     private String audience;
     private List<JwtKeyConfig> keys;
     private Duration challenge;
+    private String identity;
     private String keysURL;
 
     JwtOptionsConfigBuilder(
@@ -66,6 +67,13 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
         return this;
     }
 
+    public JwtOptionsConfigBuilder<T> identity(
+        String identity)
+    {
+        this.identity = identity;
+        return this;
+    }
+
     public JwtOptionsConfigBuilder<T> keys(
         List<JwtKeyConfig> keys)
     {
@@ -99,6 +107,6 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new JwtOptionsConfig(issuer, audience, keys, challenge, keysURL));
+        return mapper.apply(new JwtOptionsConfig(issuer, audience, keys, challenge, identity, keysURL));
     }
 }
