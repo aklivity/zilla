@@ -45,6 +45,32 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
         createTable.getColumnDefinitions()
             .forEach(c -> fieldBuilder.append(
                 String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+
+        fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+
+        return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
+    }
+
+    public String generate(
+        RisingwaveCreateTableCommand command)
+    {
+        CreateTable createTable = command.createTable;
+        String topic = createTable.getTable().getName();
+        String primaryKeyField = primaryKey(createTable);
+        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
+
+        fieldBuilder.setLength(0);
+
+        createTable.getColumnDefinitions()
+            .forEach(c -> fieldBuilder.append(
+                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+
+        if (command.includes != null)
+        {
+            command.includes.forEach((k, v) -> fieldBuilder.append(
+                String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
+        }
+
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
         return String.format(sqlFormat, topic, fieldBuilder, primaryKey);

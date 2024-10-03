@@ -35,7 +35,7 @@ write zilla:data.ext ${pgsql:dataEx()
 write "CREATE TABLE IF NOT EXISTS cities "
       "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id))\n"
       "INCLUDE zilla_correlation_id AS correlation_id\n"
-      "INCLUDE zilla_identity AS owner_id\n"
+      "INCLUDE zilla_identity AS identity\n"
       "INCLUDE timestamp as timestamp;"
       [0x00]
 

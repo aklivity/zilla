@@ -38,8 +38,8 @@ read zilla:data.ext ${pgsql:dataEx()
                               .build()}
 read  "CREATE SOURCE IF NOT EXISTS weather (*)\n"
       "INCLUDE header 'zilla:correlation-id' AS correlation_id\n"
+      "INCLUDE header 'zilla:identity' AS identity\n"
       "INCLUDE timestamp AS timestamp\n"
-      "INCLUDE header 'zilla:identity' AS owner_id\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"

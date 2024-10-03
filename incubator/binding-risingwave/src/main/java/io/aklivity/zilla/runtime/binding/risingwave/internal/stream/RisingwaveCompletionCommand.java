@@ -19,6 +19,7 @@ public enum RisingwaveCompletionCommand
     UNKNOWN_COMMAND("UNKNOWN".getBytes()),
     CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes()),
     CREATE_MATERIALIZED_VIEW_COMMAND("CREATE_MATERIALIZED_VIEW".getBytes()),
+    CREATE_STREAM_COMMAND("CREATE_STREAM".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE_FUNCTION".getBytes());
 
     private final byte[] value;
