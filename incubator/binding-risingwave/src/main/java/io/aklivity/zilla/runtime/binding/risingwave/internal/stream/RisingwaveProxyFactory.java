@@ -1482,11 +1482,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(command.createTable);
+                newStatement = binding.createTopic.generate(command);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, "_source", command);
+                newStatement = binding.createSource.generateTableSource(server.database, command);
             }
             else if (server.commandsProcessed == 2)
             {
@@ -1543,7 +1543,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, command);
+                newStatement = binding.createSource.generateStreamSource(server.database, command);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());

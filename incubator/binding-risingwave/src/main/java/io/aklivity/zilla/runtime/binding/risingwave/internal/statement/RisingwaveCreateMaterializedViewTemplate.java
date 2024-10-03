@@ -21,6 +21,8 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
 {
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
+    private final String fieldFormat = "%s, ";
+    private final String includeFormat = "COALESCE(%s, zilla_%s_header::varchar) as %s, ";
 
     public RisingwaveCreateMaterializedViewTemplate()
     {
@@ -41,6 +43,31 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         CreateTable createTable = command.createTable;
         String name = createTable.getTable().getName();
 
-        return String.format(sqlFormat, "%s_view".formatted(name), "SELECT * FROM %s_source".formatted(name));
+        String select = "*";
+
+        if (command.includes != null)
+        {
+            fieldBuilder.setLength(0);
+
+            createTable.getColumnDefinitions()
+                .forEach(c -> fieldBuilder.append(
+                    String.format(fieldFormat, c.getColumnName())));
+            command.includes.forEach((k, v) ->
+            {
+                if ("timestamp".equals(k))
+                {
+                    fieldBuilder.append(String.format(fieldFormat, v));
+                }
+                else
+                {
+                    fieldBuilder.append(String.format(includeFormat, v, v, v));
+                }
+            });
+
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+            select = fieldBuilder.toString();
+        }
+
+        return String.format(sqlFormat, "%s_view".formatted(name), "SELECT %s FROM %s_source".formatted(select, name));
     }
 }

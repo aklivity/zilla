@@ -23,8 +23,6 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     private final String primaryKeyFormat = ", PRIMARY KEY (%s)";
     private final String fieldFormat = "%s %s, ";
 
-    private final StringBuilder fieldBuilder = new StringBuilder();
-
     public RisingwaveCreateTableTemplate()
     {
     }
@@ -42,6 +40,13 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
         createTable.getColumnDefinitions()
             .forEach(c -> fieldBuilder.append(
                 String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+
+        if (command.includes != null)
+        {
+            command.includes.forEach((k, v) -> fieldBuilder.append(
+                String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
+        }
+
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
         return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
