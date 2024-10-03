@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.Map;
 import java.util.Optional;
 
-import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
+        CREATE SINK %s_view_sink INTO %s FROM %s_view;\u0000""";
+    private final String sqlKafkaFormat = """
         CREATE SINK %s_sink
         FROM %s
         WITH (
@@ -49,9 +51,8 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     public String generate(
         String database,
         Map<String, String> columns,
-        Statement statement)
+        CreateView createView)
     {
-        CreateView createView = (CreateView) statement;
         String viewName = createView.getView().getName();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
@@ -68,6 +69,25 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
-        return String.format(sqlFormat, viewName, viewName, bootstrapServer, database, viewName, primaryKey, schemaRegistry);
+        return String.format(sqlKafkaFormat, viewName, viewName, bootstrapServer, database, viewName, primaryKey, schemaRegistry);
+    }
+
+    public String generate(
+        String database,
+        String primaryKey,
+        CreateTable createTable)
+    {
+        String table = createTable.getTable().getName();
+
+        return String.format(sqlKafkaFormat, table, table, bootstrapServer, database, table,
+            primaryKeyFormat.formatted(primaryKey), schemaRegistry);
+    }
+
+    public String generate(
+        CreateTable createTable)
+    {
+        String table = createTable.getTable().getName();
+
+        return String.format(sqlFormat, table, table, table);
     }
 }

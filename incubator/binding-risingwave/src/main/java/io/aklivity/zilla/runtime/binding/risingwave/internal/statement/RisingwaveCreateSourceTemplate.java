@@ -44,7 +44,7 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         this.scanStartupMil = scanStartupMil;
     }
 
-    public String generate(
+    public String generateStreamSource(
         String database,
         RisingwaveCreateTableCommand command)
     {
@@ -60,5 +60,36 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         }
 
         return String.format(sqlFormat, table, includeBuilder, bootstrapServer, database, table, scanStartupMil, schemaRegistry);
+    }
+
+    public String generateTableSource(
+        String database,
+        RisingwaveCreateTableCommand command)
+    {
+        String table = command.createTable.getTable().getName();
+        String sourceName = "%s_source".formatted(table);
+
+        includeBuilder.setLength(0);
+        final Map<String, String> includes = command.includes;
+        if (includes != null && !includes.isEmpty())
+        {
+            includeBuilder.append("\n");
+            includes.forEach((k, v) ->
+            {
+                if ("timestamp".equals(k))
+                {
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v));
+                }
+                else
+                {
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "zilla_%s_header".formatted(v)));
+                }
+
+            });
+            includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
+        }
+
+        return String.format(sqlFormat, sourceName, includeBuilder, bootstrapServer,
+            database, table, scanStartupMil, schemaRegistry);
     }
 }
