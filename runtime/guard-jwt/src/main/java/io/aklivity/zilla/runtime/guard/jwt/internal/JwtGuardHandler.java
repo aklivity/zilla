@@ -78,10 +78,9 @@ public class JwtGuardHandler implements GuardHandler
         List<JwtKeyConfig> keysConfig = options.keys;
         if ((keysConfig == null || keysConfig.isEmpty()) && options.keysURL.isPresent())
         {
-            JsonbConfig keyConfig = new JsonbConfig()
-                    .withAdapters(new JwtKeySetConfigAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withConfig(keyConfig)
+                    .withConfig(new JsonbConfig()
+                        .withAdapters(new JwtKeySetConfigAdapter()))
                     .build();
             Path keysPath = context.resolvePath(options.keysURL.get());
             String keysText = readKeys(keysPath);
