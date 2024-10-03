@@ -79,7 +79,7 @@ public abstract class RisingwaveCommandTemplate
         int length)
     {
         String query = buffer.getStringWithoutLengthUtf8(offset, length);
-        query = query.replaceAll("(?i)STREAM", "TABLE");
+        query = query.replaceAll("(?i)\\bCREATE\\s+STREAM\\b", "CREATE TABLE");
 
         int includeIndex = query.indexOf("INCLUDE");
 
