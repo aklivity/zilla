@@ -88,6 +88,16 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/create.function.python/client",
+        "${app}/create.function.python/server"
+    })
+    public void shouldCreateFunctionPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.return.table/client",
         "${app}/create.function.return.table/server"
     })
