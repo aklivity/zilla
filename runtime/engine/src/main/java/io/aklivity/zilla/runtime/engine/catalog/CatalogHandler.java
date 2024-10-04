@@ -69,6 +69,11 @@ public interface CatalogHandler
         return NO_VERSION_ID;
     }
 
+    default void unregister(
+        String subject)
+    {
+    }
+
     String resolve(
         int schemaId);
 

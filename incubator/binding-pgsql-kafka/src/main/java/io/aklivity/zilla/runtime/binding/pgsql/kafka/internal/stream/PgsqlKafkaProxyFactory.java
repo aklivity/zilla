@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_VERSION_ID;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.InputStreamReader;
@@ -143,6 +144,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder =
             new Object2ObjectHashMap<>();
         pgsqlDecoder.put(PgsqlKafkaCommandType.CREATE_TOPIC_COMMAND, this::decodeCreateTopicCommand);
+        pgsqlDecoder.put(PgsqlKafkaCommandType.DROP_TOPIC_COMMAND, this::decodeDropTopicCommand);
         pgsqlDecoder.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.pgsqlDecoder = pgsqlDecoder;
     }
@@ -232,6 +234,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         private final String database;
         private final PgsqlKafkaBindingConfig binding;
         private final KafkaCreateTopicsProxy createTopicsProxy;
+        private final KafkaDeleteTopicsProxy deleteTopicsProxy;
 
         private final IntArrayQueue queries;
 
@@ -281,6 +284,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             this.queries = new IntArrayQueue();
 
             this.createTopicsProxy = new KafkaCreateTopicsProxy(routedId, resolvedId, this);
+            this.deleteTopicsProxy = new KafkaDeleteTopicsProxy(routedId, resolvedId, this);
         }
 
         private void onAppMessage(
@@ -488,7 +492,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doAppWindow(traceId, authorization);
         }
 
-        public void onKafkaCreateTopicsBegin(
+        public void onKafkaBegin(
             long traceId,
             long authorization)
         {
@@ -1014,11 +1018,85 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final KafkaBeginExFW kafkaBeginEx =
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
 
+            boolean errorExits = kafkaBeginEx.response().deleteTopics().topics().anyMatch(t -> t.error() != 0);
+
+            if (!errorExits)
+            {
+                delegate.onKafkaBegin(traceId, authorization);
+
+                doKafkaWindow(traceId, authorization);
+                doKafkaEnd(traceId, authorization);
+            }
+            else
+            {
+                delegate.cleanup(traceId, authorization);
+            }
+        }
+    }
+
+    private final class KafkaDeleteTopicsProxy extends KafkaProxy
+    {
+        private KafkaDeleteTopicsProxy(
+            long originId,
+            long routedId,
+            PgsqlProxy delegate)
+        {
+            super(originId, routedId, delegate);
+        }
+
+        private void doKafkaBegin(
+            long traceId,
+            long authorization,
+            List<String> topics)
+        {
+            initialSeq = delegate.initialSeq;
+            initialAck = delegate.initialAck;
+            initialMax = delegate.initialMax;
+            state = PgsqlKafkaState.openingInitial(state);
+
+            final KafkaBeginExFW kafkaBeginEx =
+                    kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .request(r -> r
+                            .deleteTopics(c -> c
+                                .names(ct ->
+                                    topics.forEach(t -> ct.item(i -> i.set(t, UTF_8))))
+                            .timeout(config.kafkaTopicRequestTimeoutMs())))
+                        .build();
+
+            kafka = newKafkaConsumer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, 0, kafkaBeginEx);
+        }
+
+        @Override
+        protected void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge >= replyAck;
+
+            replySeq = sequence;
+            replyAck = acknowledge;
+            state = PgsqlKafkaState.openingReply(state);
+
+            assert replyAck <= replySeq;
+
+            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
+            final KafkaBeginExFW kafkaBeginEx =
+                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
+
             boolean errorExits = kafkaBeginEx.response().createTopics().topics().anyMatch(t -> t.error() != 0);
 
             if (!errorExits)
             {
-                delegate.onKafkaCreateTopicsBegin(traceId, authorization);
+                delegate.onKafkaBegin(traceId, authorization);
 
                 doKafkaWindow(traceId, authorization);
                 doKafkaEnd(traceId, authorization);
@@ -1292,6 +1370,35 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
     }
 
+    private void decodeDropTopicCommand(
+        PgsqlProxy server,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        if (server.commandsProcessed == 1)
+        {
+            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.DROP_TOPIC_COMMAND);
+        }
+        else if (server.commandsProcessed == 0)
+        {
+            final CreateTable createTable = (CreateTable) parseStatement(buffer, offset, length);
+            final String topic = createTable.getTable().getName();
+
+            final PgsqlKafkaBindingConfig binding = server.binding;
+            final String subjectKey = String.format("%s.%s-key", server.database, topic);
+            final String subjectValue = String.format("%s.%s-value", server.database, topic);
+
+            binding.catalog.unregister(subjectKey);
+            binding.catalog.unregister(subjectValue);
+
+            final KafkaDeleteTopicsProxy deleteTopicsProxy = server.deleteTopicsProxy;
+            deleteTopicsProxy.doKafkaBegin(traceId, authorization, topics);
+        }
+    }
+
     private void decodeUnknownCommand(
         PgsqlProxy server,
         long traceId,
@@ -1349,6 +1456,13 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             {
                 String sql = buffer.getStringWithoutLengthUtf8(offset, length);
                 sql = sql.replace("CREATE TOPIC", "CREATE TABLE");
+                statement = parserManager.parse(new StringReader(sql));
+            }
+            if (decodeCommandType(buffer, offset, length).
+                    equals(PgsqlKafkaCommandType.DROP_TOPIC_COMMAND))
+            {
+                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
+                sql = sql.replace("DROP TOPIC", "DROP TABLE");
                 statement = parserManager.parse(new StringReader(sql));
             }
             else

@@ -343,6 +343,10 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
+                    if (catalog.subject != null && schema == null)
+                    {
+                        handler.unregister(catalog.subject);
+                    }
                     if (catalog.subject != null && schema != null)
                     {
                         handler.register(catalog.subject, schema);

@@ -42,7 +42,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
-    private static final String SUBJECT_PATH = "/subjects/{0}/versions";
+    private static final String REGISTER_SUBJECT_PATH = "/subjects/{0}/versions";
+    private static final String UNREGISTER_SUBJECT_PATH = "/subjects/{0}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
 
     private static final int MAX_PADDING_LENGTH = 5;
@@ -88,13 +89,24 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         int versionId = NO_VERSION_ID;
 
-        String response = sendPostHttpRequest(MessageFormat.format(SUBJECT_PATH, subject), schema);
+        String response = sendPostHttpRequest(MessageFormat.format(REGISTER_SUBJECT_PATH, subject), schema);
         if (response != null)
         {
             versionId = request.resolveResponse(response);
         }
 
         return versionId;
+    }
+
+    @Override
+    public void unregister(
+        String subject)
+    {
+        String response = sendDeleteHttpRequest(MessageFormat.format(UNREGISTER_SUBJECT_PATH, subject));
+        if (response != null)
+        {
+            request.resolveResponse(response);
+        }
     }
 
     @Override
@@ -376,6 +388,28 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build();
         // TODO: introduce interrupt/timeout for request to schema registry
+
+        String responseBody;
+        try
+        {
+            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
+        }
+        catch (Exception ex)
+        {
+            responseBody = null;
+        }
+        return responseBody;
+    }
+
+    private String sendDeleteHttpRequest(
+        String path)
+    {
+        HttpRequest httpRequest = HttpRequest
+            .newBuilder(toURI(baseUrl, path))
+            .version(HttpClient.Version.HTTP_1_1)
+            .DELETE()
+            .build();
 
         String responseBody;
         try
