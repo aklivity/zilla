@@ -1019,7 +1019,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final KafkaBeginExFW kafkaBeginEx =
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
 
-            boolean errorExits = kafkaBeginEx.response().deleteTopics().topics().anyMatch(t -> t.error() != 0);
+            boolean errorExits = kafkaBeginEx.response().createTopics().topics().anyMatch(t -> t.error() != 0);
 
             if (!errorExits)
             {
