@@ -48,10 +48,10 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.table/client",
-        "${app}/create.table/server"
+        "${app}/create.stream/client",
+        "${app}/create.stream/server"
     })
-    public void shouldCreateTable() throws Exception
+    public void shouldCreateStream() throws Exception
     {
         k3po.finish();
     }
@@ -88,6 +88,16 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/create.function.return.table/client",
+        "${app}/create.function.return.table/server"
+    })
+    public void shouldCreateFunctionReturnTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.embedded/client",
         "${app}/create.function.embedded/server" })
     public void shouldCreateFunctionEmbedded() throws Exception
@@ -97,9 +107,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.table.with.includes/client",
-        "${app}/create.table.with.includes/server" })
-    public void shouldCreateTableWithIncludes() throws Exception
+        "${app}/create.stream.with.includes/client",
+        "${app}/create.stream.with.includes/server" })
+    public void shouldCreateStreamWithIncludes() throws Exception
     {
         k3po.finish();
     }
@@ -124,8 +134,8 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.tables/client",
-        "${app}/create.tables/server" })
+        "${app}/create.streams/client",
+        "${app}/create.streams/server" })
     public void shouldCreateTables() throws Exception
     {
         k3po.finish();

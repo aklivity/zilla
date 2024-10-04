@@ -83,8 +83,7 @@ public final class RisingwaveBindingConfig
             udf = options.udfs.get(0);
         }
 
-        this.createTable = new RisingwaveCreateTableTemplate(bootstrapServer,
-            location, config.kafkaScanStartupTimestampMillis());
+        this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
             location, config.kafkaScanStartupTimestampMillis());
         this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);

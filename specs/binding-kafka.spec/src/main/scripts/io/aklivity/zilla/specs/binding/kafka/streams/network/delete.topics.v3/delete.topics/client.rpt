@@ -28,10 +28,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 39                                # size
+write 42                                # size
       20s                               # delete topics
       3s                                # v3
       ${newRequestId}
+      5s "zilla"                        # client id
       2                                 # topic count
         6s "events"                     # name
         9s "snapshots"                  # name

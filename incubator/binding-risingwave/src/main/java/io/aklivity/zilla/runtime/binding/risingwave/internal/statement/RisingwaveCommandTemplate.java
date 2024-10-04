@@ -29,15 +29,23 @@ public abstract class RisingwaveCommandTemplate
 {
     protected final CCJSqlParserManager parserManager = new CCJSqlParserManager();
     protected final Map<String, String> includeMap = new Object2ObjectHashMap<>();
-
+    protected final StringBuilder fieldBuilder = new StringBuilder();
     protected final StringBuilder includeBuilder = new StringBuilder();
-    protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
 
+    protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {
         ZILLA_MAPPINGS.put("zilla_correlation_id", "INCLUDE header 'zilla:correlation-id' AS %s\n");
         ZILLA_MAPPINGS.put("zilla_identity", "INCLUDE header 'zilla:identity' AS %s\n");
         ZILLA_MAPPINGS.put("timestamp", "INCLUDE timestamp AS %s\n");
+    }
+
+    protected static final Map<String, String> ZILLA_INCLUDE_TYPE_MAPPINGS = new Object2ObjectHashMap<>();
+    static
+    {
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put("zilla_correlation_id", "VARCHAR");
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put("zilla_identity", "VARCHAR");
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put("timestamp", "TIMESTAMP");
     }
 
     public String primaryKey(
@@ -70,6 +78,7 @@ public abstract class RisingwaveCommandTemplate
         int length)
     {
         String query = buffer.getStringWithoutLengthUtf8(offset, length);
+        query = query.replaceAll("(?i)\\bCREATE\\s+STREAM\\b", "CREATE TABLE");
 
         int includeIndex = query.indexOf("INCLUDE");
 

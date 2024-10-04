@@ -36,14 +36,14 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
+read "CREATE FUNCTION series(int) RETURNS TABLE (x int) "
+     "AS series;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_FUNCTION")
                                 .build()
                               .build()}
 

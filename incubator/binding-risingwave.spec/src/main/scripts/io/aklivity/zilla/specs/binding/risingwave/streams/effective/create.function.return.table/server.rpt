@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -36,17 +34,17 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE TABLE IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE)\n"
-      "INCLUDE zilla_correlation_id AS correlation_id\n"
-      "INCLUDE zilla_identity AS owner_id\n"
-      "INCLUDE timestamp as timestamp;"
-      [0x00]
+read "CREATE FUNCTION series(int)\n"
+     "RETURNS TABLE (x int)\n"
+     "AS series\n"
+     "LANGUAGE java\n"
+     "USING LINK 'http://localhost:8815';"
+     [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_FUNCTION")
                                 .build()
                               .build()}
 
@@ -56,3 +54,4 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+

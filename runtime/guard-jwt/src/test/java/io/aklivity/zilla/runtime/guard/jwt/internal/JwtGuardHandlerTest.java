@@ -89,6 +89,40 @@ public class JwtGuardHandlerTest
     }
 
     @Test
+    public void shouldAuthorizeWithCustomIdentity() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .identity("username")
+            .build();
+        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("username", "johndoe");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
+
+        assertThat(sessionId, not(equalTo(0L)));
+        assertThat(guard.identity(sessionId), equalTo("johndoe"));
+        assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
+        assertTrue(guard.verify(sessionId, asList("read:stream", "write:stream")));
+    }
+
+    @Test
     public void shouldChallengeDuringChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);

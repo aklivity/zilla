@@ -28,21 +28,22 @@ connect "zilla://streams/net0"
 
 connected
 
-write 130                               # size
-      19s                               # create topics
+write 98                               # size
+      33s                               # alter configs
       1s                                # v1
       ${newRequestId}
+      5s "zilla"                        # client id
       2                                 # resource count
         [0x02]                          # resource type
         6s "events"                     # name
         1                               # configs
             14s "cleanup.policy"        # name
             6s "delete"                 # value
-        6s "snapshots"                  # name
+        [0x02]                          # resource type
+        9s "snapshots"                  # name
         1                               # configs
             14s "cleanup.policy"        # name
-            6s "compact"                # value
-      0                                 # timeout
+            7s "compact"                # value
       [0x00]                            # validate only
 
 read  41                                 # size
