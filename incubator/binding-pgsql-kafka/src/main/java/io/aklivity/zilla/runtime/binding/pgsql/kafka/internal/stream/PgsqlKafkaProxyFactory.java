@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.drop.Drop;
 
 public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 {
@@ -1092,7 +1093,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final KafkaBeginExFW kafkaBeginEx =
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
 
-            boolean errorExits = kafkaBeginEx.response().createTopics().topics().anyMatch(t -> t.error() != 0);
+            boolean errorExits = kafkaBeginEx.response().deleteTopics().topics().anyMatch(t -> t.error() != 0);
 
             if (!errorExits)
             {
@@ -1384,8 +1385,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            final CreateTable createTable = (CreateTable) parseStatement(buffer, offset, length);
-            final String topic = createTable.getTable().getName();
+            final Drop drop = (Drop) parseStatement(buffer, offset, length);
+            final String topic = drop.getName().getName();
 
             final PgsqlKafkaBindingConfig binding = server.binding;
             final String subjectKey = String.format("%s.%s-key", server.database, topic);
@@ -1395,7 +1396,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             binding.catalog.unregister(subjectValue);
 
             final KafkaDeleteTopicsProxy deleteTopicsProxy = server.deleteTopicsProxy;
-            deleteTopicsProxy.doKafkaBegin(traceId, authorization, topics);
+            deleteTopicsProxy.doKafkaBegin(traceId, authorization, List.of("%s.%s".formatted(server.database, topic)));
         }
     }
 

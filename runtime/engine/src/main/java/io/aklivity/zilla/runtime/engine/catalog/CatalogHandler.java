@@ -69,9 +69,10 @@ public interface CatalogHandler
         return NO_VERSION_ID;
     }
 
-    default void unregister(
+    default int[] unregister(
         String subject)
     {
+        return new int[0];
     }
 
     String resolve(

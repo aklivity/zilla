@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler;
 
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.CachedSchemaId.IN_PROGRESS;
+import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest.NO_VERSIONS;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -35,6 +36,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -56,7 +58,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     private final HttpClient client;
     private final String baseUrl;
-    private final RegisterSchemaRequest request;
+    private final RegisterSchemaRequest registerRequest;
+    private final UnregisterSchemaRequest unregisterRequest;
     private final CRC32C crc32c;
     private final Int2ObjectCache<String> schemas;
     private final Int2ObjectCache<CachedSchemaId> schemaIds;
@@ -71,7 +74,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         this.baseUrl = catalog.options.url;
         this.client = HttpClient.newHttpClient();
-        this.request = new RegisterSchemaRequest();
+        this.registerRequest = new RegisterSchemaRequest();
+        this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
@@ -92,21 +96,25 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         String response = sendPostHttpRequest(MessageFormat.format(REGISTER_SUBJECT_PATH, subject), schema);
         if (response != null)
         {
-            versionId = request.resolveResponse(response);
+            versionId = registerRequest.resolveResponse(response);
         }
 
         return versionId;
     }
 
     @Override
-    public void unregister(
+    public int[] unregister(
         String subject)
     {
+        int[] versions = NO_VERSIONS;
+
         String response = sendDeleteHttpRequest(MessageFormat.format(UNREGISTER_SUBJECT_PATH, subject));
         if (response != null)
         {
-            request.resolveResponse(response);
+            versions = unregisterRequest.resolveResponse(response);
         }
+
+        return versions;
     }
 
     @Override
@@ -161,7 +169,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                             {
                                 event.onRetrievableSchemaId(catalogId, schemaId);
                             }
-                            newFuture.complete(new CachedSchema(request.resolveSchemaResponse(response), retryAttempts));
+                            newFuture.complete(new CachedSchema(registerRequest.resolveSchemaResponse(response), retryAttempts));
                         }
                     }
                     catch (Throwable ex)
@@ -263,8 +271,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                         {
                             event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
                         }
-                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), request.resolveResponse(response),
-                            retryAttempts, retryAfter));
+                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
+                            registerRequest.resolveResponse(response), retryAttempts, retryAfter));
                     }
                 }
                 catch (Throwable ex)
