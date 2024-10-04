@@ -29,12 +29,32 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         LANGUAGE %s
         USING LINK '%s';\u0000""";
 
-    private final RisingwaveUdfConfig udf;
+    private final String java;
+    private final String python;
 
     public RisingwaveCreateFunctionTemplate(
-        RisingwaveUdfConfig udf)
+        List<RisingwaveUdfConfig> udfs)
     {
-        this.udf = udf;
+        String javaServer = null;
+        String pythonServer = null;
+
+        if (udfs != null && !udfs.isEmpty())
+        {
+            for (RisingwaveUdfConfig udf : udfs)
+            {
+                if (udf.language.equalsIgnoreCase("java"))
+                {
+                    javaServer = udf.server;
+                }
+                else if (udf.language.equalsIgnoreCase("python"))
+                {
+                    pythonServer = udf.server;
+                }
+            }
+        }
+
+        this.java = javaServer;
+        this.python = pythonServer;
     }
 
     public String generate(
@@ -81,6 +101,10 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         int asIndex = parts.indexOf("AS");
         String body = asIndex >= 0 ? parts.get(asIndex + 1) : "";
 
-        return sqlFormat.formatted(functionName, parameters, returnType, body, udf.language, udf.server);
+        int langIndex = parts.indexOf("LANGUAGE");
+        String language = langIndex >= 0 ? parts.get(langIndex + 1) : "java";
+
+        return sqlFormat.formatted(functionName, parameters, returnType, body, language,
+            "python".equalsIgnoreCase(language) ? python : java);
     }
 }
