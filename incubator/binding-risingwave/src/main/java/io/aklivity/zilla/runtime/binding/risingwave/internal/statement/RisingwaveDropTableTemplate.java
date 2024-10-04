@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import net.sf.jsqlparser.statement.drop.Drop;
 
-public class RisingwaveDropTopicTemplate extends RisingwaveCommandTemplate
+public class RisingwaveDropTableTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         DROP TOPIC %s (%s%s);\u0000""";
 
-    public RisingwaveDropTopicTemplate()
+    public RisingwaveDropTableTemplate()
     {
     }
 

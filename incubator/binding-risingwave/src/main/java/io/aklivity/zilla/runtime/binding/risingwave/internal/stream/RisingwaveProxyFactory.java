@@ -69,6 +69,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.function.CreateFunction;
 import net.sf.jsqlparser.statement.create.view.CreateView;
+import net.sf.jsqlparser.statement.drop.Drop;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
@@ -1567,25 +1568,41 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
+        if (server.commandsProcessed == 6)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.DROP_TABLE_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final RisingwaveCreateTableCommand command = binding.deleteTopic.parserDropTable(buffer, offset, length);
+            final Drop dropTable = binding.d.parserCreateTable(buffer, offset, length);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.deleteTopic.generate(command.createTable);
+                newStatement = binding.dropTopic.generate(command);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, command);
+                newStatement = binding.createSource.generateTableSource(server.database, command);
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                newStatement = binding.createView.generate(command);
+            }
+            else if (server.commandsProcessed == 3)
+            {
+                newStatement = binding.createTable.generate(command);
+            }
+            else if (server.commandsProcessed == 4)
+            {
+                newStatement = binding.createSink.generate(command.createTable);
+            }
+            else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.createSink.generate(server.database, primaryKey, command.createTable);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
