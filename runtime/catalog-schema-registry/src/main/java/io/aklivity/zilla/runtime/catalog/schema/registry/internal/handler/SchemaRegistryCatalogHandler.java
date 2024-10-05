@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler;
 
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.CachedSchemaId.IN_PROGRESS;
+import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest.NO_VERSIONS;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -35,6 +36,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -42,7 +44,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
-    private static final String SUBJECT_PATH = "/subjects/{0}/versions";
+    private static final String REGISTER_SUBJECT_PATH = "/subjects/{0}/versions";
+    private static final String UNREGISTER_SUBJECT_PATH = "/subjects/{0}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
 
     private static final int MAX_PADDING_LENGTH = 5;
@@ -55,7 +58,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     private final HttpClient client;
     private final String baseUrl;
-    private final RegisterSchemaRequest request;
+    private final RegisterSchemaRequest registerRequest;
+    private final UnregisterSchemaRequest unregisterRequest;
     private final CRC32C crc32c;
     private final Int2ObjectCache<String> schemas;
     private final Int2ObjectCache<CachedSchemaId> schemaIds;
@@ -70,7 +74,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         this.baseUrl = catalog.options.url;
         this.client = HttpClient.newHttpClient();
-        this.request = new RegisterSchemaRequest();
+        this.registerRequest = new RegisterSchemaRequest();
+        this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
@@ -88,13 +93,28 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         int versionId = NO_VERSION_ID;
 
-        String response = sendPostHttpRequest(MessageFormat.format(SUBJECT_PATH, subject), schema);
+        String response = sendPostHttpRequest(MessageFormat.format(REGISTER_SUBJECT_PATH, subject), schema);
         if (response != null)
         {
-            versionId = request.resolveResponse(response);
+            versionId = registerRequest.resolveResponse(response);
         }
 
         return versionId;
+    }
+
+    @Override
+    public int[] unregister(
+        String subject)
+    {
+        int[] versions = NO_VERSIONS;
+
+        String response = sendDeleteHttpRequest(MessageFormat.format(UNREGISTER_SUBJECT_PATH, subject));
+        if (response != null)
+        {
+            versions = unregisterRequest.resolveResponse(response);
+        }
+
+        return versions;
     }
 
     @Override
@@ -149,7 +169,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                             {
                                 event.onRetrievableSchemaId(catalogId, schemaId);
                             }
-                            newFuture.complete(new CachedSchema(request.resolveSchemaResponse(response), retryAttempts));
+                            newFuture.complete(new CachedSchema(registerRequest.resolveSchemaResponse(response), retryAttempts));
                         }
                     }
                     catch (Throwable ex)
@@ -251,8 +271,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                         {
                             event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
                         }
-                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), request.resolveResponse(response),
-                            retryAttempts, retryAfter));
+                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
+                            registerRequest.resolveResponse(response), retryAttempts, retryAfter));
                     }
                 }
                 catch (Throwable ex)
@@ -376,6 +396,28 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build();
         // TODO: introduce interrupt/timeout for request to schema registry
+
+        String responseBody;
+        try
+        {
+            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
+        }
+        catch (Exception ex)
+        {
+            responseBody = null;
+        }
+        return responseBody;
+    }
+
+    private String sendDeleteHttpRequest(
+        String path)
+    {
+        HttpRequest httpRequest = HttpRequest
+            .newBuilder(toURI(baseUrl, path))
+            .version(HttpClient.Version.HTTP_1_1)
+            .DELETE()
+            .build();
 
         String responseBody;
         try
