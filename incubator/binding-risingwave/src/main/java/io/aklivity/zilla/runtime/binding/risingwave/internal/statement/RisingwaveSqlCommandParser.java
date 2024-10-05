@@ -14,11 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.DirectBuffer;
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
+import net.sf.jsqlparser.parser.CCJSqlParserManager;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.drop.Drop;
 
 public final class RisingwaveSqlCommandParser
 {
@@ -33,6 +41,9 @@ public final class RisingwaveSqlCommandParser
 
     private final Pattern functionPattern = Pattern.compile(SQL_FUNCTION_PATTERN, Pattern.CASE_INSENSITIVE);
     private final Pattern sqlPattern = Pattern.compile(SQL_COMMAND_PATTERN, Pattern.DOTALL);
+
+    private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
+    private final Map<String, String> includeMap = new Object2ObjectHashMap<>();
 
     public RisingwaveSqlCommandParser()
     {
@@ -99,5 +110,89 @@ public final class RisingwaveSqlCommandParser
     {
         Matcher matcher = functionPattern.matcher(sqlQuery);
         return matcher.find();
+    }
+
+    public RisingwaveCreateTableCommand parserCreateTable(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        String query = buffer.getStringWithoutLengthUtf8(offset, length);
+        query = query.replaceAll("(?i)\\bCREATE\\s+STREAM\\b", "CREATE TABLE");
+
+        int includeIndex = query.indexOf("INCLUDE");
+
+        String createTablePart;
+        String includePart = null;
+
+        CreateTable createTable = null;
+        Map<String, String> includes = null;
+
+        if (includeIndex != -1)
+        {
+            createTablePart = query.substring(0, includeIndex).trim();
+            includePart = query.substring(includeIndex).trim();
+        }
+        else
+        {
+            createTablePart = query.trim();
+        }
+
+        try
+        {
+            createTable = (CreateTable) parserManager.parse(new StringReader(createTablePart));
+        }
+        catch (Exception ignore)
+        {
+        }
+
+        if (includePart != null)
+        {
+            includes = parseSpecificIncludes(includePart);
+        }
+
+        return new RisingwaveCreateTableCommand(createTable, includes);
+    }
+
+    public Drop parserDropTable(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+
+    }
+
+    private Map<String, String> parseSpecificIncludes(
+        String includePart)
+    {
+        String[] includeClauses = includePart.toLowerCase().split("include");
+        for (String clause : includeClauses)
+        {
+            clause = clause.trim();
+            if (!clause.isEmpty())
+            {
+                String[] parts = clause.toLowerCase().split("as");
+                if (parts.length == 2)
+                {
+                    String key = parts[0].trim();
+                    String value = parts[1].trim().replace(";", "");
+
+                    if (isValidInclude(key))
+                    {
+                        includeMap.put(key, value);
+                    }
+                }
+            }
+        }
+
+        return includeMap;
+    }
+
+    private static boolean isValidInclude(
+        String key)
+    {
+        return "zilla_correlation_id".equals(key) ||
+               "zilla_identity".equals(key) ||
+               "timestamp".equals(key);
     }
 }

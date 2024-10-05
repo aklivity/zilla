@@ -14,21 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.Index;
 
 public abstract class RisingwaveCommandTemplate
 {
-    protected final CCJSqlParserManager parserManager = new CCJSqlParserManager();
-    protected final Map<String, String> includeMap = new Object2ObjectHashMap<>();
     protected final StringBuilder fieldBuilder = new StringBuilder();
     protected final StringBuilder includeBuilder = new StringBuilder();
 
@@ -72,79 +67,5 @@ public abstract class RisingwaveCommandTemplate
         return primaryKey;
     }
 
-    public RisingwaveCreateTableCommand parserCreateTable(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        String query = buffer.getStringWithoutLengthUtf8(offset, length);
-        query = query.replaceAll("(?i)\\bCREATE\\s+STREAM\\b", "CREATE TABLE");
 
-        int includeIndex = query.indexOf("INCLUDE");
-
-        String createTablePart;
-        String includePart = null;
-
-        CreateTable createTable = null;
-        Map<String, String> includes = null;
-
-        if (includeIndex != -1)
-        {
-            createTablePart = query.substring(0, includeIndex).trim();
-            includePart = query.substring(includeIndex).trim();
-        }
-        else
-        {
-            createTablePart = query.trim();
-        }
-
-        try
-        {
-            createTable = (CreateTable) parserManager.parse(new StringReader(createTablePart));
-        }
-        catch (Exception ignore)
-        {
-        }
-
-        if (includePart != null)
-        {
-            includes = parseSpecificIncludes(includePart);
-        }
-
-        return new RisingwaveCreateTableCommand(createTable, includes);
-    }
-
-    private Map<String, String> parseSpecificIncludes(
-        String includePart)
-    {
-        String[] includeClauses = includePart.toLowerCase().split("include");
-        for (String clause : includeClauses)
-        {
-            clause = clause.trim();
-            if (!clause.isEmpty())
-            {
-                String[] parts = clause.toLowerCase().split("as");
-                if (parts.length == 2)
-                {
-                    String key = parts[0].trim();
-                    String value = parts[1].trim().replace(";", "");
-
-                    if (isValidInclude(key))
-                    {
-                        includeMap.put(key, value);
-                    }
-                }
-            }
-        }
-
-        return includeMap;
-    }
-
-    private static boolean isValidInclude(
-        String key)
-    {
-        return "zilla_correlation_id".equals(key) ||
-               "zilla_identity".equals(key) ||
-               "timestamp".equals(key);
-    }
 }

@@ -20,10 +20,11 @@ public enum RisingwaveCommandType
 {
     CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
     CREATE_TABLE_COMMAND("CREATE TABLE".getBytes()),
-    DROP_TABLE_COMMAND("DROP TABLE".getBytes()),
     CREATE_STREAM_COMMAND("CREATE STREAM".getBytes()),
     CREATE_MATERIALIZED_VIEW_COMMAND("CREATE MATERIALIZED VIEW".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE FUNCTION".getBytes()),
+    DROP_TABLE_COMMAND("DROP TABLE".getBytes()),
+    DROP_STREAM_COMMAND("DROP STREAM".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;
