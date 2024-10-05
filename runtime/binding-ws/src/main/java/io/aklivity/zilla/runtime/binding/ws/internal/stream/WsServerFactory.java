@@ -74,6 +74,9 @@ public final class WsServerFactory implements WsStreamFactory
 
     private static final byte[] HANDSHAKE_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11".getBytes(UTF_8);
     private static final String WEBSOCKET_UPGRADE = "websocket";
+    private static final String WEBSOCKET_PROTOCOL = "websocket";
+    private static final String METHOD_NAME_GET = "GET";
+    private static final String METHOD_NAME_CONNECT = "CONNECT";
     private static final String WEBSOCKET_VERSION_13 = "13";
     private static final int MAXIMUM_HEADER_SIZE = 14;
 
@@ -193,62 +196,77 @@ public final class WsServerFactory implements WsStreamFactory
             headers.merge(name, value, (v1, v2) -> String.format("%s, %s", v1, v2));
         });
 
+        final String method = headers.get(":method");
         final String scheme = headers.get(":scheme");
         final String authority = headers.get(":authority");
         final String path = headers.get(":path");
         final String upgrade = headers.get("upgrade");
+        final String protocol = headers.get(":protocol");
         final String version = headers.get("sec-websocket-version");
-        final String key = headers.get("sec-websocket-key");
-        final String[] protocols = parseProtocols(headers.get("sec-websocket-protocol"));
+        final String[] subprotocols = parseProtocols(headers.get("sec-websocket-protocol"));
         // TODO: need lightweight approach (end)
 
         MessageConsumer newStream = null;
+        WsBindingConfig binding = bindings.get(routedId);
 
-        if (upgrade == null)
+        if (upgrade == null && protocol == null)
         {
             final long newReplyId = supplyReplyId.applyAsLong(initialId);
-            doHttpBegin(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
-                hs -> hs.item(h -> h.name(":status").value("400"))
-                        .item(h -> h.name("connection").value("close")));
+            doHttpBeginInternal(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
+                    hs -> hs.item(h -> h.name(":status").value("400"))
+                            .item(h -> h.name("connection").value("close")));
             doHttpEnd(sender, originId, routedId, newReplyId, traceId);
             newStream = (t, b, o, l) -> {};
         }
-        else if (key != null &&
-                WEBSOCKET_UPGRADE.equalsIgnoreCase(upgrade) &&
-                WEBSOCKET_VERSION_13.equals(version))
+        else
         {
-            WsBindingConfig binding = bindings.get(routedId);
+            WsRouteConfig route = null;
+            String subprotocol = null;
 
-            if (binding != null)
+            for (int i = 0; i < (subprotocols != null ? subprotocols.length : 1); i++)
             {
-                WsRouteConfig route = null;
-                String protocol = null;
+                String newProtocol = subprotocols != null ? subprotocols[i] : null;
+                WsRouteConfig newRoute = binding.resolve(authorization, newProtocol, scheme, authority, path);
 
-                for (int i = 0; i < (protocols != null ? protocols.length : 1); i++)
+                if (newRoute != null && (route == null || newRoute.order < route.order))
                 {
-                    String newProtocol = protocols != null ? protocols[i] : null;
-                    WsRouteConfig newRoute = binding.resolve(authorization, newProtocol, scheme, authority, path);
+                    route = newRoute;
+                    subprotocol = newProtocol;
+                }
+            }
 
-                    if (newRoute != null && (route == null || newRoute.order < route.order))
+            if (route != null && WEBSOCKET_VERSION_13.equals(version))
+            {
+                if (METHOD_NAME_GET.equals(method) && WEBSOCKET_UPGRADE.equalsIgnoreCase(upgrade))
+                {
+                    final String key = headers.get("sec-websocket-key");
+                    if (key != null)
                     {
-                        route = newRoute;
-                        protocol = newProtocol;
+                        newStream = new Ws11Server(
+                                sender,
+                                originId,
+                                routedId,
+                                initialId,
+                                route.id,
+                                key,
+                                subprotocol,
+                                scheme,
+                                authority,
+                                path)::onNetMessage;
                     }
                 }
-
-                if (route != null)
+                else if (METHOD_NAME_CONNECT.equals(method) && WEBSOCKET_PROTOCOL.equalsIgnoreCase(protocol))
                 {
-                    newStream = new WsServer(
-                        sender,
-                        originId,
-                        routedId,
-                        initialId,
-                        route.id,
-                        key,
-                        protocol,
-                        scheme,
-                        authority,
-                        path)::onNetMessage;
+                    newStream = new Ws2Server(
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            route.id,
+                            subprotocol,
+                            scheme,
+                            authority,
+                            path)::onNetMessage;
                 }
             }
         }
@@ -256,15 +274,74 @@ public final class WsServerFactory implements WsStreamFactory
         return newStream;
     }
 
-    private final class WsServer
+    private final class Ws11Server extends WsServer
+    {
+        private final String key;
+
+        private Ws11Server(
+                MessageConsumer receiver,
+                long originId,
+                long routedId,
+                long initialId,
+                long resolvedId,
+                String key,
+                String subprotocol,
+                String scheme,
+                String authority,
+                String path)
+        {
+            super(receiver, originId, routedId, initialId, resolvedId, subprotocol, scheme, authority, path);
+            this.key = key;
+        }
+
+        protected void doNetBegin(
+                long traceId,
+                long authorization,
+                long affinity)
+        {
+            sha1.reset();
+            sha1.update(key.getBytes(US_ASCII));
+            final byte[] digest = sha1.digest(HANDSHAKE_GUID);
+            final Encoder encoder = Base64.getEncoder();
+            final String handshakeHash = new String(encoder.encode(digest), US_ASCII);
+
+            doHttpBegin(traceId, authorization, affinity, setHttp11Headers(handshakeHash, subprotocol));
+        }
+    }
+
+    private final class Ws2Server extends WsServer
+    {
+        private Ws2Server(
+                MessageConsumer receiver,
+                long originId,
+                long routedId,
+                long initialId,
+                long resolvedId,
+                String subprotocol,
+                String scheme,
+                String authority,
+                String path)
+        {
+            super(receiver, originId, routedId, initialId, resolvedId, subprotocol, scheme, authority, path);
+        }
+
+        protected void doNetBegin(
+                long traceId,
+                long authorization,
+                long affinity)
+        {
+            doHttpBegin(traceId, authorization, affinity, setHttp2Headers(subprotocol));
+        }
+    }
+
+    private abstract class WsServer
     {
         private final MessageConsumer receiver;
         private final long originId;
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final String key;
-        private final String protocol;
+        protected final String subprotocol;
         private final String scheme;
         private final String authority;
         private final String path;
@@ -304,8 +381,7 @@ public final class WsServerFactory implements WsStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
-            String key,
-            String protocol,
+            String subprotocol,
             String scheme,
             String authority,
             String path)
@@ -315,8 +391,7 @@ public final class WsServerFactory implements WsStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.key = key;
-            this.protocol = protocol;
+            this.subprotocol = subprotocol;
             this.scheme = scheme;
             this.authority = authority;
             this.path = path;
@@ -328,19 +403,19 @@ public final class WsServerFactory implements WsStreamFactory
             this.stream = new WsStream(routedId, resolvedId);
         }
 
-        private void doNetBegin(
+        protected abstract void doNetBegin(
             long traceId,
             long authorization,
-            long affinity)
-        {
-            sha1.reset();
-            sha1.update(key.getBytes(US_ASCII));
-            final byte[] digest = sha1.digest(HANDSHAKE_GUID);
-            final Encoder encoder = Base64.getEncoder();
-            final String handshakeHash = new String(encoder.encode(digest), US_ASCII);
+            long affinity);
 
-            doHttpBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
-                    setHttpHeaders(handshakeHash, protocol));
+        protected void doHttpBegin(
+                long traceId,
+                long authorization,
+                long affinity,
+                Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> mutator)
+        {
+            doHttpBeginInternal(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                    authorization, affinity, mutator);
         }
 
         private void doNetData(
@@ -504,7 +579,7 @@ public final class WsServerFactory implements WsStreamFactory
             }
         }
 
-        private void onNetMessage(
+        protected void onNetMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -568,7 +643,7 @@ public final class WsServerFactory implements WsStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            stream.doAppBegin(traceId, authorization, affinity, protocol, scheme, authority, path);
+            stream.doAppBegin(traceId, authorization, affinity, subprotocol, scheme, authority, path);
         }
 
         private void onNetData(
@@ -1442,7 +1517,7 @@ public final class WsServerFactory implements WsStreamFactory
         }
     }
 
-    private void doHttpBegin(
+    private void doHttpBeginInternal(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1540,7 +1615,7 @@ public final class WsServerFactory implements WsStreamFactory
                      .sizeof();
     }
 
-    private Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpHeaders(
+    private Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttp11Headers(
         String handshakeHash,
         String protocol)
     {
@@ -1551,6 +1626,19 @@ public final class WsServerFactory implements WsStreamFactory
             headers.item(h -> h.name("connection").value("upgrade"));
             headers.item(h -> h.name("sec-websocket-accept").value(handshakeHash));
 
+            if (protocol != null)
+            {
+                headers.item(h -> h.name("sec-websocket-protocol").value(protocol));
+            }
+        };
+    }
+
+    private Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttp2Headers(
+        String protocol)
+    {
+        return headers ->
+        {
+            headers.item(h -> h.name(":status").value("200"));
             if (protocol != null)
             {
                 headers.item(h -> h.name("sec-websocket-protocol").value(protocol));
