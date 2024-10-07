@@ -98,6 +98,15 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/create.function.embedded.python/client",
+        "${app}/create.function.embedded.python/server" })
+    public void shouldCreateFunctionEmbeddedPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.return.table/client",
         "${app}/create.function.return.table/server"
     })
