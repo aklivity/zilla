@@ -22,4 +22,6 @@ bindings:
     options:
       udf:
         - server: http://localhost:8815
+        - server: http://localhost:8816
+          language: python
     exit: app1

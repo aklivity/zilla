@@ -32,11 +32,12 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE FUNCTION series(int)\n"
-      "RETURNS TABLE ( x int )\n"
-      "AS series\n"
-      "LANGUAGE java\n"
-      "USING LINK 'http://localhost:8815';"
+write "CREATE FUNCTION gcd(a int, b int) RETURNS int LANGUAGE python AS $$\n"
+      "def gcd(a, b):\n"
+      "    while b != 0:\n"
+      "        a, b = b, a % b\n"
+      "    return a\n"
+      "$$;"
       [0x00]
 
 write flush
