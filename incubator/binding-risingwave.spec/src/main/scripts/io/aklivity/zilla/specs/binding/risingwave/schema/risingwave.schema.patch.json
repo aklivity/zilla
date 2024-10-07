@@ -80,13 +80,16 @@
                                             "title": "Language",
                                             "type": "string",
                                             "default": "java",
-                                            "const": "java"
+                                            "enum":
+                                            [
+                                                "java",
+                                                "python"
+                                            ]
                                         }
                                     },
                                     "additionalProperties": false
                                 },
-                                "minItems": 1,
-                                "maxItems": 1
+                                "minItems": 1
                             }
                         },
                         "additionalProperties": false

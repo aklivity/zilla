@@ -48,10 +48,10 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.table/client",
-        "${app}/create.table/server"
+        "${app}/create.stream/client",
+        "${app}/create.stream/server"
     })
-    public void shouldCreateTable() throws Exception
+    public void shouldCreateStream() throws Exception
     {
         k3po.finish();
     }
@@ -88,6 +88,35 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/create.function.python/client",
+        "${app}/create.function.python/server"
+    })
+    public void shouldCreateFunctionPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.function.embedded.python/client",
+        "${app}/create.function.embedded.python/server" })
+    public void shouldCreateFunctionEmbeddedPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.function.return.struct/client",
+        "${app}/create.function.return.struct/server"
+    })
+    public void shouldCreateFunctionReturnStruct() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.return.table/client",
         "${app}/create.function.return.table/server"
     })
@@ -107,9 +136,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.table.with.includes/client",
-        "${app}/create.table.with.includes/server" })
-    public void shouldCreateTableWithIncludes() throws Exception
+        "${app}/create.stream.with.includes/client",
+        "${app}/create.stream.with.includes/server" })
+    public void shouldCreateStreamWithIncludes() throws Exception
     {
         k3po.finish();
     }
@@ -134,9 +163,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.tables/client",
-        "${app}/create.tables/server" })
-    public void shouldCreateTables() throws Exception
+        "${app}/create.streams/client",
+        "${app}/create.streams/server" })
+    public void shouldCreateStreams() throws Exception
     {
         k3po.finish();
     }

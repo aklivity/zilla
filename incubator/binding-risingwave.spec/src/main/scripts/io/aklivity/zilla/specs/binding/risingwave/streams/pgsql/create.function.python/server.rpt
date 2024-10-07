@@ -36,32 +36,14 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TABLE IF NOT EXISTS weather_c "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
+read "CREATE FUNCTION gcd(int, int) RETURNS int "
+     "LANGUAGE python AS gcd;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
-                                .build()
-                              .build()}
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
-
-read "CREATE TABLE IF NOT EXISTS weather_f "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_FUNCTION")
                                 .build()
                               .build()}
 

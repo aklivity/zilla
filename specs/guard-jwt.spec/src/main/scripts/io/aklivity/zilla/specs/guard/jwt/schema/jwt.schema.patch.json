@@ -83,6 +83,12 @@
                             {
                                 "title": "Challenge",
                                 "type": "integer"
+                            },
+                            "identity":
+                            {
+                                "title": "Identity",
+                                "type": "string",
+                                "default": "sub"
                             }
                         },
                         "additionalProperties": false

@@ -144,6 +144,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::decodeCreateTableCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::decodeCreateMaterializedViewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
@@ -1466,7 +1467,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
+        if (server.commandsProcessed == 6)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
@@ -1481,15 +1482,68 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(command.createTable);
-            }
-            else if (server.commandsProcessed == 1 && primaryKey != null)
-            {
-                newStatement = binding.createTable.generate(server.database, command);
+                newStatement = binding.createTopic.generate(command);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generate(server.database, command);
+                newStatement = binding.createSource.generateTableSource(server.database, command);
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                newStatement = binding.createView.generate(command);
+            }
+            else if (server.commandsProcessed == 3)
+            {
+                newStatement = binding.createTable.generate(command);
+            }
+            else if (server.commandsProcessed == 4)
+            {
+                newStatement = binding.createSink.generate(command.createTable);
+            }
+            else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.createSink.generate(server.database, primaryKey, command.createTable);
+            }
+
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.typeCommand = ignoreFlushCommand;
+        }
+    }
+
+    private void decodeCreateStreamCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        if (server.commandsProcessed == 2)
+        {
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_STREAM_COMMAND);
+        }
+        else
+        {
+            final RisingwaveBindingConfig binding = server.binding;
+            final RisingwaveCreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
+
+            String newStatement = "";
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                newStatement = binding.createTopic.generate(command.createTable);
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                newStatement = binding.createSource.generateStreamSource(server.database, command);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());

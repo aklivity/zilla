@@ -29,6 +29,7 @@ public class JwtOptionsConfig extends OptionsConfig
     public final String audience;
     public final List<JwtKeyConfig> keys;
     public final Optional<Duration> challenge;
+    public final String identity;
     public final Optional<String> keysURL;
 
     public static JwtOptionsConfigBuilder<JwtOptionsConfig> builder()
@@ -47,12 +48,14 @@ public class JwtOptionsConfig extends OptionsConfig
         String audience,
         List<JwtKeyConfig> keys,
         Duration challenge,
+        String identity,
         String keysURL)
     {
         this.issuer = issuer;
         this.audience = audience;
         this.keys = keys;
         this.challenge = ofNullable(challenge);
+        this.identity = identity;
         this.keysURL = ofNullable(keysURL);
     }
 }

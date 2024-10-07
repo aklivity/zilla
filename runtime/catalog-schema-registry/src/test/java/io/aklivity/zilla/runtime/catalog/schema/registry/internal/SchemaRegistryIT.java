@@ -145,4 +145,15 @@ public class SchemaRegistryIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("unregister/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${remote}/unregister.schema" })
+    public void shouldUnregisterSchema() throws Exception
+    {
+        k3po.finish();
+    }
 }

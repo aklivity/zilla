@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -32,8 +32,12 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TABLE IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
+write "CREATE FUNCTION gcd(a int, b int) RETURNS int LANGUAGE python AS $$\n"
+      "def gcd(a, b):\n"
+      "    while b != 0:\n"
+      "        a, b = b, a % b\n"
+      "    return a\n"
+      "$$;"
       [0x00]
 
 write flush
@@ -41,7 +45,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TABLE")
+                                .tag("CREATE_FUNCTION")
                                 .build()
                               .build()}
 

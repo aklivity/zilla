@@ -58,4 +58,15 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.topic/client",
+        "${kafka}/drop.topic/server"
+    })
+    public void shouldDropTopic() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -62,9 +62,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.table/client",
-        "${effective}/create.table/server" })
-    public void shouldCreateTable() throws Exception
+        "${pgsql}/create.stream/client",
+        "${effective}/create.stream/server" })
+    public void shouldCreateStream() throws Exception
     {
         k3po.finish();
     }
@@ -72,9 +72,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.tables/client",
-        "${effective}/create.tables/server" })
-    public void shouldCreateTables() throws Exception
+        "${pgsql}/create.streams/client",
+        "${effective}/create.streams/server" })
+    public void shouldCreateStreams() throws Exception
     {
         k3po.finish();
     }
@@ -124,6 +124,36 @@ public class ProxyIT
     @Test
     @Configuration("proxy.function.yaml")
     @Specification({
+        "${pgsql}/create.function.python/client",
+        "${effective}/create.function.python/server" })
+    public void shouldCreateFunctionPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.embedded.python/client",
+        "${effective}/create.function.embedded.python/server" })
+    public void shouldCreateFunctionEmbeddedPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.return.struct/client",
+        "${effective}/create.function.return.struct/server" })
+    public void shouldCreateFunctionReturnStruct() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
         "${pgsql}/create.function.return.table/client",
         "${effective}/create.function.return.table/server" })
     public void shouldCreateFunctionReturnTable() throws Exception
@@ -144,9 +174,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.table.with.includes/client",
-        "${effective}/create.table.with.includes/server" })
-    public void shouldCreateTableWithIncludes() throws Exception
+        "${pgsql}/create.stream.with.includes/client",
+        "${effective}/create.stream.with.includes/server" })
+    public void shouldCreateStreamWithIncludes() throws Exception
     {
         k3po.finish();
     }

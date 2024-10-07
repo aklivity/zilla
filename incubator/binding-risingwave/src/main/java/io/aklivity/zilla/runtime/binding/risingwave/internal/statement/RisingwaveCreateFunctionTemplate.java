@@ -22,6 +22,7 @@ import net.sf.jsqlparser.statement.create.function.CreateFunction;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
+    private static final List<String> KEYWORDS = List.of("LANGUAGE", "AS", "USING");
     private final String sqlFormat = """
         CREATE FUNCTION %s(%s)
         RETURNS %s
@@ -29,12 +30,32 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         LANGUAGE %s
         USING LINK '%s';\u0000""";
 
-    private final RisingwaveUdfConfig udf;
+    private final String java;
+    private final String python;
 
     public RisingwaveCreateFunctionTemplate(
-        RisingwaveUdfConfig udf)
+        List<RisingwaveUdfConfig> udfs)
     {
-        this.udf = udf;
+        String javaServer = null;
+        String pythonServer = null;
+
+        if (udfs != null && !udfs.isEmpty())
+        {
+            for (RisingwaveUdfConfig udf : udfs)
+            {
+                if (udf.language.equalsIgnoreCase("java"))
+                {
+                    javaServer = udf.server;
+                }
+                else if (udf.language.equalsIgnoreCase("python"))
+                {
+                    pythonServer = udf.server;
+                }
+            }
+        }
+
+        this.java = javaServer;
+        this.python = pythonServer;
     }
 
     public String generate(
@@ -54,33 +75,37 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         int returnsIndex = parts.indexOf("RETURNS");
         String returnType = returnsIndex >= 0 ? parts.get(returnsIndex + 1) : "";
 
-        if ("TABLE".equalsIgnoreCase(returnType))
+        if (returnsIndex >= 0)
         {
-            int tableStartIndex = -1;
-            int tableEndIndex = -1;
-            for (int i = returnsIndex; i < parts.size(); i++)
-            {
-                if (parts.get(i).equals("("))
-                {
-                    tableStartIndex = i;
-                }
-                else if (parts.get(i).equals(")"))
-                {
-                    tableEndIndex = i;
-                    break;
-                }
-            }
-
-            if (tableStartIndex >= 0 && tableEndIndex > tableStartIndex)
-            {
-                String tableDefinition = String.join(" ", parts.subList(tableStartIndex + 1, tableEndIndex));
-                returnType += " (" + tableDefinition + ")";
-            }
+            int nextKeywordIndex = findNextKeywordIndex(parts, returnsIndex + 1);
+            returnType = nextKeywordIndex >= 0
+                ? String.join(" ", parts.subList(returnsIndex + 1, nextKeywordIndex))
+                : String.join(" ", parts.subList(returnsIndex + 1, parts.size()));
         }
 
         int asIndex = parts.indexOf("AS");
         String body = asIndex >= 0 ? parts.get(asIndex + 1) : "";
 
-        return sqlFormat.formatted(functionName, parameters, returnType, body, udf.language, udf.server);
+        int langIndex = parts.indexOf("LANGUAGE");
+        String language = langIndex >= 0 ? parts.get(langIndex + 1) : "java";
+
+        return sqlFormat.formatted(functionName, parameters, returnType.trim(), body, language,
+            "python".equalsIgnoreCase(language) ? python : java);
+    }
+
+    private int findNextKeywordIndex(
+        List<String> parts,
+        int startIndex)
+    {
+        int endIndex = -1;
+        for (int index = startIndex; index < parts.size(); index++)
+        {
+            if (KEYWORDS.contains(parts.get(index).toUpperCase()))
+            {
+                endIndex = index;
+                break;
+            }
+        }
+        return endIndex;
     }
 }

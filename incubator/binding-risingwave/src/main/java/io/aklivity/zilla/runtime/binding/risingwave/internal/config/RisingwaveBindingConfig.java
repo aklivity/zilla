@@ -76,20 +76,14 @@ public final class RisingwaveBindingConfig
             location = catalogHandler.location();
         }
 
-        if (options.udfs != null)
-        {
-            udf = options.udfs.get(0);
-        }
-
-        this.createTable = new RisingwaveCreateTableTemplate(bootstrapServer,
-            location, config.kafkaScanStartupTimestampMillis());
+        this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
             location, config.kafkaScanStartupTimestampMillis());
         this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeTemplate();
-        this.createFunction = new RisingwaveCreateFunctionTemplate(udf);
+        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
     }
 
     public RisingwaveRouteConfig resolve(

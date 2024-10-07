@@ -40,6 +40,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String AUDIENCE_NAME = "audience";
     private static final String KEYS_NAME = "keys";
     private static final String CHALLENGE_NAME = "challenge";
+    private static final String IDENTITY_NAME = "identity";
 
     private static final List<JwtKeyConfig> KEYS_DEFAULT = emptyList();
 
@@ -90,6 +91,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (jwtOptions.challenge.isPresent())
         {
             object.add(CHALLENGE_NAME, jwtOptions.challenge.get().getSeconds());
+        }
+
+        if (jwtOptions.identity != null)
+        {
+            object.add(IDENTITY_NAME, jwtOptions.identity);
         }
 
         return object.build();
@@ -147,6 +153,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(CHALLENGE_NAME))
         {
             jwtOptions.challenge(Duration.ofSeconds(object.getInt(CHALLENGE_NAME)));
+        }
+
+        if (object.containsKey(IDENTITY_NAME))
+        {
+            jwtOptions.identity(object.getString(IDENTITY_NAME));
         }
 
         return jwtOptions.build();
