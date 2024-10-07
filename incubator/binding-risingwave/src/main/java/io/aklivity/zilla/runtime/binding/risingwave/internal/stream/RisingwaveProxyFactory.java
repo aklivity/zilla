@@ -150,6 +150,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_TABLE_COMMAND, this::decodeDropTableCommand);
+        clientTransforms.put(RisingwaveCommandType.DROP_MATERIALIZED_VIEW_COMMAND, this::decodeDropMaterializedViewCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -1670,34 +1671,34 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Drop dropTable = sqlCommandParser.parserDropTable(buffer, offset, length);
+            final Drop table = sqlCommandParser.parserDropTable(buffer, offset, length);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.dropTopic.generate(dropTable);
+                newStatement = binding.dropTopic.generate(table);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.dropSource.generate(dropTable, "_source");
+                newStatement = binding.dropSource.generate(table, "_source");
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.dropMaterializedView.generate(dropTable, "_view");
+                newStatement = binding.dropMaterializedView.generate(table, "_view");
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.dropTable.generate(dropTable);
+                newStatement = binding.dropTable.generate(table);
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.dropSink.generate(dropTable, "_view_sink");
+                newStatement = binding.dropSink.generate(table, "_view_sink");
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.dropSink.generate(dropTable);
+                newStatement = binding.dropSink.generate(table);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1727,18 +1728,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Drop dropStream = sqlCommandParser.parserDropTable(buffer, offset, length);
+            final Drop stream = sqlCommandParser.parserDropTable(buffer, offset, length);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.dropTopic.generate(dropStream);
+                newStatement = binding.dropTopic.generate(stream);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.dropSource.generate(dropStream);
+                newStatement = binding.dropSource.generate(stream);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1750,6 +1751,52 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = ignoreFlushCommand;
+        }
+    }
+
+    private void decodeDropMaterializedViewCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        if (server.commandsProcessed == 3)
+        {
+            server.onCommandCompleted(traceId, authorization, length,
+                RisingwaveCompletionCommand.DROP_MATERIALIZED_VIEW_COMMAND);
+        }
+        else
+        {
+            final RisingwaveBindingConfig binding = server.binding;
+            final Drop view = sqlCommandParser.parserDropTable(buffer, offset, length);
+
+            String newStatement = "";
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                newStatement = binding.dropMaterializedView.generate(view);
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                newStatement = binding.dropTopic.generate(view);
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                newStatement = binding.dropSink.generate(view);
+            }
+
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.completionCommand = ignoreFlushCommand;
         }
     }
 

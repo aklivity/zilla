@@ -25,6 +25,7 @@ public enum RisingwaveCommandType
     CREATE_FUNCTION_COMMAND("CREATE FUNCTION".getBytes()),
     DROP_TABLE_COMMAND("DROP TABLE".getBytes()),
     DROP_STREAM_COMMAND("DROP STREAM".getBytes()),
+    DROP_MATERIALIZED_VIEW_COMMAND("DROP MATERIALIZED VIEW".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;

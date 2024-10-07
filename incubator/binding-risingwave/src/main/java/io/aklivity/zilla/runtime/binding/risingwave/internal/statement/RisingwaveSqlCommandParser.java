@@ -159,7 +159,21 @@ public final class RisingwaveSqlCommandParser
         int offset,
         int length)
     {
+        String query = buffer.getStringWithoutLengthUtf8(offset, length);
+        query = query.replaceAll("(?i)\\DROP\\s+STREAM\\b", "DROP TABLE");
+        query = query.replaceAll("(?i)\\DROP\\s+MATERIALIZED VIEW\\b", "DROP VIEW");
 
+        Drop drop = null;
+
+        try
+        {
+            drop = (Drop) parserManager.parse(new StringReader(query));
+        }
+        catch (Exception ignore)
+        {
+        }
+
+        return drop;
     }
 
     private Map<String, String> parseSpecificIncludes(

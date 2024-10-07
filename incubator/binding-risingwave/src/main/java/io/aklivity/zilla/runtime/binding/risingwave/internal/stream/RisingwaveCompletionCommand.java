@@ -22,7 +22,8 @@ public enum RisingwaveCompletionCommand
     CREATE_STREAM_COMMAND("CREATE_STREAM".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE_FUNCTION".getBytes()),
     DROP_TABLE_COMMAND("DROP_TABLE".getBytes()),
-    DROP_STREAM_COMMAND("DROP_STREAM".getBytes());
+    DROP_STREAM_COMMAND("DROP_STREAM".getBytes()),
+    DROP_MATERIALIZED_VIEW_COMMAND("DROP_MATERIALIZED_VIEW".getBytes());
 
     private final byte[] value;
 
