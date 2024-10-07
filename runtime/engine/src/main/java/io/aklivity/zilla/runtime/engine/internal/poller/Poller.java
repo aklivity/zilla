@@ -16,11 +16,14 @@
 package io.aklivity.zilla.runtime.engine.internal.poller;
 
 import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.function.ToIntFunction;
+import java.nio.channels.Selector;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -28,31 +31,40 @@ import org.agrona.nio.TransportPoller;
 
 public final class Poller extends TransportPoller
 {
-    private final ToIntFunction<SelectionKey> selectHandler;
+    private Selector selector;
+    private final Consumer<SelectionKey> selectHandler;
 
     public Poller()
     {
+        try
+        {
+            this.selector = Selector.open();
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
         this.selectHandler = this::handleSelect;
     }
 
     public int doWork()
     {
-        int workDone = 0;
+        int[] workDone = {0};
 
         try
         {
-            if (selector.selectNow() != 0)
+            selector.selectNow(key ->
             {
-                workDone = selectedKeySet.forEach(selectHandler);
-            }
+                selectHandler.accept(key);
+                workDone[0]++;
+            });
         }
         catch (Throwable ex)
         {
-            selectedKeySet.reset();
             LangUtil.rethrowUnchecked(ex);
         }
 
-        return workDone;
+        return workDone[0];
     }
 
     public void onClose()
