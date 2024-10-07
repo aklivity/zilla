@@ -144,6 +144,16 @@ public class ProxyIT
     @Test
     @Configuration("proxy.function.yaml")
     @Specification({
+        "${pgsql}/create.function.return.struct/client",
+        "${effective}/create.function.return.struct/server" })
+    public void shouldCreateFunctionReturnStruct() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
         "${pgsql}/create.function.return.table/client",
         "${effective}/create.function.return.table/server" })
     public void shouldCreateFunctionReturnTable() throws Exception
