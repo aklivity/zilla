@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.97](https://github.com/aklivity/zilla/tree/0.9.97) (2024-10-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.96...0.9.97)
+
+**Implemented enhancements:**
+
+- Support `jwt` guarded identity via custom token claim [\#1276](https://github.com/aklivity/zilla/issues/1276)
+- Support `insert into` to seed `kafka` messages via `risingwave` binding [\#1274](https://github.com/aklivity/zilla/issues/1274)
+
+**Merged pull requests:**
+
+- `pgsql` DROP TOPIC command to KafkaDeleteTopicsBeginEx plus catalog unregister subject [\#1280](https://github.com/aklivity/zilla/pull/1280) ([akrambek](https://github.com/akrambek))
+- external udf - python support [\#1278](https://github.com/aklivity/zilla/pull/1278) ([ankitk-me](https://github.com/ankitk-me))
+- Support jwt guarded identity via custom token claim [\#1277](https://github.com/aklivity/zilla/pull/1277) ([akrambek](https://github.com/akrambek))
+- Support insert into to seed kafka messages via risingwave binding [\#1275](https://github.com/aklivity/zilla/pull/1275) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.96](https://github.com/aklivity/zilla/tree/0.9.96) (2024-10-01)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.95...0.9.96)
