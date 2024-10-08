@@ -753,7 +753,6 @@ public final class ZpmInstall extends ZpmCommand
                 "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
                 String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
-                    "--add-opens java.base/sun.nio.ch=org.agrona.core",
                     "$JAVA_OPTIONS",
                     "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
                     imageDir)));
