@@ -1,0 +1,62 @@
+name: Test Zilla Example
+description: Starts and Runs the test.sh script for a specificy example folder in the zilla-examples repo
+inputs:
+  example-dir:  # id of input
+    description: 'Directory of the example to test'
+    required: true
+    default: ''
+outputs:
+  result:
+    description: "testing results"
+    value: ${{ steps.test-executor.outputs.result }}
+runs:
+  using: "composite"
+  steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: zilla-image
+        path: /tmp
+
+    - name: Load image
+      shell: bash
+      run: |
+        docker load --input /tmp/zilla.tar
+        docker image ls -a
+
+    - name: Checkout docs repo
+      uses: actions/checkout@v4
+      with:
+        repository: aklivity/zilla-examples
+        ref: refs/heads/example-startup-compose
+
+    - name: Startup
+      shell: bash
+      env:
+        ZILLA_VERSION: develop-SNAPSHOT
+        ZILLA_PULL_POLICY: never
+      run: ./startup.sh ${{ inputs.example-dir }}
+
+    - name: Execute Test
+      shell: bash
+      id: test-executor
+      working-directory: openapi.proxy
+      run: |
+        set -o pipefail
+        ./test.sh | tee $GITHUB_STEP_SUMMARY
+
+    - name: Collect docker logs on failure
+      if: failure()
+      uses: jwalton/gh-docker-logs@v2
+      with:
+        dest: './logs'
+    - name: Tar logs
+      shell: bash
+      if: failure()
+      run: tar cvzf ./logs.tgz ./logs
+    - name: Upload logs to GitHub
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: logs.tgz
+        path: ./logs.tgz
