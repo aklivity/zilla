@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class HttpEventContext
 {
-    private static final int EVENT_BUFFER_CAPACITY = 2048;
+    private static final int EVENT_BUFFER_CAPACITY = 8192;
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
