@@ -54,6 +54,7 @@ scope pgsql
 
         union PgsqlFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 80877102: pgsql::stream::PgsqlCancelRequestFlushEx cancelRequest;
             case 84: pgsql::stream::PgsqlTypeFlushEx type;
             case 67: pgsql::stream::PgsqlCompletedFlushEx completion;
             case 90: pgsql::stream::PgsqlReadyFlushEx ready;
@@ -84,6 +85,12 @@ scope pgsql
         struct PgsqlCompletedFlushEx
         {
             string16 tag;
+        }
+
+        struct PgsqlCancelRequestFlushEx
+        {
+            int32 pid = 0;
+            int32 key = 0;
         }
 
         enum PgsqlStatus (uint8)
