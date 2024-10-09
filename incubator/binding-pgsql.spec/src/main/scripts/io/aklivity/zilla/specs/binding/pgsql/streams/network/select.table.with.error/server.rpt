@@ -71,53 +71,18 @@ write [0x5a]                             # type Z
      [0x49]                             # status
 
 read [0x51]                            # type Q
-      28                               # length
-      "SELECT * FROM balances;"
+      27                               # length
+      "SELECT * FROM unknown;"
       [0x00]
 
-write [0x54]                             # type T
-      86                                 # length
-      3s                                 # Field Count
-         "balance"                           # Column name
-         [0x00]                              # End of string
-         0                                   # Table OID
-         0s                                  # Index
-         701                                 # Type OID
-         8s                                  # Length
-         -1                                  # Modifier
-         0s                                  # Format
-         "timestamp"                         # Column name
-         [0x00]                              # End of string
-         0                                   # Table OID
-         0s                                  # Index
-         20                                  # Type OID
-         8s                                  # Length
-         -1                                  # Modifier
-         0s                                  # Format
-         "user_id"                           # Column name
-         [0x00]                              # End of string
-         0                                   # Table OID
-         0s                                  # Index
-         17                                  # Type OID
-         -1s                                 # Length
-         -1                                  # Modifier
-         0s                                  # Format
-
-write [0x44]                             # type D
-      36                                 # length
-      3s                                 # Field Count
-         4                                                           # Length
-         [0x31 0x39 0x36 0x34]                                       # Data
-         10                                                          # Length
-         [0x31 0x37 0x32 0x33 0x35 0x39 0x33 0x31 0x31 0x33]         # Data
-         4                                                           # Length
-         [0x5c 0x78 0x33 0x31]                                       # Data
-
-
-write [0x43]                             # type C
-      13                                 # length
-      "SELECT 1"                         # tag
-      [0x00]                             # End of string
+write [0x45]                             # type E
+      41                                 # length
+      "ERROR"                            # severity
+      [0x00]                             # end of string
+      "XX000"                            # code
+      [0x00]                             # end of string
+      "Failed to run the query."         # code
+      [0x00]                             # end of string
 
 write [0x5a]                             # type Z
       5                                  # length

@@ -169,4 +169,14 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/query.with.multiple.statements.errored/client",
+        "${app}/query.with.multiple.statements.errored/server"
+    })
+    public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -117,4 +117,14 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/select.table.with.error/client",
+        "${app}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
 }

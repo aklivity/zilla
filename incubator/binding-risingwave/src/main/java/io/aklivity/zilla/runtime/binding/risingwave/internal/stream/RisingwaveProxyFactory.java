@@ -79,6 +79,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
+    private static final int COMMAND_PROCESSED_ERRORED = -1;
+    private static final int COMMAND_PROCESSED_NONE = 0;
+
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -263,7 +266,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         private int state;
 
-        private int commandsProcessed = 0;
+        private int commandsProcessed = COMMAND_PROCESSED_NONE;
         private int queryProgressOffset;
 
         private PgsqlServer(
@@ -498,17 +501,20 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
 
         private void onCommandCompleted(
-                long traceId,
-                long authorization,
-                int progress,
-                RisingwaveCompletionCommand command)
+            long traceId,
+            long authorization,
+            int progress,
+            RisingwaveCompletionCommand command)
         {
             final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
-            commandsProcessed = 0;
-            parserSlotOffset -= progress;
+            if (commandsProcessed != COMMAND_PROCESSED_ERRORED)
+            {
+                doCommandCompletion(traceId, authorization, command);
+            }
 
-            doCommandCompletion(traceId, authorization, command);
+            parserSlotOffset -= progress;
+            commandsProcessed = COMMAND_PROCESSED_NONE;
 
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
@@ -541,7 +547,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             PgsqlStatus pgsqlStatus = pgsqlFlushEx.ready().status().get();
             if (pgsqlStatus == PgsqlStatus.IDLE)
             {
-                commandsProcessed++;
+                commandsProcessed = commandsProcessed != COMMAND_PROCESSED_ERRORED
+                    ? commandsProcessed + 1
+                    : COMMAND_PROCESSED_ERRORED;
                 doParseQuery(traceId, authorization);
             }
             else
@@ -921,6 +929,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             case PgsqlFlushExFW.KIND_COMPLETION:
                 onAppCompletionFlush(traceId, authorization, pgsqlFlushEx);
                 break;
+            case PgsqlFlushExFW.KIND_ERROR:
+                onAppErrorFlush(traceId, authorization, pgsqlFlushEx);
+                break;
             case PgsqlFlushExFW.KIND_READY:
                 onAppReadyFlush(traceId, authorization, pgsqlFlushEx);
                 break;
@@ -1005,6 +1016,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             messageOffset = 0;
             completionCommand.handle(server, traceId, authorization, pgsqlFlushEx);
+        }
+
+        private void onAppErrorFlush(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW pgsqlFlushEx)
+        {
+            messageOffset = 0;
+            server.doAppFlush(traceId, authorization, pgsqlFlushEx);
+            server.commandsProcessed = COMMAND_PROCESSED_ERRORED;
         }
 
         private void onAppReadyFlush(
@@ -1467,7 +1488,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 6)
+        if (server.commandsProcessed == 6 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
@@ -1525,7 +1547,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 2)
+        if (server.commandsProcessed == 2 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_STREAM_COMMAND);
         }
@@ -1566,7 +1589,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 4)
+        if (server.commandsProcessed == 4 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             server.onCommandCompleted(traceId, authorization, length,
                 RisingwaveCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
@@ -1623,7 +1647,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 1)
+        if (server.commandsProcessed == 1 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_FUNCTION_COMMAND);
         }
@@ -1660,7 +1685,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int offset,
         int length)
     {
-        if (server.commandsProcessed == 1)
+        if (server.commandsProcessed == 1 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.UNKNOWN_COMMAND);
         }

@@ -23,6 +23,7 @@ import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExF
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlErrorFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFormat;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlMessageType;
@@ -215,6 +216,13 @@ public final class PgsqlFunctions
             return new PgsqlCompletedFlushExBuilder();
         }
 
+        public PgsqlErrorFlushExBuilder error()
+        {
+            flushExRW.kind(PgsqlMessageType.ERROR.value());
+
+            return new PgsqlErrorFlushExBuilder();
+        }
+
         public PgsqlReadyFlushExBuilder ready()
         {
             flushExRW.kind(PgsqlMessageType.READY.value());
@@ -347,6 +355,44 @@ public final class PgsqlFunctions
             {
                 final PgsqlCompletedFlushExFW pgsqlCompletedFlushEx = pgsqlCompletedFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, pgsqlCompletedFlushEx.limit());
+                return PgsqlFlushExBuilder.this;
+            }
+        }
+
+        public final class PgsqlErrorFlushExBuilder
+        {
+            private final PgsqlErrorFlushExFW.Builder pgsqlErrorFlushExRW = new PgsqlErrorFlushExFW.Builder();
+
+            private PgsqlErrorFlushExBuilder()
+            {
+                pgsqlErrorFlushExRW.wrap(writeBuffer, PgsqlFlushExFW.FIELD_OFFSET_TYPE, writeBuffer.capacity());
+            }
+
+            public PgsqlErrorFlushExBuilder severity(
+                String severity)
+            {
+                pgsqlErrorFlushExRW.severity(String.format("%s\u0000", severity));
+                return this;
+            }
+
+            public PgsqlErrorFlushExBuilder code(
+                String code)
+            {
+                pgsqlErrorFlushExRW.code(String.format("%s\u0000", code));
+                return this;
+            }
+
+            public PgsqlErrorFlushExBuilder message(
+                String message)
+            {
+                pgsqlErrorFlushExRW.message(String.format("%s\u0000", message));
+                return this;
+            }
+
+            public PgsqlFlushExBuilder build()
+            {
+                final PgsqlErrorFlushExFW pgsqlErrorFlushEx = pgsqlErrorFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, pgsqlErrorFlushEx.limit());
                 return PgsqlFlushExBuilder.this;
             }
         }

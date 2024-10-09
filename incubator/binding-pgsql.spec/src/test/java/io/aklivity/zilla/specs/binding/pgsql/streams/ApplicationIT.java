@@ -57,6 +57,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/select.table.with.error/client",
+        "${app}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.sent.write.abort/client",
         "${app}/client.sent.write.abort/server" })
     public void shouldHandleClientSentWriteAbort() throws Exception
