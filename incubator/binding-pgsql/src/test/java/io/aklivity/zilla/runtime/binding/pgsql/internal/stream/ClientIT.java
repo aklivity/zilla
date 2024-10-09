@@ -81,6 +81,16 @@ public class ClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/select.table.with.error/client",
+        "${net}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/client.sent.write.abort/client",
         "${net}/client.sent.write.abort/server" })
     public void shouldHandleClientSentWriteAbort() throws Exception

@@ -155,6 +155,27 @@ public class PgsqlFunctionsTest
     }
 
     @Test
+    public void shouldEncodePgsqlFlushErrorExtension()
+    {
+        final byte[] build = flushEx()
+                              .typeId(0x01)
+                              .error()
+                                .severity("ERROR")
+                                .code("XX000")
+                                .message("Failed to run the query.")
+                                .build()
+                              .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals("ERROR\u0000", flushEx.error().severity().asString());
+        assertEquals("XX000\u0000", flushEx.error().code().asString());
+        assertEquals("Failed to run the query.\u0000", flushEx.error().message().asString());
+    }
+
+    @Test
     public void shouldEncodePgsqlFlushReadyExtension()
     {
         final byte[] build = flushEx()

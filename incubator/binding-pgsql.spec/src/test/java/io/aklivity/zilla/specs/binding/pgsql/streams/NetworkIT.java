@@ -57,6 +57,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/select.table.with.error/client",
+        "${net}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/ssl.request/client",
         "${net}/ssl.request/server" })
     public void shouldHandleSslRequest() throws Exception
