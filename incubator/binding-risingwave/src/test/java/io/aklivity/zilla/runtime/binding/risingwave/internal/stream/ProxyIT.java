@@ -103,6 +103,17 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${pgsql}/query.with.multiple.statements.errored/client",
+        "${effective}/query.with.multiple.statements.errored/server"
+    })
+    public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${pgsql}/create.materialized.view/client",
         "${effective}/create.materialized.view/server"
     })
