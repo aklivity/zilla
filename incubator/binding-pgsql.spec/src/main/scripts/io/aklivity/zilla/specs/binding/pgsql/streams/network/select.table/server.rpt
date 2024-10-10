@@ -117,7 +117,7 @@ write [0x44]                             # type D
 write [0x43]                             # type C
       13                                 # length
       "SELECT 1"                         # tag
-     [0x00]                              # End of string
+      [0x00]                             # End of string
 
 write [0x5a]                             # type Z
       5                                  # length

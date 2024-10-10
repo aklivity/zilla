@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.96...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.97...HEAD)
+
+**Fixed bugs:**
+
+- Propagate error code in risingwave binding that's coming either from pgsql-kafka or risingwave [\#1286](https://github.com/aklivity/zilla/issues/1286)
+- Zilla get blocked when sending messages to kafka [\#1268](https://github.com/aklivity/zilla/issues/1268)
+
+**Merged pull requests:**
+
+- Propagate error code in risingwave binding that's coming either from pgsql-kafka or risingwave [\#1288](https://github.com/aklivity/zilla/pull/1288) ([akrambek](https://github.com/akrambek))
+- Increase write buffer size to accomidate longer path [\#1287](https://github.com/aklivity/zilla/pull/1287) ([akrambek](https://github.com/akrambek))
+
+## [0.9.97](https://github.com/aklivity/zilla/tree/0.9.97) (2024-10-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.96...0.9.97)
 
 **Implemented enhancements:**
 
