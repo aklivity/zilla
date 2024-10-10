@@ -111,13 +111,13 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 try
                 {
                     DynamicMessage message = builder.mergeFrom(in).build();
-                    builder.clear();
                     status = message.getUnknownFields().asMap().isEmpty();
                 }
                 catch (IOException ex)
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
+                builder.clear();
             }
         }
         return status;
@@ -175,7 +175,6 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 {
                     parser.merge(input, builder);
                     DynamicMessage message = builder.build();
-                    builder.clear();
                     if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
                     {
                         out.wrap(out.buffer());
@@ -187,6 +186,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
+                builder.clear();
             }
         }
         return valLength;
