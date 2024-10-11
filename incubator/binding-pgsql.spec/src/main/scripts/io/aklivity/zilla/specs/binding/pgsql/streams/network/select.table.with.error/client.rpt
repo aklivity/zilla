@@ -57,7 +57,7 @@ read [0x53]                                 # type S
 read [0x53]                                 # type S
      25                                     # length
      "server_version" [0x00]                # name
-     "1.0.0" [0x00]                         # value
+     "9.1.0" [0x00]                         # value
 
 read [0x53]                                 # type S
      27                                     # length
