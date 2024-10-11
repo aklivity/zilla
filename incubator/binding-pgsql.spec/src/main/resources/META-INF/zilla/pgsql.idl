@@ -34,6 +34,7 @@ scope pgsql
             TYPE (84),
             COMPLETION (67),
             ERROR (69),
+            CANCEL_REQUEST (255),
             READY (90)
         }
 
@@ -55,6 +56,7 @@ scope pgsql
 
         union PgsqlFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 255: pgsql::stream::PgsqlCancelRequestFlushEx cancelRequest;
             case 84: pgsql::stream::PgsqlTypeFlushEx type;
             case 67: pgsql::stream::PgsqlCompletedFlushEx completion;
             case 69: pgsql::stream::PgsqlErrorFlushEx error;
@@ -86,6 +88,12 @@ scope pgsql
         struct PgsqlCompletedFlushEx
         {
             string16 tag;
+        }
+
+        struct PgsqlCancelRequestFlushEx
+        {
+            int32 pid = 0;
+            int32 key = 0;
         }
 
         struct PgsqlErrorFlushEx

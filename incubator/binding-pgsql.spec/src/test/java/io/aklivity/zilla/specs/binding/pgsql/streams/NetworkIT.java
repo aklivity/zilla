@@ -108,4 +108,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/cancel.request/client",
+        "${net}/cancel.request/server" })
+    public void shouldHandleCancelRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

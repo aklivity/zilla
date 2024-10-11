@@ -176,6 +176,25 @@ public class PgsqlFunctionsTest
     }
 
     @Test
+    public void shouldEncodePgsqlFlushCancelRequestExtension()
+    {
+        final byte[] build = flushEx()
+                              .typeId(0x01)
+                              .cancelRequest()
+                                .pid(123)
+                                .key(679)
+                                .build()
+                              .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals(123, flushEx.cancelRequest().pid());
+        assertEquals(679, flushEx.cancelRequest().key());
+    }
+
+    @Test
     public void shouldEncodePgsqlFlushReadyExtension()
     {
         final byte[] build = flushEx()
