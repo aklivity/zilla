@@ -419,7 +419,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private void onAppFlush(
             final FlushFW flush)
         {
-            //NOOP
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+
+            doAppWindow(traceId, authorization);
         }
 
         private void onAppEnd(
