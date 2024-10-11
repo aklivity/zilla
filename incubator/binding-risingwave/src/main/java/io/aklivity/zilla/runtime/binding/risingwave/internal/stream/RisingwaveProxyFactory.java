@@ -314,6 +314,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onAppData(data);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onAppFlush(flush);
+                break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 onAppEnd(end);
@@ -410,6 +414,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     doParseQuery(traceId, authorization);
                 }
             }
+        }
+
+        private void onAppFlush(
+            final FlushFW flush)
+        {
+            //NOOP
         }
 
         private void onAppEnd(
