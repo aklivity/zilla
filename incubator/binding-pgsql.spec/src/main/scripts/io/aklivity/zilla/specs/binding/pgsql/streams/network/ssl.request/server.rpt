@@ -64,7 +64,7 @@ write [0x53]                                 # type S
 write [0x53]                                 # type S
       25                                     # length
       "server_version" [0x00]                # name
-      "1.0.0" [0x00]                         # value
+      "9.1.0" [0x00]                         # value
 
 write [0x53]                                 # type S
       27                                     # length

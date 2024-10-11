@@ -609,14 +609,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             int pid,
             int key)
         {
-            Consumer<OctetsFW.Builder> readyEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+            Consumer<OctetsFW.Builder> cancelRequestEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
                     .typeId(pgsqlTypeId)
                     .cancelRequest(c -> c
                         .pid(pid)
                         .key(key))
                     .build().sizeof());
 
-            stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, readyEx);
+            stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, cancelRequestEx);
         }
 
         private void onDecodeStartup(
@@ -642,7 +642,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             doEncodeParamStatus(traceId, "client_encoding", "UTF8");
             doEncodeParamStatus(traceId, "standard_conforming_strings", "on");
-            doEncodeParamStatus(traceId, "server_version", "1.0.0");
+            doEncodeParamStatus(traceId, "server_version", "9.1.0");
             doEncodeParamStatus(traceId, "application_name", "zilla");
 
             int progress = 0;
@@ -1034,7 +1034,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             int reserved,
             Consumer<OctetsFW.Builder> extension)
         {
-            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+            doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization, initialBudgetId, reserved, extension);
         }
 
@@ -1576,8 +1576,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         int progress = offset;
 
         final PgsqlMessageFW pgsqlMessage = messageRO.tryWrap(buffer, offset, limit);
+        final PgsqlCancelRequestMessageFW cancelRequest = cancelReqMessageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlMessage != null)
+        if (cancelRequest != null &&
+            cancelRequest.code() == CANCEL_REQUEST_CODE)
+        {
+            server.decoder = decodePgsqlCancelRequest;
+        }
+        else if (pgsqlMessage != null)
         {
             final int type = pgsqlMessage.type();
 

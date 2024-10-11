@@ -20,6 +20,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCancelRequestFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
@@ -223,6 +224,13 @@ public final class PgsqlFunctions
             return new PgsqlErrorFlushExBuilder();
         }
 
+        public PgsqlCancelRequestFlushExBuilder cancelRequest()
+        {
+            flushExRW.kind(PgsqlMessageType.CANCEL_REQUEST.value());
+
+            return new PgsqlCancelRequestFlushExBuilder();
+        }
+
         public PgsqlReadyFlushExBuilder ready()
         {
             flushExRW.kind(PgsqlMessageType.READY.value());
@@ -393,6 +401,39 @@ public final class PgsqlFunctions
             {
                 final PgsqlErrorFlushExFW pgsqlErrorFlushEx = pgsqlErrorFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, pgsqlErrorFlushEx.limit());
+                return PgsqlFlushExBuilder.this;
+            }
+        }
+
+        public final class PgsqlCancelRequestFlushExBuilder
+        {
+            private final PgsqlCancelRequestFlushExFW.Builder pgsqlCancelREquestFlushExRW =
+                new PgsqlCancelRequestFlushExFW.Builder();
+
+            private PgsqlCancelRequestFlushExBuilder()
+            {
+                pgsqlCancelREquestFlushExRW.wrap(writeBuffer, PgsqlFlushExFW.FIELD_OFFSET_TYPE, writeBuffer.capacity());
+            }
+
+            public PgsqlCancelRequestFlushExBuilder pid(
+                int pid)
+            {
+                pgsqlCancelREquestFlushExRW.pid(pid);
+                return this;
+            }
+
+            public PgsqlCancelRequestFlushExBuilder key(
+                int key)
+            {
+                pgsqlCancelREquestFlushExRW.key(key);
+                return this;
+            }
+
+            public PgsqlFlushExBuilder build()
+            {
+                final PgsqlCancelRequestFlushExFW pgsqlCancelRequestFlushEx =
+                    pgsqlCancelREquestFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, pgsqlCancelRequestFlushEx.limit());
                 return PgsqlFlushExBuilder.this;
             }
         }
