@@ -60,7 +60,7 @@
     <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.23</byteman.version>
     <jmock.version>2.6.0</jmock.version>
-    <mockito.version>5.8.0</mockito.version>
+    <mockito.version>5.14.1</mockito.version>
     <k3po.version>3.3.0</k3po.version>
     <jmh.version>1.37</jmh.version>
   </properties>
@@ -361,7 +361,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.11</version>
+          <version>0.8.12</version>
           <configuration>
             <propertyName>jacoco.java.option</propertyName>
           </configuration>
