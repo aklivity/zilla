@@ -201,4 +201,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/set.variable/client",
+        "${effective}/set.variable/server" })
+    public void shouldSetVariable() throws Exception
+    {
+        k3po.finish();
+    }
 }

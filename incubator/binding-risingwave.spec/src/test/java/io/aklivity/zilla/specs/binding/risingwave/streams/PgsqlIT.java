@@ -179,4 +179,13 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/set.variable/client",
+        "${app}/set.variable/server" })
+    public void shouldSetVariable() throws Exception
+    {
+        k3po.finish();
+    }
 }

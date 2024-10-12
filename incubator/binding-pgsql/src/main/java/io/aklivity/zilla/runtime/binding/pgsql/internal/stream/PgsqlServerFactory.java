@@ -642,7 +642,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             doEncodeParamStatus(traceId, "client_encoding", "UTF8");
             doEncodeParamStatus(traceId, "standard_conforming_strings", "on");
-            doEncodeParamStatus(traceId, "server_version", "1.0.0");
+            doEncodeParamStatus(traceId, "server_version", "9.1.0");
             doEncodeParamStatus(traceId, "application_name", "zilla");
 
             int progress = 0;

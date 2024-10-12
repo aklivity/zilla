@@ -29,7 +29,8 @@ public final class RisingwaveSqlCommandParser
         "|\\b(CREATE FUNCTION)\\b.*?RETURNS .*?AS.*?;[\\x00\\n]*" +
         "|\\b(CREATE MATERIALIZED VIEW|CREATE SOURCE|CREATE SINK|CREATE INDEX|CREATE STREAM" +
             "|CREATE VIEW|SHOW TABLES|DESCRIBE|SHOW)\\b.*?;[\\x00\\n]*" +
-        "|\\b(SELECT|INSERT|UPDATE|DELETE|ALTER|DROP|CREATE TABLE|CREATE SCHEMA|CREATE DATABASE)\\b.*?;[\\x00\\n]*";
+        "|\\b(SELECT|INSERT|UPDATE|DELETE|ALTER|DROP|CREATE TABLE|CREATE SCHEMA|CREATE DATABASE)\\b.*?;[\\x00\\n]*" +
+        "|\\b(SET)\\b\\s+.*?=.*[\\x00\\n]*";
 
     private final Pattern functionPattern = Pattern.compile(SQL_FUNCTION_PATTERN, Pattern.CASE_INSENSITIVE);
     private final Pattern sqlPattern = Pattern.compile(SQL_COMMAND_PATTERN, Pattern.DOTALL);
