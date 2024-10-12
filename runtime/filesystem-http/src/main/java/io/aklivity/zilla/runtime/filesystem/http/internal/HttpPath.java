@@ -358,11 +358,12 @@ public final class HttpPath implements Path
     {
         HttpRequest.Builder request = HttpRequest.newBuilder()
             .GET()
-            .uri(location);
+            .uri(location)
+            .header("Prefer", "wait=86400");
 
         if (etag != null)
         {
-            request = request.headers("If-None-Match", etag, "Prefer", "wait=86400");
+            request = request.header("If-None-Match", etag);
         }
 
         return request.build();
