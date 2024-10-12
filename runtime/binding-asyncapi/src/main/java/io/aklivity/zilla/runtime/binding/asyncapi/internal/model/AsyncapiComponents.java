@@ -26,5 +26,5 @@ public class AsyncapiComponents
     public Map<String, AsyncapiSchemaItem> schemas;
     public Map<String, AsyncapiCorrelationId> correlationIds;
     public Map<String, AsyncapiTrait> messageTraits;
-    public Map<String, AsyncapiVariable> serverVariables;
+    public Map<String, AsyncapiServerVariable> serverVariables;
 }

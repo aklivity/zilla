@@ -27,7 +27,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiClientNamespaceGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiClientNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;

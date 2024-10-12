@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiHeader
+public class OpenapiHeader extends AbstractOpenapiResolvable
 {
+    public boolean required;
+    public boolean allowEmptyValue;
     public OpenapiSchema schema;
 }

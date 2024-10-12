@@ -22,8 +22,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServerVariable;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiServerView
 {
@@ -60,28 +62,17 @@ public final class OpenapiServerView
         server.url = (url == null || url.isEmpty()) ? defaultUrl : url;
     }
 
-    public static OpenapiServerView of(
-        OpenapiServer server)
-    {
-        return new OpenapiServerView(server);
-    }
-
-    public static OpenapiServerView of(
+    OpenapiServerView(
+        OpenapiResolver resolver,
         OpenapiServer server,
-        Map<String, OpenapiVariable> variables)
-    {
-        return new OpenapiServerView(server, variables);
-    }
-
-    private OpenapiServerView(
-        OpenapiServer server)
+        OpenapiServerConfig config)
     {
         this.server = server;
     }
 
     private OpenapiServerView(
         OpenapiServer server,
-        Map<String, OpenapiVariable> variables)
+        Map<String, OpenapiServerVariable> variables)
     {
         this.server = server;
         Pattern urlPattern = Pattern.compile(variable.reset(Optional.ofNullable(server.url).orElse(""))

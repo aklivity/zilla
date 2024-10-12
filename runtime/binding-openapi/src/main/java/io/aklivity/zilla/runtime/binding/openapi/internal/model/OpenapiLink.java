@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc
+ * Copyright 2021-2023 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,8 +16,12 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
 import java.util.Map;
 
-public class OpenapiServer
+public class OpenapiLink extends AbstractOpenapiResolvable
 {
-    public String url;
-    public Map<String, OpenapiServerVariable> variables;
+    public String operationRef;
+
+    public String operationId;
+    public Map<String, String> parameters;
+    public String requestBody;
+    public OpenapiServer server;
 }

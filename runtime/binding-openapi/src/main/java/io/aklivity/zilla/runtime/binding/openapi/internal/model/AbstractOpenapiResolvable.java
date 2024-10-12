@@ -12,16 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
-
-import java.util.List;
+package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiVariable extends AbstractAsyncapiResolvable
+public class AbstractOpenapiResolvable
 {
-    @JsonbProperty("default")
-    public String defaultValue;
-    @JsonbProperty("enum")
-    public List<String> values;
+    @JsonbProperty("$ref")
+    public String ref;
 }

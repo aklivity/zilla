@@ -24,20 +24,9 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 
 public final class OpenapiPathView
 {
-    private final Map<String, OpenapiOperation> methods;
+    public final Map<String, OpenapiOperation> methods;
 
-    public Map<String, OpenapiOperation> methods()
-    {
-        return methods;
-    }
-
-    public static OpenapiPathView of(
-        OpenapiPathItem pathItem)
-    {
-        return new OpenapiPathView(pathItem);
-    }
-
-    private OpenapiPathView(
+    OpenapiPathView(
         OpenapiPathItem pathItem)
     {
         Map<String, OpenapiOperation> methods = new LinkedHashMap<>();
@@ -52,14 +41,14 @@ public final class OpenapiPathView
         this.methods = unmodifiableMap(methods);
     }
 
-    private static void putIfNotNull(
-        Map<String, OpenapiOperation> methods,
-        String method,
-        OpenapiOperation operation)
+    private static <K, V> void putIfNotNull(
+        Map<K, V> map,
+        K key,
+        V value)
     {
-        if (operation != null)
+        if (value != null)
         {
-            methods.put(method, operation);
+            map.put(key, value);
         }
     }
 }

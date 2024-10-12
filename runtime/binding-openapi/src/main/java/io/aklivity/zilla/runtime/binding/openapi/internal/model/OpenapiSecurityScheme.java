@@ -14,7 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiSecurityScheme
+public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
 {
+    public String type;
+    public String name;
+    public String in;
+    public String scheme;
     public String bearerFormat;
+    public String openidConnectUrl;
 }

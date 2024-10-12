@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServerVariable;
 
-public final class OpenapiVariableView extends OpenapiResolvable<OpenapiVariable>
+public final class OpenapiVariableView extends OpenapiResolvable<OpenapiServerVariable>
 {
-    private final OpenapiVariable variable;
+    private final OpenapiServerVariable variable;
 
     public String refKey()
     {
@@ -38,15 +38,15 @@ public final class OpenapiVariableView extends OpenapiResolvable<OpenapiVariable
     }
 
     public static OpenapiVariableView of(
-        Map<String, OpenapiVariable> variables,
-        OpenapiVariable variable)
+        Map<String, OpenapiServerVariable> variables,
+        OpenapiServerVariable variable)
     {
         return new OpenapiVariableView(variables, variable);
     }
 
     private OpenapiVariableView(
-        Map<String, OpenapiVariable> variables,
-        OpenapiVariable variable)
+        Map<String, OpenapiServerVariable> variables,
+        OpenapiServerVariable variable)
     {
         super(variables, "#/components/serverVariables/(\\w+)");
         this.variable = variable.ref == null ? variable : resolveRef(variable.ref);

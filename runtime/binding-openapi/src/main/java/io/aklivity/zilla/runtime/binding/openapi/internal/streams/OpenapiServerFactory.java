@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiServerNamespaceGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;

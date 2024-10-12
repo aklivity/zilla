@@ -38,12 +38,6 @@ public final class OpenapiOperationsView
         return operationsByPath.get(pathName).get(methodName);
     }
 
-    public static OpenapiOperationsView of(
-        Map<String, OpenapiPathItem> paths)
-    {
-        return new OpenapiOperationsView(paths);
-    }
-
     private OpenapiOperationsView(
         Map<String, OpenapiPathItem> paths)
     {

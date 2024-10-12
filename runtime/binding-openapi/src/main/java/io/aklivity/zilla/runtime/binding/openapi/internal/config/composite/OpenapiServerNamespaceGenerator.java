@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.config;
+package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiNamespaceConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;

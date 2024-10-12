@@ -14,56 +14,68 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import static java.util.Objects.requireNonNull;
+import static io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiCompositeId.compositeId;
+import static java.util.stream.Collectors.toMap;
 
-import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
+import org.agrona.collections.MutableInteger;
+
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiView
 {
-    private final Openapi openapi;
+    public final String label;
+    public final long compositeId;
 
-    public int[] resolvePortsForScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    public URI findFirstServerUrlWithScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer server : openapi.servers)
-        {
-            OpenapiServerView view = OpenapiServerView.of(server);
-            if (scheme.equals(view.url().getScheme()))
-            {
-                result = view.url();
-                break;
-            }
-        }
-        return result;
-    }
+    public final OpenapiComponentsView components;
+    public final Map<String, OpenapiPathView> paths;
+    private Object servers;
 
     public static OpenapiView of(
         Openapi openapi)
     {
-        return new OpenapiView(openapi);
+        return of(0, null, openapi);
+    }
+
+    public static OpenapiView of(
+        int id,
+        String label,
+        Openapi openapi)
+    {
+        return new OpenapiView(id, label, openapi);
     }
 
     private OpenapiView(
-        Openapi openapi)
+        int id,
+        String label,
+        Openapi openapi,
+        List<OpenapiServerConfig> configs)
     {
-        this.openapi = openapi;
+        this.label = label;
+        this.compositeId = compositeId(id, 0);
+
+        OpenapiResolver resolver = new OpenapiResolver(openapi);
+
+        this.servers = openapi.servers != null
+            ? openapi.servers.stream()
+                .map(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                .toList()
+            : null;
+
+        MutableInteger pathIndex = new MutableInteger(1);
+        this.paths = openapi.paths != null
+            ? new TreeMap<>(openapi.paths).entrySet().stream()
+                .collect(toMap(Map.Entry::getKey,
+                    e -> new OpenapiPathView(this, compositeId(id, pathIndex.value++), resolver, e.getKey(), e.getValue())))
+            : null;
+
+        this.components = openapi.components != null
+                ? new OpenapiComponentsView(resolver, openapi.components)
+                : null;
     }
 }

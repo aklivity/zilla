@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiPathItem
+import java.util.List;
+
+public class OpenapiPathItem extends AbstractOpenapiResolvable
 {
     public OpenapiOperation get;
     public OpenapiOperation put;
@@ -24,4 +26,8 @@ public class OpenapiPathItem
     public OpenapiOperation head;
     public OpenapiOperation patch;
     public OpenapiOperation trace;
+
+    public List<OpenapiServer> servers;
+
+    public List<OpenapiParameter> parameters;
 }

@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;

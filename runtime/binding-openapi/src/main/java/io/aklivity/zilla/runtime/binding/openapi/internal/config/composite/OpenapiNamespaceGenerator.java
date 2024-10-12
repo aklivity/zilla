@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.config;
+package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
 
 import static java.util.stream.Collectors.toList;
@@ -28,6 +28,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiNamespaceConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -158,7 +159,7 @@ public abstract class OpenapiNamespaceGenerator
             .collect(toList());
     }
 
-    protected List<OpenapiServerView> filterOpenapiServers(
+    public List<OpenapiServerView> filterOpenapiServers(
         List<OpenapiServer> servers,
         List<OpenapiServerConfig> serverConfigs)
     {
