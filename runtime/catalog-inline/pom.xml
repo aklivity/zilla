@@ -6,7 +6,7 @@
  <parent>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>runtime</artifactId>
-  <version>0.9.98</version>
+  <version>0.9.99</version>
   <relativePath>../pom.xml</relativePath>
 </parent>
 

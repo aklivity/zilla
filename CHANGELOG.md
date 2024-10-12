@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.97...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.98...HEAD)
+
+**Merged pull requests:**
+
+- Update advertised protocol version in pgsql server binding [\#1294](https://github.com/aklivity/zilla/pull/1294) ([akrambek](https://github.com/akrambek))
+- Support cancel request [\#1293](https://github.com/aklivity/zilla/pull/1293) ([akrambek](https://github.com/akrambek))
+
+## [0.9.98](https://github.com/aklivity/zilla/tree/0.9.98) (2024-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.97...0.9.98)
 
 **Fixed bugs:**
 

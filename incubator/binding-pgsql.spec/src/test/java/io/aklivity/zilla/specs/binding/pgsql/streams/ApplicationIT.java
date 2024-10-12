@@ -108,4 +108,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cancel.request/client",
+        "${app}/cancel.request/server" })
+    public void shouldHandleCancelRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }
