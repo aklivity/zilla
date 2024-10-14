@@ -20,7 +20,7 @@ import static org.agrona.CloseHelper.quietClose;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.function.ToIntFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -28,7 +28,7 @@ import org.agrona.nio.TransportPoller;
 
 public final class Poller extends TransportPoller
 {
-    private final ToIntFunction<SelectionKey> selectHandler;
+    private final Consumer<SelectionKey> selectHandler;
 
     public Poller()
     {
@@ -41,14 +41,10 @@ public final class Poller extends TransportPoller
 
         try
         {
-            if (selector.selectNow() != 0)
-            {
-                workDone = selectedKeySet.forEach(selectHandler);
-            }
+            workDone += selector.selectNow(selectHandler);
         }
         catch (Throwable ex)
         {
-            selectedKeySet.reset();
             LangUtil.rethrowUnchecked(ex);
         }
 
