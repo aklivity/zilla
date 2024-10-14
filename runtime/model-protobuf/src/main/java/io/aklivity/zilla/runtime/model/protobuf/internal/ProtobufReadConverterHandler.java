@@ -214,7 +214,10 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
-                builder.clear();
+                finally
+                {
+                    builder.clear();
+                }
             }
         }
         return valLength;

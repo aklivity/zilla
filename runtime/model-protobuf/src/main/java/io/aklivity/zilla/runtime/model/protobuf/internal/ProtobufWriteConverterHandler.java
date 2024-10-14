@@ -117,7 +117,10 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
-                builder.clear();
+                finally
+                {
+                    builder.clear();
+                }
             }
         }
         return status;
@@ -186,7 +189,10 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
-                builder.clear();
+                finally
+                {
+                    builder.clear();
+                }
             }
         }
         return valLength;
