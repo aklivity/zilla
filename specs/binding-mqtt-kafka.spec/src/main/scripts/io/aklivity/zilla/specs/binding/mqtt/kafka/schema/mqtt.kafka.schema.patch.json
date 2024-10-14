@@ -143,13 +143,15 @@
                                                                 "topic":
                                                                 {
                                                                     "title": "Topic",
-                                                                    "type": "string"
+                                                                    "type": "string",
+                                                                    "pattern": "^(\\/?([+\\w{}-]+)(\\/[+\\w{}-]+)*(\\/#)?|#|\\/|\\$SYS(\\/[+\\w{}-]+)*(\\/#)?)$"
                                                                 }
                                                             },
                                                             "additionalProperties": false
                                                         }
                                                     }
-                                                }
+                                                },
+                                                "additionalProperties": false
                                             },
                                             {
                                                 "properties":
@@ -166,13 +168,15 @@
                                                                 "topic":
                                                                 {
                                                                     "title": "Topic",
-                                                                    "type": "string"
+                                                                    "type": "string",
+                                                                    "pattern": "^(\\/?([+\\w{}-]+)(\\/[+\\w{}-]+)*(\\/#)?|#|\\/|\\$SYS(\\/[+\\w{}-]+)*(\\/#)?)$"
                                                                 }
                                                             },
                                                             "additionalProperties": false
                                                         }
                                                     }
-                                                }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         ]
                                     }
