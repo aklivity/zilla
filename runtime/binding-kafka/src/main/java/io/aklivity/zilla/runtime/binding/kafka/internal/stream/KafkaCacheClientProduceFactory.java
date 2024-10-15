@@ -760,7 +760,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 flushClientFanInitialIfNecessary(traceId);
             }
 
-            if ((flags & FLAGS_INCOMPLETE) != 0x00)
+            if ((flags & FLAGS_INCOMPLETE) != 0x00 || error == ERROR_INVALID_RECORD)
             {
                 markEntryDirty(traceId, stream.partitionOffset);
             }
