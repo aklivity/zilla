@@ -20,12 +20,17 @@ public class SQLTableCommandListener extends PostgreSQLParserBaseListener
         return new TableInfo(tableName, columns, primaryKeys);
     }
 
+    @Override   
+    public void enterQualified_name(
+        PostgreSQLParser.Qualified_nameContext ctx)
+    {
+        tableName = ctx.getText();s
+    }
+
     @Override
     public void enterCreatestmt(
         PostgreSQLParser.CreatestmtContext ctx)
     {
-        tableName = ctx.qualified_name().get(0).getText();
-
         columns.clear();
         primaryKeys.clear();
 
