@@ -22,6 +22,7 @@ import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public class SqlTableCommandListener extends PostgreSqlParserBaseListener
 {
@@ -75,12 +76,5 @@ public class SqlTableCommandListener extends PostgreSqlParserBaseListener
                 }
             }
         }
-    }
-
-    public record TableInfo(
-        String tableName,
-        Map<String, String> columns,
-        Set<String> primaryKeys)
-    {
     }
 }

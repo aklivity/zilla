@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlTableCommandListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public final class PgsqlParser
 {
@@ -42,7 +43,7 @@ public final class PgsqlParser
         parser.setErrorHandler(errorStrategy);
     }
 
-    public SqlTableCommandListener.TableInfo parseTable(
+    public TableInfo parseTable(
         String sql)
     {
         CharStream input = CharStreams.fromString(sql);
