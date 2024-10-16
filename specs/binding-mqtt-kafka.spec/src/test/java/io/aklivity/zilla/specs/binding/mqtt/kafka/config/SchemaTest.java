@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -79,5 +80,17 @@ public class SchemaTest
         JsonObject config = schema.validate("proxy.when.client.topic.space.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWhenPublishTopicInvalid()
+    {
+        schema.validate("proxy.when.publish.topic.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWhenSubscribeTopicInvalid()
+    {
+        schema.validate("proxy.when.subscribe.topic.invalid.yaml");
     }
 }

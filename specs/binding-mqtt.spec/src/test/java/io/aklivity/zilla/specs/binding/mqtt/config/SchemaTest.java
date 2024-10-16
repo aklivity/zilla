@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Ignore;
@@ -143,5 +144,17 @@ public class SchemaTest
         JsonObject config = schema.validate("server.route.non.default.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWhenPublishTopicInvalid()
+    {
+        schema.validate("server.when.publish.topic.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWhenSubscribeTopicInvalid()
+    {
+        schema.validate("server.when.subscribe.topic.invalid.yaml");
     }
 }
