@@ -105,6 +105,7 @@ stmt
     | createschemastmt
     | createseqstmt
     | createstmt
+    | createstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
     | createtablespacestmt
@@ -652,6 +653,27 @@ copy_generic_opt_arg_list
 
 copy_generic_opt_arg_list_item
     : opt_boolean_or_string
+    ;
+
+createstreamstmt
+    : CREATE STREAM stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
+    ;
+
+stream_name
+    : qualified_name
+    ;
+
+stream_columns
+    : stream_column (COMMA stream_column)*
+    ;
+
+stream_column
+    : colid typename
+    ;
+
+opt_with_stream
+    : WITH reloptions
+    |
     ;
 
 createstmt
@@ -1569,6 +1591,8 @@ object_type_any_name
     | SEQUENCE
     | VIEW
     | MATERIALIZED VIEW
+    | TOPIC
+    | STREAM
     | INDEX
     | FOREIGN TABLE
     | COLLATION

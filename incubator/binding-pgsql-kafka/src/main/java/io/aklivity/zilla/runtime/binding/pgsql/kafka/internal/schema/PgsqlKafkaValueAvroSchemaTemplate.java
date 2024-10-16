@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.List;
+import java.util.Map;
 
-import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.table.Index;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -35,27 +33,26 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
     public String generateSchema(
         String database,
-        CreateTable createTable)
+        TableInfo createTable)
     {
         schemaBuilder.setLength(0);
 
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = createTable.getTable().getName();
+        final String recordName = createTable.name();
 
         schemaBuilder.append("{\n");
         schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
-        schemaBuilder.append("\"schema\": \""); // Begin the schema field
+        schemaBuilder.append("\"schema\": \"");
 
-        // Building the actual Avro schema
         schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
         schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
         schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
         schemaBuilder.append(" \\\"fields\\\": [");
 
-        for (ColumnDefinition column : createTable.getColumnDefinitions())
+        for (Map.Entry<String, String> column : createTable.columns().entrySet())
         {
-            String fieldName = column.getColumnName();
-            String pgsqlType = column.getColDataType().getDataType();
+            String fieldName = column.getKey();
+            String pgsqlType = column.getValue();
 
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
@@ -63,60 +60,11 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
             schemaBuilder.append(" \\\"type\\\": ").append(avroType).append("},");
         }
 
-        // Remove the last comma and close the fields array
         schemaBuilder.setLength(schemaBuilder.length() - 1);
         schemaBuilder.append("]");
 
-        // Closing the Avro schema
         schemaBuilder.append("}\"\n}");
 
         return schemaBuilder.toString();
-    }
-
-    public String primaryKey(
-        CreateTable statement)
-    {
-        String primaryKey = null;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                    primaryKey = primaryKeyColumns.get(0).columnName;
-                    break match;
-                }
-            }
-        }
-
-        return primaryKey;
-    }
-
-    public int primaryKeyCount(
-        CreateTable statement)
-    {
-        int primaryKeyCount = 0;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    primaryKeyCount = index.getColumns().size();
-                    break match;
-                }
-            }
-        }
-
-        return primaryKeyCount;
     }
 }

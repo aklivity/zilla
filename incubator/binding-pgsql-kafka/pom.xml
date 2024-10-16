@@ -42,8 +42,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.jsqlparser</groupId>
-      <artifactId>jsqlparser</artifactId>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-pgsql</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -195,7 +196,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/pgsql/kafka/internal/types/**/*.class</exclude>
-            <exclude>net/sf/jsqlparser/parser/*</exclude>
           </excludes>
           <rules>
             <rule>

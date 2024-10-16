@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
@@ -35,6 +36,7 @@ public final class PgsqlParser
     private final PostgreSqlLexer lexer;
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
+    private final SqlCommandListener commandListener;
     private final SqlCreateTableListener createTableListener;
     private final SqlCreateMaterializedViewListener createMaterializedViewListener;
     private final SqlDropListener dropListener;
@@ -46,10 +48,18 @@ public final class PgsqlParser
         this.lexer = new PostgreSqlLexer(null);
         this.parser = new PostgreSqlParser(null);
         this.tokens = new CommonTokenStream(lexer);
+        this.commandListener = new SqlCommandListener();
         this.createTableListener = new SqlCreateTableListener();
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener();
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);
+    }
+
+    public String parseCommand(
+        String sql)
+    {
+        parser(sql, commandListener);
+        return commandListener.command();
     }
 
     public TableInfo parseCreateTable(
@@ -77,6 +87,8 @@ public final class PgsqlParser
         String sql,
         PostgreSqlParserBaseListener listener)
     {
+        sql = sql.replace("\u0000", "");
+
         CharStream input = CharStreams.fromString(sql);
         lexer.reset();
         lexer.setInputStream(input);
