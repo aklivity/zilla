@@ -13,11 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-parser grammar PostgreSQLParser;
+parser grammar PostgreSqlParser;
 
 options {
-    tokenVocab = PostgreSQLLexer;
-    superClass = PostgreSQLParserBase;
+    tokenVocab = PostgreSqlLexer;
+    superClass = PostgreSqlParserBase;
 }
 
 @header {
@@ -2001,7 +2001,7 @@ aggregate_with_argtypes_list
 
 createfunc_opt_list
     : createfunc_opt_item+ {
-                ParseRoutineBody(_localctx);
+                parseRoutineBody(_localctx);
             }
     //                    | createfunc_opt_list createfunc_opt_item
     ;

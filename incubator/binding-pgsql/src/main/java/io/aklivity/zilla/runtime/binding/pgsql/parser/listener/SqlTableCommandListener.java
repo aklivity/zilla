@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
 import java.util.Map;
@@ -6,10 +20,10 @@ import java.util.Set;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.collections.ObjectHashSet;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSQLParser;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSQLParserBaseListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 
-public class SQLTableCommandListener extends PostgreSQLParserBaseListener
+public class SqlTableCommandListener extends PostgreSqlParserBaseListener
 {
     private String tableName;
     private final Map<String, String> columns = new Object2ObjectHashMap<>();
@@ -22,19 +36,19 @@ public class SQLTableCommandListener extends PostgreSQLParserBaseListener
 
     @Override
     public void enterQualified_name(
-        PostgreSQLParser.Qualified_nameContext ctx)
+        PostgreSqlParser.Qualified_nameContext ctx)
     {
         tableName = ctx.getText();
     }
 
     @Override
     public void enterCreatestmt(
-        PostgreSQLParser.CreatestmtContext ctx)
+        PostgreSqlParser.CreatestmtContext ctx)
     {
         columns.clear();
         primaryKeys.clear();
 
-        for (PostgreSQLParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())
+        for (PostgreSqlParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())
         {
             if (tableElement.columnDef() != null)
             {
@@ -42,7 +56,7 @@ public class SQLTableCommandListener extends PostgreSQLParserBaseListener
                 String dataType = tableElement.columnDef().typename().getText();
                 columns.put(columnName, dataType);
 
-                for (PostgreSQLParser.ColconstraintContext constraint : tableElement.columnDef().colquallist().colconstraint())
+                for (PostgreSqlParser.ColconstraintContext constraint : tableElement.columnDef().colquallist().colconstraint())
                 {
                     if (constraint.colconstraintelem().PRIMARY() != null &&
                         constraint.colconstraintelem().KEY() != null)
@@ -66,8 +80,7 @@ public class SQLTableCommandListener extends PostgreSQLParserBaseListener
     public record TableInfo(
         String tableName,
         Map<String, String> columns,
-        Set<String> primaryKeys
-    )
+        Set<String> primaryKeys)
     {
     }
 }

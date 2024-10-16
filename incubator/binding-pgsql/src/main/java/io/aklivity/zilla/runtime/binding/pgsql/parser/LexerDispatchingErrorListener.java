@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
-
 import java.util.BitSet;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
@@ -28,12 +27,12 @@ import org.antlr.v4.runtime.dfa.DFA;
 
 public class LexerDispatchingErrorListener implements ANTLRErrorListener
 {
-    @SuppressWarnings("checkstyle:MemberName")
-    Lexer _parent;
+    Lexer parent;
 
-    public LexerDispatchingErrorListener(Lexer parent)
+    public LexerDispatchingErrorListener(
+        Lexer parent)
     {
-        _parent = parent;
+        this.parent = parent;
     }
 
     public void syntaxError(
@@ -44,41 +43,44 @@ public class LexerDispatchingErrorListener implements ANTLRErrorListener
         String msg,
         RecognitionException e)
     {
-        ProxyErrorListener foo = new ProxyErrorListener(_parent.getErrorListeners());
+        ProxyErrorListener foo = new ProxyErrorListener(parent.getErrorListeners());
         foo.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
     }
 
-    public void reportAmbiguity(Parser recognizer,
-                                DFA dfa,
-                                int startIndex,
-                                int stopIndex,
-                                boolean exact,
-                                BitSet ambigAlts,
-                                ATNConfigSet configs)
+    public void reportAmbiguity(
+        Parser recognizer,
+        DFA dfa,
+        int startIndex,
+        int stopIndex,
+        boolean exact,
+        BitSet ambigAlts,
+        ATNConfigSet configs)
     {
-        ProxyErrorListener foo = new ProxyErrorListener(_parent.getErrorListeners());
-        foo.reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs);
+        ProxyErrorListener proxyError = new ProxyErrorListener(parent.getErrorListeners());
+        proxyError.reportAmbiguity(recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs);
     }
 
-    public void reportAttemptingFullContext(Parser recognizer,
-                                            DFA dfa,
-                                            int startIndex,
-                                            int stopIndex,
-                                            BitSet conflictingAlts,
-                                            ATNConfigSet configs)
+    public void reportAttemptingFullContext(
+        Parser recognizer,
+        DFA dfa,
+        int startIndex,
+        int stopIndex,
+        BitSet conflictingAlts,
+        ATNConfigSet configs)
     {
-        ProxyErrorListener foo = new ProxyErrorListener(_parent.getErrorListeners());
-        foo.reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs);
+        ProxyErrorListener proxyError = new ProxyErrorListener(parent.getErrorListeners());
+        proxyError.reportAttemptingFullContext(recognizer, dfa, startIndex, stopIndex, conflictingAlts, configs);
     }
 
-    public void reportContextSensitivity(Parser recognizer,
-                                         DFA dfa,
-                                         int startIndex,
-                                         int stopIndex,
-                                         int prediction,
-                                         ATNConfigSet configs)
+    public void reportContextSensitivity(
+        Parser recognizer,
+        DFA dfa,
+        int startIndex,
+        int stopIndex,
+        int prediction,
+        ATNConfigSet configs)
     {
-        ProxyErrorListener foo = new ProxyErrorListener(_parent.getErrorListeners());
-        foo.reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs);
+        ProxyErrorListener proxyError = new ProxyErrorListener(parent.getErrorListeners());
+        proxyError.reportContextSensitivity(recognizer, dfa, startIndex, stopIndex, prediction, configs);
     }
 }

@@ -13,13 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-lexer grammar PostgreSQLLexer;
+lexer grammar PostgreSqlLexer;
 /* Reference:
  * http://www.postgresql.org/docs/9.3/static/sql-syntax-lexical.html
  */
 
 options {
-    superClass = PostgreSQLLexerBase;
+    superClass = PostgreSqlLexerBase;
     caseInsensitive = true;
 }
 
@@ -115,7 +115,7 @@ Operator:
     )
     //TODO somehow rewrite this part without using Actions
     {
-    HandleLessLessGreaterGreater();
+    handleLessLessGreaterGreater();
    }
 ;
 /* This rule handles operators which end with + or -, and sets the token type to Operator. It is comprised of four
@@ -1408,7 +1408,7 @@ fragment IdentifierStartChar options {
     [\u0100-\uD7FF\uE000-\uFFFF]    {charIsLetter()}?
     |                               // letters which require multiple UTF-16 code units
     [\uD800-\uDBFF] [\uDC00-\uDFFF] {
-    CheckIfUtf32Letter()
+    checkIfUtf32Letter()
    }?
 ;
 
@@ -1509,7 +1509,7 @@ InvalidUnterminatedHexadecimalStringConstant: 'X' UnterminatedStringConstant;
 
 Integral: Digits;
 
-NumericFail: Digits '..' {HandleNumericFail();};
+NumericFail: Digits '..' {handleNumericFail();};
 
 Numeric:
     Digits '.' Digits? /*? replaced with + to solve problem with DOT_DOT .. but this surely must be rewriten */ (
@@ -1557,7 +1557,7 @@ UnterminatedBlockComment:
     ('/'+ | '*'+ | '/'* UnterminatedBlockComment)?
     // Optional assertion to make sure this rule is working as intended
     {
-            UnterminatedBlockCommentDebugAssert();
+            unterminatedBlockCommentDebugAssert();
    }
 ;
 //

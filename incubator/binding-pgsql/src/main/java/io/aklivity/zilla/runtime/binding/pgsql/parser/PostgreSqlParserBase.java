@@ -24,11 +24,10 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.TokenStream;
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
-public abstract class PostgreSQLParserBase extends Parser
+public abstract class PostgreSqlParserBase extends Parser
 {
 
-    public PostgreSQLParserBase(TokenStream input)
+    public PostgreSqlParserBase(TokenStream input)
     {
         super(input);
     }
@@ -37,16 +36,16 @@ public abstract class PostgreSQLParserBase extends Parser
         String script,
         int line)
     {
-        PostgreSQLParser ph = getPostgreSQLParser(script);
+        PostgreSqlParser ph = getPostgreSqlParser(script);
         ParserRuleContext result = ph.root();
         return result;
     }
 
-    public void ParseRoutineBody(
-        PostgreSQLParser.Createfunc_opt_listContext _localctx)
+    public void parseRoutineBody(
+        PostgreSqlParser.Createfunc_opt_listContext localctx)
     {
         String lang = null;
-        for (PostgreSQLParser.Createfunc_opt_itemContext coi : _localctx.createfunc_opt_item())
+        for (PostgreSqlParser.Createfunc_opt_itemContext coi : localctx.createfunc_opt_item())
         {
             if (coi.LANGUAGE() != null)
             {
@@ -75,33 +74,33 @@ public abstract class PostgreSQLParserBase extends Parser
         {
             return;
         }
-        PostgreSQLParser.Createfunc_opt_itemContext func_as = null;
-        for (PostgreSQLParser.Createfunc_opt_itemContext a : _localctx.createfunc_opt_item())
+        PostgreSqlParser.Createfunc_opt_itemContext funcAs = null;
+        for (PostgreSqlParser.Createfunc_opt_itemContext a : localctx.createfunc_opt_item())
         {
             if (a.func_as() != null)
             {
-                func_as = a;
+                funcAs = a;
                 break;
             }
 
         }
-        if (func_as != null)
+        if (funcAs != null)
         {
-            String txt = GetRoutineBodyString(func_as.func_as().sconst(0));
-            PostgreSQLParser ph = getPostgreSQLParser(txt);
+            String txt = getRoutineBodyString(funcAs.func_as().sconst(0));
+            PostgreSqlParser ph = getPostgreSqlParser(txt);
             switch (lang)
             {
             case "plpgsql":
-                func_as.func_as().Definition = ph.plsqlroot();
+                funcAs.func_as().Definition = ph.plsqlroot();
                 break;
             case "sql":
-                func_as.func_as().Definition = ph.root();
+                funcAs.func_as().Definition = ph.root();
                 break;
             }
         }
     }
 
-    private String TrimQuotes(String s)
+    private String trimQuotes(String s)
     {
         return (s == null || s.isEmpty()) ? s : s.substring(1, s.length() - 1);
     }
@@ -125,24 +124,24 @@ public abstract class PostgreSQLParserBase extends Parser
         return r.toString();
     }
 
-    public String GetRoutineBodyString(
-        PostgreSQLParser.SconstContext rule)
+    public String getRoutineBodyString(
+        PostgreSqlParser.SconstContext rule)
     {
-        PostgreSQLParser.AnysconstContext anysconst = rule.anysconst();
-        org.antlr.v4.runtime.tree.TerminalNode StringConstant = anysconst.StringConstant();
-        if (null != StringConstant)
+        PostgreSqlParser.AnysconstContext anysconst = rule.anysconst();
+        org.antlr.v4.runtime.tree.TerminalNode stringConstant = anysconst.StringConstant();
+        if (null != stringConstant)
         {
-            return TrimQuotes(StringConstant.getText());
+            return trimQuotes(stringConstant.getText());
         }
-        org.antlr.v4.runtime.tree.TerminalNode UnicodeEscapeStringConstant = anysconst.UnicodeEscapeStringConstant();
-        if (null != UnicodeEscapeStringConstant)
+        org.antlr.v4.runtime.tree.TerminalNode unicodeEscapeStringConstant = anysconst.UnicodeEscapeStringConstant();
+        if (null != unicodeEscapeStringConstant)
         {
-            return unquote(UnicodeEscapeStringConstant.getText());
+            return unquote(unicodeEscapeStringConstant.getText());
         }
-        org.antlr.v4.runtime.tree.TerminalNode EscapeStringConstant = anysconst.EscapeStringConstant();
-        if (null != EscapeStringConstant)
+        org.antlr.v4.runtime.tree.TerminalNode escapeStringConstant = anysconst.EscapeStringConstant();
+        if (null != escapeStringConstant)
         {
-            return unquote(EscapeStringConstant.getText());
+            return unquote(escapeStringConstant.getText());
         }
         String result = "";
         List<org.antlr.v4.runtime.tree.TerminalNode> dollartext = anysconst.DollarText();
@@ -153,21 +152,20 @@ public abstract class PostgreSQLParserBase extends Parser
         return result;
     }
 
-    @SuppressWarnings("checkstyle:LocalVariableName")
-    public PostgreSQLParser getPostgreSQLParser(
+    public PostgreSqlParser getPostgreSqlParser(
         String script)
     {
         CharStream charStream = CharStreams.fromString(script);
-        Lexer lexer = new PostgreSQLLexer(charStream);
+        Lexer lexer = new PostgreSqlLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
-        PostgreSQLParser parser = new PostgreSQLParser(tokens);
+        PostgreSqlParser parser = new PostgreSqlParser(tokens);
         lexer.removeErrorListeners();
         parser.removeErrorListeners();
-        LexerDispatchingErrorListener listener_lexer =
-            new LexerDispatchingErrorListener((Lexer)(((CommonTokenStream)(this.getInputStream())).getTokenSource()));
-        ParserDispatchingErrorListener listener_parser = new ParserDispatchingErrorListener(this);
-        lexer.addErrorListener(listener_lexer);
-        parser.addErrorListener(listener_parser);
+        LexerDispatchingErrorListener listenerLexer =
+            new LexerDispatchingErrorListener((Lexer)(this.getInputStream().getTokenSource()));
+        ParserDispatchingErrorListener listenerParser = new ParserDispatchingErrorListener(this);
+        lexer.addErrorListener(listenerLexer);
+        parser.addErrorListener(listenerParser);
         return parser;
     }
 }

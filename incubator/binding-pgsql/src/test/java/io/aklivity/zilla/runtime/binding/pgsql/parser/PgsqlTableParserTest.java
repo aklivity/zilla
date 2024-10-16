@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SQLTableCommandListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlTableCommandListener;
 
 public class PgsqlTableParserTest
 {
@@ -37,7 +37,7 @@ public class PgsqlTableParserTest
     public void shouldParseWithPrimaryKeySQL()
     {
         String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
-        SQLTableCommandListener.TableInfo tableInfo = parser.parseTable(sql);
+        SqlTableCommandListener.TableInfo tableInfo = parser.parseTable(sql);
         assertNotNull(tableInfo);
         assertTrue(tableInfo.primaryKeys().contains("id"));
     }
@@ -52,7 +52,7 @@ public class PgsqlTableParserTest
                 age INT,
                 PRIMARY KEY (id, name)
             );""";
-        SQLTableCommandListener.TableInfo command = parser.parseTable(sql);
+        SqlTableCommandListener.TableInfo command = parser.parseTable(sql);
         assertNotNull(command);
         assertEquals(2, command.primaryKeys().size());
         assertEquals(3, command.columns().size());
@@ -64,7 +64,7 @@ public class PgsqlTableParserTest
     public void shouldHandleEmptySQL()
     {
         String sql = "";
-        SQLTableCommandListener.TableInfo command = parser.parseTable(sql);
+        SqlTableCommandListener.TableInfo command = parser.parseTable(sql);
         assertNotNull(command);
     }
 

@@ -20,15 +20,13 @@ import java.util.Deque;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
-public abstract class PostgreSQLLexerBase extends Lexer
+public abstract class PostgreSqlLexerBase extends Lexer
 {
     protected final Deque<String> tags = new ArrayDeque<>();
 
-    protected PostgreSQLLexerBase(CharStream input)
+    protected PostgreSqlLexerBase(CharStream input)
     {
         super(input);
-
     }
 
     public void pushTag()
@@ -56,24 +54,30 @@ public abstract class PostgreSQLLexerBase extends Lexer
         return Character.isLetter(getInputStream().LA(-1));
     }
 
-    public void HandleNumericFail()
+    public void handleNumericFail()
     {
         getInputStream().seek(getInputStream().index() - 2);
-        setType(PostgreSQLLexer.Integral);
+        setType(PostgreSqlLexer.Integral);
     }
 
-    public void HandleLessLessGreaterGreater()
+    public void handleLessLessGreaterGreater()
     {
-        if (getText() == "<<") setType(PostgreSQLLexer.LESS_LESS);
-        if (getText() == ">>") setType(PostgreSQLLexer.GREATER_GREATER);
+        if ("<<".equals(getText()))
+        {
+            setType(PostgreSqlLexer.LESS_LESS);
+        }
+        if (">>".equals(getText()))
+        {
+            setType(PostgreSqlLexer.GREATER_GREATER);
+        }
     }
 
-    public void UnterminatedBlockCommentDebugAssert()
+    public void unterminatedBlockCommentDebugAssert()
     {
         //Debug.Assert(InputStream.LA(1) == -1 /*EOF*/);
     }
 
-    public boolean CheckIfUtf32Letter()
+    public boolean checkIfUtf32Letter()
     {
         int codePoint = getInputStream().LA(-2) << 8 + getInputStream().LA(-1);
         char[] c;

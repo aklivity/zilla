@@ -20,29 +20,29 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SQLTableCommandListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlTableCommandListener;
 
 public final class PgsqlParser
 {
     private final ParseTreeWalker walker;
     private final BailErrorStrategy errorStrategy;
-    private final PostgreSQLLexer lexer;
+    private final PostgreSqlLexer lexer;
     private final CommonTokenStream tokens;
-    private final PostgreSQLParser parser;
-    private final SQLTableCommandListener tableCommand;
+    private final PostgreSqlParser parser;
+    private final SqlTableCommandListener tableCommand;
 
     public PgsqlParser()
     {
         this.walker = new ParseTreeWalker();
         this.errorStrategy = new BailErrorStrategy();
-        this.lexer = new PostgreSQLLexer(null);
-        this.parser = new PostgreSQLParser(null);
+        this.lexer = new PostgreSqlLexer(null);
+        this.parser = new PostgreSqlParser(null);
         this.tokens = new CommonTokenStream(lexer);
-        this.tableCommand = new SQLTableCommandListener();
+        this.tableCommand = new SqlTableCommandListener();
         parser.setErrorHandler(errorStrategy);
     }
 
-    public SQLTableCommandListener.TableInfo parseTable(
+    public SqlTableCommandListener.TableInfo parseTable(
         String sql)
     {
         CharStream input = CharStreams.fromString(sql);
