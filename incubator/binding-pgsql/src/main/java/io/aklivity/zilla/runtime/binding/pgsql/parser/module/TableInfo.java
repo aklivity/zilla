@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 public record TableInfo(
-        String tableName,
+        String name,
         Map<String, String> columns,
         Set<String> primaryKeys)
 {

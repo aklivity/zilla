@@ -14,14 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
+import java.util.Set;
+
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlTableCommandListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
 
 public final class PgsqlParser
 {
@@ -30,7 +35,9 @@ public final class PgsqlParser
     private final PostgreSqlLexer lexer;
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
-    private final SqlTableCommandListener tableCommand;
+    private final SqlCreateTableListener createTableListener;
+    private final SqlCreateMaterializedViewListener createMaterializedViewListener;
+    private final SqlDropListener dropListener;
 
     public PgsqlParser()
     {
@@ -39,12 +46,36 @@ public final class PgsqlParser
         this.lexer = new PostgreSqlLexer(null);
         this.parser = new PostgreSqlParser(null);
         this.tokens = new CommonTokenStream(lexer);
-        this.tableCommand = new SqlTableCommandListener();
+        this.createTableListener = new SqlCreateTableListener();
+        this.createMaterializedViewListener = new SqlCreateMaterializedViewListener();
+        this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);
     }
 
-    public TableInfo parseTable(
+    public TableInfo parseCreateTable(
         String sql)
+    {
+        parser(sql, createTableListener);
+        return createTableListener.tableInfo();
+    }
+
+    public ViewInfo parseCreateMaterializedView(
+        String sql)
+    {
+        parser(sql, createMaterializedViewListener);
+        return createMaterializedViewListener.viewInfo();
+    }
+
+    public Set<String> parseDrop(
+        String sql)
+    {
+        parser(sql, dropListener);
+        return dropListener.drops();
+    }
+
+    private void parser(
+        String sql,
+        PostgreSqlParserBaseListener listener)
     {
         CharStream input = CharStreams.fromString(sql);
         lexer.reset();
@@ -53,8 +84,6 @@ public final class PgsqlParser
         tokens.setTokenSource(lexer);
         parser.setTokenStream(tokens);
 
-        walker.walk(tableCommand, parser.root());
-
-        return tableCommand.tableInfo();
+        walker.walk(listener, parser.root());
     }
 }

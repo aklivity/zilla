@@ -24,22 +24,22 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
-public class SqlTableCommandListener extends PostgreSqlParserBaseListener
+public class SqlCreateTableListener extends PostgreSqlParserBaseListener
 {
-    private String tableName;
+    private String name;
     private final Map<String, String> columns = new Object2ObjectHashMap<>();
     private final Set<String> primaryKeys = new ObjectHashSet<>();
 
     public TableInfo tableInfo()
     {
-        return new TableInfo(tableName, columns, primaryKeys);
+        return new TableInfo(name, columns, primaryKeys);
     }
 
     @Override
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        tableName = ctx.getText();
+        name = ctx.getText();
     }
 
     @Override
@@ -49,30 +49,34 @@ public class SqlTableCommandListener extends PostgreSqlParserBaseListener
         columns.clear();
         primaryKeys.clear();
 
-        for (PostgreSqlParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())
+        if (ctx.opttableelementlist().tableelementlist() != null)
         {
-            if (tableElement.columnDef() != null)
+            for (PostgreSqlParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())
             {
-                String columnName = tableElement.columnDef().colid().getText();
-                String dataType = tableElement.columnDef().typename().getText();
-                columns.put(columnName, dataType);
-
-                for (PostgreSqlParser.ColconstraintContext constraint : tableElement.columnDef().colquallist().colconstraint())
+                if (tableElement.columnDef() != null)
                 {
-                    if (constraint.colconstraintelem().PRIMARY() != null &&
-                        constraint.colconstraintelem().KEY() != null)
+                    String columnName = tableElement.columnDef().colid().getText();
+                    String dataType = tableElement.columnDef().typename().getText();
+                    columns.put(columnName, dataType);
+
+                    for (PostgreSqlParser.ColconstraintContext constraint :
+                        tableElement.columnDef().colquallist().colconstraint())
                     {
-                        primaryKeys.add(columnName);
+                        if (constraint.colconstraintelem().PRIMARY() != null &&
+                            constraint.colconstraintelem().KEY() != null)
+                        {
+                            primaryKeys.add(columnName);
+                        }
                     }
                 }
-            }
-            else if (tableElement.tableconstraint() != null)
-            {
-                if (tableElement.tableconstraint().constraintelem().PRIMARY() != null &&
-                    tableElement.tableconstraint().constraintelem().KEY() != null)
+                else if (tableElement.tableconstraint() != null)
                 {
-                    tableElement.tableconstraint().constraintelem().columnlist().columnElem().forEach(
-                        column -> primaryKeys.add(column.getText()));
+                    if (tableElement.tableconstraint().constraintelem().PRIMARY() != null &&
+                        tableElement.tableconstraint().constraintelem().KEY() != null)
+                    {
+                        tableElement.tableconstraint().constraintelem().columnlist().columnElem().forEach(
+                            column -> primaryKeys.add(column.getText()));
+                    }
                 }
             }
         }
