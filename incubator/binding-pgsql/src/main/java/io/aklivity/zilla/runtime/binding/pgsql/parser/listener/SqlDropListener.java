@@ -14,18 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
-import java.util.Set;
-
-import org.agrona.collections.ObjectHashSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 
 public class SqlDropListener extends PostgreSqlParserBaseListener
 {
-    private final Set<String> drops = new ObjectHashSet<>();
+    private final List<String> drops = new ArrayList<>();
 
-    public Set<String> drops()
+    public List<String> drops()
     {
         return drops;
     }

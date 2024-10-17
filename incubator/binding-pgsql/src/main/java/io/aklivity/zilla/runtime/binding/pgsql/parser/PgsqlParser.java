@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
-import java.util.Set;
+import java.util.List;
 
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
@@ -98,7 +98,7 @@ public final class PgsqlParser
         return createMaterializedViewListener.viewInfo();
     }
 
-    public Set<String> parseDrop(
+    public List<String> parseDrop(
         String sql)
     {
         parser(sql, dropListener);

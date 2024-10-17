@@ -24,8 +24,9 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
 
 public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 {
-    private String name;
     private final List<FunctionArgument> arguments = new ArrayList<>();
+
+    private String name;
     private String returnType;
     private String asFunction;
     private String language;

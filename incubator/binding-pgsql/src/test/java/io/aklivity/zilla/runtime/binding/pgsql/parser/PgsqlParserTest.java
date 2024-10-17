@@ -18,12 +18,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Set;
+import java.util.List;
 
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
 
@@ -154,7 +156,7 @@ public class PgsqlParserTest
     public void shouldParseDropSingleTable()
     {
         String sql = "DROP TABLE test_table;";
-        Set<String> drops = parser.parseDrop(sql);
+        List<String> drops = parser.parseDrop(sql);
         assertEquals(1, drops.size());
         assertTrue(drops.contains("test_table"));
     }
@@ -163,7 +165,7 @@ public class PgsqlParserTest
     public void shouldParseDropMultipleTables()
     {
         String sql = "DROP TABLE table1, table2;";
-        Set<String> drops = parser.parseDrop(sql);
+        List<String> drops = parser.parseDrop(sql);
         assertEquals(2, drops.size());
         assertTrue(drops.contains("table1"));
         assertTrue(drops.contains("table2"));
@@ -173,7 +175,7 @@ public class PgsqlParserTest
     public void shouldHandleEmptyDropStatement()
     {
         String sql = "DROP TABLE;";
-        Set<String> drops = parser.parseDrop(sql);
+        List<String> drops = parser.parseDrop(sql);
         assertEquals(0, drops.size());
     }
 
@@ -181,7 +183,7 @@ public class PgsqlParserTest
     public void shouldParseDropView()
     {
         String sql = "DROP VIEW test_view;";
-        Set<String> drops = parser.parseDrop(sql);
+        List<String> drops = parser.parseDrop(sql);
         assertEquals(1, drops.size());
         assertTrue(drops.contains("test_view"));
     }
@@ -190,9 +192,57 @@ public class PgsqlParserTest
     public void shouldParseDropMaterializedView()
     {
         String sql = "DROP MATERIALIZED VIEW test_materialized_view;";
-        Set<String> drops = parser.parseDrop(sql);
+        List<String> drops = parser.parseDrop(sql);
         assertEquals(1, drops.size());
         assertTrue(drops.contains("test_materialized_view"));
+    }
+
+    @Test
+    public void shouldParseCreateStream()
+    {
+        String sql = "CREATE STREAM test_stream (id INT, name VARCHAR(100));";
+        StreamInfo streamInfo = parser.parseCreateStream(sql);
+        assertNotNull(streamInfo);
+        assertEquals("test_stream", streamInfo.name());
+        assertEquals(2, streamInfo.columns().size());
+        assertEquals("INT", streamInfo.columns().get("id"));
+        assertEquals("VARCHAR(100)", streamInfo.columns().get("name"));
+    }
+
+    @Test
+    public void shouldParseCreateStreamIfNotExists()
+    {
+        String sql = "CREATE STREAM IF NOT EXISTS test_stream (id INT, name VARCHAR(100));";
+        StreamInfo streamInfo = parser.parseCreateStream(sql);
+        assertNotNull(streamInfo);
+        assertEquals("test_stream", streamInfo.name());
+        assertEquals(2, streamInfo.columns().size());
+        assertEquals("INT", streamInfo.columns().get("id"));
+        assertEquals("VARCHAR(100)", streamInfo.columns().get("name"));
+    }
+
+    @Test(expected = ParseCancellationException.class)
+    public void shouldHandleInvalidCreateStream()
+    {
+        String sql = "CREATE STREAM test_stream";
+        parser.parseCreateStream(sql);
+    }
+
+    @Test
+    public void shouldParseCreateFunction()
+    {
+        String sql = "CREATE FUNCTION test_function() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql;";
+        FunctionInfo functionInfo = parser.parseCreateFunction(sql);
+        assertNotNull(functionInfo);
+        assertEquals("test_function", functionInfo.name());
+        assertEquals("INT", functionInfo.returnType());
+    }
+
+    @Test(expected = ParseCancellationException.class)
+    public void shouldHandleInvalidCreateFunction()
+    {
+        String sql = "CREATE FUNCTION test_function()";
+        parser.parseCreateFunction(sql);
     }
 
 }

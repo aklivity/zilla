@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.module;
 import java.util.Map;
 
 public record StreamInfo(
-        String name,
-        Map<String, String> columns)
+    String name,
+    Map<String, String> columns)
 {
 }

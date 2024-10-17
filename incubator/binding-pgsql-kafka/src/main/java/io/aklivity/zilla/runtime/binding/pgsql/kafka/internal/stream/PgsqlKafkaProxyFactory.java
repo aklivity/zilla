@@ -1364,7 +1364,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            Set<String> drops = parser.parseDrop(statement);
+            List<String> drops = parser.parseDrop(statement);
             drops.stream().findFirst().ifPresent(d ->
             {
                 final PgsqlKafkaBindingConfig binding = server.binding;

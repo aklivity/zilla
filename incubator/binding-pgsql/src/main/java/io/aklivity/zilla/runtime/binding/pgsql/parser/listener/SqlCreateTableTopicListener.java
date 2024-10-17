@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
     private String name;
-    private final Map<String, String> columns = new Object2ObjectHashMap<>();
+    private final Map<String, String> columns = new LinkedHashMap<>();
     private final Set<String> primaryKeys = new ObjectHashSet<>();
 
     public TableInfo tableInfo()

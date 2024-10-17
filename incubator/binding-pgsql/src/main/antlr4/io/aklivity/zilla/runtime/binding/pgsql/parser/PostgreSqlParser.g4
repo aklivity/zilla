@@ -656,7 +656,7 @@ copy_generic_opt_arg_list_item
     ;
 
 createstreamstmt
-    : CREATE STREAM stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
+    : CREATE STREAM (IF_P NOT EXISTS)? stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
     ;
 
 stream_name
