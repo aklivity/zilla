@@ -116,4 +116,13 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.write.file/client",
+        "${filesystem}/client.write.file/server"})
+    public void shouldReceiveClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
 }

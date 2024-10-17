@@ -22,6 +22,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -73,6 +74,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
+    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
@@ -408,6 +410,20 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 // reject
             }
             return input;
+        }
+
+        private OutputStream getOutputStream()
+        {
+            OutputStream output = null;
+            try
+            {
+                output = canWritePayload(capabilities) ? Files.newOutputStream(resolvedPath, symlinks) : null;
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return output;
         }
 
         private String calculateHash(
@@ -861,5 +877,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         int capabilities)
     {
         return (capabilities & READ_PAYLOAD_MASK) != 0;
+    }
+
+    private boolean canWritePayload(
+        int capabilities)
+    {
+        return (capabilities & WRITE_PAYLOAD_MASK) != 0;
     }
 }
