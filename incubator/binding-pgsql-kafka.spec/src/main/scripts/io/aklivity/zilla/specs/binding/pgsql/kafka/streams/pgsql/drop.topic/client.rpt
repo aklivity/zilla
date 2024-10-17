@@ -34,6 +34,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "DROP TOPIC cities;"
+      [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
