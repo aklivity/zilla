@@ -23,17 +23,17 @@ public class EnvironmentResolverSpi implements ResolverSpi
     public String resolve(
         String var)
     {
-        String envValue = System.getenv(var);
+        String value = System.getenv(var);
 
-        if (envValue == null)
+        if (value == null)
         {
             System.err.println("Environment variable %s is not set.".formatted(var));
         }
-        else if (envValue.isEmpty() || envValue.isBlank())
+        else if (value.isEmpty() || value.isBlank())
         {
             System.err.println("Environment variable %s is empty.".formatted(var));
         }
 
-        return envValue;
+        return value;
     }
 }
