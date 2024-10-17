@@ -14,8 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
+
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
@@ -29,30 +33,34 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     }
 
     public String generate(
-        CreateView createView)
+        ViewInfo viewInfo)
     {
-        String view = createView.getView().getName();
-        String select = createView.getSelect().toString();
+        String name = viewInfo.name();
+        String select = viewInfo.select();
 
-        return String.format(sqlFormat, view, select);
+        return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        CreateTable createTable = command.createTable;
-        String name = createTable.getTable().getName();
+        String name = tableInfo.name();
 
         String select = "*";
 
-        if (command.includes != null)
+        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (!includes.isEmpty())
         {
             fieldBuilder.setLength(0);
 
-            createTable.getColumnDefinitions()
-                .forEach(c -> fieldBuilder.append(
-                    String.format(fieldFormat, c.getColumnName())));
-            command.includes.forEach((k, v) ->
+            tableInfo.columns().values().stream()
+                .filter(c -> !ZILLA_MAPPINGS.containsKey(c))
+                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c)));
+
+            includes.forEach((k, v) ->
             {
                 if ("timestamp".equals(k))
                 {

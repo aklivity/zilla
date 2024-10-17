@@ -676,7 +676,6 @@ opt_with_stream
     |
     ;
 
-
 createstmt
     : CREATE opttemp opttable_type (IF_P NOT EXISTS)? qualified_name (
         OPEN_PAREN opttableelementlist CLOSE_PAREN optinherit optpartitionspec table_access_method_clause optwith oncommitoption opttablespace

@@ -23,9 +23,13 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
 
@@ -37,7 +41,9 @@ public final class PgsqlParser
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
+    private final SqlCreateStreamListener createStreamListener;
     private final SqlCreateTableTopicListener createTableListener;
+    private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateMaterializedViewListener createMaterializedViewListener;
     private final SqlDropListener dropListener;
 
@@ -50,6 +56,8 @@ public final class PgsqlParser
         this.tokens = new CommonTokenStream(lexer);
         this.commandListener = new SqlCommandListener();
         this.createTableListener = new SqlCreateTableTopicListener();
+        this.createStreamListener = new SqlCreateStreamListener();
+        this.createFunctionListener = new SqlCreateFunctionListener();
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener();
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);
@@ -67,6 +75,20 @@ public final class PgsqlParser
     {
         parser(sql, createTableListener);
         return createTableListener.tableInfo();
+    }
+
+    public StreamInfo parseCreateStream(
+        String sql)
+    {
+        parser(sql, createStreamListener);
+        return createStreamListener.streamInfo();
+    }
+
+    public FunctionInfo parseCreateFunction(
+        String sql)
+    {
+        parser(sql, createFunctionListener);
+        return createFunctionListener.functionInfo();
     }
 
     public ViewInfo parseCreateMaterializedView(

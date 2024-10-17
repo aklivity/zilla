@@ -12,10 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.pgsql.kafka
-{
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.binding.pgsql.parser.module;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaBindingFactorySpi;
+import java.util.List;
+
+public record FunctionInfo(
+    String name,
+    List<FunctionArgument> arguments,
+    String returnType,
+    String asFunction,
+    String language)
+{
 }

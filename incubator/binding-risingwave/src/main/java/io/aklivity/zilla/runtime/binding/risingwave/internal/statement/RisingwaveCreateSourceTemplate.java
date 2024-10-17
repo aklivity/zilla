@@ -15,6 +15,10 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
@@ -46,13 +50,15 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateStreamSource(
         String database,
-        RisingwaveCreateTableCommand command)
+        StreamInfo streamInfo)
     {
-        String table = command.createTable.getTable().getName();
+        String table = streamInfo.name();
 
         includeBuilder.setLength(0);
-        final Map<String, String> includes = command.includes;
-        if (includes != null && !includes.isEmpty())
+        Map<String, String> includes = streamInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
             includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v)));
@@ -64,14 +70,17 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateTableSource(
         String database,
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        String table = command.createTable.getTable().getName();
+        String table = tableInfo.name();
         String sourceName = "%s_source".formatted(table);
 
         includeBuilder.setLength(0);
-        final Map<String, String> includes = command.includes;
-        if (includes != null && !includes.isEmpty())
+        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
             includes.forEach((k, v) ->
@@ -84,7 +93,6 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
                 {
                     includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "zilla_%s_header".formatted(v)));
                 }
-
             });
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }

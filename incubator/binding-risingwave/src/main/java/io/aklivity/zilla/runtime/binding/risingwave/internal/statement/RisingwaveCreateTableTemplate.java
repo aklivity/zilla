@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 {
@@ -28,24 +31,25 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        CreateTable createTable = command.createTable;
-        String topic = createTable.getTable().getName();
-        String primaryKeyField = primaryKey(createTable);
-        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
+        String topic = tableInfo.name();
+        String primaryKey = !tableInfo.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, tableInfo.primaryKeys().stream().findFirst().get())
+            : "";
 
         fieldBuilder.setLength(0);
 
-        createTable.getColumnDefinitions()
-            .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+        tableInfo.columns()
+            .forEach((k, v) -> fieldBuilder.append(
+                String.format(fieldFormat, k, v)));
 
-        if (command.includes != null)
-        {
-            command.includes.forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
-        }
+        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        includes.forEach((k, v) -> fieldBuilder.append(
+            String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

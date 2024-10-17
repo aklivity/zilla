@@ -14,50 +14,45 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import java.util.Map;
+
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
 
-public class SqlCommandListener extends PostgreSqlParserBaseListener
+public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
 {
-    private String command;
+    private String name;
+    private final Map<String, String> columns = new Object2ObjectHashMap<>();
 
-    public String command()
+    public StreamInfo streamInfo()
     {
-        return command;
+        return new StreamInfo(name, columns);
     }
 
     @Override
-    public void enterCreatestmt(
-        PostgreSqlParser.CreatestmtContext ctx)
+    public void enterQualified_name(
+        PostgreSqlParser.Qualified_nameContext ctx)
     {
-        command = "CREATE %s".formatted(ctx.opttable_type().getText());
+        name = ctx.getText();
     }
 
     @Override
     public void enterCreatestreamstmt(
         PostgreSqlParser.CreatestreamstmtContext ctx)
     {
-        command = "CREATE STREAM";
-    }
+        columns.clear();
 
-    @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
-    {
-        command = "CREATE MATERIALIZED VIEW";
-    }
-
-    @Override
-    public void enterCreatefunctionstmt(
-        PostgreSqlParser.CreatefunctionstmtContext ctx)
-    {
-        command = "CREATE FUNCTION";
-    }
-
-    @Override
-    public void enterDropstmt(
-        PostgreSqlParser.DropstmtContext ctx)
-    {
-        command = "DROP %s".formatted(ctx.object_type_any_name().getText());
+        if (ctx.stream_columns() != null)
+        {
+            for (PostgreSqlParser.Stream_columnContext streamElement : ctx.stream_columns().stream_column())
+            {
+                String columnName = streamElement.colid().getText();
+                String dataType = streamElement.typename().getText();
+                columns.put(columnName, dataType);
+            }
+        }
     }
 }
