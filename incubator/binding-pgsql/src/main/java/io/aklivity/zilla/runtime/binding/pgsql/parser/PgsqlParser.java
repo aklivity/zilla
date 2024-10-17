@@ -24,7 +24,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
@@ -37,7 +37,7 @@ public final class PgsqlParser
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
-    private final SqlCreateTableListener createTableListener;
+    private final SqlCreateTableTopicListener createTableListener;
     private final SqlCreateMaterializedViewListener createMaterializedViewListener;
     private final SqlDropListener dropListener;
 
@@ -49,7 +49,7 @@ public final class PgsqlParser
         this.parser = new PostgreSqlParser(null);
         this.tokens = new CommonTokenStream(lexer);
         this.commandListener = new SqlCommandListener();
-        this.createTableListener = new SqlCreateTableListener();
+        this.createTableListener = new SqlCreateTableTopicListener();
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener();
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);

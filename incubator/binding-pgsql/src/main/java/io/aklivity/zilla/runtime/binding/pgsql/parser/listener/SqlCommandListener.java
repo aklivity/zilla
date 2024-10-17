@@ -30,7 +30,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterCreatestmt(
         PostgreSqlParser.CreatestmtContext ctx)
     {
-        command = "CREATE TABLE";
+        command = "CREATE %s".formatted(ctx.opttable_type().getText());
     }
 
     @Override

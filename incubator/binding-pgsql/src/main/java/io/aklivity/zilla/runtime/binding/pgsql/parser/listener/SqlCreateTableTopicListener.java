@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
-public class SqlCreateTableListener extends PostgreSqlParserBaseListener
+public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
     private String name;
     private final Map<String, String> columns = new Object2ObjectHashMap<>();
