@@ -165,4 +165,14 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload/client",
+        "${app}/write.file.payload/server",
+    })
+    public void shouldWriteFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }

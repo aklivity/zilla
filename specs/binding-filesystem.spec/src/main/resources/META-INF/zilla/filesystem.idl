@@ -18,7 +18,10 @@ scope filesystem
     {
         READ_PAYLOAD,
         READ_EXTENSION,
-        READ_CHANGES
+        READ_CHANGES,
+        WRITE_PAYLOAD,
+        WRITE_EXTENSION,
+        WRITE_CHANGES
     }
 
     scope stream

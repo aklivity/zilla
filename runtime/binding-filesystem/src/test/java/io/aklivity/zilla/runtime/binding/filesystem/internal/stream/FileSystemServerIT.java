@@ -252,4 +252,14 @@ public class FileSystemServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload/client",
+    })
+    public void shouldWriteFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }
