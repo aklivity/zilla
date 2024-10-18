@@ -75,6 +75,15 @@ public class PgsqlParserTest
     }
 
     @Test
+    public void shouldParseCreateTableNameWithDoublePrecisionTypeField()
+    {
+        String sql = "CREATE TABLE test (id DOUBLE PRECISION);";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertEquals("test", tableInfo.name());
+        assertEquals("DOUBLE PRECISION", tableInfo.columns().get("id"));
+    }
+
+    @Test
     public void shouldParseCreateTableColumns()
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100));";

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.agrona.collections.ObjectHashSet;
+import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
@@ -29,6 +30,14 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     private String name;
     private final Map<String, String> columns = new LinkedHashMap<>();
     private final Set<String> primaryKeys = new ObjectHashSet<>();
+
+    private final TokenStream tokens;
+
+    public SqlCreateTableTopicListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public TableInfo tableInfo()
     {
@@ -62,7 +71,7 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
                 if (tableElement.columnDef() != null)
                 {
                     String columnName = tableElement.columnDef().colid().getText();
-                    String dataType = tableElement.columnDef().typename().getText();
+                    String dataType = tokens.getText(tableElement.columnDef().typename());
                     columns.put(columnName, dataType);
 
                     for (PostgreSqlParser.ColconstraintContext constraint :

@@ -55,8 +55,8 @@ public final class PgsqlParser
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener();
-        this.createTableListener = new SqlCreateTableTopicListener();
-        this.createStreamListener = new SqlCreateStreamListener();
+        this.createTableListener = new SqlCreateTableTopicListener(tokens);
+        this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
         this.dropListener = new SqlDropListener();

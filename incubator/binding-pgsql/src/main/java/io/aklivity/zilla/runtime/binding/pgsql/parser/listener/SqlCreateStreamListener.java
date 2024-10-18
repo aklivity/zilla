@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.antlr.v4.runtime.TokenStream;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
@@ -25,6 +27,14 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
 {
     private String name;
     private final Map<String, String> columns = new LinkedHashMap<>();
+
+    private final TokenStream tokens;
+
+    public SqlCreateStreamListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public StreamInfo streamInfo()
     {
@@ -55,7 +65,7 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
             for (PostgreSqlParser.Stream_columnContext streamElement : ctx.stream_columns().stream_column())
             {
                 String columnName = streamElement.colid().getText();
-                String dataType = streamElement.typename().getText();
+                String dataType = tokens.getText(streamElement.typename());
                 columns.put(columnName, dataType);
             }
         }
