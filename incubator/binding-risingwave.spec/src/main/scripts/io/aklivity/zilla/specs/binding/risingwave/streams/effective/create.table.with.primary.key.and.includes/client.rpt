@@ -67,11 +67,10 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view AS"
-      " SELECT id, name, description,"
-      " COALESCE(correlation_id, zilla_correlation_id_header::varchar) as correlation_id,"
-      " COALESCE(identity, zilla_identity_header::varchar) as identity,"
-      " timestamp"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view"
+      " AS SELECT id, name, description,"
+      " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id,"
+      " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity, timestamp"
       " FROM cities_source;"
       [0x00]
 write flush
@@ -97,7 +96,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE TABLE IF NOT EXISTS cities"
       " (id VARCHAR, name VARCHAR, description VARCHAR,"
-      " correlation_id VARCHAR, identity VARCHAR, timestamp TIMESTAMP,"
+      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, timestamp TIMESTAMP,"
       " PRIMARY KEY (id));"
       [0x00]
 write flush
@@ -192,7 +191,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS cities "
       "(id VARCHAR, name VARCHAR, description VARCHAR,"
-      " correlation_id VARCHAR, identity VARCHAR, timestamp TIMESTAMP,"
+      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, timestamp TIMESTAMP,"
       " PRIMARY KEY (id));"
       [0x00]
 write flush

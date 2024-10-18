@@ -16,9 +16,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.function.CreateFunction;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
@@ -30,8 +29,8 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         LANGUAGE %s
         USING LINK '%s';\u0000""";
 
-    private final String java;
-    private final String python;
+    private final String javaServer;
+    private final String pythonServer;
 
     public RisingwaveCreateFunctionTemplate(
         List<RisingwaveUdfConfig> udfs)
@@ -54,43 +53,24 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
             }
         }
 
-        this.java = javaServer;
-        this.python = pythonServer;
+        this.javaServer = javaServer;
+        this.pythonServer = pythonServer;
     }
 
     public String generate(
-        Statement statement)
+        FunctionInfo functionInfo)
     {
-        CreateFunction createFunction = (CreateFunction) statement;
-        List<String> parts = createFunction.getFunctionDeclarationParts();
+        String functionName = functionInfo.name();
 
-        String functionName = parts.get(0);
+        List<String> parameters = functionInfo.arguments().stream()
+            .map(arg -> arg.name() != null ? "%s %s".formatted(arg.name(), arg.type()) : arg.type())
+            .toList();
 
-        int paramStartIndex = parts.indexOf("(");
-        int paramEndIndex = parts.indexOf(")");
-        String parameters = paramStartIndex >= 0 && paramEndIndex > paramStartIndex
-            ? String.join(" ", parts.subList(paramStartIndex + 1, paramEndIndex))
-            : "";
+        String language = functionInfo.language();
+        String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
+        String returnType = functionInfo.returnType();
 
-        int returnsIndex = parts.indexOf("RETURNS");
-        String returnType = returnsIndex >= 0 ? parts.get(returnsIndex + 1) : "";
-
-        if (returnsIndex >= 0)
-        {
-            int nextKeywordIndex = findNextKeywordIndex(parts, returnsIndex + 1);
-            returnType = nextKeywordIndex >= 0
-                ? String.join(" ", parts.subList(returnsIndex + 1, nextKeywordIndex))
-                : String.join(" ", parts.subList(returnsIndex + 1, parts.size()));
-        }
-
-        int asIndex = parts.indexOf("AS");
-        String body = asIndex >= 0 ? parts.get(asIndex + 1) : "";
-
-        int langIndex = parts.indexOf("LANGUAGE");
-        String language = langIndex >= 0 ? parts.get(langIndex + 1) : "java";
-
-        return sqlFormat.formatted(functionName, parameters, returnType.trim(), body, language,
-            "python".equalsIgnoreCase(language) ? python : java);
+        return sqlFormat.formatted(functionName, parameters, returnType, "", language, server);
     }
 
     private int findNextKeywordIndex(

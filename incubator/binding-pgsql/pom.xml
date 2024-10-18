@@ -36,6 +36,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
@@ -106,6 +111,10 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
@@ -191,6 +200,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/pgsql/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/pgsql/parser/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
