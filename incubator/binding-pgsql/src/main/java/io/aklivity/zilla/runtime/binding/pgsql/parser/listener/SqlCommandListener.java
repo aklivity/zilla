@@ -26,7 +26,9 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         return command;
     }
 
-    public void resetCommand()
+    @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
     {
         command = "";
     }

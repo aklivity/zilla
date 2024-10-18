@@ -38,6 +38,14 @@ public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListe
     }
 
     @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
+    {
+        name = null;
+        select = null;
+    }
+
+    @Override
     public void enterCreatematviewstmt(
         PostgreSqlParser.CreatematviewstmtContext ctx)
     {

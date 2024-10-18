@@ -36,6 +36,15 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
+    {
+        name = null;
+        columns.clear();
+        primaryKeys.clear();
+    }
+
+    @Override
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
@@ -46,9 +55,6 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     public void enterCreatestmt(
         PostgreSqlParser.CreatestmtContext ctx)
     {
-        columns.clear();
-        primaryKeys.clear();
-
         if (ctx.opttableelementlist().tableelementlist() != null)
         {
             for (PostgreSqlParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())

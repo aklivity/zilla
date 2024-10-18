@@ -30,11 +30,16 @@ public class SqlDropListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
+    {
+        drops.clear();
+    }
+
+    @Override
     public void enterDropstmt(
         PostgreSqlParser.DropstmtContext ctx)
     {
-        drops.clear();
-
         ctx.any_name_list().any_name().forEach(name -> drops.add(name.getText()));
     }
 }

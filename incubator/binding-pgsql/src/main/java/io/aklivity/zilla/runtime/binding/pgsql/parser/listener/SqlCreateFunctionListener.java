@@ -48,6 +48,18 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
+    {
+        name = null;
+        returnType = null;
+        asFunction = null;
+        language = null;
+        arguments.clear();
+        tables.clear();
+    }
+
+    @Override
     public void enterCreatefunctionstmt(
         PostgreSqlParser.CreatefunctionstmtContext ctx)
     {

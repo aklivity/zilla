@@ -32,6 +32,14 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterRoot(
+        PostgreSqlParser.RootContext ctx)
+    {
+        name = null;
+        columns.clear();
+    }
+
+    @Override
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
@@ -42,8 +50,6 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     public void enterCreatestreamstmt(
         PostgreSqlParser.CreatestreamstmtContext ctx)
     {
-        columns.clear();
-
         if (ctx.stream_columns() != null)
         {
             for (PostgreSqlParser.Stream_columnContext streamElement : ctx.stream_columns().stream_column())
