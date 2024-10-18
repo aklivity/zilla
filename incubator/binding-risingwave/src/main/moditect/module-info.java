@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.binding.risingwave
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.binding.pgsql;
 
     exports io.aklivity.zilla.runtime.binding.risingwave.config;
 
