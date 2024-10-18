@@ -54,7 +54,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Reset
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

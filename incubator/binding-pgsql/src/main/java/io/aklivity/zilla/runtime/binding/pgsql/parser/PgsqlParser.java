@@ -28,10 +28,10 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterial
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
 
 public final class PgsqlParser
 {

@@ -19,7 +19,7 @@ module io.aklivity.zilla.runtime.binding.pgsql
 
     exports io.aklivity.zilla.runtime.binding.pgsql.parser;
     exports io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
-    exports io.aklivity.zilla.runtime.binding.pgsql.parser.module;
+    exports io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlBindingFactorySpi;

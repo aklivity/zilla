@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {

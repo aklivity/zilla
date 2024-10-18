@@ -21,8 +21,8 @@ import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionArgument;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 
 

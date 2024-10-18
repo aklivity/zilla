@@ -12,14 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.pgsql.parser.module;
+package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.Map;
-import java.util.Set;
-
-public record TableInfo(
+public record FunctionArgument(
     String name,
-    Map<String, String> columns,
-    Set<String> primaryKeys)
+    String type)
 {
 }

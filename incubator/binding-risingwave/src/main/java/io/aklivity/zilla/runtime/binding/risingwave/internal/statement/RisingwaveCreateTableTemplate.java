@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 {

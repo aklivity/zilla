@@ -23,8 +23,8 @@ import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class RisingwaveCreateSourceTemplateTest
 {

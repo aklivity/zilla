@@ -35,10 +35,10 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;

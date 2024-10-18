@@ -18,13 +18,14 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
 
 public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListener
 {
+    private final TokenStream tokens;
+
     private String name;
     private String select;
-    private TokenStream tokens;
 
     public SqlCreateMaterializedViewListener(
         TokenStream tokens)

@@ -44,7 +44,6 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-pgsql</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

@@ -23,8 +23,8 @@ import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
 
 public class RisingwaveCreateMaterializedViewTemplateTest
 {

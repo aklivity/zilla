@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionArgument;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate

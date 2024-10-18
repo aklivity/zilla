@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
