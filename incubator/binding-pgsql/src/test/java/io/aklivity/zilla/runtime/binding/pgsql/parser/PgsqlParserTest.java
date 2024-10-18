@@ -239,6 +239,17 @@ public class PgsqlParserTest
         assertEquals("INT", functionInfo.returnType());
     }
 
+    @Test
+    public void shouldParseCreateFunctionWithLanguage()
+    {
+        String sql = "CREATE FUNCTION test_function(int) RETURNS TABLE (x INT) LANGUAGE python AS 'test_function';";
+        FunctionInfo functionInfo = parser.parseCreateFunction(sql);
+        assertNotNull(functionInfo);
+        assertEquals("test_function", functionInfo.name());
+        assertEquals("INT", functionInfo.returnType());
+        assertEquals("python", functionInfo.language());
+    }
+
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleInvalidCreateFunction()
     {

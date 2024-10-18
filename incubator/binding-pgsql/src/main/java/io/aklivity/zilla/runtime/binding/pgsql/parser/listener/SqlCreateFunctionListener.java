@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
 public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 {
     private final List<FunctionArgument> arguments = new ArrayList<>();
+    private final List<FunctionArgument> tables = new ArrayList<>();
 
     private String name;
     private String returnType;
@@ -33,7 +34,7 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 
     public FunctionInfo functionInfo()
     {
-        return new FunctionInfo(name, arguments, returnType, asFunction, language);
+        return new FunctionInfo(name, arguments, returnType, tables, asFunction, language);
     }
 
     @Override
@@ -44,15 +45,21 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterFunc_args(
-        PostgreSqlParser.Func_argsContext ctx)
+    public void enterFunc_arg(
+        PostgreSqlParser.Func_argContext ctx)
     {
-        ctx.func_args_list().func_arg().forEach(arg ->
-        {
-            String argName = arg.param_name() != null ? arg.param_name().getText() : null;
-            String argType = arg.func_type().getText();
-            arguments.add(new FunctionArgument(argName, argType));
-        });
+        String argName = ctx.param_name() != null ? ctx.param_name().getText() : null;
+        String argType = ctx.func_type().getText();
+        arguments.add(new FunctionArgument(argName, argType));
+    }
+
+    @Override
+    public void enterTable_func_column(
+        PostgreSqlParser.Table_func_columnContext ctx)
+    {
+        String argName = ctx.param_name() != null ? ctx.param_name().getText() : null;
+        String argType = ctx.func_type().getText();
+        tables.add(new FunctionArgument(argName, argType));
     }
 
     @Override

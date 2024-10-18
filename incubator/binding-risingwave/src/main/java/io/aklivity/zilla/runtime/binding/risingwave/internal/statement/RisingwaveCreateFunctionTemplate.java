@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionArgument;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
-    private static final List<String> KEYWORDS = List.of("LANGUAGE", "AS", "USING");
     private final String sqlFormat = """
         CREATE FUNCTION %s(%s)
         RETURNS %s
@@ -61,31 +61,42 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         FunctionInfo functionInfo)
     {
         String functionName = functionInfo.name();
+        String asFunction = functionInfo.asFunction();
+        List<FunctionArgument> tables = functionInfo.tables();
 
-        List<String> parameters = functionInfo.arguments().stream()
-            .map(arg -> arg.name() != null ? "%s %s".formatted(arg.name(), arg.type()) : arg.type())
-            .toList();
+        fieldBuilder.setLength(0);
 
-        String language = functionInfo.language();
-        String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
-        String returnType = functionInfo.returnType();
+        functionInfo.arguments()
+            .forEach(arg -> fieldBuilder.append(
+                arg.name() != null
+                    ? "%s %s, ".formatted(arg.name(), arg.type())
+                    : "%s, ".formatted(arg.type())));
 
-        return sqlFormat.formatted(functionName, parameters, returnType, "", language, server);
-    }
-
-    private int findNextKeywordIndex(
-        List<String> parts,
-        int startIndex)
-    {
-        int endIndex = -1;
-        for (int index = startIndex; index < parts.size(); index++)
+        if (!functionInfo.arguments().isEmpty())
         {
-            if (KEYWORDS.contains(parts.get(index).toUpperCase()))
-            {
-                endIndex = index;
-                break;
-            }
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
         }
-        return endIndex;
+        String arguments = fieldBuilder.toString();
+
+
+        String language = functionInfo.language() != null ? functionInfo.language() : "java";
+        String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
+
+        String returnType = functionInfo.returnType();
+        if (!tables.isEmpty())
+        {
+            fieldBuilder.setLength(0);
+            fieldBuilder.append("TABLE (");
+            tables.forEach(arg -> fieldBuilder.append(
+                arg.name() != null
+                    ? "%s %s, ".formatted(arg.name(), arg.type())
+                    : "%s, ".formatted(arg.type())));
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+            fieldBuilder.append(")");
+
+            returnType = fieldBuilder.toString();
+        }
+
+        return sqlFormat.formatted(functionName, arguments, returnType, asFunction, language, server);
     }
 }

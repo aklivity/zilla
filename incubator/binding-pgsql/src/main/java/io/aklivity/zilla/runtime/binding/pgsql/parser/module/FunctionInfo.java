@@ -20,6 +20,7 @@ public record FunctionInfo(
     String name,
     List<FunctionArgument> arguments,
     String returnType,
+    List<FunctionArgument> tables,
     String asFunction,
     String language)
 {

@@ -32,9 +32,9 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE FUNCTION gcd(int , int)\n"
+write "CREATE FUNCTION gcd(int, int)\n"
       "RETURNS int\n"
-      "AS gcd\n"
+      "AS 'gcd'\n"
       "LANGUAGE java\n"
       "USING LINK 'http://localhost:8815';"
       [0x00]
