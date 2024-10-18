@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;
 
 public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
@@ -43,13 +40,6 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
         tableInfo.columns()
             .forEach((k, v) -> fieldBuilder.append(
                 String.format(fieldFormat, k, v)));
-
-        Map<String, String> includes = tableInfo.columns().entrySet().stream()
-            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        includes.forEach((k, v) -> fieldBuilder.append(
-            String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

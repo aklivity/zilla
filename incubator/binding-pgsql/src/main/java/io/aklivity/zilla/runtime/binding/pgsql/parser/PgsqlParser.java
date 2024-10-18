@@ -66,6 +66,7 @@ public final class PgsqlParser
     public String parseCommand(
         String sql)
     {
+        commandListener.resetCommand();
         parser(sql, commandListener);
         return commandListener.command();
     }

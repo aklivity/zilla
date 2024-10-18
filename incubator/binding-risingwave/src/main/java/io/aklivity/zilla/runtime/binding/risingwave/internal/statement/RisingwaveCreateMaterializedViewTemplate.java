@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -26,7 +27,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
-    private final String includeFormat = "COALESCE(%s, zilla_%s_header::varchar) as %s, ";
+    private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
 
     public RisingwaveCreateMaterializedViewTemplate()
     {
@@ -50,13 +51,14 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
 
         Map<String, String> includes = tableInfo.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
 
         if (!includes.isEmpty())
         {
             fieldBuilder.setLength(0);
 
-            tableInfo.columns().values().stream()
+            tableInfo.columns().keySet()
+                .stream()
                 .filter(c -> !ZILLA_MAPPINGS.containsKey(c))
                 .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c)));
 
@@ -64,11 +66,11 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
             {
                 if ("timestamp".equals(k))
                 {
-                    fieldBuilder.append(String.format(fieldFormat, v));
+                    fieldBuilder.append(String.format(fieldFormat, k));
                 }
                 else
                 {
-                    fieldBuilder.append(String.format(includeFormat, v, v, v));
+                    fieldBuilder.append(String.format(includeFormat, k, k, k));
                 }
             });
 

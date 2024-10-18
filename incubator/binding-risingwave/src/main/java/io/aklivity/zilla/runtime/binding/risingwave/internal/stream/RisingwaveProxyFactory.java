@@ -67,7 +67,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
-    private static final String SPLIT_STATEMENTS = "\"(?<=;)(?!\\x00)\"";
+    private static final String SPLIT_STATEMENTS = "(?<=;)(?!\\x00)";
     private static final int END_OF_FIELD = 0x00;
 
     private static final int FLAGS_INIT = 0x02;

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -78,7 +79,7 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         includeBuilder.setLength(0);
         Map<String, String> includes = tableInfo.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
 
         if (!includes.isEmpty())
         {
@@ -87,11 +88,11 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
             {
                 if ("timestamp".equals(k))
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), k));
                 }
                 else
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "zilla_%s_header".formatted(v)));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_header".formatted(k)));
                 }
             });
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());

@@ -19,11 +19,16 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListen
 
 public class SqlCommandListener extends PostgreSqlParserBaseListener
 {
-    private String command;
+    private String command = "";
 
     public String command()
     {
         return command;
+    }
+
+    public void resetCommand()
+    {
+        command = "";
     }
 
     @Override
