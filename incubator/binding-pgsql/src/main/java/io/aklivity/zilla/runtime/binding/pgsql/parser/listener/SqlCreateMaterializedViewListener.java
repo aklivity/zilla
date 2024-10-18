@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import org.antlr.v4.runtime.TokenStream;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.ViewInfo;
@@ -22,6 +24,13 @@ public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListe
 {
     private String name;
     private String select;
+    private TokenStream tokens;
+
+    public SqlCreateMaterializedViewListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public ViewInfo viewInfo()
     {
@@ -39,6 +48,6 @@ public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListe
     public void enterSelectstmt(
         PostgreSqlParser.SelectstmtContext ctx)
     {
-        select = ctx.getText();
+        select = tokens.getText(ctx);
     }
 }

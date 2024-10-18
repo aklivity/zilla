@@ -52,13 +52,13 @@ public final class PgsqlParser
         this.walker = new ParseTreeWalker();
         this.errorStrategy = new BailErrorStrategy();
         this.lexer = new PostgreSqlLexer(null);
-        this.parser = new PostgreSqlParser(null);
         this.tokens = new CommonTokenStream(lexer);
+        this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener();
         this.createTableListener = new SqlCreateTableTopicListener();
         this.createStreamListener = new SqlCreateStreamListener();
         this.createFunctionListener = new SqlCreateFunctionListener();
-        this.createMaterializedViewListener = new SqlCreateMaterializedViewListener();
+        this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);
     }

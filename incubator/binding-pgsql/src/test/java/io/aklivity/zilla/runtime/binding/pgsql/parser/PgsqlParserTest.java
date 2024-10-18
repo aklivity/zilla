@@ -127,6 +127,7 @@ public class PgsqlParserTest
         ViewInfo viewInfo = parser.parseCreateMaterializedView(sql);
         assertNotNull(viewInfo);
         assertEquals("test_view", viewInfo.name());
+        assertEquals("SELECT * FROM test_table", viewInfo.select());
     }
 
     @Test(expected = ParseCancellationException.class)
