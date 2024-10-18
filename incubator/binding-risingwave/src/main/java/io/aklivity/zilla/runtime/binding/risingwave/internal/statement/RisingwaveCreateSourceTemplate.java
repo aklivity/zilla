@@ -86,9 +86,9 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
             includeBuilder.append("\n");
             includes.forEach((k, v) ->
             {
-                if ("timestamp".equals(k))
+                if (ZILLA_TIMESTAMP.equals(k))
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), k));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_timestamp".formatted(k)));
                 }
                 else
                 {

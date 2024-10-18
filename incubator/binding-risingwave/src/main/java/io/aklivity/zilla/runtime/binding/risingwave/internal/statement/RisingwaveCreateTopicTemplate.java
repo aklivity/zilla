@@ -61,8 +61,11 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
         fieldBuilder.setLength(0);
 
         streamInfo.columns()
-            .forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, k, v)));
+            .entrySet()
+            .stream()
+            .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .forEach(e -> fieldBuilder.append(
+                String.format(fieldFormat, e.getKey(), e.getValue())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

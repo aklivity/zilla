@@ -71,7 +71,7 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Func_argContext ctx)
     {
         String argName = ctx.param_name() != null ? ctx.param_name().getText() : null;
-        String argType = ctx.func_type().getText();
+        String argType = tokens.getText(ctx.func_type());
         arguments.add(new FunctionArgument(argName, argType));
     }
 

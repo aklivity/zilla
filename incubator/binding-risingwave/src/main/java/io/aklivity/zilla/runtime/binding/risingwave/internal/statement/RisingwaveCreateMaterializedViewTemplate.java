@@ -27,6 +27,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
     private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
+    private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
 
     public RisingwaveCreateMaterializedViewTemplate()
     {
@@ -63,9 +64,9 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
 
             includes.forEach((k, v) ->
             {
-                if ("timestamp".equals(k))
+                if (ZILLA_TIMESTAMP.equals(k))
                 {
-                    fieldBuilder.append(String.format(fieldFormat, k));
+                    fieldBuilder.append(String.format(timestampFormat,  k, k, k));
                 }
                 else
                 {

@@ -34,7 +34,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE STREAM IF NOT EXISTS weather "
       "(city VARCHAR, temperature DOUBLE, date DATE,"
-      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, timestamp TIMESTAMP);"
+      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP);"
       [0x00]
 
 write flush

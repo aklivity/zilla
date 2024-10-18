@@ -64,7 +64,7 @@ public class RisingwaveCreateSourceTemplateTest
         columns.put("id", "INT");
         columns.put("zilla_correlation_id", "VARCHAR");
         columns.put("zilla_identity", "VARCHAR");
-        columns.put("timestamp", "TIMESTAMP");
+        columns.put("zilla_timestamp", "TIMESTAMP");
 
         TableInfo tableInfo = new TableInfo(
             "test_table", columns, Set.of("id"));
@@ -72,7 +72,7 @@ public class RisingwaveCreateSourceTemplateTest
             CREATE SOURCE IF NOT EXISTS test_table_source (*)
             INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id_header
             INCLUDE header 'zilla:identity' AS zilla_identity_header
-            INCLUDE timestamp AS timestamp
+            INCLUDE timestamp AS zilla_timestamp_timestamp
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
@@ -103,6 +103,36 @@ public class RisingwaveCreateSourceTemplateTest
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
+
+        String actualSQL = template.generateStreamSource("test_db", streamInfo);
+
+        assertEquals(expectedSQL, actualSQL);
+    }
+
+    @Test
+    public void shouldGenerateStreamSourceWithEmptyColumnsReturnsSQLWithIncludes()
+    {
+        Map<String, String> columns = new LinkedHashMap<>();
+        columns.put("id", "INT");
+        columns.put("zilla_correlation_id", "VARCHAR");
+        columns.put("zilla_identity", "VARCHAR");
+        columns.put("zilla_timestamp", "TIMESTAMP");
+
+        String expectedSQL = """
+            CREATE SOURCE IF NOT EXISTS include_stream (*)
+            INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id
+            INCLUDE header 'zilla:identity' AS zilla_identity
+            INCLUDE timestamp AS zilla_timestamp
+            WITH (
+               connector='kafka',
+               properties.bootstrap.server='localhost:9092',
+               topic='test_db.include_stream',
+               scan.startup.mode='latest',
+               scan.startup.timestamp.millis='1627846260000'
+            ) FORMAT PLAIN ENCODE AVRO (
+               schema.registry = 'http://localhost:8081'
+            );\u0000""";
+        StreamInfo streamInfo = new StreamInfo("include_stream", columns);
 
         String actualSQL = template.generateStreamSource("test_db", streamInfo);
 

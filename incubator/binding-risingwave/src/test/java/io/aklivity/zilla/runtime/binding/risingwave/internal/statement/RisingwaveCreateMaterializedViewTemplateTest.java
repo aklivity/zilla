@@ -77,12 +77,13 @@ public class RisingwaveCreateMaterializedViewTemplateTest
         columns.put("id", "INT");
         columns.put("zilla_correlation_id", "VARCHAR");
         columns.put("zilla_identity", "VARCHAR");
-        columns.put("timestamp", "TIMESTAMP");
+        columns.put("zilla_timestamp", "TIMESTAMP");
 
         TableInfo tableInfo = new TableInfo("test_table", columns, Set.of("id"));
         String expectedSQL = "CREATE MATERIALIZED VIEW IF NOT EXISTS test_table_view AS SELECT id," +
             " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id," +
-            " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity, timestamp" +
+            " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity," +
+            " COALESCE(zilla_timestamp, zilla_timestamp_timestamp::varchar) as zilla_timestamp" +
             " FROM test_table_source;\u0000";
 
         String actualSQL = template.generate(tableInfo);

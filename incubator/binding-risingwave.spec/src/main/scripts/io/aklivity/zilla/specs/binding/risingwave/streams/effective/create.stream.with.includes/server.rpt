@@ -39,7 +39,7 @@ read zilla:data.ext ${pgsql:dataEx()
 read  "CREATE SOURCE IF NOT EXISTS weather (*)\n"
       "INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id\n"
       "INCLUDE header 'zilla:identity' AS zilla_identity\n"
-      "INCLUDE timestamp AS timestamp\n"
+      "INCLUDE timestamp AS zilla_timestamp\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
@@ -88,8 +88,7 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE TOPIC IF NOT EXISTS weather "
-     "(city VARCHAR, temperature DOUBLE, date DATE,"
-     " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, timestamp TIMESTAMP);"
+     "(city VARCHAR, temperature DOUBLE, date DATE);"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
