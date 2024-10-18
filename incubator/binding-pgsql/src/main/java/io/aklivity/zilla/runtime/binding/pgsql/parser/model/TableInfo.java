@@ -12,22 +12,14 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
+package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
 import java.util.Map;
+import java.util.Set;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-
-public final class RisingwaveCreateTableCommand
+public record TableInfo(
+    String name,
+    Map<String, String> columns,
+    Set<String> primaryKeys)
 {
-    public final CreateTable createTable;
-    public final Map<String, String> includes;
-
-    public RisingwaveCreateTableCommand(
-        CreateTable createTable,
-        Map<String, String> includes)
-    {
-        this.createTable = createTable;
-        this.includes = includes;
-    }
 }

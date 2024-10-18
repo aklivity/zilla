@@ -14,8 +14,8 @@
  */
 module io.aklivity.zilla.runtime.binding.risingwave
 {
-    requires net.sf.jsqlparser;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.binding.pgsql;
 
     exports io.aklivity.zilla.runtime.binding.risingwave.config;
 

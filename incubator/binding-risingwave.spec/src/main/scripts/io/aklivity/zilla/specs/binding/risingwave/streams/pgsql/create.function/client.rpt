@@ -33,7 +33,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE FUNCTION gcd(int, int) RETURNS int "
-      "AS gcd;"
+      "AS 'gcd';"
       [0x00]
 
 write flush

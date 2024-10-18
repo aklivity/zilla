@@ -33,7 +33,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE FUNCTION key_value(bytea) RETURNS struct<key varchar, value varchar> "
-      "LANGUAGE python AS key_value;"
+      "LANGUAGE python AS 'key_value';"
       [0x00]
 
 write flush

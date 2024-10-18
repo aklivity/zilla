@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.86</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.91</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -42,8 +42,8 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.jsqlparser</groupId>
-      <artifactId>jsqlparser</artifactId>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-pgsql</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -195,7 +195,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/risingwave/internal/types/**/*.class</exclude>
-            <exclude>net/sf/jsqlparser/parser/*</exclude>
           </excludes>
           <rules>
             <rule>

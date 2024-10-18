@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.List;
+import java.util.Map;
 
-import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.table.Index;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -35,12 +33,12 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
     public String generateSchema(
         String database,
-        CreateTable createTable)
+        TableInfo createTable)
     {
         schemaBuilder.setLength(0);
 
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = String.format("%s_key", createTable.getTable().getName());
+        final String recordName = String.format("%s_key", createTable.name());
 
         schemaBuilder.append("{\n");
         schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
@@ -52,10 +50,10 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
         schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
         schemaBuilder.append(" \\\"fields\\\": [");
 
-        for (ColumnDefinition column : createTable.getColumnDefinitions())
+        for (Map.Entry<String, String> column : createTable.columns().entrySet())
         {
-            String fieldName = column.getColumnName();
-            String pgsqlType = column.getColDataType().getDataType();
+            String fieldName = column.getKey();
+            String pgsqlType = column.getValue();
 
             String avroType = convertPgsqlTypeToAvro(pgsqlType);
 
@@ -71,29 +69,5 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
         schemaBuilder.append("}\"\n}");
 
         return schemaBuilder.toString();
-    }
-
-    public String primaryKey(
-        CreateTable statement)
-    {
-        String primaryKey = null;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                    primaryKey = primaryKeyColumns.get(0).columnName;
-                    break match;
-                }
-            }
-        }
-
-        return primaryKey;
     }
 }
