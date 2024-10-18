@@ -62,22 +62,22 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
     {
         String functionName = functionInfo.name();
         String asFunction = functionInfo.asFunction();
+        List<FunctionArgument> arguments = functionInfo.arguments();
         List<FunctionArgument> tables = functionInfo.tables();
 
         fieldBuilder.setLength(0);
 
-        functionInfo.arguments()
+        arguments
             .forEach(arg -> fieldBuilder.append(
                 arg.name() != null
                     ? "%s %s, ".formatted(arg.name(), arg.type())
                     : "%s, ".formatted(arg.type())));
 
-        if (!functionInfo.arguments().isEmpty())
+        if (!arguments.isEmpty())
         {
             fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
         }
-        String arguments = fieldBuilder.toString();
-
+        String funcArguments = fieldBuilder.toString();
 
         String language = functionInfo.language() != null ? functionInfo.language() : "java";
         String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
@@ -97,6 +97,6 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
             returnType = fieldBuilder.toString();
         }
 
-        return sqlFormat.formatted(functionName, arguments, returnType, asFunction, language, server);
+        return sqlFormat.formatted(functionName, funcArguments, returnType, asFunction, language, server);
     }
 }

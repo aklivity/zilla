@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.antlr.v4.runtime.TokenStream;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.FunctionArgument;
@@ -27,10 +29,18 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     private final List<FunctionArgument> arguments = new ArrayList<>();
     private final List<FunctionArgument> tables = new ArrayList<>();
 
+    private final TokenStream tokens;
+
     private String name;
     private String returnType;
     private String asFunction;
     private String language;
+
+    public SqlCreateFunctionListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public FunctionInfo functionInfo()
     {
@@ -66,7 +76,7 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     public void enterFunc_type(
         PostgreSqlParser.Func_typeContext ctx)
     {
-        returnType = ctx.typename().getText();
+        returnType = tokens.getText(ctx.typename());
     }
 
     @Override

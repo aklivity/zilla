@@ -1939,6 +1939,19 @@ createfunctionstmt
     )? createfunc_opt_list
     ;
 
+opt_type_parameters
+    : '<' type_parameters '>'
+    |
+    ;
+
+type_parameters
+    : type_parameter (COMMA type_parameter)*
+    ;
+
+type_parameter
+    : colid typename
+    ;
+
 opt_or_replace
     : OR REPLACE
     |
@@ -1996,7 +2009,6 @@ func_return
 
 func_type
     : typename
-    | SETOF? (builtin_function_name | type_function_name | LEFT | RIGHT) attrs PERCENT TYPE_P
     ;
 
 func_arg_with_default
@@ -3400,7 +3412,7 @@ consttypename
     ;
 
 generictype
-    : (builtin_function_name | type_function_name | LEFT | RIGHT) attrs? opt_type_modifiers
+    : (builtin_function_name | type_function_name | LEFT | RIGHT) attrs? opt_type_modifiers opt_type_parameters
     ;
 
 opt_type_modifiers

@@ -56,7 +56,12 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterCreatefunctionstmt(
         PostgreSqlParser.CreatefunctionstmtContext ctx)
     {
-        command = "CREATE FUNCTION";
+        String functionBody = ctx.getText();
+
+        if (!functionBody.contains("$$"))
+        {
+            command = "CREATE FUNCTION";
+        }
     }
 
     @Override

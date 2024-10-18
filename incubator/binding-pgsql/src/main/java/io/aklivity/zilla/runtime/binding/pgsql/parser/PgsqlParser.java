@@ -57,7 +57,7 @@ public final class PgsqlParser
         this.commandListener = new SqlCommandListener();
         this.createTableListener = new SqlCreateTableTopicListener();
         this.createStreamListener = new SqlCreateStreamListener();
-        this.createFunctionListener = new SqlCreateFunctionListener();
+        this.createFunctionListener = new SqlCreateFunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);

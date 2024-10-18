@@ -35,8 +35,8 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE FUNCTION key_value(bytea)\n"
-     "RETURNS struct < key varchar , value varchar >\n"
-     "AS key_value\n"
+     "RETURNS struct<key varchar, value varchar>\n"
+     "AS 'key_value'\n"
      "LANGUAGE python\n"
      "USING LINK 'http://localhost:8816';"
      [0x00]

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.StreamInfo;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.module.TableInfo;

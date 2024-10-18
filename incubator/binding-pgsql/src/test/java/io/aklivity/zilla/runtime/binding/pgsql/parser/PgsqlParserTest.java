@@ -250,11 +250,98 @@ public class PgsqlParserTest
         assertEquals("python", functionInfo.language());
     }
 
+    @Test
+    public void shouldParseCreateFunctionWithStructReturnType()
+    {
+        String sql = "CREATE FUNCTION test_function(int) RETURNS struct<key varchar, value varchar>" +
+            " LANGUAGE python AS 'test_function';";
+        FunctionInfo functionInfo = parser.parseCreateFunction(sql);
+        assertNotNull(functionInfo);
+        assertEquals("test_function", functionInfo.name());
+        assertEquals("struct<key varchar, value varchar>", functionInfo.returnType());
+        assertEquals("python", functionInfo.language());
+    }
+
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleInvalidCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function()";
         parser.parseCreateFunction(sql);
+    }
+
+    @Test
+    public void shouldParseCreateTableWithUniqueConstraint()
+    {
+        String sql = "CREATE TABLE test (id INT UNIQUE, name VARCHAR(100));";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(2, tableInfo.columns().size());
+        assertTrue(tableInfo.columns().containsKey("id"));
+        assertTrue(tableInfo.columns().containsKey("name"));
+    }
+
+    @Test
+    public void shouldParseCreateTableWithForeignKey()
+    {
+        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CONSTRAINT fk_name FOREIGN KEY (name)" +
+            " REFERENCES other_table(name));";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(2, tableInfo.columns().size());
+        assertTrue(tableInfo.columns().containsKey("id"));
+        assertTrue(tableInfo.columns().containsKey("name"));
+    }
+
+    @Test
+    public void shouldParseCreateTableWithCheckConstraint()
+    {
+        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CHECK (id > 0));";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(2, tableInfo.columns().size());
+        assertTrue(tableInfo.columns().containsKey("id"));
+        assertTrue(tableInfo.columns().containsKey("name"));
+    }
+
+    @Test
+    public void shouldHandleInvalidCreateTableWithMissingColumns()
+    {
+        String sql = "CREATE TABLE test ();";
+        parser.parseCreateTable(sql);
+    }
+
+    @Test
+    public void shouldParseCreateTableWithDefaultValues()
+    {
+        String sql = "CREATE TABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(2, tableInfo.columns().size());
+        assertEquals("INT", tableInfo.columns().get("id"));
+        assertEquals("VARCHAR(100)", tableInfo.columns().get("name"));
+    }
+
+    @Test
+    public void shouldParseCreateTableWithNotNullConstraint()
+    {
+        String sql = "CREATE TABLE test (id INT NOT NULL, name VARCHAR(100) NOT NULL);";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(2, tableInfo.columns().size());
+        assertTrue(tableInfo.columns().containsKey("id"));
+        assertTrue(tableInfo.columns().containsKey("name"));
+    }
+
+    @Test
+    public void shouldParseCreateTableWithMultipleConstraints()
+    {
+        String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100) UNIQUE, age INT CHECK (age > 0));";
+        TableInfo tableInfo = parser.parseCreateTable(sql);
+        assertNotNull(tableInfo);
+        assertEquals(3, tableInfo.columns().size());
+        assertTrue(tableInfo.primaryKeys().contains("id"));
+        assertTrue(tableInfo.columns().containsKey("name"));
+        assertTrue(tableInfo.columns().containsKey("age"));
     }
 
 }

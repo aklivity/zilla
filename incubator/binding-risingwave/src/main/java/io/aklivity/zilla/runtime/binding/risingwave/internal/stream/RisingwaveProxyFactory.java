@@ -67,7 +67,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
-    private static final String SPLIT_STATEMENTS = "(?<=;)(?!\\s*\\x00)";
     private static final int END_OF_FIELD = 0x00;
 
     private static final int FLAGS_INIT = 0x02;
@@ -83,6 +82,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private final PgsqlParser parser = new PgsqlParser();
+    private final List<String> statements = new ArrayList<>();
+    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -725,16 +726,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
                 String sql = parserBuffer.getStringWithoutLengthAscii(0, parserSlotOffset);
-                String[] statements = sql.split(SPLIT_STATEMENTS);
-
-                int length = statements.length;
-                if (length > 0)
-                {
-                    String statement = statements[0];
-                    String command = parser.parseCommand(statement);
-                    final PgsqlTransform transform = clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
-                    transform.transform(this, traceId, authorizationId, statement);
-                }
+                splitStatements(sql)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(s ->
+                    {
+                        String statement = s;
+                        String command = parser.parseCommand(statement);
+                        final PgsqlTransform transform = clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
+                        transform.transform(this, traceId, authorizationId, statement);
+                    });
             }
         }
 
@@ -1791,6 +1792,55 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         server.doAppData(routedId, traceId, authorization, flags, buffer, offset, limit, extension);
     }
+
+    public List<String> splitStatements(
+        String sql)
+    {
+        statements.clear();
+        currentStatement.setLength(0);
+
+        boolean inDollarQuotes = false;
+        int length = sql.length();
+
+        for (int i = 0; i < length; i++)
+        {
+            char c = sql.charAt(i);
+            currentStatement.append(c);
+
+            if (c == '$' && i + 1 < length && sql.charAt(i + 1) == '$')
+            {
+                inDollarQuotes = !inDollarQuotes;
+                currentStatement.append(sql.charAt(++i));
+            }
+            else if (c == ';' && !inDollarQuotes)
+            {
+                int j = i + 1;
+                while (j < length && Character.isWhitespace(sql.charAt(j)))
+                {
+                    currentStatement.append(sql.charAt(j));
+                    j++;
+                }
+                if (j < length && sql.charAt(j) == '\0')
+                {
+                    currentStatement.append(sql.charAt(j));
+                    i = j; // Move the main loop index forward
+                }
+                else
+                {
+                    statements.add(currentStatement.toString());
+                    currentStatement.setLength(0);
+                }
+            }
+        }
+
+        if (!currentStatement.isEmpty())
+        {
+            statements.add(currentStatement.toString());
+        }
+
+        return statements;
+    }
+
 
     @FunctionalInterface
     private interface PgsqlTransform
