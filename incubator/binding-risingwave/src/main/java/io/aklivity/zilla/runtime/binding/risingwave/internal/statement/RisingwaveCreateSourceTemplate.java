@@ -58,11 +58,12 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         includeBuilder.setLength(0);
         Map<String, String> includes = streamInfo.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+
         if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
-            includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v)));
+            includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), k)));
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }
 
