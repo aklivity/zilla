@@ -1825,14 +1825,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     i = j;
                 }
 
-                // Add statement substring directly to the list
                 statements.add(sql.substring(start, i + 1));
-                start = j; // Start of the next statement
-                i = j - 1; // Move index to after whitespaces
+                start = j;
+                i = j - 1;
             }
         }
 
-        // Add the last statement if there's any remaining
         if (start < length)
         {
             statements.add(sql.substring(start, length));
