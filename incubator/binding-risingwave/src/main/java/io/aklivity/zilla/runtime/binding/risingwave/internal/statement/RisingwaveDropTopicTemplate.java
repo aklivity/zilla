@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.drop.Drop;
-
 public class RisingwaveDropTopicTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
@@ -26,10 +24,8 @@ public class RisingwaveDropTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        Drop dropTable)
+        String drop)
     {
-        String topic = dropTable.getName().getName();
-
-        return String.format(sqlFormat, topic);
+        return String.format(sqlFormat, drop);
     }
 }

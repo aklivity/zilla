@@ -1679,18 +1679,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 6)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.DROP_TABLE_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Drop table = sqlCommandParser.parserDropTable(buffer, offset, length);
+            final String table = parser.parseDrop(statement).get(0);
 
             String newStatement = "";
             int progress = 0;
@@ -1776,19 +1775,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 3)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length,
                 RisingwaveCompletionCommand.DROP_MATERIALIZED_VIEW_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Drop view = sqlCommandParser.parserDropTable(buffer, offset, length);
+            final String view = parser.parseDrop(statement).get(0);
 
             String newStatement = "";
             int progress = 0;
