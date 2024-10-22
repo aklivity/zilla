@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlCompletedFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlErrorFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlParameterFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
@@ -70,6 +71,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_QUERY = 'Q';
     private static final Byte MESSAGE_TYPE_DATA_ROW = 'D';
     private static final Byte MESSAGE_TYPE_COMPLETION = 'C';
+    private static final Byte MESSAGE_TYPE_ERROR = 'E';
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATE = 'X';
     private static final Byte MESSAGE_TYPE_PARAMETER_STATUS = 'S';
@@ -98,6 +100,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
 
@@ -113,6 +116,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
+    private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
 
     private final PgsqlMessageFW messageRO = new PgsqlMessageFW();
     private final PgsqlSslRequestFW sslRequestRO = new PgsqlSslRequestFW();
@@ -599,6 +603,22 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, sslResponse.limit());
         }
 
+        public void onDecodeCancelRequest(
+            long traceId,
+            long authorization,
+            int pid,
+            int key)
+        {
+            Consumer<OctetsFW.Builder> cancelRequestEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                    .typeId(pgsqlTypeId)
+                    .cancelRequest(c -> c
+                        .pid(pid)
+                        .key(key))
+                    .build().sizeof());
+
+            stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, cancelRequestEx);
+        }
+
         private void onDecodeStartup(
             long traceId,
             long authorization,
@@ -622,7 +642,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             doEncodeParamStatus(traceId, "client_encoding", "UTF8");
             doEncodeParamStatus(traceId, "standard_conforming_strings", "on");
-            doEncodeParamStatus(traceId, "server_version", "1.0.0");
+            doEncodeParamStatus(traceId, "server_version", "9.1.0");
             doEncodeParamStatus(traceId, "application_name", "zilla");
 
             int progress = 0;
@@ -888,6 +908,9 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             case PgsqlFlushExFW.KIND_COMPLETION:
                 doEncodeCompletion(traceId, authorization, pgsqlFlushEx.completion());
                 break;
+            case PgsqlFlushExFW.KIND_ERROR:
+                doEncodeError(traceId, authorization, pgsqlFlushEx.error());
+                break;
             case PgsqlFlushExFW.KIND_READY:
                 doEncodeReady(traceId, authorization, pgsqlFlushEx.ready());
                 break;
@@ -1003,6 +1026,16 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             initialSeq += reserved;
             assert initialSeq <= initialAck + initialMax;
+        }
+
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            int reserved,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                    authorization, initialBudgetId, reserved, extension);
         }
 
         private void doApplicationEnd(
@@ -1154,6 +1187,32 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, completionOffset);
         }
 
+        private void doEncodeError(
+            long traceId,
+            long authorization,
+            PgsqlErrorFlushExFW error)
+        {
+            int errorOffset = 0;
+            final int severityLength = error.severity().value().capacity();
+            final int codeLength = error.code().value().capacity();
+            final int messageLength = error.message().value().capacity();
+
+            PgsqlMessageFW messageCompleted = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_ERROR)
+                .length(Integer.BYTES + severityLength + codeLength + messageLength)
+                .build();
+            errorOffset += messageCompleted.limit();
+
+            messageBuffer.putBytes(errorOffset, error.severity().value(), 0, severityLength);
+            errorOffset += severityLength;
+            messageBuffer.putBytes(errorOffset, error.code().value(), 0, codeLength);
+            errorOffset += codeLength;
+            messageBuffer.putBytes(errorOffset, error.message().value(), 0, messageLength);
+            errorOffset += messageLength;
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, errorOffset);
+        }
+
         private void doEncodeReady(
             long traceId,
             long authorization,
@@ -1250,6 +1309,37 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doFlush(
+        final MessageConsumer receiver,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final int maximum,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doAbort(
@@ -1466,12 +1556,12 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         int offset,
         int limit)
     {
-        PgsqlSslRequestFW sslRequest = sslRequestRO.wrap(buffer, offset, limit);
+        PgsqlCancelRequestMessageFW cancelRequest = cancelReqMessageRO.wrap(buffer, offset, limit);
 
-        server.onDecodeSslRequest(traceId, authorization);
-        server.decoder = decodePgsqlStartupMessage;
+        server.onDecodeCancelRequest(traceId, authorization, cancelRequest.pid(), cancelRequest.key());
+        server.decoder = decodePgsqlMessageType;
 
-        return sslRequest.limit();
+        return cancelRequest.limit();
     }
 
     private int decodePgsqlMessageType(
@@ -1486,8 +1576,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         int progress = offset;
 
         final PgsqlMessageFW pgsqlMessage = messageRO.tryWrap(buffer, offset, limit);
+        final PgsqlCancelRequestMessageFW cancelRequest = cancelReqMessageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlMessage != null)
+        if (cancelRequest != null &&
+            cancelRequest.code() == CANCEL_REQUEST_CODE)
+        {
+            server.decoder = decodePgsqlCancelRequest;
+        }
+        else if (pgsqlMessage != null)
         {
             final int type = pgsqlMessage.type();
 

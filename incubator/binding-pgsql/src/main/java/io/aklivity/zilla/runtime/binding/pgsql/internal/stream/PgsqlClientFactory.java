@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlErrorFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFormat;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
@@ -75,6 +76,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_COMPLETION = 'C';
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATION = 'X';
+    private static final Byte MESSAGE_TYPE_ERROR = 'E';
 
     private static final int AUTHENTICATION_SUCCESS_CODE = 0;
     private static final int END_OF_FIELD = 0x00;
@@ -113,6 +115,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
+    private final PgsqlErrorFlushExFW.Builder flushErrorExRW = new PgsqlErrorFlushExFW.Builder();
     private final Array32FW.Builder<PgsqlColumnInfoFW.Builder, PgsqlColumnInfoFW> columnsRW =
         new Array32FW.Builder<>(new PgsqlColumnInfoFW.Builder(), new PgsqlColumnInfoFW());
 
@@ -127,6 +130,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer messageBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -146,6 +150,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final PgsqlClientDecoder decodePgsqlReady = this::decodePgsqlMessageReady;
     private final PgsqlClientDecoder decodePgsqlTermination = this::decodePgsqlMessageTerminator;
     private final PgsqlClientDecoder decodePgsqlPayload = this::decodePgsqlMessagePayload;
+    private final PgsqlClientDecoder decodePgsqlError = this::decodePgsqlMessageError;
     private final PgsqlClientDecoder decodePgsqlIgnoreOne = this::decodePgsqlIgnoreOne;
     private final PgsqlClientDecoder decodePgsqlIgnoreAll = this::decodePgsqlIgnoreAll;
 
@@ -161,6 +166,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         decodersByType.put(MESSAGE_TYPE_COMPLETION, decodePgsqlCompletion);
         decodersByType.put(MESSAGE_TYPE_READY, decodePgsqlReady);
         decodersByType.put(MESSAGE_TYPE_TERMINATION, decodePgsqlTermination);
+        decodersByType.put(MESSAGE_TYPE_ERROR, decodePgsqlError);
         this.decodersByType = decodersByType;
     }
 
@@ -170,6 +176,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.messageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -697,6 +704,39 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
                 .typeId(pgsqlTypeId)
                 .completion(c -> c.tag(buffer, offset, length))
+                .build().sizeof());
+
+            stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, completionEx);
+        }
+
+        private void onDecodeMessageError(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            int progressOffset = offset;
+
+            PgsqlErrorFlushExFW.Builder error = flushErrorExRW.wrap(extBuffer, 0, extBuffer.capacity());
+
+            final int severityLength = getLengthOfString(buffer, progressOffset);
+            error.severity(buffer, progressOffset, severityLength);
+            progressOffset += severityLength;
+
+            final int codeLength = getLengthOfString(buffer, progressOffset);
+            error.code(buffer, progressOffset, codeLength);
+            progressOffset += codeLength;
+
+            final int messageLength = getLengthOfString(buffer, progressOffset);
+            error.message(buffer, progressOffset, messageLength);
+            progressOffset += messageLength;
+
+            assert offset + length == progressOffset;
+
+            Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                .typeId(pgsqlTypeId)
+                .error(c -> c.set(error.build()))
                 .build().sizeof());
 
             stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, completionEx);
@@ -1521,23 +1561,47 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         final PgsqlMessageFW pgsqlCompletion = messageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlCompletion != null)
+        if (pgsqlCompletion != null &&
+            limit - offset >= pgsqlCompletion.length() + Integer.BYTES)
         {
             progressOffset = pgsqlCompletion.limit();
 
-            final int completionSize = pgsqlCompletion.length() - Integer.BYTES;
-            payloadRemaining.set(completionSize);
-            final int length = Math.min(payloadRemaining.value, limit - progressOffset);
-
+            int length = pgsqlCompletion.length() - Integer.BYTES;
             client.onDecodeMessageCompletion(traceId, authorization, buffer, progressOffset, length);
-            progressOffset += length;
-            payloadRemaining.set(completionSize - length);
 
-            client.decoder = completionSize == length
-                    ? decodePgsqlMessage
-                    : decodePgsqlPayload;
+            progressOffset += length;
+
+            client.decoder = decodePgsqlMessage;
         }
 
+        return progressOffset;
+    }
+
+    private int decodePgsqlMessageError(
+        PgsqlClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progressOffset = offset;
+
+        final PgsqlMessageFW pgsqlError = messageRO.tryWrap(buffer, offset, limit);
+
+        if (pgsqlError != null &&
+            limit - offset >= pgsqlError.length() + Integer.BYTES)
+        {
+            progressOffset = pgsqlError.limit();
+
+            int length = pgsqlError.length() - Integer.BYTES;
+            client.onDecodeMessageError(traceId, authorization, buffer, progressOffset, length);
+
+            progressOffset += length;
+
+            client.decoder = decodePgsqlMessage;
+        }
 
         return progressOffset;
     }

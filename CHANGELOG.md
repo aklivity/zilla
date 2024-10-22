@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.9.99](https://github.com/aklivity/zilla/tree/0.9.99) (2024-10-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.98...0.9.99)
+
+**Merged pull requests:**
+
+- Update advertised protocol version in pgsql server binding [\#1294](https://github.com/aklivity/zilla/pull/1294) ([akrambek](https://github.com/akrambek))
+- Support cancel request [\#1293](https://github.com/aklivity/zilla/pull/1293) ([akrambek](https://github.com/akrambek))
+
+## [0.9.98](https://github.com/aklivity/zilla/tree/0.9.98) (2024-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.97...0.9.98)
+
+**Fixed bugs:**
+
+- Propagate error code in risingwave binding that's coming either from pgsql-kafka or risingwave [\#1286](https://github.com/aklivity/zilla/issues/1286)
+- Zilla get blocked when sending messages to kafka [\#1268](https://github.com/aklivity/zilla/issues/1268)
+
+**Merged pull requests:**
+
+- Propagate error code in risingwave binding that's coming either from pgsql-kafka or risingwave [\#1288](https://github.com/aklivity/zilla/pull/1288) ([akrambek](https://github.com/akrambek))
+- Increase write buffer size to accomidate longer path [\#1287](https://github.com/aklivity/zilla/pull/1287) ([akrambek](https://github.com/akrambek))
+
+## [0.9.97](https://github.com/aklivity/zilla/tree/0.9.97) (2024-10-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.96...0.9.97)
+
+**Implemented enhancements:**
+
+- Support `jwt` guarded identity via custom token claim [\#1276](https://github.com/aklivity/zilla/issues/1276)
+- Support `insert into` to seed `kafka` messages via `risingwave` binding [\#1274](https://github.com/aklivity/zilla/issues/1274)
+
+**Merged pull requests:**
+
+- `pgsql` DROP TOPIC command to KafkaDeleteTopicsBeginEx plus catalog unregister subject [\#1280](https://github.com/aklivity/zilla/pull/1280) ([akrambek](https://github.com/akrambek))
+- external udf - python support [\#1278](https://github.com/aklivity/zilla/pull/1278) ([ankitk-me](https://github.com/ankitk-me))
+- Support jwt guarded identity via custom token claim [\#1277](https://github.com/aklivity/zilla/pull/1277) ([akrambek](https://github.com/akrambek))
+- Support insert into to seed kafka messages via risingwave binding [\#1275](https://github.com/aklivity/zilla/pull/1275) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.96](https://github.com/aklivity/zilla/tree/0.9.96) (2024-10-01)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.95...0.9.96)

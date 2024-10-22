@@ -103,6 +103,17 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${pgsql}/query.with.multiple.statements.errored/client",
+        "${effective}/query.with.multiple.statements.errored/server"
+    })
+    public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${pgsql}/create.materialized.view/client",
         "${effective}/create.materialized.view/server"
     })
@@ -117,6 +128,36 @@ public class ProxyIT
         "${pgsql}/create.function/client",
         "${effective}/create.function/server" })
     public void shouldCreateFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.python/client",
+        "${effective}/create.function.python/server" })
+    public void shouldCreateFunctionPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.embedded.python/client",
+        "${effective}/create.function.embedded.python/server" })
+    public void shouldCreateFunctionEmbeddedPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.function.yaml")
+    @Specification({
+        "${pgsql}/create.function.return.struct/client",
+        "${effective}/create.function.return.struct/server" })
+    public void shouldCreateFunctionReturnStruct() throws Exception
     {
         k3po.finish();
     }
@@ -157,6 +198,16 @@ public class ProxyIT
         "${pgsql}/create.table.with.primary.key.and.includes/client",
         "${effective}/create.table.with.primary.key.and.includes/server" })
     public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/set.variable/client",
+        "${effective}/set.variable/server" })
+    public void shouldSetVariable() throws Exception
     {
         k3po.finish();
     }

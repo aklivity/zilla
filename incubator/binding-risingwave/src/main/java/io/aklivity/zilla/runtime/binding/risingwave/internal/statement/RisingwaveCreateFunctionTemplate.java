@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.function.CreateFunction;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
 {
@@ -29,58 +29,74 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         LANGUAGE %s
         USING LINK '%s';\u0000""";
 
-    private final RisingwaveUdfConfig udf;
+    private final String javaServer;
+    private final String pythonServer;
 
     public RisingwaveCreateFunctionTemplate(
-        RisingwaveUdfConfig udf)
+        List<RisingwaveUdfConfig> udfs)
     {
-        this.udf = udf;
-    }
+        String javaServer = null;
+        String pythonServer = null;
 
-    public String generate(
-        Statement statement)
-    {
-        CreateFunction createFunction = (CreateFunction) statement;
-        List<String> parts = createFunction.getFunctionDeclarationParts();
-
-        String functionName = parts.get(0);
-
-        int paramStartIndex = parts.indexOf("(");
-        int paramEndIndex = parts.indexOf(")");
-        String parameters = paramStartIndex >= 0 && paramEndIndex > paramStartIndex
-            ? String.join(" ", parts.subList(paramStartIndex + 1, paramEndIndex))
-            : "";
-
-        int returnsIndex = parts.indexOf("RETURNS");
-        String returnType = returnsIndex >= 0 ? parts.get(returnsIndex + 1) : "";
-
-        if ("TABLE".equalsIgnoreCase(returnType))
+        if (udfs != null && !udfs.isEmpty())
         {
-            int tableStartIndex = -1;
-            int tableEndIndex = -1;
-            for (int i = returnsIndex; i < parts.size(); i++)
+            for (RisingwaveUdfConfig udf : udfs)
             {
-                if (parts.get(i).equals("("))
+                if (udf.language.equalsIgnoreCase("java"))
                 {
-                    tableStartIndex = i;
+                    javaServer = udf.server;
                 }
-                else if (parts.get(i).equals(")"))
+                else if (udf.language.equalsIgnoreCase("python"))
                 {
-                    tableEndIndex = i;
-                    break;
+                    pythonServer = udf.server;
                 }
-            }
-
-            if (tableStartIndex >= 0 && tableEndIndex > tableStartIndex)
-            {
-                String tableDefinition = String.join(" ", parts.subList(tableStartIndex + 1, tableEndIndex));
-                returnType += " (" + tableDefinition + ")";
             }
         }
 
-        int asIndex = parts.indexOf("AS");
-        String body = asIndex >= 0 ? parts.get(asIndex + 1) : "";
+        this.javaServer = javaServer;
+        this.pythonServer = pythonServer;
+    }
 
-        return sqlFormat.formatted(functionName, parameters, returnType, body, udf.language, udf.server);
+    public String generate(
+        FunctionInfo functionInfo)
+    {
+        String functionName = functionInfo.name();
+        String asFunction = functionInfo.asFunction();
+        List<FunctionArgument> arguments = functionInfo.arguments();
+        List<FunctionArgument> tables = functionInfo.tables();
+
+        fieldBuilder.setLength(0);
+
+        arguments
+            .forEach(arg -> fieldBuilder.append(
+                arg.name() != null
+                    ? "%s %s, ".formatted(arg.name(), arg.type())
+                    : "%s, ".formatted(arg.type())));
+
+        if (!arguments.isEmpty())
+        {
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+        }
+        String funcArguments = fieldBuilder.toString();
+
+        String language = functionInfo.language() != null ? functionInfo.language() : "java";
+        String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
+
+        String returnType = functionInfo.returnType();
+        if (!tables.isEmpty())
+        {
+            fieldBuilder.setLength(0);
+            fieldBuilder.append("TABLE (");
+            tables.forEach(arg -> fieldBuilder.append(
+                arg.name() != null
+                    ? "%s %s, ".formatted(arg.name(), arg.type())
+                    : "%s, ".formatted(arg.type())));
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+            fieldBuilder.append(")");
+
+            returnType = fieldBuilder.toString();
+        }
+
+        return sqlFormat.formatted(functionName, funcArguments, returnType, asFunction, language, server);
     }
 }

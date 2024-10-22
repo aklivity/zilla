@@ -14,53 +14,63 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
-    private final String includeFormat = "COALESCE(%s, zilla_%s_header::varchar) as %s, ";
+    private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
+    private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
 
     public RisingwaveCreateMaterializedViewTemplate()
     {
     }
 
     public String generate(
-        CreateView createView)
+        ViewInfo viewInfo)
     {
-        String view = createView.getView().getName();
-        String select = createView.getSelect().toString();
+        String name = viewInfo.name();
+        String select = viewInfo.select();
 
-        return String.format(sqlFormat, view, select);
+        return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        CreateTable createTable = command.createTable;
-        String name = createTable.getTable().getName();
+        String name = tableInfo.name();
 
         String select = "*";
 
-        if (command.includes != null)
+        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+
+        if (!includes.isEmpty())
         {
             fieldBuilder.setLength(0);
 
-            createTable.getColumnDefinitions()
-                .forEach(c -> fieldBuilder.append(
-                    String.format(fieldFormat, c.getColumnName())));
-            command.includes.forEach((k, v) ->
+            tableInfo.columns().keySet()
+                .stream()
+                .filter(c -> !ZILLA_MAPPINGS.containsKey(c))
+                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c)));
+
+            includes.forEach((k, v) ->
             {
-                if ("timestamp".equals(k))
+                if (ZILLA_TIMESTAMP.equals(k))
                 {
-                    fieldBuilder.append(String.format(fieldFormat, v));
+                    fieldBuilder.append(String.format(timestampFormat,  k, k, k));
                 }
                 else
                 {
-                    fieldBuilder.append(String.format(includeFormat, v, v, v));
+                    fieldBuilder.append(String.format(includeFormat, k, k, k));
                 }
             });
 

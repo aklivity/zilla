@@ -86,11 +86,6 @@ public final class RisingwaveBindingConfig
             location = catalogHandler.location();
         }
 
-        if (options.udfs != null)
-        {
-            udf = options.udfs.get(0);
-        }
-
         this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
             location, config.kafkaScanStartupTimestampMillis());
@@ -104,6 +99,7 @@ public final class RisingwaveBindingConfig
         this.dropSource = new RisingwaveDropSourceTemplate();
         this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
         this.dropSink = new RisingwaveDropSinkTemplate();
+        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
     }
 
     public RisingwaveRouteConfig resolve(

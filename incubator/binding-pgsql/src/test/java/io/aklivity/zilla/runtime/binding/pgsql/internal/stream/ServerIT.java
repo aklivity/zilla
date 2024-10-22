@@ -61,6 +61,16 @@ public class ServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/cancel.request/client",
+        "${app}/cancel.request/server" })
+    public void shouldHandleCancelRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/termination.request/client",
         "${app}/termination.request/server" })
     public void shouldHandleTerminationRequest() throws Exception
@@ -114,6 +124,16 @@ public class ServerIT
         "${net}/create.table.fragmented/client",
         "${app}/create.table.fragmented/server" })
     public void shouldHandleFragmentedCreateTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/select.table.with.error/client",
+        "${app}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
     {
         k3po.finish();
     }

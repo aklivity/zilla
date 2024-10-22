@@ -88,6 +88,35 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/create.function.python/client",
+        "${app}/create.function.python/server"
+    })
+    public void shouldCreateFunctionPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.function.embedded.python/client",
+        "${app}/create.function.embedded.python/server" })
+    public void shouldCreateFunctionEmbeddedPython() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.function.return.struct/client",
+        "${app}/create.function.return.struct/server"
+    })
+    public void shouldCreateFunctionReturnStruct() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.function.return.table/client",
         "${app}/create.function.return.table/server"
     })
@@ -152,6 +181,16 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/query.with.multiple.statements.errored/client",
+        "${app}/query.with.multiple.statements.errored/server"
+    })
+    public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/drop.materialized.view/client",
         "${app}/drop.materialized.view/server" })
     public void shouldDropMaterializedView() throws Exception
@@ -164,6 +203,15 @@ public class EffectiveIT
         "${app}/drop.table.with.primary.key/client",
         "${app}/drop.table.with.primary.key/server" })
     public void shouldDropTableWithPrimaryKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/set.variable/client",
+        "${app}/set.variable/server" })
+    public void shouldSetVariable() throws Exception
     {
         k3po.finish();
     }

@@ -57,6 +57,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/select.table.with.error/client",
+        "${app}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.sent.write.abort/client",
         "${app}/client.sent.write.abort/server" })
     public void shouldHandleClientSentWriteAbort() throws Exception
@@ -96,6 +105,15 @@ public class ApplicationIT
         "${app}/termination.request/client",
         "${app}/termination.request/server" })
     public void shouldHandleTerminationRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cancel.request/client",
+        "${app}/cancel.request/server" })
+    public void shouldHandleCancelRequest() throws Exception
     {
         k3po.finish();
     }

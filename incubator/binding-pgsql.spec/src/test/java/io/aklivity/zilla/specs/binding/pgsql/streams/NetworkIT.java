@@ -57,6 +57,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/select.table.with.error/client",
+        "${net}/select.table.with.error/server" })
+    public void shouldSelectTableWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/ssl.request/client",
         "${net}/ssl.request/server" })
     public void shouldHandleSslRequest() throws Exception
@@ -96,6 +105,15 @@ public class NetworkIT
         "${net}/termination.request/client",
         "${net}/termination.request/server" })
     public void shouldHandleTerminationRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/cancel.request/client",
+        "${net}/cancel.request/server" })
+    public void shouldHandleCancelRequest() throws Exception
     {
         k3po.finish();
     }

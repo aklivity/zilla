@@ -34,7 +34,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE FUNCTION series(int)\n"
       "RETURNS TABLE (x int)\n"
-      "AS series\n"
+      "AS 'series'\n"
       "LANGUAGE java\n"
       "USING LINK 'http://localhost:8815';"
       [0x00]

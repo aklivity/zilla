@@ -188,7 +188,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 try
                 {
                     DynamicMessage message = builder.mergeFrom(in).build();
-                    builder.clear();
                     if (!message.getUnknownFields().asMap().isEmpty())
                     {
                         break validate;
@@ -214,6 +213,10 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 catch (IOException ex)
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
+                }
+                finally
+                {
+                    builder.clear();
                 }
             }
         }
