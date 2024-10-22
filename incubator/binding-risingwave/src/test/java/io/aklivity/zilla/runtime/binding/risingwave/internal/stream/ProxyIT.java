@@ -221,4 +221,24 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.table/client",
+        "${effective}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.materialized.view/client",
+        "${effective}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
+    {
+        k3po.finish();
+    }
 }

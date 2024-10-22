@@ -26,7 +26,7 @@ public class RisingwaveDropSinkTemplate extends RisingwaveCommandTemplate
     public String generate(
         String drop)
     {
-        return generate(drop, "");
+        return generate(drop, "_sink");
     }
 
     public String generate(

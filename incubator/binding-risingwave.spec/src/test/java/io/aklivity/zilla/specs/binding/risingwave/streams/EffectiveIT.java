@@ -170,14 +170,7 @@ public class EffectiveIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${app}/drop.table/client",
-        "${app}/drop.table/server" })
-    public void shouldDropTable() throws Exception
-    {
-        k3po.finish();
-    }
+
 
     @Test
     @Specification({
@@ -185,24 +178,6 @@ public class EffectiveIT
         "${app}/query.with.multiple.statements.errored/server"
     })
     public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/drop.materialized.view/client",
-        "${app}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/drop.table.with.primary.key/client",
-        "${app}/drop.table.with.primary.key/server" })
-    public void shouldDropTableWithPrimaryKey() throws Exception
     {
         k3po.finish();
     }
@@ -218,9 +193,27 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/drop.table/client",
+        "${app}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/drop.stream/client",
         "${app}/drop.stream/server" })
     public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.materialized.view/client",
+        "${app}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
     {
         k3po.finish();
     }

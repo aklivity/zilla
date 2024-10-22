@@ -34,7 +34,6 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "DROP MATERIALIZED VIEW weather;"
       [0x00]
-
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

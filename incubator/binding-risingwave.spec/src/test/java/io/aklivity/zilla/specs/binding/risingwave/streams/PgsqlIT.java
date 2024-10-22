@@ -172,28 +172,10 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/drop.table/client",
-        "${app}/drop.table/server" })
-    public void shouldDropTable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/query.with.multiple.statements.errored/client",
         "${app}/query.with.multiple.statements.errored/server"
     })
     public void shouldHandleQueryWithMultiStatementsThatErrored() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/drop.materialized.view/client",
-        "${app}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
     {
         k3po.finish();
     }
@@ -209,9 +191,27 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/drop.table/client",
+        "${app}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/drop.stream/client",
         "${app}/drop.stream/server" })
     public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.materialized.view/client",
+        "${app}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
     {
         k3po.finish();
     }

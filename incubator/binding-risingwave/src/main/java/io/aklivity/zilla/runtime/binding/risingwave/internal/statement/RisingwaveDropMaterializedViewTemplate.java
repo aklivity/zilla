@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 public class RisingwaveDropMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        DROP MATERIALIZED VIEW %s (%s%s);\u0000""";
+        DROP MATERIALIZED VIEW %s;\u0000""";
 
     public RisingwaveDropMaterializedViewTemplate()
     {
