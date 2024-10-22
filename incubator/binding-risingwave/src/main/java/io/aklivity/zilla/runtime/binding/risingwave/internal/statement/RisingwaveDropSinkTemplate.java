@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 public class RisingwaveDropSinkTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        DROP SINK %s (%s%s);\u0000""";
+        DROP SINK %s;\u0000""";
 
     public RisingwaveDropSinkTemplate()
     {

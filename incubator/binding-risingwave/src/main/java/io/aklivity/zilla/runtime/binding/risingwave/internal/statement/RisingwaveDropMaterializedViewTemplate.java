@@ -26,7 +26,7 @@ public class RisingwaveDropMaterializedViewTemplate extends RisingwaveCommandTem
     public String generate(
         String drop)
     {
-        return generate(table, "");
+        return generate(drop, "");
     }
 
     public String generate(

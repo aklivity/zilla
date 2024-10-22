@@ -211,4 +211,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.stream/client",
+        "${effective}/drop.stream/server" })
+    public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

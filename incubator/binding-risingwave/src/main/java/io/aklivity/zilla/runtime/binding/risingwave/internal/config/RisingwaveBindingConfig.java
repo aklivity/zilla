@@ -93,7 +93,6 @@ public final class RisingwaveBindingConfig
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeTemplate();
-        this.createFunction = new RisingwaveCreateFunctionTemplate(udf);
         this.dropTopic = new RisingwaveDropTopicTemplate();
         this.dropTable = new RisingwaveDropTableTemplate();
         this.dropSource = new RisingwaveDropSourceTemplate();

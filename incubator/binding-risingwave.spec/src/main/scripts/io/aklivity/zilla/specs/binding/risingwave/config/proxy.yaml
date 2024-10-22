@@ -39,4 +39,5 @@ bindings:
         when:
           - commands:
               - "CREATE TOPIC"
+              - "DROP TOPIC"
     exit: app1

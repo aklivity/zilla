@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 public class RisingwaveDropTableTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        DROP TABLE %s (%s%s);\u0000""";
+        DROP TABLE %s;\u0000""";
 
     public RisingwaveDropTableTemplate()
     {

@@ -215,4 +215,13 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/drop.stream/client",
+        "${app}/drop.stream/server" })
+    public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
 }
