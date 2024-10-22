@@ -17,9 +17,6 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -36,14 +33,16 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.DirectBufferInputStream;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableCommand;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveSqlCommandParser;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -65,10 +64,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.function.CreateFunction;
-import net.sf.jsqlparser.statement.create.view.CreateView;
 
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
@@ -86,10 +81,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private final RisingwaveSqlCommandParser sqlCommandParser = new RisingwaveSqlCommandParser();
-    private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
-    private final DirectBufferInputStream inputStream = new DirectBufferInputStream(EMPTY_BUFFER);
-    private final Reader reader = new InputStreamReader(inputStream);
+    private final PgsqlParser parser = new PgsqlParser();
+    private final List<String> statements = new ArrayList<>();
+    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -731,24 +725,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
-                int progress = 0;
-
-                parse:
-                while (progress <= parserSlotOffset)
-                {
-                    final String query = parserBuffer.getStringWithoutLengthUtf8(progress, parserSlotOffset);
-                    final String statement = sqlCommandParser.detectFirstSQLCommand(query);
-                    int statementLength = statement != null ? statement.length() : parserSlotOffset;
-
-                    if (statement != null)
+                String sql = parserBuffer.getStringWithoutLengthAscii(0, parserSlotOffset);
+                splitStatements(sql)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(s ->
                     {
-                        final RisingwaveCommandType command = sqlCommandParser.decodeCommandType(statement);
-                        final PgsqlTransform transform = clientTransforms.get(command);
-                        transform.transform(this, traceId, authorizationId, parserBuffer, progress, statementLength);
-                        break parse;
-                    }
-                    progress += statementLength;
-                }
+                        String statement = s;
+                        String command = parser.parseCommand(statement);
+                        final PgsqlTransform transform = clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
+                        transform.transform(this, traceId, authorizationId, statement);
+                    });
             }
         }
 
@@ -1497,47 +1484,45 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 6 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final RisingwaveCreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
-            final String primaryKey = binding.createTable.primaryKey(command.createTable);
+            final TableInfo tableInfo = parser.parseCreateTable(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(command);
+                newStatement = binding.createTopic.generate(tableInfo);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateTableSource(server.database, command);
+                newStatement = binding.createSource.generateTableSource(server.database, tableInfo);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.createView.generate(command);
+                newStatement = binding.createView.generate(tableInfo);
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createTable.generate(command);
+                newStatement = binding.createTable.generate(tableInfo);
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generate(command.createTable);
+                newStatement = binding.createSink.generate(tableInfo);
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.createSink.generate(server.database, primaryKey, command.createTable);
+                newStatement = binding.createSink.generate(server.database, tableInfo);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1556,30 +1541,29 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 2 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_STREAM_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final RisingwaveCreateTableCommand command = binding.createTable.parserCreateTable(buffer, offset, length);
+            final StreamInfo streamInfo = parser.parseCreateStream(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(command.createTable);
+                newStatement = binding.createTopic.generate(streamInfo);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateStreamSource(server.database, command);
+                newStatement = binding.createSource.generateStreamSource(server.database, streamInfo);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1598,20 +1582,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 4 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length,
                 RisingwaveCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final CreateView statement = (CreateView) parseStatement(buffer, offset, length);
+            final ViewInfo viewInfo = parser.parseCreateMaterializedView(statement);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
             PgsqlDataCommand dataCommand = proxyDataCommand;
 
@@ -1620,22 +1603,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createView.generate(statement);
+                newStatement = binding.createView.generate(viewInfo);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.describeView.generate(statement);
+                newStatement = binding.describeView.generate(viewInfo);
                 typeCommand = typeFlushCommand;
                 dataCommand = rowDataCommand;
                 server.columns.clear();
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.createTopic.generate(statement, server.columns);
+                newStatement = binding.createTopic.generate(viewInfo, server.columns);
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createSink.generate(server.database, server.columns, statement);
+                newStatement = binding.createSink.generate(server.database, server.columns, viewInfo);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1656,26 +1639,25 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
         if (server.commandsProcessed == 1 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
+            final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_FUNCTION_COMMAND);
         }
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final CreateFunction statement = (CreateFunction) parseStatement(buffer, offset, length);
+            final FunctionInfo functionInfo = parser.parseCreateFunction(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createFunction.generate(statement);
+                newStatement = binding.createFunction.generate(functionInfo);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1694,10 +1676,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         PgsqlServer server,
         long traceId,
         long authorization,
-        DirectBuffer buffer,
-        int offset,
-        int length)
+        String statement)
     {
+        final int length = statement.length();
+
         if (server.commandsProcessed == 1 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
@@ -1705,11 +1687,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
         else
         {
+            statementBuffer.putBytes(0, statement.getBytes());
+
             final RisingwaveRouteConfig route =
-                server.binding.resolve(authorization, buffer, offset, length);
+                server.binding.resolve(authorization, statementBuffer, 0, length);
 
             final PgsqlClient client = server.streamsByRouteIds.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, buffer, offset, length);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, length);
             client.completionCommand = proxyFlushCommand;
         }
     }
@@ -1809,42 +1793,50 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.doAppData(routedId, traceId, authorization, flags, buffer, offset, limit, extension);
     }
 
-    private Statement parseStatement(
-        DirectBuffer buffer,
-        int offset,
-        int length)
+    public List<String> splitStatements(
+        String sql)
     {
-        Statement statement = null;
-        try
+        statements.clear();
+        currentStatement.setLength(0);
+
+        boolean inDollarQuotes = false;
+        int length = sql.length();
+        int start = 0;
+
+        for (int i = 0; i < length; i++)
         {
-            //TODO: Avoid object creation
-            String query = buffer.getStringWithoutLengthUtf8(offset, length);
-            RisingwaveCommandType commandType = sqlCommandParser.decodeCommandType(query);
-            if (commandType.equals(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND))
+            char c = sql.charAt(i);
+
+            if (c == '$' && i + 1 < length && sql.charAt(i + 1) == '$')
             {
-                String sql = buffer.getStringWithoutLengthUtf8(offset, length);
-                // Replace "CREATE MATERIALIZED VIEW" with "CREATE VIEW" for compatibility
-                sql = sql.replace("CREATE MATERIALIZED VIEW", "CREATE VIEW");
-                // Remove "IF NOT EXISTS" clause because JSqlParser doesn't support it
-                sql = sql.replace("IF NOT EXISTS", "");
-                statement = parserManager.parse(new StringReader(sql));
+                inDollarQuotes = !inDollarQuotes;
+                i++;
             }
-            else if (commandType.equals(RisingwaveCommandType.CREATE_FUNCTION_COMMAND))
+            else if (c == ';' && !inDollarQuotes)
             {
-                query =  query.substring(0, query.length() - 1);
-                statement = parserManager.parse(new StringReader(query));
+                int j = i + 1;
+                while (j < length && Character.isWhitespace(sql.charAt(j)))
+                {
+                    j++;
+                }
+
+                if (j < length && sql.charAt(j) == '\0')
+                {
+                    i = j;
+                }
+
+                statements.add(sql.substring(start, i + 1));
+                start = j;
+                i = j - 1;
             }
-            else
-            {
-                inputStream.wrap(buffer, offset, length);
-                statement = parserManager.parse(reader);
-            }
-        }
-        catch (Exception ignored)
-        {
         }
 
-        return statement;
+        if (start < length)
+        {
+            statements.add(sql.substring(start, length));
+        }
+
+        return statements;
     }
 
     @FunctionalInterface
@@ -1854,9 +1846,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             PgsqlServer server,
             long traceId,
             long authorization,
-            DirectBuffer writeBuffer,
-            int offset,
-            int length);
+            String statement);
     }
 
     @FunctionalInterface
