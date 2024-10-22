@@ -1801,46 +1801,45 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         boolean inDollarQuotes = false;
         int length = sql.length();
+        int start = 0;
 
         for (int i = 0; i < length; i++)
         {
             char c = sql.charAt(i);
-            currentStatement.append(c);
 
             if (c == '$' && i + 1 < length && sql.charAt(i + 1) == '$')
             {
                 inDollarQuotes = !inDollarQuotes;
-                currentStatement.append(sql.charAt(++i));
+                i++;
             }
             else if (c == ';' && !inDollarQuotes)
             {
                 int j = i + 1;
                 while (j < length && Character.isWhitespace(sql.charAt(j)))
                 {
-                    currentStatement.append(sql.charAt(j));
                     j++;
                 }
+
                 if (j < length && sql.charAt(j) == '\0')
                 {
-                    currentStatement.append(sql.charAt(j));
-                    i = j; // Move the main loop index forward
+                    i = j;
                 }
-                else
-                {
-                    statements.add(currentStatement.toString());
-                    currentStatement.setLength(0);
-                }
+
+                // Add statement substring directly to the list
+                statements.add(sql.substring(start, i + 1));
+                start = j; // Start of the next statement
+                i = j - 1; // Move index to after whitespaces
             }
         }
 
-        if (!currentStatement.isEmpty())
+        // Add the last statement if there's any remaining
+        if (start < length)
         {
-            statements.add(currentStatement.toString());
+            statements.add(sql.substring(start, length));
         }
 
         return statements;
     }
-
 
     @FunctionalInterface
     private interface PgsqlTransform
