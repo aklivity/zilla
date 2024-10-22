@@ -139,7 +139,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP TABLE weather";
+write "DROP TABLE weather;"
       [0x00]
 write flush
 

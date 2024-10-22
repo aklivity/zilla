@@ -36,7 +36,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP MATERIALIZED VIEW weather";
+read "DROP MATERIALIZED VIEW weather;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -58,7 +58,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP SINK weather_sink";
+read "DROP SINK weather_sink;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
