@@ -20,7 +20,6 @@ scope filesystem
         READ_EXTENSION,
         READ_CHANGES,
         WRITE_PAYLOAD,
-        WRITE_EXTENSION,
         WRITE_CHANGES
     }
 
