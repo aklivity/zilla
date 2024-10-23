@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import static io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser.DROP;
-import static io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation.ADD;
-import static io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation.MODIFY;
-
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
