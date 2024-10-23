@@ -24,7 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 
 public class RisingwaveCreateTableTemplateTest
 {
@@ -43,14 +43,14 @@ public class RisingwaveCreateTableTemplateTest
         columns.put("id", "INT");
         columns.put("name", "STRING");
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of("id"));
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -62,14 +62,14 @@ public class RisingwaveCreateTableTemplateTest
         columns.put("id", "INT");
         columns.put("name", "STRING");
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of());
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING);\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -82,14 +82,14 @@ public class RisingwaveCreateTableTemplateTest
         columns.put("id", "INT");
         columns.put("name", "STRING");
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of("id", "name"));
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }

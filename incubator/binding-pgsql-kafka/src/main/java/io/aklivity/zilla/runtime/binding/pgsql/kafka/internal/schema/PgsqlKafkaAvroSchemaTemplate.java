@@ -14,23 +14,94 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public abstract class PgsqlKafkaAvroSchemaTemplate
 {
-    protected String convertPgsqlTypeToAvro(
-        String pgsqlType)
+    protected static final String DATABASE_PLACEHOLDER = "{database}";
+
+    protected final ObjectMapper mapper = new ObjectMapper();
+
+    protected Object mapSqlTypeToAvroType(
+        String sqlType)
     {
-        return switch (pgsqlType.toLowerCase())
+        sqlType = sqlType.toUpperCase();
+
+        Object result = null;
+
+        switch (sqlType)
         {
-        case "varchar", "text", "char", "bpchar" -> "\\\"string\\\"";
-        case "int", "integer", "serial" -> "\\\"int\\\"";
-        case "numeric" -> "\\\"double\\\"";
-        case "bigint", "bigserial" -> "\\\"long\\\"";
-        case "boolean", "bool" -> "\\\"boolean\\\"";
-        case "real", "float4" -> "\\\"float\\\"";
-        case "double", "double precision", "float8" -> "\\\"double\\\"";
-        case "timestamp", "timestampz", "date", "time" ->
-            "{ \\\"type\\\": \\\"long\\\", \\\"logicalTyp\\\": \\\"timestamp-millis\\\" }";
-        default -> null;
-        };
+        case "INT":
+        case "INTEGER":
+            result = "int";
+            break;
+        case "BIGINT":
+            result = "long";
+            break;
+        case "BOOLEAN":
+            result = "boolean";
+            break;
+        case "FLOAT":
+            result = "float";
+            break;
+        case "DOUBLE":
+            result = "double";
+            break;
+        case "DECIMAL":
+            ObjectNode decimalNode = mapper.createObjectNode();
+            decimalNode.put("type", "bytes");
+            decimalNode.put("logicalType", "decimal");
+            decimalNode.put("precision", 10);
+            decimalNode.put("scale", 2);
+            result = decimalNode;
+            break;
+        case "DATE":
+            ObjectNode dateNode = mapper.createObjectNode();
+            dateNode.put("type", "int");
+            dateNode.put("logicalType", "date");
+            result = dateNode;
+            break;
+        case "TIMESTAMP":
+            ObjectNode timestampNode = mapper.createObjectNode();
+            timestampNode.put("type", "long");
+            timestampNode.put("logicalType", "timestamp-millis");
+            result = timestampNode;
+            break;
+        case "VARCHAR":
+        case "CHAR":
+        case "TEXT":
+        default:
+            result = "string";
+        }
+
+        return result;
+    }
+
+    private void applyAlterations(
+        ObjectNode schemaNode,
+        List<AlterExpression> alterExpressions)
+    {
+        ArrayNode fieldsArray = (ArrayNode) schemaNode.get("fields");
+
+        for (AlterExpression alterExpr : alterExpressions)
+        {
+            switch (alterExpr.getOperation())
+            {
+                case ADD:
+                    // Handle adding new columns
+                    // Create new field nodes and add them to fieldsArray
+                    break;
+                case DROP:
+                    // Handle dropping columns
+                    // Remove field nodes from fieldsArray
+                    break;
+                case MODIFY:
+                    // Handle modifying columns
+                    // Update field nodes in fieldsArray
+                    break;
+                // Handle other operations as needed
+            }
+        }
     }
 }

@@ -14,14 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.List;
-
-public record FunctionInfo(
+public record View(
     String name,
-    List<FunctionArgument> arguments,
-    String returnType,
-    List<FunctionArgument> tables,
-    String asFunction,
-    String language)
+    String select)
 {
 }

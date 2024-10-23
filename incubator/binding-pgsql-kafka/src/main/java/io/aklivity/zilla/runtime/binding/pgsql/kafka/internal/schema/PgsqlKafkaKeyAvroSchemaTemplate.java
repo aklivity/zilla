@@ -16,12 +16,13 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private static final String DATABASE_PLACEHOLDER = "{database}";
-
     private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
@@ -33,41 +34,36 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
     public String generateSchema(
         String database,
-        TableInfo createTable)
+        Table table)
     {
-        schemaBuilder.setLength(0);
-
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = String.format("%s_key", createTable.name());
 
-        schemaBuilder.append("{\n");
-        schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
-        schemaBuilder.append("\"schema\": \""); // Begin the schema field
+        ObjectNode schemaNode = mapper.createObjectNode();
+        schemaNode.put("type", "record");
+        schemaNode.put("name", table.name());
+        schemaNode.put("namespace", newNamespace);
 
-        // Building the actual Avro schema
-        schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
-        schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
-        schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
-        schemaBuilder.append(" \\\"fields\\\": [");
+        ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (Map.Entry<String, String> column : createTable.columns().entrySet())
+        for (Map.Entry<String, String> column : table.columns().entrySet())
         {
-            String fieldName = column.getKey();
-            String pgsqlType = column.getValue();
+            String columnName = column.getKey();
+            String sqlType = column.getValue();
+            Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            String avroType = convertPgsqlTypeToAvro(pgsqlType);
+            ObjectNode fieldNode = mapper.createObjectNode();
+            fieldNode.put("name", columnName);
 
-            schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": [").append(avroType).append(", \\\"null\\\"] },");
+            ArrayNode unionType = mapper.createArrayNode();
+            unionType.add("null");
+            unionType.addPOJO(avroType);
+            fieldNode.set("type", unionType);
+
+            fieldsArray.add(fieldNode);
         }
 
-        // Remove the last comma and close the fields array
-        schemaBuilder.setLength(schemaBuilder.length() - 1);
-        schemaBuilder.append("]");
+        schemaNode.set("fields", fieldsArray);
 
-        // Closing the Avro schema
-        schemaBuilder.append("}\"\n}");
-
-        return schemaBuilder.toString();
+        return schemaNode.asText();
     }
 }

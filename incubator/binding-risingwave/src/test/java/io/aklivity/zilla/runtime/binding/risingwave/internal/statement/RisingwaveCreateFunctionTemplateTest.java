@@ -22,7 +22,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 
 
@@ -41,7 +41,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithValidFunctionInfo()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function function = new Function(
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -55,7 +55,7 @@ public class RisingwaveCreateFunctionTemplateTest
             LANGUAGE java
             USING LINK 'http://localhost:8815';\u0000""";
 
-        String actualSQL = template.generate(functionInfo);
+        String actualSQL = template.generate(function);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -63,7 +63,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithTableReturnType()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function functionInfo = new Function(
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -86,7 +86,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithTableAsReturnType()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function functionInfo = new Function(
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -109,7 +109,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithMultipleArguments()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function function = new Function(
             "test_function",
             List.of(new FunctionArgument("arg1", "INT"), new FunctionArgument("arg2", "STRING")),
             "STRING",
@@ -124,7 +124,7 @@ public class RisingwaveCreateFunctionTemplateTest
             LANGUAGE python
             USING LINK 'http://localhost:8816';\u0000""";
 
-        String actualSQL = template.generate(functionInfo);
+        String actualSQL = template.generate(function);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -132,7 +132,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithUnnamedArguments()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function function = new Function(
             "test_function",
             List.of(new FunctionArgument(null, "INT"), new FunctionArgument(null, "STRING")),
             "STRING",
@@ -147,7 +147,7 @@ public class RisingwaveCreateFunctionTemplateTest
             LANGUAGE java
             USING LINK 'http://localhost:8815';\u0000""";
 
-        String actualSQL = template.generate(functionInfo);
+        String actualSQL = template.generate(function);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -155,7 +155,7 @@ public class RisingwaveCreateFunctionTemplateTest
     @Test
     public void shouldGenerateFunctionWithEmptyArguments()
     {
-        FunctionInfo functionInfo = new FunctionInfo(
+        Function function = new Function(
             "test_function",
             List.of(),
             "VOID",
@@ -170,7 +170,7 @@ public class RisingwaveCreateFunctionTemplateTest
             LANGUAGE python
             USING LINK 'http://localhost:8816';\u0000""";
 
-        String actualSQL = template.generate(functionInfo);
+        String actualSQL = template.generate(function);
 
         assertEquals(expectedSQL, actualSQL);
     }

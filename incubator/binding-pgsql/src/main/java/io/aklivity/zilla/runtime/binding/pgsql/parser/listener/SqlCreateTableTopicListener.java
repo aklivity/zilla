@@ -23,7 +23,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 
 public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
@@ -39,9 +39,9 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public TableInfo tableInfo()
+    public Table table()
     {
-        return new TableInfo(name, columns, primaryKeys);
+        return new Table(name, columns, primaryKeys);
     }
 
     @Override

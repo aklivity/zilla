@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 
 public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 {
@@ -28,16 +28,16 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        TableInfo tableInfo)
+        Table table)
     {
-        String topic = tableInfo.name();
-        String primaryKey = !tableInfo.primaryKeys().isEmpty()
-            ? String.format(primaryKeyFormat, tableInfo.primaryKeys().stream().findFirst().get())
+        String topic = table.name();
+        String primaryKey = !table.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, table.primaryKeys().stream().findFirst().get())
             : "";
 
         fieldBuilder.setLength(0);
 
-        tableInfo.columns()
+        table.columns()
             .forEach((k, v) -> fieldBuilder.append(
                 String.format(fieldFormat, k, v)));
 

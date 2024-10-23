@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 import java.util.Map;
 import java.util.Set;
 
-public record TableInfo(
+public record Table(
     String name,
     Map<String, String> columns,
     Set<String> primaryKeys)

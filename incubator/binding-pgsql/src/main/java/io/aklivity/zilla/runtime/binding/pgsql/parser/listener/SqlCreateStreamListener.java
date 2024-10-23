@@ -21,7 +21,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 
 public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
 {
@@ -36,9 +36,9 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public StreamInfo streamInfo()
+    public Stream streamInfo()
     {
-        return new StreamInfo(name, columns);
+        return new Stream(name, columns);
     }
 
     @Override

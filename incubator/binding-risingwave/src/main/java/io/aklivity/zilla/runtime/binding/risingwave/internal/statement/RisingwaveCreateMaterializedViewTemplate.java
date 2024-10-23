@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
@@ -34,22 +34,22 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     }
 
     public String generate(
-        ViewInfo viewInfo)
+        View view)
     {
-        String name = viewInfo.name();
-        String select = viewInfo.select();
+        String name = view.name();
+        String select = view.select();
 
         return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        TableInfo tableInfo)
+        Table table)
     {
-        String name = tableInfo.name();
+        String name = table.name();
 
         String select = "*";
 
-        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+        Map<String, String> includes = table.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
             .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
 
@@ -57,7 +57,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         {
             fieldBuilder.setLength(0);
 
-            tableInfo.columns().keySet()
+            table.columns().keySet()
                 .stream()
                 .filter(c -> !ZILLA_MAPPINGS.containsKey(c))
                 .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c)));

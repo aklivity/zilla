@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
@@ -50,12 +50,12 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateStreamSource(
         String database,
-        StreamInfo streamInfo)
+        Stream stream)
     {
-        String table = streamInfo.name();
+        String table = stream.name();
 
         includeBuilder.setLength(0);
-        Map<String, String> includes = streamInfo.columns().entrySet().stream()
+        Map<String, String> includes = stream.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
             .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
 
@@ -71,7 +71,7 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateTableSource(
         String database,
-        TableInfo tableInfo)
+        Table tableInfo)
     {
         String table = tableInfo.name();
         String sourceName = "%s_source".formatted(table);
