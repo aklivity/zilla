@@ -52,10 +52,10 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterAlter_table_cmd(
-        PostgreSqlParser.Alter_table_cmdContext ctx)
+    public void enterQualified_name(
+        PostgreSqlParser.Qualified_nameContext ctx)
     {
-        name = ctx.qualified_name().getText();
+        name = ctx.getText();
     }
 
     @Override
@@ -64,34 +64,32 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
     {
         for (PostgreSqlParser.Alter_table_cmdContext alterTableCmdCtx : ctx.alter_table_cmd())
         {
-            AlterExpression alterExpression = null;
-
             if (alterTableCmdCtx.ADD_P() != null)
             {
-                alterExpression = new AlterExpression(
+                alterExpressions.add(new AlterExpression(
                     Operation.ADD,
                     alterTableCmdCtx.columnDef().colid().getText(),
                     alterTableCmdCtx.columnDef().typename().getText()
-                );
+                ));
             }
             else if (alterTableCmdCtx.DROP() != null)
             {
-                alterExpression = new AlterExpression(
-                    Operation.DROP,
-                    alterTableCmdCtx.any_name().getText(),
-                    null
-                );
+                alterTableCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
+                    new AlterExpression(
+                        Operation.DROP,
+                        colidCtxs.identifier().getText(),
+                        null
+                )));
             }
             else if (alterTableCmdCtx.ALTER() != null)
             {
-                alterExpression = new AlterExpression(
-                    Operation.MODIFY,
-                    alterTableCmdCtx.any_name().getText(),
-                    null
-                );
+                alterTableCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
+                    new AlterExpression(
+                        Operation.MODIFY,
+                        colidCtxs.identifier().getText(),
+                        alterTableCmdCtx.typename() != null ? alterTableCmdCtx.typename().getText() : null
+                    )));
             }
-
-            alterExpressions.add(alterExpression);
         }
     }
 

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -377,5 +376,49 @@ public class PgsqlParserTest
         assertTrue(table.primaryKeys().contains("id"));
         assertTrue(table.columns().containsKey("name"));
         assertTrue(table.columns().containsKey("age"));
+    }
+
+    @Test
+    public void shouldParseAlterTableAddColumn()
+    {
+        String sql = "ALTER TABLE test_table ADD COLUMN new_column INT;";
+        Alter alter = parser.parseAlterTable(sql);
+
+        assertEquals("test_table", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
+        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
+        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+    }
+
+    @Test
+    public void shouldParseAlterTableDropColumn()
+    {
+        String sql = "ALTER TABLE test_table DROP COLUMN old_column;";
+        Alter alter = parser.parseAlterTable(sql);
+
+        assertEquals("test_table", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.DROP, alter.alterExpressions().get(0).operation());
+        assertEquals("old_column", alter.alterExpressions().get(0).columnName());
+    }
+
+    @Test
+    public void shouldParseAlterTableModifyColumn()
+    {
+        String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        Alter alter = parser.parseAlterTable(sql);
+
+        assertEquals("test_table", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.MODIFY, alter.alterExpressions().get(0).operation());
+        assertEquals("existing_column", alter.alterExpressions().get(0).columnName());
+    }
+
+    @Test(expected = ParseCancellationException.class)
+    public void shouldHandleInvalidAlterTable()
+    {
+        String sql = "ALTER TABLE";
+        parser.parseAlterTable(sql);
     }
 }
