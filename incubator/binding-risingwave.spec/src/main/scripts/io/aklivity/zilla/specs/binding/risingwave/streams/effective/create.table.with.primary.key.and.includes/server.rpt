@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2023 Aklivity Inc
+# Copyright 2021-2024 Aklivity Inc
 #
 # Licensed under the Aklivity Community License (the "License"); you may not use
 # this file except in compliance with the License.  You may obtain a copy of the
@@ -39,7 +39,7 @@ read zilla:data.ext ${pgsql:dataEx()
 read  "CREATE SOURCE IF NOT EXISTS cities_source (*)\n"
       "INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id_header\n"
       "INCLUDE header 'zilla:identity' AS zilla_identity_header\n"
-      "INCLUDE timestamp AS timestamp\n"
+      "INCLUDE timestamp AS zilla_timestamp_timestamp\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
@@ -70,11 +70,11 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view AS"
-     " SELECT id, name, description,"
-     " COALESCE(correlation_id, zilla_correlation_id_header::varchar) as correlation_id,"
-     " COALESCE(identity, zilla_identity_header::varchar) as identity,"
-     " timestamp"
+read "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view"
+     " AS SELECT id, name, description,"
+     " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id,"
+     " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity,"
+     " COALESCE(zilla_timestamp, zilla_timestamp_timestamp::varchar) as zilla_timestamp"
      " FROM cities_source;"
      [0x00]
 
@@ -99,7 +99,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .build()}
 read "CREATE TABLE IF NOT EXISTS cities"
      " (id VARCHAR, name VARCHAR, description VARCHAR,"
-     " correlation_id VARCHAR, identity VARCHAR, timestamp TIMESTAMP,"
+     " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP,"
      " PRIMARY KEY (id));"
      [0x00]
 
@@ -193,7 +193,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .build()}
 read "CREATE TOPIC IF NOT EXISTS cities "
      "(id VARCHAR, name VARCHAR, description VARCHAR,"
-     " correlation_id VARCHAR, identity VARCHAR, timestamp TIMESTAMP,"
+     " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP,"
      " PRIMARY KEY (id));"
      [0x00]
 

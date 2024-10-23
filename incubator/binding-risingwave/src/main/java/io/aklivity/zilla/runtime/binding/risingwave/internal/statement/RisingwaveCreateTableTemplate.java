@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
 {
@@ -28,24 +28,18 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        CreateTable createTable = command.createTable;
-        String topic = createTable.getTable().getName();
-        String primaryKeyField = primaryKey(createTable);
-        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
+        String topic = tableInfo.name();
+        String primaryKey = !tableInfo.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, tableInfo.primaryKeys().stream().findFirst().get())
+            : "";
 
         fieldBuilder.setLength(0);
 
-        createTable.getColumnDefinitions()
-            .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
-
-        if (command.includes != null)
-        {
-            command.includes.forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
-        }
+        tableInfo.columns()
+            .forEach((k, v) -> fieldBuilder.append(
+                String.format(fieldFormat, k, v)));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

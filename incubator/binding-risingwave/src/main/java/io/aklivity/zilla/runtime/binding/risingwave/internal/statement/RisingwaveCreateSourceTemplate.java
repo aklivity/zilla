@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
@@ -46,16 +50,19 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateStreamSource(
         String database,
-        RisingwaveCreateTableCommand command)
+        StreamInfo streamInfo)
     {
-        String table = command.createTable.getTable().getName();
+        String table = streamInfo.name();
 
         includeBuilder.setLength(0);
-        final Map<String, String> includes = command.includes;
-        if (includes != null && !includes.isEmpty())
+        Map<String, String> includes = streamInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+
+        if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
-            includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v)));
+            includes.forEach((k, v) -> includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), k)));
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }
 
@@ -64,27 +71,29 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
     public String generateTableSource(
         String database,
-        RisingwaveCreateTableCommand command)
+        TableInfo tableInfo)
     {
-        String table = command.createTable.getTable().getName();
+        String table = tableInfo.name();
         String sourceName = "%s_source".formatted(table);
 
         includeBuilder.setLength(0);
-        final Map<String, String> includes = command.includes;
-        if (includes != null && !includes.isEmpty())
+        Map<String, String> includes = tableInfo.columns().entrySet().stream()
+            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+
+        if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
             includes.forEach((k, v) ->
             {
-                if ("timestamp".equals(k))
+                if (ZILLA_TIMESTAMP.equals(k))
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), v));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_timestamp".formatted(k)));
                 }
                 else
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "zilla_%s_header".formatted(v)));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_header".formatted(k)));
                 }
-
             });
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }

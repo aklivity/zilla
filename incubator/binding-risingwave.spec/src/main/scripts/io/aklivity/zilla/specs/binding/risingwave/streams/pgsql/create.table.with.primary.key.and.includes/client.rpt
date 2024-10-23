@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2023 Aklivity Inc
+# Copyright 2021-2024 Aklivity Inc
 #
 # Licensed under the Aklivity Community License (the "License"); you may not use
 # this file except in compliance with the License.  You may obtain a copy of the
@@ -33,10 +33,9 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TABLE IF NOT EXISTS cities "
-      "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id))\n"
-      "INCLUDE zilla_correlation_id AS correlation_id\n"
-      "INCLUDE zilla_identity AS identity\n"
-      "INCLUDE timestamp as timestamp;"
+      "(id VARCHAR, name VARCHAR, description VARCHAR,"
+      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP,"
+      " PRIMARY KEY (id));"
       [0x00]
 
 write flush
