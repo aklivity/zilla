@@ -45,8 +45,8 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
         fieldBuilder.setLength(0);
 
         table.columns()
-            .forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, k, v)));
+            .forEach(c -> fieldBuilder.append(
+                String.format(fieldFormat, c.name(), c.type())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

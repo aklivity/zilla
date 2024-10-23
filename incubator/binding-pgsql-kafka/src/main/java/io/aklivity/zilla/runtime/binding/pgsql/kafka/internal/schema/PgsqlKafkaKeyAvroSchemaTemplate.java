@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
     public PgsqlKafkaKeyAvroSchemaTemplate(
@@ -32,7 +30,7 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
         this.namespace = namespace;
     }
 
-    public String generateSchema(
+    public String generate(
         String database,
         Table table)
     {
@@ -45,10 +43,10 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
         ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (Map.Entry<String, String> column : table.columns().entrySet())
+        for (TableColumn column : table.columns())
         {
-            String columnName = column.getKey();
-            String sqlType = column.getValue();
+            String columnName = column.name();
+            String sqlType = column.type();
             Object avroType = mapSqlTypeToAvroType(sqlType);
 
             ObjectNode fieldNode = mapper.createObjectNode();

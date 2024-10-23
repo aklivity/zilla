@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Reset
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -1315,7 +1316,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             final PgsqlKafkaBindingConfig binding = server.binding;
 
-
             int versionId = NO_ERROR_SCHEMA_VERSION_ID;
             Set<String> primaryKeys = createTable.primaryKeys();
             if (!primaryKeys.isEmpty())
@@ -1324,14 +1324,14 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 final String subjectKey = String.format("%s.%s-key", server.database, topic);
 
                 String keySchema = primaryKeys.size() > 1
-                    ? binding.avroKeySchema.generateSchema(server.database, createTable)
+                    ? binding.avroKeySchema.generate(server.database, createTable)
                     : AVRO_KEY_SCHEMA;
                 binding.catalog.register(subjectKey, keySchema);
             }
             if (versionId != NO_VERSION_ID)
             {
                 final String subjectValue = String.format("%s.%s-value", server.database, topic);
-                final String schemaValue = binding.avroValueSchema.generateSchema(server.database, createTable);
+                final String schemaValue = binding.avroValueSchema.generate(server.database, createTable);
                 versionId = binding.catalog.register(subjectValue, schemaValue);
             }
 
@@ -1348,6 +1348,40 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             {
                 server.cleanup(traceId, authorization);
             }
+        }
+    }
+
+    private void decodeAlterTopicCommand(
+        PgsqlProxy server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.commandsProcessed == 1)
+        {
+            final int length = statement.length();
+            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.CREATE_TOPIC_COMMAND);
+        }
+        else if (server.commandsProcessed == 0)
+        {
+            final Alter alter = parser.parseAlterTable(statement);
+            final String topic = alter.name();
+
+            topics.clear();
+            topics.add(String.format("%s.%s", server.database, topic));
+
+            final PgsqlKafkaBindingConfig binding = server.binding;
+            final CatalogHandler catalog = binding.catalog;
+
+            final String subjectValue = String.format("%s.%s-value", server.database, topic);
+            final int schemaId = catalog.resolve(subjectValue, "latest");
+            final String existingSchemaJson = catalog.resolve(schemaId);
+            final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
+
+            int versionId = catalog.register(subjectValue, schemaValue);
+
+            final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
+            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, policy);
         }
     }
 

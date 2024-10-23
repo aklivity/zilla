@@ -14,8 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
+import static io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser.DROP;
+import static io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation.ADD;
+import static io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation.MODIFY;
+
+import java.util.List;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 
 public abstract class PgsqlKafkaAvroSchemaTemplate
 {
@@ -78,7 +87,7 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
         return result;
     }
 
-    private void applyAlterations(
+    protected void applyAlterations(
         ObjectNode schemaNode,
         List<AlterExpression> alterExpressions)
     {
@@ -86,21 +95,40 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
 
         for (AlterExpression alterExpr : alterExpressions)
         {
-            switch (alterExpr.getOperation())
+            switch (alterExpr.operation())
             {
-                case ADD:
-                    // Handle adding new columns
-                    // Create new field nodes and add them to fieldsArray
-                    break;
-                case DROP:
-                    // Handle dropping columns
-                    // Remove field nodes from fieldsArray
-                    break;
-                case MODIFY:
-                    // Handle modifying columns
-                    // Update field nodes in fieldsArray
-                    break;
-                // Handle other operations as needed
+            case ADD:
+                ObjectNode newField = mapper.createObjectNode();
+                newField.put("name", alterExpr.columnName());
+                newField.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
+                fieldsArray.add(newField);
+                break;
+            case DROP:
+                ArrayNode newFieldsArray = mapper.createArrayNode();
+                for (Object field : fieldsArray)
+                {
+                    ObjectNode fieldNode = (ObjectNode) field;
+                    if (!alterExpr.columnName().equals(fieldNode.get("name").asText()))
+                    {
+                        newFieldsArray.add(fieldNode);
+                    }
+                }
+                fieldsArray = newFieldsArray;
+                break;
+            case MODIFY:
+                ArrayNode newFieldsArray2 = mapper.createArrayNode();
+                for (Object field : fieldsArray)
+                {
+                    ObjectNode fieldNode = (ObjectNode) field;
+                    if (alterExpr.columnName().equals(fieldNode.get("name").asText()))
+                    {
+                        fieldNode.put("name", alterExpr.columnName());
+                        fieldNode.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
+                    }
+                    newFieldsArray2.add(fieldNode);
+                }
+                fieldsArray = newFieldsArray2;
+                break;
             }
         }
     }

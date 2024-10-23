@@ -14,13 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.Map;
+import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -33,7 +37,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         this.namespace = namespace;
     }
 
-    public String generateSchema(
+    public String generate(
         String database,
         Table table)
     {
@@ -46,14 +50,13 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
         ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (Map.Entry<String, String> column : table.columns().entrySet())
+        for (TableColumn column : table.columns())
         {
-            String columnName = column.getKey();
-            String sqlType = column.getValue();
+            String columnName = column.name();
+            String sqlType = column.type();
             Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            //TODO: check if nullable
-            boolean isNullable = false;
+            boolean isNullable = !column.constraints().contains("NOT NULL");
 
             ObjectNode fieldNode = mapper.createObjectNode();
             fieldNode.put("name", columnName);
@@ -76,5 +79,24 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         schemaNode.set("fields", fieldsArray);
 
         return schemaNode.asText();
+    }
+
+    public String generate(
+        String existingSchemaJson,
+        Alter alter)
+    {
+        String newSchema = existingSchemaJson;
+        try
+        {
+            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
+            applyAlterations(schemaNode, alter.alterExpressions());
+
+            newSchema = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
+        }
+        catch (JsonProcessingException ignore)
+        {
+        }
+
+        return newSchema;
     }
 }
