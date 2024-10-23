@@ -17,13 +17,16 @@ package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static java.time.Instant.now;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
+import java.nio.channels.ByteChannel;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -33,6 +36,7 @@ import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -78,8 +82,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
+    private static final int FLAG_FIN = 0x01;
+    private static final int FLAG_INIT = 0x02;
 
     private final BeginFW beginRO = new BeginFW();
+    private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final WindowFW windowRO = new WindowFW();
@@ -111,6 +118,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final Signaler signaler;
     private final Supplier<FileSystemWatcher> supplyWatcher;
 
+    private final int decodeMax;
+
     private FileSystemWatcher fileSystemWatcher;
 
     public FileSystemServerFactory(
@@ -130,6 +139,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.signaler = context.signaler();
         this.md5 = initMessageDigest("MD5");
         this.supplyWatcher = supplyWatcher;
+        this.decodeMax = bufferPool.slotCapacity();
     }
 
     @Override
@@ -183,10 +193,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String tag = beginEx.tag().asString();
             try
             {
-                if (Files.exists(Paths.get(resolvedPath), symlinks))
+                if (canWritePayload(capabilities))
                 {
                     String type = probeContentTypeOrDefault(path);
-                    newStream = new FileSystemServer(
+                    newStream = new FileSystemServerWriter(
                         app,
                         originId,
                         routedId,
@@ -198,6 +208,25 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         capabilities,
                         tag)::onAppMessage;
                 }
+                else
+                {
+                    if (Files.exists(Paths.get(resolvedPath), symlinks))
+                    {
+                        String type = probeContentTypeOrDefault(path);
+                        newStream = new FileSystemServerReader(
+                            app,
+                            originId,
+                            routedId,
+                            initialId,
+                            type,
+                            symlinks,
+                            relativePath,
+                            resolvedPath,
+                            capabilities,
+                            tag)::onAppMessage;
+                    }
+                }
+
             }
             catch (IOException ex)
             {
@@ -230,7 +259,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         return contentType != null ? contentType : DEFAULT_CONTENT_TYPE;
     }
 
-    private final class FileSystemServer
+    private final class FileSystemServerReader
     {
         private final MessageConsumer app;
         private final long originId;
@@ -262,7 +291,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private int state;
 
-        private FileSystemServer(
+        private FileSystemServerReader(
             MessageConsumer app,
             long originId,
             long routedId,
@@ -410,20 +439,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 // reject
             }
             return input;
-        }
-
-        private OutputStream getOutputStream()
-        {
-            OutputStream output = null;
-            try
-            {
-                output = canWritePayload(capabilities) ? Files.newOutputStream(resolvedPath, symlinks) : null;
-            }
-            catch (IOException ex)
-            {
-                // reject
-            }
-            return output;
         }
 
         private String calculateHash(
@@ -700,6 +715,411 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     doAppAbort(traceId);
                 }
             }
+        }
+    }
+
+    private final class FileSystemServerWriter
+    {
+        private final MessageConsumer app;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final String type;
+        private final String relativePath;
+        private final Path resolvedPath;
+        private final int capabilities;
+        private final String tag;
+        private final LinkOption[] symlinks;
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+        private long replyBud;
+
+        private int state;
+
+        private ByteChannel out;
+        private Path tmpPath;
+
+        private FileSystemServerWriter(
+            MessageConsumer app,
+            long originId,
+            long routedId,
+            long initialId,
+            String type,
+            LinkOption[] symlinks,
+            String relativePath,
+            String resolvedPath,
+            int capabilities,
+            String tag)
+        {
+            this.app = app;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.type = type;
+            this.symlinks = symlinks;
+            this.relativePath = relativePath;
+            this.resolvedPath = Paths.get(resolvedPath);
+            this.capabilities = capabilities;
+            this.tag = tag;
+            this.initialMax = decodeMax;
+        }
+
+        private void onAppMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onAppBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onAppData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onAppEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onAppAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onAppWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onAppReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onAppBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+
+            assert initialAck <= initialSeq;
+
+            state = FileSystemState.openingInitial(state);
+
+            doAppWindow(traceId);
+
+            String currentTag = calculateTag();
+            if (!Objects.equals(currentTag, tag))
+            {
+                cleanup(traceId);
+            }
+        }
+
+        private void onAppData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            int offset = payload.offset();
+            int length = payload.sizeof();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            if (initialSeq > initialAck + initialMax)
+            {
+                cleanup(traceId);
+            }
+            else
+            {
+                try
+                {
+                    if ((flags & FLAG_INIT) != 0x00)
+                    {
+                        out = getOutputStream();
+                    }
+
+                    assert out != null;
+
+                    out.write(payload.buffer().byteBuffer().slice(offset, length));
+
+                    if ((flags & FLAG_FIN) != 0x00)
+                    {
+                        out.close();
+                        Files.move(tmpPath, resolvedPath, REPLACE_EXISTING);
+
+                        String currentTag = calculateTag();
+                        doAppBegin(traceId, currentTag);
+                        doAppEnd(traceId);
+                    }
+                    doAppWindow(traceId);
+                }
+                catch (Exception ex)
+                {
+                    doAppAbort(traceId);
+                }
+            }
+        }
+
+        private void onAppEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            assert initialAck <= initialSeq;
+
+            state = FileSystemState.closeInitial(state);
+        }
+
+        private void onAppAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            assert initialAck <= initialSeq;
+
+            state = FileSystemState.closeInitial(state);
+
+            cleanupTmpFileIfExists();
+
+            doAppAbort(traceId);
+        }
+
+        private void onAppWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final int padding = window.padding();
+            final long budgetId = window.budgetId();
+            final long traceId = window.traceId();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyPad = padding;
+            replyBud = budgetId;
+
+            assert replyAck <= replySeq;
+
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            {
+                state = FileSystemState.openReply(state);
+            }
+        }
+
+        private void onAppReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= replyAck;
+
+            replyAck = acknowledge;
+
+            assert replyAck <= replySeq;
+
+            state = FileSystemState.closeReply(state);
+
+            cleanupTmpFileIfExists();
+
+            doAppReset(traceId);
+        }
+
+        private void doAppBegin(
+            long traceId,
+            String tag)
+        {
+            doAppBegin(traceId, tag, capabilities);
+        }
+
+        private void doAppBegin(
+            long traceId,
+            String tag,
+            int capabilities)
+        {
+            state = FileSystemState.openingReply(state);
+            Flyweight extension = beginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(fileSystemTypeId)
+                .capabilities(capabilities)
+                .path(relativePath)
+                .tag(tag)
+                .build();
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
+        }
+
+        private void doAppEnd(
+            long traceId)
+        {
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            {
+                state = FileSystemState.closeReply(state);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+            }
+        }
+
+        private void doAppAbort(
+            long traceId)
+        {
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            {
+                state = FileSystemState.closeReply(state);
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck,
+                        replyMax, traceId, 0L, EMPTY_EXTENSION);
+            }
+        }
+
+        private void doAppReset(
+            long traceId)
+        {
+            if (FileSystemState.initialOpening(state) && !FileSystemState.initialClosed(state))
+            {
+                state = FileSystemState.closeInitial(state);
+
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0L);
+            }
+        }
+
+        private void doAppWindow(
+            long traceId)
+        {
+            state = FileSystemState.openInitial(state);
+
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                     0L, 0L, 0);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            cleanupTmpFileIfExists();
+
+            doAppAbort(traceId);
+            doAppReset(traceId);
+        }
+
+        private void cleanupTmpFileIfExists()
+        {
+            if (tmpPath != null)
+            {
+                try
+                {
+                    Files.deleteIfExists(tmpPath);
+                }
+                catch (IOException ex)
+                {
+                    rethrowUnchecked(ex);
+                }
+            }
+        }
+
+        private String calculateTag()
+        {
+            String newTag = null;
+            try
+            {
+                InputStream input = getInputStream();
+                if (input != null)
+                {
+                    md5.reset();
+                    while (input.available() > 0)
+                    {
+                        final byte[] readArray = readBuffer.byteArray();
+                        int bytesRead = input.read(readArray, 0, readArray.length);
+                        md5.update(readArray, 0, Math.max(bytesRead, 0));
+                    }
+                    byte[] hash = md5.digest();
+                    newTag = BitUtil.toHex(hash);
+                }
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return newTag;
+        }
+
+        private InputStream getInputStream()
+        {
+            InputStream input = null;
+            try
+            {
+                input = Files.newInputStream(resolvedPath, symlinks);
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return input;
+        }
+
+        private ByteChannel getOutputStream()
+        {
+            ByteChannel output = null;
+            try
+            {
+                if (canWritePayload(capabilities))
+                {
+                    tmpPath = Files.createTempFile(resolvedPath.getParent(), "temp-", ".tmp");
+                    output = Files.newByteChannel(tmpPath, CREATE, WRITE);
+                }
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return output;
         }
     }
 

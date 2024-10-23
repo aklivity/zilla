@@ -260,6 +260,65 @@ public class FileSystemServerIT
     })
     public void shouldWriteFilePayloadOnly() throws Exception
     {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.deleteIfExists(indexFile);
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.modified/client",
+    })
+    public void shouldWriteFilePayloadModified() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.modified.abort/client",
+    })
+    public void shouldWriteFilePayloadModifiedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.interrupt/client",
+    })
+    public void shouldWriteFilePayloadInterrupt() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
         k3po.finish();
     }
 }
