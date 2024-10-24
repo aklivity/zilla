@@ -48,6 +48,16 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/alter.topic.add.column/client",
+        "${app}/alter.topic.add.column/server"
+    })
+    public void shouldAlterTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/drop.topic/client",
         "${app}/drop.topic/server"
     })

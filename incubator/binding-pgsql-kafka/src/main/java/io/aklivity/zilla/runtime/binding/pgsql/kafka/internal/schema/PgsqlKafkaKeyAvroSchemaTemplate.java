@@ -62,6 +62,10 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
         schemaNode.set("fields", fieldsArray);
 
-        return schemaNode.asText();
+        ObjectNode parentNode = mapper.createObjectNode();
+        parentNode.put("schemaType", "AVRO");
+        parentNode.put("schema", schemaNode.toString());
+
+        return parentNode.toPrettyString();
     }
 }

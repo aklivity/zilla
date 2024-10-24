@@ -1307,8 +1307,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            final Table createTable = parser.parseCreateTable(statement);
-            final String topic = createTable.name();
+            final Table createTopic = parser.parseCreateTable(statement);
+            final String topic = createTopic.name();
 
             topics.clear();
             topics.add(String.format("%s.%s", server.database, topic));
@@ -1316,21 +1316,22 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final PgsqlKafkaBindingConfig binding = server.binding;
 
             int versionId = NO_ERROR_SCHEMA_VERSION_ID;
-            Set<String> primaryKeys = createTable.primaryKeys();
+            Set<String> primaryKeys = createTopic.primaryKeys();
             if (!primaryKeys.isEmpty())
             {
                 //TODO: assign versionId to avoid test failure
                 final String subjectKey = String.format("%s.%s-key", server.database, topic);
 
                 String keySchema = primaryKeys.size() > 1
-                    ? binding.avroKeySchema.generate(server.database, createTable)
+                    ? binding.avroKeySchema.generate(server.database, createTopic)
                     : AVRO_KEY_SCHEMA;
                 binding.catalog.register(subjectKey, keySchema);
             }
+
             if (versionId != NO_VERSION_ID)
             {
                 final String subjectValue = String.format("%s.%s-value", server.database, topic);
-                final String schemaValue = binding.avroValueSchema.generate(server.database, createTable);
+                final String schemaValue = binding.avroValueSchema.generate(server.database, createTopic);
                 versionId = binding.catalog.register(subjectValue, schemaValue);
             }
 
@@ -1372,15 +1373,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
         int versionId = catalog.register(subjectValue, schemaValue);
 
-        if (versionId != NO_VERSION_ID)
-        {
-            final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.ALTER_TOPIC_COMMAND);
-        }
-        else
-        {
-            server.cleanup(traceId, authorization);
-        }
+        //TODO: check if the versionId is the same as the one in the existing schema
+        final int length = statement.length();
+        server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.ALTER_TOPIC_COMMAND);
     }
 
     private void decodeDropTopicCommand(
