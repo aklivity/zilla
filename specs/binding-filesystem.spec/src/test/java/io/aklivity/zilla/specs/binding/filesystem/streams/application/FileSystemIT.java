@@ -165,4 +165,44 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/create.file.payload/client",
+        "${app}/create.file.payload/server",
+    })
+    public void shouldCreateFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.modified/client",
+        "${app}/write.file.payload.modified/server",
+    })
+    public void shouldWriteFilePayloadModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.modified.abort/client",
+        "${app}/write.file.payload.modified.abort/server",
+    })
+    public void shouldWriteFilePayloadModifiedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.interrupt/client",
+        "${app}/write.file.payload.interrupt/server",
+    })
+    public void shouldWriteFilePayloadInterrupt() throws Exception
+    {
+        k3po.finish();
+    }
 }
