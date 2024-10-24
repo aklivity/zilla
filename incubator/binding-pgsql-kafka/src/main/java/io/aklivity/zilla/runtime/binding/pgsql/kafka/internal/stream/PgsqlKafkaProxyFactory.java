@@ -1379,9 +1379,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
 
             int versionId = catalog.register(subjectValue, schemaValue);
-
-            final KafkaCreateTopicsProxy createTopicsProxy = server.createTopicsProxy;
-            createTopicsProxy.doKafkaBegin(traceId, authorization, topics, policy);
         }
     }
 

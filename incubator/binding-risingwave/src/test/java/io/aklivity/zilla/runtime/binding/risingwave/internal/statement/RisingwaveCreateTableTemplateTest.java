@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.BeforeClass;
@@ -25,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateTableTemplateTest
 {
@@ -39,9 +40,9 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithValidTableInfo()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
             "test_table",
@@ -58,9 +59,9 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithoutPrimaryKey()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
             "test_table",
@@ -78,9 +79,9 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithMultiplePrimaryKeys()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
             "test_table",

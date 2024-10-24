@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,6 +27,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplateTest
 {
@@ -60,11 +63,11 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithValidTableInfoAndIncludes()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("zilla_correlation_id", "VARCHAR");
-        columns.put("zilla_identity", "VARCHAR");
-        columns.put("zilla_timestamp", "TIMESTAMP");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("zilla_correlation_id", "VARCHAR", List.of()));
+        columns.add(new TableColumn("zilla_identity", "VARCHAR", List.of()));
+        columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
         Table table = new Table(
             "test_table", columns, Set.of("id"));
@@ -142,7 +145,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithEmptyColumnsAndWithoutIncludes()
     {
-        Table table = new Table("empty_table", Map.of(), Set.of());
+        Table table = new Table("empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_table_source (*)
             WITH (

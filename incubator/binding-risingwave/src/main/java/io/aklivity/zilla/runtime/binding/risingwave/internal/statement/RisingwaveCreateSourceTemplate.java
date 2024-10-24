@@ -14,11 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 {
@@ -77,22 +81,23 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         String sourceName = "%s_source".formatted(table);
 
         includeBuilder.setLength(0);
-        Map<String, String> includes = tableInfo.columns().entrySet().stream()
-            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+        List<TableColumn> includes = tableInfo.columns().stream()
+            .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
+            .collect(Collectors.toCollection(ArrayList::new));
 
         if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
-            includes.forEach((k, v) ->
+            includes.forEach(c ->
             {
-                if (ZILLA_TIMESTAMP.equals(k))
+                String name = c.name();
+                if (ZILLA_TIMESTAMP.equals(name))
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_timestamp".formatted(k)));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(name), "%s_timestamp".formatted(name)));
                 }
                 else
                 {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(k), "%s_header".formatted(k)));
+                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(name), "%s_header".formatted(name)));
                 }
             });
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
