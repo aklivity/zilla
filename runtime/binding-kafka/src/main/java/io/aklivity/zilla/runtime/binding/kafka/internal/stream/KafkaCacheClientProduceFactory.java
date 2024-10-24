@@ -1349,7 +1349,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 doClientReplyAbortIfNecessary(traceId);
                 fan.onClientFanMemberClosed(traceId, this);
             }
-            else
+            else if (!KafkaState.initialClosed(state))
             {
                 fan.onClientInitialData(this, data);
             }
