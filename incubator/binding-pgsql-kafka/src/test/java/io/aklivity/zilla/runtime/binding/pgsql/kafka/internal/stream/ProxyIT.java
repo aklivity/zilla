@@ -72,9 +72,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/alter.topic.unsupported.operation/client"
+        "${pgsql}/alter.topic.modify.column.rejected/client"
     })
-    public void shouldNotAlterTopicColumn() throws Exception
+    public void shouldNotAlterTopicModifyColumn() throws Exception
     {
         k3po.finish();
     }
