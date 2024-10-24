@@ -1392,18 +1392,20 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         else if (server.commandsProcessed == 0)
         {
             List<String> drops = parser.parseDrop(statement);
-            drops.stream().findFirst().ifPresent(d ->
-            {
-                final PgsqlKafkaBindingConfig binding = server.binding;
-                final String subjectKey = String.format("%s.%s-key", server.database, d);
-                final String subjectValue = String.format("%s.%s-value", server.database, d);
+            drops.stream()
+                .findFirst()
+                .ifPresent(d ->
+                {
+                    final PgsqlKafkaBindingConfig binding = server.binding;
+                    final String subjectKey = String.format("%s.%s-key", server.database, d);
+                    final String subjectValue = String.format("%s.%s-value", server.database, d);
 
-                binding.catalog.unregister(subjectKey);
-                binding.catalog.unregister(subjectValue);
+                    binding.catalog.unregister(subjectKey);
+                    binding.catalog.unregister(subjectValue);
 
-                final KafkaDeleteTopicsProxy deleteTopicsProxy = server.deleteTopicsProxy;
-                deleteTopicsProxy.doKafkaBegin(traceId, authorization, List.of("%s.%s".formatted(server.database, d)));
-            });
+                    final KafkaDeleteTopicsProxy deleteTopicsProxy = server.deleteTopicsProxy;
+                    deleteTopicsProxy.doKafkaBegin(traceId, authorization, List.of("%s.%s".formatted(server.database, d)));
+                });
         }
     }
 
