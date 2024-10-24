@@ -27,6 +27,7 @@ public abstract class RisingwaveCommandTemplate
 
     protected final StringBuilder fieldBuilder = new StringBuilder();
     protected final StringBuilder includeBuilder = new StringBuilder();
+
     protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {

@@ -54,7 +54,7 @@ public final class PgsqlParser
         this.lexer = new PostgreSqlLexer(null);
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
-        this.commandListener = new SqlCommandListener();
+        this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateTableTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
