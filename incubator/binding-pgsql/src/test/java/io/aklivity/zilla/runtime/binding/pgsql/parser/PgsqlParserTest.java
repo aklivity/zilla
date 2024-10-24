@@ -85,7 +85,7 @@ public class PgsqlParserTest
         String sql = "CREATE TABLE test (id DOUBLE PRECISION);";
         Table table = parser.parseCreateTable(sql);
         assertEquals("test", table.name());
-        assertEquals("DOUBLE PRECISION", table.columns().get("id"));
+        assertEquals("DOUBLE PRECISION", table.columns().get(0).type());
     }
 
     @Test
@@ -95,8 +95,8 @@ public class PgsqlParserTest
         Table table = parser.parseCreateTable(sql);
 
         assertEquals(2, table.columns().size());
-        assertEquals("INT", table.columns().get("id"));
-        assertEquals("VARCHAR(100)", table.columns().get("name"));
+        assertEquals("INT", table.columns().get(0).type());
+        assertEquals("VARCHAR(100)", table.columns().get(1).type());
     }
 
     @Test
@@ -306,8 +306,8 @@ public class PgsqlParserTest
 
         assertNotNull(table);
         assertEquals(2, table.columns().size());
-        assertTrue(table.columns().containsKey("id"));
-        assertTrue(table.columns().containsKey("name"));
+        assertEquals("id", table.columns().get(0).name());
+        assertEquals("name", table.columns().get(1).name());
     }
 
     @Test
@@ -318,8 +318,8 @@ public class PgsqlParserTest
         Table table = parser.parseCreateTable(sql);
         assertNotNull(table);
         assertEquals(2, table.columns().size());
-        assertTrue(table.columns().containsKey("id"));
-        assertTrue(table.columns().containsKey("name"));
+        assertEquals("id", table.columns().get(0).name());
+        assertEquals("name", table.columns().get(1).name());
     }
 
     @Test
@@ -330,8 +330,8 @@ public class PgsqlParserTest
 
         assertNotNull(table);
         assertEquals(2, table.columns().size());
-        assertTrue(table.columns().containsKey("id"));
-        assertTrue(table.columns().containsKey("name"));
+        assertEquals("id", table.columns().get(0).name());
+        assertEquals("name", table.columns().get(1).name());
     }
 
     @Test
@@ -349,8 +349,8 @@ public class PgsqlParserTest
 
         assertNotNull(table);
         assertEquals(2, table.columns().size());
-        assertEquals("INT", table.columns().get("id"));
-        assertEquals("VARCHAR(100)", table.columns().get("name"));
+        assertEquals("INT", table.columns().get(0).type());
+        assertEquals("VARCHAR(100)", table.columns().get(1).type());
     }
 
     @Test
@@ -361,8 +361,8 @@ public class PgsqlParserTest
 
         assertNotNull(table);
         assertEquals(2, table.columns().size());
-        assertTrue(table.columns().containsKey("id"));
-        assertTrue(table.columns().containsKey("name"));
+        assertEquals("id", table.columns().get(0).name());
+        assertEquals("name", table.columns().get(1).name());
     }
 
     @Test
@@ -374,8 +374,8 @@ public class PgsqlParserTest
         assertNotNull(table);
         assertEquals(3, table.columns().size());
         assertTrue(table.primaryKeys().contains("id"));
-        assertTrue(table.columns().containsKey("name"));
-        assertTrue(table.columns().containsKey("age"));
+        assertEquals("name", table.columns().get(1).name());
+        assertEquals("age", table.columns().get(2).name());
     }
 
     @Test
