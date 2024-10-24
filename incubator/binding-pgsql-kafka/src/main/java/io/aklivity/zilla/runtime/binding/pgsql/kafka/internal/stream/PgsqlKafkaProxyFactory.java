@@ -71,8 +71,15 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             "schema": "{\\"type\\": \\"string\\"}"
         }""";
 
+    private static final String SEVERITY_ERROR = "ERROR\u0000";
+    private static final String SEVERITY_FATAL = "FATAL\u0000";
+    private static final String SEVERITY_WARNING = "WARNING\u0000";
+    private static final String CODE_XX000 = "XX000\u0000";
+
     private static final int END_OF_FIELD = 0x00;
     private static final int NO_ERROR_SCHEMA_VERSION_ID = -1;
+    private static final int COMMAND_PROCESSED_ERRORED = -1;
+    private static final int COMMAND_PROCESSED_NONE = 0;
 
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_CONT = 0x00;
@@ -84,7 +91,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
     private final PgsqlParser parser = new PgsqlParser();
     private final List<String> statements = new ArrayList<>();
-    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -455,12 +461,16 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             int progress,
             PgsqlKafkaCompletionCommand command)
         {
-            commandsProcessed = 0;
-            parserSlotOffset -= progress;
-
-            doCommandCompletion(traceId, authorization, command);
-
             final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+
+            if (commandsProcessed != COMMAND_PROCESSED_ERRORED)
+            {
+                doCommandCompletion(traceId, authorization, command);
+            }
+
+            parserSlotOffset -= progress;
+            commandsProcessed = COMMAND_PROCESSED_NONE;
+
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
             final int queryLength = queries.peekInt();
@@ -660,6 +670,24 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                         decoder.decode(this, traceId, authorizationId, statement);
                     });
             }
+        }
+
+        private void doCommandError(
+            long traceId,
+            long authorization,
+            String severity,
+            String code,
+            String message)
+        {
+            Consumer<OctetsFW.Builder> errorEx =
+                e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                    .typeId(pgsqlTypeId)
+                    .error(c -> c.severity(severity)
+                        .code(code)
+                        .message(message))
+                    .build().sizeof());
+
+            doAppFlush(traceId, authorization, errorEx);
         }
 
         private void cleanup(
@@ -1366,14 +1394,22 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final PgsqlKafkaBindingConfig binding = server.binding;
         final CatalogHandler catalog = binding.catalog;
 
-        final String subjectValue = String.format("%s.%s-value", server.database, topic);
-        final int schemaId = catalog.resolve(subjectValue, "latest");
-        final String existingSchemaJson = catalog.resolve(schemaId);
-        final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
+        try
+        {
+            final String subjectValue = String.format("%s.%s-value", server.database, topic);
+            final int schemaId = catalog.resolve(subjectValue, "latest");
+            final String existingSchemaJson = catalog.resolve(schemaId);
+            final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
+            int versionId = catalog.register(subjectValue, schemaValue);
+            //TODO: check if the versionId is the same as the one in the existing schema
+        }
+        catch (Exception e)
+        {
+            server.doCommandError(traceId, authorization, SEVERITY_ERROR, CODE_XX000,
+                String.format("%s\u0000", e.getMessage()));
+            server.commandsProcessed = COMMAND_PROCESSED_ERRORED;
+        }
 
-        int versionId = catalog.register(subjectValue, schemaValue);
-
-        //TODO: check if the versionId is the same as the one in the existing schema
         final int length = statement.length();
         server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.ALTER_TOPIC_COMMAND);
     }
@@ -1422,7 +1458,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         String sql)
     {
         statements.clear();
-        currentStatement.setLength(0);
 
         boolean inDollarQuotes = false;
         int length = sql.length();

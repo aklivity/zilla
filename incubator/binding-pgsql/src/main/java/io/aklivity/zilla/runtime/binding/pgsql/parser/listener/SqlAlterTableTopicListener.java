@@ -86,7 +86,7 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
                 alterTableCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
                     new AlterExpression(
                         Operation.MODIFY,
-                        colidCtxs.identifier().getText(),
+                        colidCtxs.getText(),
                         alterTableCmdCtx.typename() != null ? alterTableCmdCtx.typename().getText() : null
                     )));
             }

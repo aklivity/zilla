@@ -83,7 +83,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private final PgsqlParser parser = new PgsqlParser();
     private final List<String> statements = new ArrayList<>();
-    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -1797,7 +1796,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String sql)
     {
         statements.clear();
-        currentStatement.setLength(0);
 
         boolean inDollarQuotes = false;
         int length = sql.length();

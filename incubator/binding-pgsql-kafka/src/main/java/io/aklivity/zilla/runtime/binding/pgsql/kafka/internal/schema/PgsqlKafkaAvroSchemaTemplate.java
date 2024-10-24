@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.List;
-import java.util.Objects;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -91,12 +90,17 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
     {
         for (AlterExpression alterExpr : alterExpressions)
         {
-            if (Objects.requireNonNull(alterExpr.operation()) == Operation.ADD)
+            if (alterExpr.operation() == Operation.ADD)
             {
                 ObjectNode newField = mapper.createObjectNode();
                 newField.put("name", alterExpr.columnName());
                 newField.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
                 fields.add(newField);
+            }
+            else
+            {
+                throw new UnsupportedOperationException(
+                    String.format("Unsupported alter operation: %s", alterExpr.operation()));
             }
         }
     }

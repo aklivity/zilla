@@ -72,6 +72,16 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${pgsql}/alter.topic.unsupported.operation/client"
+    })
+    public void shouldNotAlterTopicColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${pgsql}/drop.topic/client",
         "${kafka}/drop.topic/server"
     })

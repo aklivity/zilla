@@ -58,6 +58,17 @@ public class PgsqlIT
 
     @Test
     @Specification({
+        "${app}/alter.topic.unsupported.operation/client",
+        "${app}/alter.topic.unsupported.operation/server"
+    })
+    public void shouldNotAlterTopicColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "${app}/drop.topic/client",
         "${app}/drop.topic/server"
     })

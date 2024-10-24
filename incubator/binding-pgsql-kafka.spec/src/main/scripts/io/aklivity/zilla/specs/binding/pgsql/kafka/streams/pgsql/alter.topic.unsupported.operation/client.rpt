@@ -33,14 +33,16 @@ write zilla:data.ext ${pgsql:dataEx()
                                .query()
                                 .build()
                               .build()}
-write "ALTER TOPIC cities ADD COLUMN zip INT;"
+write "ALTER TOPIC cities ALTER COLUMN name TYPE VARCHAR(100);"
       [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("ALTER_TOPIC")
+                              .error()
+                                .severity("ERROR")
+                                .code("XX000")
+                                .message("Unsupported alter operation: MODIFY")
                                 .build()
                               .build()}
 

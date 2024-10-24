@@ -84,24 +84,15 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
     public String generate(
         String existingSchemaJson,
-        Alter alter)
+        Alter alter) throws JsonProcessingException
     {
-        String newSchema = existingSchemaJson;
-        try
-        {
-            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
-            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
-            ArrayNode fields = (ArrayNode) schema.get("fields");
+        ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
+        ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
+        ArrayNode fields = (ArrayNode) schema.get("fields");
 
-            applyAlterations(fields, alter.alterExpressions());
-            schemaNode.put("schema", schema.toString());
+        applyAlterations(fields, alter.alterExpressions());
+        schemaNode.put("schema", schema.toString());
 
-            newSchema = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
-        }
-        catch (JsonProcessingException ignore)
-        {
-        }
-
-        return newSchema;
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
     }
 }
