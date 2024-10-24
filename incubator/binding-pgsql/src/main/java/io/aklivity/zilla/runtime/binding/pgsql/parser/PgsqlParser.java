@@ -92,7 +92,7 @@ public final class PgsqlParser
         String sql)
     {
         parser(sql, createStreamListener);
-        return createStreamListener.streamInfo();
+        return createStreamListener.stream();
     }
 
     public Function parseCreateFunction(

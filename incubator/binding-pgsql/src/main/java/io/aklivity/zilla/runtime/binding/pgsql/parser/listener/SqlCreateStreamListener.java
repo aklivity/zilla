@@ -36,7 +36,7 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public Stream streamInfo()
+    public Stream stream()
     {
         return new Stream(name, columns);
     }
