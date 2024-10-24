@@ -86,7 +86,11 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         try
         {
             ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
-            applyAlterations(schemaNode, alter.alterExpressions());
+            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
+            ArrayNode fields = (ArrayNode) schema.get("fields");
+
+            applyAlterations(fields, alter.alterExpressions());
+            schemaNode.put("schema", schema.toString());
 
             newSchema = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
         }

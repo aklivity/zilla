@@ -15,12 +15,14 @@
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
 public abstract class PgsqlKafkaAvroSchemaTemplate
 {
@@ -84,47 +86,17 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
     }
 
     protected void applyAlterations(
-        ObjectNode schemaNode,
+        ArrayNode fields,
         List<AlterExpression> alterExpressions)
     {
-        ArrayNode fieldsArray = (ArrayNode) schemaNode.get("fields");
-
         for (AlterExpression alterExpr : alterExpressions)
         {
-            switch (alterExpr.operation())
+            if (Objects.requireNonNull(alterExpr.operation()) == Operation.ADD)
             {
-            case ADD:
                 ObjectNode newField = mapper.createObjectNode();
                 newField.put("name", alterExpr.columnName());
                 newField.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
-                fieldsArray.add(newField);
-                break;
-            case DROP:
-                ArrayNode newFieldsArray = mapper.createArrayNode();
-                for (Object field : fieldsArray)
-                {
-                    ObjectNode fieldNode = (ObjectNode) field;
-                    if (!alterExpr.columnName().equals(fieldNode.get("name").asText()))
-                    {
-                        newFieldsArray.add(fieldNode);
-                    }
-                }
-                fieldsArray = newFieldsArray;
-                break;
-            case MODIFY:
-                ArrayNode newFieldsArray2 = mapper.createArrayNode();
-                for (Object field : fieldsArray)
-                {
-                    ObjectNode fieldNode = (ObjectNode) field;
-                    if (alterExpr.columnName().equals(fieldNode.get("name").asText()))
-                    {
-                        fieldNode.put("name", alterExpr.columnName());
-                        fieldNode.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
-                    }
-                    newFieldsArray2.add(fieldNode);
-                }
-                fieldsArray = newFieldsArray2;
-                break;
+                fields.add(newField);
             }
         }
     }

@@ -41,6 +41,13 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterAltertablestmt(
+        PostgreSqlParser.AltertablestmtContext ctx)
+    {
+        command = "ALTER %s".formatted(ctx.opttable_alter_type().getText());
+    }
+
+    @Override
     public void enterCreatestreamstmt(
         PostgreSqlParser.CreatestreamstmtContext ctx)
     {

@@ -34,14 +34,13 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE TOPIC IF NOT EXISTS cities "
-      "(id VARCHAR, city VARCHAR, PRIMARY KEY (id, city));"
-     [0x00]
+read  "ALTER TOPIC IF NOT EXISTS cities ADD COLUMN zip INT;"
+      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_TOPIC")
+                                .tag("ALTER_TOPIC")
                                 .build()
                               .build()}
 

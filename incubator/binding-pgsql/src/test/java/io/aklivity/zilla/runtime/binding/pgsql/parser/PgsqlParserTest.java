@@ -392,6 +392,19 @@ public class PgsqlParserTest
     }
 
     @Test
+    public void shouldParseAlterTopicAddColumn()
+    {
+        String sql = "ALTER TOPIC test_table ADD COLUMN new_column INT;";
+        Alter alter = parser.parseAlterTable(sql);
+
+        assertEquals("test_table", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
+        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
+        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+    }
+
+    @Test
     public void shouldParseAlterTableDropColumn()
     {
         String sql = "ALTER TABLE test_table DROP COLUMN old_column;";

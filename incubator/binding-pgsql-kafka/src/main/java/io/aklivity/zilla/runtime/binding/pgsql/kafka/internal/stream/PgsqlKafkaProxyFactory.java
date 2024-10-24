@@ -71,7 +71,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             "schema": "{\\"type\\": \\"string\\"}"
         }""";
 
-    private static final String SPLIT_STATEMENTS = "\"(?<=;)(?!\\x00)\"";
     private static final int END_OF_FIELD = 0x00;
     private static final int NO_ERROR_SCHEMA_VERSION_ID = -1;
 
@@ -84,6 +83,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final PgsqlParser parser = new PgsqlParser();
+    private final List<String> statements = new ArrayList<>();
+    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -117,7 +118,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final BufferPool bufferPool;
     private final PgsqlKafkaConfiguration config;
     private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer statementBuffer;
     private final MutableDirectBuffer extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -132,11 +132,11 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private final int kafkaTypeId;
 
     private final Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder;
-
     {
         Object2ObjectHashMap<PgsqlKafkaCommandType, PgsqlDecoder> pgsqlDecoder =
             new Object2ObjectHashMap<>();
         pgsqlDecoder.put(PgsqlKafkaCommandType.CREATE_TOPIC_COMMAND, this::decodeCreateTopicCommand);
+        pgsqlDecoder.put(PgsqlKafkaCommandType.ALTER_TOPIC_COMMAND, this::decodeAlterTopicCommand);
         pgsqlDecoder.put(PgsqlKafkaCommandType.DROP_TOPIC_COMMAND, this::decodeDropTopicCommand);
         pgsqlDecoder.put(PgsqlKafkaCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.pgsqlDecoder = pgsqlDecoder;
@@ -149,7 +149,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.statementBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -650,16 +649,16 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
                 String sql = parserBuffer.getStringWithoutLengthAscii(0, parserSlotOffset);
-                String[] statements = sql.split(SPLIT_STATEMENTS);
-
-                int length = statements.length;
-                if (length > 0)
-                {
-                    String statement = statements[0];
-                    String command = parser.parseCommand(statement);
-                    final PgsqlDecoder decoder = pgsqlDecoder.get(PgsqlKafkaCommandType.valueOf(command.getBytes()));
-                    decoder.decode(this, traceId, authorizationId, statement);
-                }
+                splitStatements(sql)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(s ->
+                    {
+                        String statement = s;
+                        String command = parser.parseCommand(statement);
+                        final PgsqlDecoder decoder = pgsqlDecoder.get(PgsqlKafkaCommandType.valueOf(command.getBytes()));
+                        decoder.decode(this, traceId, authorizationId, statement);
+                    });
             }
         }
 
@@ -1357,28 +1356,30 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 1)
+        final Alter alter = parser.parseAlterTable(statement);
+        final String topic = alter.name();
+
+        topics.clear();
+        topics.add(String.format("%s.%s", server.database, topic));
+
+        final PgsqlKafkaBindingConfig binding = server.binding;
+        final CatalogHandler catalog = binding.catalog;
+
+        final String subjectValue = String.format("%s.%s-value", server.database, topic);
+        final int schemaId = catalog.resolve(subjectValue, "latest");
+        final String existingSchemaJson = catalog.resolve(schemaId);
+        final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
+
+        int versionId = catalog.register(subjectValue, schemaValue);
+
+        if (versionId != NO_VERSION_ID)
         {
             final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.CREATE_TOPIC_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, PgsqlKafkaCompletionCommand.ALTER_TOPIC_COMMAND);
         }
-        else if (server.commandsProcessed == 0)
+        else
         {
-            final Alter alter = parser.parseAlterTable(statement);
-            final String topic = alter.name();
-
-            topics.clear();
-            topics.add(String.format("%s.%s", server.database, topic));
-
-            final PgsqlKafkaBindingConfig binding = server.binding;
-            final CatalogHandler catalog = binding.catalog;
-
-            final String subjectValue = String.format("%s.%s-value", server.database, topic);
-            final int schemaId = catalog.resolve(subjectValue, "latest");
-            final String existingSchemaJson = catalog.resolve(schemaId);
-            final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
-
-            int versionId = catalog.register(subjectValue, schemaValue);
+            server.cleanup(traceId, authorization);
         }
     }
 
@@ -1418,6 +1419,53 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         String statement)
     {
         server.cleanup(traceId, authorization);
+    }
+
+    public List<String> splitStatements(
+        String sql)
+    {
+        statements.clear();
+        currentStatement.setLength(0);
+
+        boolean inDollarQuotes = false;
+        int length = sql.length();
+        int start = 0;
+
+        for (int i = 0; i < length; i++)
+        {
+            char c = sql.charAt(i);
+
+            if (c == '$' && i + 1 < length && sql.charAt(i + 1) == '$')
+            {
+                inDollarQuotes = !inDollarQuotes;
+                i++;
+            }
+            else if (c == ';' && !inDollarQuotes)
+            {
+                int j = i + 1;
+                while (j < length && Character.isWhitespace(sql.charAt(j)))
+                {
+                    j++;
+                }
+
+                if (j < length && sql.charAt(j) == '\0')
+                {
+                    i = j;
+                    continue;
+                }
+
+                statements.add(sql.substring(start, i + 1));
+                start = j;
+                i = j - 1;
+            }
+        }
+
+        if (start < length)
+        {
+            statements.add(sql.substring(start, length));
+        }
+
+        return statements;
     }
 
     @FunctionalInterface
