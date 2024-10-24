@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -79,6 +80,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
+    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
@@ -193,7 +195,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String tag = beginEx.tag().asString();
             try
             {
-                if (canWritePayload(capabilities))
+                if (writeOrCreateOperation(capabilities))
                 {
                     String type = probeContentTypeOrDefault(path);
                     newStream = new FileSystemServerWriter(
@@ -830,7 +832,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             doAppWindow(traceId);
 
             String currentTag = calculateTag();
-            if (!Objects.equals(currentTag, tag))
+            if (!Objects.equals(currentTag, tag) ||
+                !(canCreatePayload(capabilities, resolvedPath) || canWritePayload(capabilities, resolvedPath)))
             {
                 cleanup(traceId);
             }
@@ -876,7 +879,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     if ((flags & FLAG_FIN) != 0x00)
                     {
                         out.close();
-                        Files.move(tmpPath, resolvedPath, REPLACE_EXISTING);
+
+                        if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+                        {
+                            Files.move(tmpPath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE);
+                        }
 
                         String currentTag = calculateTag();
                         doAppBegin(traceId, currentTag);
@@ -886,7 +893,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 }
                 catch (Exception ex)
                 {
-                    doAppAbort(traceId);
+                    cleanup(traceId);
                 }
             }
         }
@@ -1109,10 +1116,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             ByteChannel output = null;
             try
             {
-                if (canWritePayload(capabilities))
+                if (canCreatePayload(capabilities, resolvedPath))
+                {
+                    output = Files.newByteChannel(resolvedPath, CREATE, WRITE);
+                }
+                else if (canWritePayload(capabilities, resolvedPath))
                 {
                     tmpPath = Files.createTempFile(resolvedPath.getParent(), "temp-", ".tmp");
-                    output = Files.newByteChannel(tmpPath, CREATE, WRITE);
+                    output = Files.newByteChannel(tmpPath, WRITE);
                 }
             }
             catch (IOException ex)
@@ -1300,8 +1311,22 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     }
 
     private boolean canWritePayload(
+        int capabilities,
+        Path path)
+    {
+        return (capabilities & WRITE_PAYLOAD_MASK) != 0 && Files.exists(path);
+    }
+
+    private boolean canCreatePayload(
+        int capabilities,
+        Path path)
+    {
+        return (capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.notExists(path);
+    }
+
+    private boolean writeOrCreateOperation(
         int capabilities)
     {
-        return (capabilities & WRITE_PAYLOAD_MASK) != 0;
+        return (capabilities & CREATE_PAYLOAD_MASK) != 0 || (capabilities & WRITE_PAYLOAD_MASK) != 0;
     }
 }

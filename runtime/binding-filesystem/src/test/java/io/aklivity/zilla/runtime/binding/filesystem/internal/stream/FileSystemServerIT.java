@@ -256,9 +256,9 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/write.file.payload/client",
+        "${app}/create.file.payload/client",
     })
-    public void shouldWriteFilePayloadOnly() throws Exception
+    public void shouldCreateFilePayloadOnly() throws Exception
     {
         Path targetDirectory = Paths.get("target/files").toAbsolutePath();
         Path indexFile = targetDirectory.resolve("index_write.html");

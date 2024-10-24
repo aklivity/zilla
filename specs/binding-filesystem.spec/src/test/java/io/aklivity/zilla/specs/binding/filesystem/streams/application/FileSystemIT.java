@@ -168,10 +168,10 @@ public class FileSystemIT
 
     @Test
     @Specification({
-        "${app}/write.file.payload/client",
-        "${app}/write.file.payload/server",
+        "${app}/create.file.payload/client",
+        "${app}/create.file.payload/server",
     })
-    public void shouldWriteFilePayloadOnly() throws Exception
+    public void shouldCreateFilePayloadOnly() throws Exception
     {
         k3po.finish();
     }
