@@ -30,7 +30,7 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
     private final TokenStream tokens;
 
     private String name;
-    private List<AlterExpression> alterExpressions = new ArrayList<>();
+    private final List<AlterExpression> alterExpressions = new ArrayList<>();
 
     public SqlAlterTableTopicListener(
         TokenStream tokens)

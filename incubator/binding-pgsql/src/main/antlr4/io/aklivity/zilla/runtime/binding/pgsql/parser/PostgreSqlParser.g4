@@ -397,8 +397,10 @@ discardstmt
     ;
 
 altertablestmt
-    : ALTER opttable_alter_type (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
-    | ALTER opttable_alter_type ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
+    : ALTER TABLE (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
+    | ALTER TABLE ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
+    | ALTER TOPIC (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
+    | ALTER TOPIC ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER INDEX (IF_P EXISTS)? qualified_name (alter_table_cmds | index_partition_cmd)
     | ALTER INDEX ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER SEQUENCE (IF_P EXISTS)? qualified_name alter_table_cmds
@@ -408,10 +410,6 @@ altertablestmt
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
     ;
 
-opttable_alter_type
-    : TABLE
-    | TOPIC
-    ;
 
 alter_table_cmds
     : alter_table_cmd (COMMA alter_table_cmd)*

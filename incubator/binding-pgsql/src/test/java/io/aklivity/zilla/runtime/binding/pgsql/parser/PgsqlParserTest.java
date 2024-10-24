@@ -434,4 +434,26 @@ public class PgsqlParserTest
         String sql = "ALTER TABLE";
         parser.parseAlterTable(sql);
     }
+
+    @Test
+    public void shouldParseCommandForAlterTable()
+    {
+        String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        String expectedCommand = "ALTER TABLE";
+
+        String parsedCommand = parser.parseCommand(sql);
+
+        assertEquals(expectedCommand, parsedCommand);
+    }
+
+    @Test
+    public void shouldParseCommandForCreateTopic()
+    {
+        String sql = "CREATE TOPIC test (id INT UNIQUE, name VARCHAR(100));";
+        String expectedCommand = "CREATE TOPIC";
+
+        String parsedCommand = parser.parseCommand(sql);
+
+        assertEquals(expectedCommand, parsedCommand);
+    }
 }

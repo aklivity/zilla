@@ -44,7 +44,14 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterAltertablestmt(
         PostgreSqlParser.AltertablestmtContext ctx)
     {
-        command = "ALTER %s".formatted(ctx.opttable_alter_type().getText());
+        if (ctx.ALTER() != null && ctx.TABLE() != null)
+        {
+            command = "ALTER TABLE";
+        }
+        else if (ctx.ALTER() != null && ctx.TOPIC() != null)
+        {
+            command = "ALTER TOPIC";
+        }
     }
 
     @Override
