@@ -410,7 +410,6 @@ altertablestmt
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
     ;
 
-
 alter_table_cmds
     : alter_table_cmd (COMMA alter_table_cmd)*
     ;
