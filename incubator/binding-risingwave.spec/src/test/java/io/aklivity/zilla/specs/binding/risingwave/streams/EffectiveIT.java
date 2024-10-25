@@ -170,6 +170,8 @@ public class EffectiveIT
         k3po.finish();
     }
 
+
+
     @Test
     @Specification({
         "${app}/query.with.multiple.statements.errored/client",
@@ -185,6 +187,33 @@ public class EffectiveIT
         "${app}/set.variable/client",
         "${app}/set.variable/server" })
     public void shouldSetVariable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.table/client",
+        "${app}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.stream/client",
+        "${app}/drop.stream/server" })
+    public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/drop.materialized.view/client",
+        "${app}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
     {
         k3po.finish();
     }

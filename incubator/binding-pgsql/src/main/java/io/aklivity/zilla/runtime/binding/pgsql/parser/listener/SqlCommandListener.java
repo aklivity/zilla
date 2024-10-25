@@ -14,12 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import org.antlr.v4.runtime.TokenStream;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 
 public class SqlCommandListener extends PostgreSqlParserBaseListener
 {
     private String command = "";
+
+    private final TokenStream tokens;
+
+    public SqlCommandListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public String command()
     {
@@ -84,6 +94,6 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterDropstmt(
         PostgreSqlParser.DropstmtContext ctx)
     {
-        command = "DROP %s".formatted(ctx.object_type_any_name().getText());
+        command = "DROP %s".formatted(tokens.getText(ctx.object_type_any_name()));
     }
 }
