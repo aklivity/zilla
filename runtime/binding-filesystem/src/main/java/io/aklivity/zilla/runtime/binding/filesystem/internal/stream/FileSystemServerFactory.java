@@ -833,7 +833,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             String currentTag = calculateTag();
             if (!Objects.equals(currentTag, tag) ||
-                !(canCreatePayload(capabilities, resolvedPath) || canWritePayload(capabilities, resolvedPath)))
+                !(canCreatePayload(capabilities, resolvedPath) ||
+                    canWritePayload(capabilities, resolvedPath)))
             {
                 cleanup(traceId);
             }

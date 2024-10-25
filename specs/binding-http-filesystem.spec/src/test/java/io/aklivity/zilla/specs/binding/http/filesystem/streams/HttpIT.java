@@ -93,15 +93,6 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/client.write.file.rejected/client",
-        "${http}/client.write.file.rejected/server"})
-    public void shouldRejectClientWriteFile() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${http}/client.sent.message/client",
         "${http}/client.sent.message/server"})
     public void shouldRejectClientSentMessage() throws Exception
@@ -156,9 +147,9 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/client.write.file/client",
-        "${http}/client.write.file/server"})
-    public void shouldReceiveClientWriteFile() throws Exception
+        "${http}/client.create.file/client",
+        "${http}/client.create.file/server"})
+    public void shouldReceiveClientCreateFile() throws Exception
     {
         k3po.finish();
     }

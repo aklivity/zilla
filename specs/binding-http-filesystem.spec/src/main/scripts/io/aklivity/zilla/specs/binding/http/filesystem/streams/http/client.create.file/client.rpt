@@ -19,10 +19,27 @@ connect "zilla://streams/http0"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "PUT")
+                            .header(":method", "POST")
                             .header(":scheme", "https")
                             .header(":authority", "example.com:9090")
                             .header(":path", "/index.html")
                             .build()}
 
-connect aborted
+connected
+
+write "<html>\n"
+      "<head><title>Welcome</title></head>\n"
+      "<body>Hello, world</body>\n"
+      "</html>\n"
+
+write flush
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "204")
+                           .header("etag", "c7183509522eb56e5cf927a3b2e8c15a")
+                           .build()}
+
+read closed

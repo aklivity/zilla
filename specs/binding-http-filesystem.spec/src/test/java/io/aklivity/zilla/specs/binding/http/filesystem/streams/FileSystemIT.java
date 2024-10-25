@@ -119,9 +119,9 @@ public class FileSystemIT
 
     @Test
     @Specification({
-        "${filesystem}/client.write.file/client",
-        "${filesystem}/client.write.file/server"})
-    public void shouldReceiveClientWriteFile() throws Exception
+        "${filesystem}/client.create.file/client",
+        "${filesystem}/client.create.file/server"})
+    public void shouldReceiveClientCreateFile() throws Exception
     {
         k3po.finish();
     }

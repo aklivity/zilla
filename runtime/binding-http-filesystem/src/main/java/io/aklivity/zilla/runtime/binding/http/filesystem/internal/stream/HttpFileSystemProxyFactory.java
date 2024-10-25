@@ -54,13 +54,16 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
+    private static final String16FW HEADER_STATUS_VALUE_204 = new String16FW("204");
     private static final String16FW HEADER_STATUS_VALUE_304 = new String16FW("304");
     private static final String8FW HEADER_ETAG_NAME = new String8FW("etag");
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
+    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
+    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
 
-    private static final Predicate<HttpHeaderFW> HEADER_METHOD_GET_OR_HEAD;
+    private static final Predicate<HttpHeaderFW> ALLOWED_HTTP_METHOD;
 
     static
     {
@@ -76,9 +79,23 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .value("HEAD")
                 .build();
 
+        HttpHeaderFW headerMethodPost = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("POST")
+            .build();
+
+        HttpHeaderFW headerMethodPut = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("PUT")
+            .build();
+
         Predicate<HttpHeaderFW> test = headerMethodGet::equals;
         test = test.or(headerMethodHead::equals);
-        HEADER_METHOD_GET_OR_HEAD = test;
+        test = test.or(headerMethodPost::equals);
+        test = test.or(headerMethodPut::equals);
+        ALLOWED_HTTP_METHOD = test;
     }
 
     private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
@@ -173,7 +190,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         HttpFileSystemRouteConfig route = null;
 
-        if (binding != null && beginEx.headers().anyMatch(HEADER_METHOD_GET_OR_HEAD))
+        if (binding != null && beginEx.headers().anyMatch(ALLOWED_HTTP_METHOD))
         {
             route = binding.resolve(authorization, beginEx);
         }
@@ -300,6 +317,10 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -308,8 +329,15 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
             assert initialAck <= initialSeq;
 
-            doHttpReset(traceId);
-            delegate.doFileSystemAbort(traceId, authorization);
+            if (delegate.createOrWritePayload(resolved.capabilities()))
+            {
+                delegate.doFileSystemData(traceId, authorization, budgetId, reserved, flags, payload);
+            }
+            else
+            {
+                doHttpReset(traceId);
+                delegate.doFileSystemAbort(traceId, authorization);
+            }
         }
 
         private void onHttpEnd(
@@ -542,6 +570,18 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     traceId, authorization, affinity, resolved);
         }
 
+        private void doFileSystemData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            Flyweight payload)
+        {
+            doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, flags, reserved, payload);
+        }
+
         private void doFileSystemEnd(
             long traceId,
             long sequence,
@@ -645,13 +685,24 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             {
                 final HttpBeginExFW.Builder httpBeginExBuilder =
                     httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
+                        .typeId(httpTypeId);
+                final boolean validTag = tag != null ? tag.length() != -1 && tag.asString() != null : false;
+
+                if (createOrWritePayload(fsBeginEx.capabilities()) && validTag)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
+                        .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                }
+                else
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
                         .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
-                if (tag.length() != -1 && tag.asString() != null)
-                {
-                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+
+                    if (validTag)
+                    {
+                        httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                    }
                 }
                 httpBeginEx = httpBeginExBuilder.build();
             }
@@ -673,6 +724,12 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int capabilities)
         {
             return (capabilities & READ_PAYLOAD_MASK) != 0;
+        }
+
+        private boolean createOrWritePayload(
+            int capabilities)
+        {
+            return (capabilities & CREATE_PAYLOAD_MASK) != 0 || (capabilities & WRITE_PAYLOAD_MASK) != 0;
         }
 
         private void onFileSystemData(

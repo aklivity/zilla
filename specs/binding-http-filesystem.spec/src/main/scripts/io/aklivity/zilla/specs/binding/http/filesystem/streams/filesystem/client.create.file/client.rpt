@@ -13,32 +13,30 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/http0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+connect "zilla://streams/filesystem0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "PUT")
-                            .header(":scheme", "https")
-                            .header(":authority", "example.com:9090")
-                            .header(":path", "/index.html")
-                            .build()}
-
+write zilla:begin.ext ${filesystem:beginEx()
+                                  .typeId(zilla:id("filesystem"))
+                                  .capabilities("CREATE_PAYLOAD")
+                                  .path("index.html")
+                                  .build()}
 connected
 
 write "<html>\n"
       "<head><title>Welcome</title></head>\n"
       "<body>Hello, world</body>\n"
       "</html>\n"
-
 write flush
 
 write close
 
-read zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "204")
-                           .build()}
+read zilla:begin.ext ${filesystem:matchBeginEx()
+                                 .typeId(zilla:id("filesystem"))
+                                 .capabilities("CREATE_PAYLOAD")
+                                 .path("index.html")
+                                 .tag("c7183509522eb56e5cf927a3b2e8c15a")
+                                 .build()}
 
 read closed

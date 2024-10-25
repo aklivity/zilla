@@ -128,15 +128,6 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.yaml")
-    @Specification({
-        "${http}/client.write.file.rejected/client"})
-    public void shouldRejectClientWriteFile() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Specification({
         "${http}/client.rejected/client"})
     public void shouldRejectClientWithNoRoute() throws Exception
@@ -200,6 +191,16 @@ public class HttpFileSystemProxyIT
         "${http}/client.sent.abort/client",
         "${filesystem}/client.sent.abort/server"})
     public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.create.file/client",
+        "${filesystem}/client.create.file/server"})
+    public void shouldReceiveClientCreateFile() throws Exception
     {
         k3po.finish();
     }
