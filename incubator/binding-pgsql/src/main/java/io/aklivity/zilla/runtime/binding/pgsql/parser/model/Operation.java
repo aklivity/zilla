@@ -14,14 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.List;
-
-public record FunctionInfo(
-    String name,
-    List<FunctionArgument> arguments,
-    String returnType,
-    List<FunctionArgument> tables,
-    String asFunction,
-    String language)
+public enum Operation
 {
+    ADD,
+    DROP,
+    MODIFY
 }

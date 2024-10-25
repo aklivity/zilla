@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.agrona.collections.ObjectHashSet;
@@ -23,11 +23,12 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
-    private final Map<String, String> columns = new LinkedHashMap<>();
+    private final List<TableColumn> columns = new ArrayList<>();
     private final Set<String> primaryKeys = new ObjectHashSet<>();
     private final TokenStream tokens;
 
@@ -39,9 +40,9 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public TableInfo tableInfo()
+    public Table table()
     {
-        return new TableInfo(name, columns, primaryKeys);
+        return new Table(name, columns, primaryKeys);
     }
 
     @Override
@@ -66,34 +67,52 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     {
         if (ctx.opttableelementlist().tableelementlist() != null)
         {
-            for (PostgreSqlParser.TableelementContext tableElement : ctx.opttableelementlist().tableelementlist().tableelement())
+            for (PostgreSqlParser.TableelementContext tableElement :
+                ctx.opttableelementlist().tableelementlist().tableelement())
             {
                 if (tableElement.columnDef() != null)
                 {
-                    String columnName = tableElement.columnDef().colid().getText();
-                    String dataType = tokens.getText(tableElement.columnDef().typename());
-                    columns.put(columnName, dataType);
-
-                    for (PostgreSqlParser.ColconstraintContext constraint :
-                        tableElement.columnDef().colquallist().colconstraint())
-                    {
-                        if (constraint.colconstraintelem().PRIMARY() != null &&
-                            constraint.colconstraintelem().KEY() != null)
-                        {
-                            primaryKeys.add(columnName);
-                        }
-                    }
+                    addColumn(tableElement.columnDef());
                 }
                 else if (tableElement.tableconstraint() != null)
                 {
-                    if (tableElement.tableconstraint().constraintelem().PRIMARY() != null &&
-                        tableElement.tableconstraint().constraintelem().KEY() != null)
-                    {
-                        tableElement.tableconstraint().constraintelem().columnlist().columnElem().forEach(
-                            column -> primaryKeys.add(column.getText()));
-                    }
+                    addPrimaryKey(tableElement.tableconstraint());
                 }
             }
+        }
+    }
+
+    private void addColumn(
+        PostgreSqlParser.ColumnDefContext columnDef)
+    {
+        List<String> constraints = new ArrayList<>();
+        String columnName = columnDef.colid().getText();
+        String dataType = tokens.getText(columnDef.typename());
+
+        for (PostgreSqlParser.ColconstraintContext constraint :
+            columnDef.colquallist().colconstraint())
+        {
+            if (constraint.colconstraintelem().PRIMARY() != null &&
+                constraint.colconstraintelem().KEY() != null)
+            {
+                primaryKeys.add(columnName);
+            }
+            else
+            {
+                constraints.add(tokens.getText(constraint.colconstraintelem()));
+            }
+        }
+        columns.add(new TableColumn(columnName, dataType, constraints));
+    }
+
+    private void addPrimaryKey(
+        PostgreSqlParser.TableconstraintContext tableConstraint)
+    {
+        if (tableConstraint.constraintelem().PRIMARY() != null &&
+            tableConstraint.constraintelem().KEY() != null)
+        {
+            tableConstraint.constraintelem().columnlist().columnElem().forEach(
+                column -> primaryKeys.add(column.getText()));
         }
     }
 }

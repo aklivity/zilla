@@ -35,10 +35,10 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
@@ -83,7 +83,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private final PgsqlParser parser = new PgsqlParser();
     private final List<String> statements = new ArrayList<>();
-    private final StringBuilder currentStatement = new StringBuilder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -1498,34 +1497,34 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final TableInfo tableInfo = parser.parseCreateTable(statement);
+            final Table table = parser.parseCreateTable(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(tableInfo);
+                newStatement = binding.createTopic.generate(table);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateTableSource(server.database, tableInfo);
+                newStatement = binding.createSource.generateTableSource(server.database, table);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.createView.generate(tableInfo);
+                newStatement = binding.createView.generate(table);
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createTable.generate(tableInfo);
+                newStatement = binding.createTable.generate(table);
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generate(tableInfo);
+                newStatement = binding.createSink.generate(table);
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.createSink.generate(server.database, tableInfo);
+                newStatement = binding.createSink.generate(server.database, table);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1555,18 +1554,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final StreamInfo streamInfo = parser.parseCreateStream(statement);
+            final Stream stream = parser.parseCreateStream(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(streamInfo);
+                newStatement = binding.createTopic.generate(stream);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateStreamSource(server.database, streamInfo);
+                newStatement = binding.createSource.generateStreamSource(server.database, stream);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1597,7 +1596,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final ViewInfo viewInfo = parser.parseCreateMaterializedView(statement);
+            final View view = parser.parseCreateMaterializedView(statement);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
             PgsqlDataCommand dataCommand = proxyDataCommand;
 
@@ -1606,22 +1605,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createView.generate(viewInfo);
+                newStatement = binding.createView.generate(view);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.describeView.generate(viewInfo);
+                newStatement = binding.describeView.generate(view);
                 typeCommand = typeFlushCommand;
                 dataCommand = rowDataCommand;
                 server.columns.clear();
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.createTopic.generate(viewInfo, server.columns);
+                newStatement = binding.createTopic.generate(view, server.columns);
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createSink.generate(server.database, server.columns, viewInfo);
+                newStatement = binding.createSink.generate(server.database, server.columns, view);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1653,14 +1652,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final FunctionInfo functionInfo = parser.parseCreateFunction(statement);
+            final Function function = parser.parseCreateFunction(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createFunction.generate(functionInfo);
+                newStatement = binding.createFunction.generate(function);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1941,7 +1940,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String sql)
     {
         statements.clear();
-        currentStatement.setLength(0);
 
         boolean inDollarQuotes = false;
         int length = sql.length();

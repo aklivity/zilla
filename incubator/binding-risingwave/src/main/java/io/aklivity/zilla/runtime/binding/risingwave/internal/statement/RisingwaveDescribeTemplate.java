@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
 {
@@ -26,9 +26,9 @@ public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        ViewInfo viewInfo)
+        View view)
     {
-        String name = viewInfo.name();
+        String name = view.name();
 
         return String.format(sqlFormat, name);
     }

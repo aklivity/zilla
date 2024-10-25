@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.Map;
+import java.util.List;
 
-public record StreamInfo(
+public record Function(
     String name,
-    Map<String, String> columns)
+    List<FunctionArgument> arguments,
+    String returnType,
+    List<FunctionArgument> tables,
+    String asFunction,
+    String language)
 {
 }

@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -36,13 +34,15 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP STREAM weather;"
-     [0x00]
+read  "ALTER TOPIC cities ALTER COLUMN name TYPE VARCHAR(100);"
+      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("DROP_STREAM")
+                              .error()
+                                .severity("ERROR")
+                                .code("XX000")
+                                .message("Unable to alter topic cities")
                                 .build()
                               .build()}
 
@@ -52,3 +52,5 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+read closed
+write close

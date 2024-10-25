@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.Map;
 import java.util.Optional;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
@@ -51,9 +51,9 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     public String generate(
         String database,
         Map<String, String> columns,
-        ViewInfo viewInfo)
+        View view)
     {
-        String viewName = viewInfo.name();
+        String viewName = view.name();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
             .filter(e -> "id".equalsIgnoreCase(e.getKey()))
@@ -74,7 +74,7 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 
     public String generate(
         String database,
-        TableInfo tableInfo)
+        Table tableInfo)
     {
         String table = tableInfo.name();
 
@@ -83,7 +83,7 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        TableInfo tableInfo)
+        Table tableInfo)
     {
         String table = tableInfo.name();
 

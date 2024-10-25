@@ -14,12 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
-
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
@@ -34,43 +35,44 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     }
 
     public String generate(
-        ViewInfo viewInfo)
+        View view)
     {
-        String name = viewInfo.name();
-        String select = viewInfo.select();
+        String name = view.name();
+        String select = view.select();
 
         return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        TableInfo tableInfo)
+        Table table)
     {
-        String name = tableInfo.name();
+        String name = table.name();
 
         String select = "*";
 
-        Map<String, String> includes = tableInfo.columns().entrySet().stream()
-            .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
-            .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+        List<TableColumn> includes = table.columns().stream()
+            .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
+            .collect(Collectors.toCollection(ArrayList::new));
 
         if (!includes.isEmpty())
         {
             fieldBuilder.setLength(0);
 
-            tableInfo.columns().keySet()
+            table.columns()
                 .stream()
-                .filter(c -> !ZILLA_MAPPINGS.containsKey(c))
-                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c)));
+                .filter(c -> !ZILLA_MAPPINGS.containsKey(c.name()))
+                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c.name())));
 
-            includes.forEach((k, v) ->
+            includes.forEach(c ->
             {
-                if (ZILLA_TIMESTAMP.equals(k))
+                String columnName = c.name();
+                if (ZILLA_TIMESTAMP.equals(columnName))
                 {
-                    fieldBuilder.append(String.format(timestampFormat,  k, k, k));
+                    fieldBuilder.append(String.format(timestampFormat,  columnName, columnName, columnName));
                 }
                 else
                 {
-                    fieldBuilder.append(String.format(includeFormat, k, k, k));
+                    fieldBuilder.append(String.format(includeFormat, columnName, columnName, columnName));
                 }
             });
 

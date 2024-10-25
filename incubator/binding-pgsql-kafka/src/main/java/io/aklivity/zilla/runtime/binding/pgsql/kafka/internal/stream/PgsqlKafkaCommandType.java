@@ -22,6 +22,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 public enum PgsqlKafkaCommandType
 {
     CREATE_TOPIC_COMMAND("CREATE TOPIC".getBytes()),
+    ALTER_TOPIC_COMMAND("ALTER TOPIC".getBytes()),
     DROP_TOPIC_COMMAND("DROP TOPIC".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 

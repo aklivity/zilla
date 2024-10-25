@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-public record ViewInfo(
+import java.util.Map;
+
+public record Stream(
     String name,
-    String select)
+    Map<String, String> columns)
 {
 }

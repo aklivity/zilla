@@ -16,15 +16,16 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateTableTemplateTest
 {
@@ -39,18 +40,18 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithValidTableInfo()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of("id"));
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -58,18 +59,18 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithoutPrimaryKey()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of());
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING);\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -78,18 +79,18 @@ public class RisingwaveCreateTableTemplateTest
     @Test
     public void shouldGenerateTableWithMultiplePrimaryKeys()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("name", "STRING");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("name", "STRING", List.of()));
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table",
             columns,
             Set.of("id", "name"));
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(tableInfo);
+        String actualSQL = template.generate(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
