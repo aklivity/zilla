@@ -36,11 +36,13 @@ import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class CacheFetchIT
 {
@@ -448,6 +450,22 @@ public class CacheFetchIT
         k3po.start();
         k3po.awaitBarrier("RECEIVED_MESSAGE_2");
         k3po.notifyBarrier("SEND_MESSAGE_3");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.live.yaml")
+    @Specification({
+        "${app}/messages.after.retention.max/client",
+        "${app}/messages.after.retention.max/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "1000")
+    public void shouldReceiveMessagesAfterRetentionMax() throws Exception
+    {
+        partition.append(10L);
+        k3po.start();
+        Thread.sleep(1500);
+        k3po.notifyBarrier("SEND_MESSAGE_2");
         k3po.finish();
     }
 
