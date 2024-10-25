@@ -163,6 +163,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final int reconnectDelay;
     private final EngineContext context;
     private final boolean verbose;
+    private final long retentionMillisMaxLive;
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -188,6 +189,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.supplyCacheRoute = supplyCacheRoute;
         this.reconnectDelay = config.cacheServerReconnect();
         this.verbose = config.verbose();
+        this.retentionMillisMaxLive = config.cacheRetentionMillisMax();
     }
 
     @Override
@@ -527,7 +529,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.partition = partition;
             this.deltaType = deltaType;
             this.defaultOffset = defaultOffset;
-            this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
+            this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
             this.convertKey = topicType.keyReader;
@@ -1190,7 +1192,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
-            while (!segmentNode.sentinel() &&
+            while (!segmentNode.sentinel() && segmentNode != partition.head() &&
                 partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
             {
                 segmentNode.remove();

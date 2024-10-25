@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_RETENTION_MILLIS_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_INSTANCE_ID;
@@ -38,6 +39,9 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME = "zilla.binding.kafka.client.sasl.scram.nonce";
     public static final String KAFKA_CLIENT_INSTANCE_ID_NAME = "zilla.binding.kafka.client.instance.id";
 
+    public static final String KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME =
+        "zilla.binding.kafka.cache.retention.ms.max";
+
     @Test
     public void shouldVerifyConstants() throws Exception
     {
@@ -48,5 +52,6 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CACHE_CLIENT_CLEANUP_DELAY.name(), KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME);
         assertEquals(KAFKA_CLIENT_SASL_SCRAM_NONCE.name(), KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME);
         assertEquals(KAFKA_CLIENT_INSTANCE_ID.name(), KAFKA_CLIENT_INSTANCE_ID_NAME);
+        assertEquals(KAFKA_CACHE_RETENTION_MILLIS_MAX.name(), KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME);
     }
 }
