@@ -42,7 +42,7 @@ write advise zilla:flush ${pgsql:flushEx()
                               .error()
                                 .severity("ERROR")
                                 .code("XX000")
-                                .message("Unsupported alter operation: MODIFY")
+                                .message("Unable to alter topic cities")
                                 .build()
                               .build()}
 

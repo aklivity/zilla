@@ -1394,19 +1394,20 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final PgsqlKafkaBindingConfig binding = server.binding;
         final CatalogHandler catalog = binding.catalog;
 
-        try
+        final String subjectValue = String.format("%s.%s-value", server.database, topic);
+        final int schemaId = catalog.resolve(subjectValue, "latest");
+        final String existingSchemaJson = catalog.resolve(schemaId);
+        final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
+
+        if (schemaValue != null)
         {
-            final String subjectValue = String.format("%s.%s-value", server.database, topic);
-            final int schemaId = catalog.resolve(subjectValue, "latest");
-            final String existingSchemaJson = catalog.resolve(schemaId);
-            final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
             int versionId = catalog.register(subjectValue, schemaValue);
             //TODO: check if the versionId is the same as the one in the existing schema
         }
-        catch (Exception e)
+        else
         {
             server.doCommandError(traceId, authorization, SEVERITY_ERROR, CODE_XX000,
-                String.format("%s\u0000", e.getMessage()));
+                String.format("Unable to alter topic %s\u0000", topic));
             server.commandsProcessed = COMMAND_PROCESSED_ERRORED;
         }
 

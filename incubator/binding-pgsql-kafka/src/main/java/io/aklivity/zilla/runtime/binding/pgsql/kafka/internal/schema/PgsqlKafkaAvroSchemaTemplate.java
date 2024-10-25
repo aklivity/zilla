@@ -84,10 +84,13 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
         return result;
     }
 
-    protected void applyAlterations(
+    protected boolean applyAlterations(
         ArrayNode fields,
         List<AlterExpression> alterExpressions)
     {
+        boolean applied = true;
+
+        apply:
         for (AlterExpression alterExpr : alterExpressions)
         {
             if (alterExpr.operation() == Operation.ADD)
@@ -99,9 +102,11 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
             }
             else
             {
-                throw new UnsupportedOperationException(
-                    String.format("Unsupported alter operation: %s", alterExpr.operation()));
+                applied = false;
+                break apply;
             }
         }
+
+        return applied;
     }
 }
