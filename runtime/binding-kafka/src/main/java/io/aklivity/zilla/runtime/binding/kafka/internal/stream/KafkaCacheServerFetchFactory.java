@@ -1190,7 +1190,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
-            while (!segmentNode.sentinel() &&
+            while (!segmentNode.sentinel() && segmentNode != partition.head() &&
                 partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
             {
                 segmentNode.remove();
