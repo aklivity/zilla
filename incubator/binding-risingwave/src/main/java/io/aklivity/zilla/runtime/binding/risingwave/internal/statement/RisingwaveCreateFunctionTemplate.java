@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionInfo;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 
 public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
@@ -58,12 +58,12 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        FunctionInfo functionInfo)
+        Function function)
     {
-        String functionName = functionInfo.name();
-        String asFunction = functionInfo.asFunction();
-        List<FunctionArgument> arguments = functionInfo.arguments();
-        List<FunctionArgument> tables = functionInfo.tables();
+        String functionName = function.name();
+        String asFunction = function.asFunction();
+        List<FunctionArgument> arguments = function.arguments();
+        List<FunctionArgument> tables = function.tables();
 
         fieldBuilder.setLength(0);
 
@@ -79,10 +79,10 @@ public class RisingwaveCreateFunctionTemplate extends RisingwaveCommandTemplate
         }
         String funcArguments = fieldBuilder.toString();
 
-        String language = functionInfo.language() != null ? functionInfo.language() : "java";
+        String language = function.language() != null ? function.language() : "java";
         String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
 
-        String returnType = functionInfo.returnType();
+        String returnType = function.returnType();
         if (!tables.isEmpty())
         {
             fieldBuilder.setLength(0);

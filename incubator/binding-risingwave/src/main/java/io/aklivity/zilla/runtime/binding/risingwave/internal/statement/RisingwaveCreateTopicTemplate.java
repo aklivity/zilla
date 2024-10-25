@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ViewInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 {
@@ -35,18 +35,18 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        TableInfo tableInfo)
+        Table table)
     {
-        String topic = tableInfo.name();
-        String primaryKey = !tableInfo.primaryKeys().isEmpty()
-            ? String.format(primaryKeyFormat, tableInfo.primaryKeys().stream().findFirst().get())
+        String topic = table.name();
+        String primaryKey = !table.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, table.primaryKeys().stream().findFirst().get())
             : "";
 
         fieldBuilder.setLength(0);
 
-        tableInfo.columns()
-            .forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, k, v)));
+        table.columns()
+            .forEach(c -> fieldBuilder.append(
+                String.format(fieldFormat, c.name(), c.type())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
@@ -54,13 +54,13 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        StreamInfo streamInfo)
+        Stream stream)
     {
-        String topic = streamInfo.name();
+        String topic = stream.name();
 
         fieldBuilder.setLength(0);
 
-        streamInfo.columns()
+        stream.columns()
             .entrySet()
             .stream()
             .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
@@ -73,10 +73,10 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        ViewInfo viewInfo,
+        View view,
         Map<String, String> columns)
     {
-        String topic = viewInfo.name();
+        String topic = view.name();
 
         primaryKeyBuilder.setLength(0);
         columns.keySet().forEach(k -> primaryKeyBuilder.append(k).append(", "));

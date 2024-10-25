@@ -16,15 +16,18 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.StreamInfo;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplateTest
 {
@@ -39,7 +42,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithValidStreamInfo()
     {
-        StreamInfo streamInfo = new StreamInfo("test_stream", Map.of("id", "INT", "name", "STRING"));
+        Stream stream = new Stream("test_stream", Map.of("id", "INT", "name", "STRING"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_stream (*)
             WITH (
@@ -52,7 +55,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource("test_db", streamInfo);
+        String actualSQL = template.generateStreamSource("test_db", stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -60,13 +63,13 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithValidTableInfoAndIncludes()
     {
-        Map<String, String> columns = new LinkedHashMap<>();
-        columns.put("id", "INT");
-        columns.put("zilla_correlation_id", "VARCHAR");
-        columns.put("zilla_identity", "VARCHAR");
-        columns.put("zilla_timestamp", "TIMESTAMP");
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(new TableColumn("id", "INT", List.of()));
+        columns.add(new TableColumn("zilla_correlation_id", "VARCHAR", List.of()));
+        columns.add(new TableColumn("zilla_identity", "VARCHAR", List.of()));
+        columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
-        TableInfo tableInfo = new TableInfo(
+        Table table = new Table(
             "test_table", columns, Set.of("id"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_table_source (*)
@@ -83,7 +86,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource("test_db", tableInfo);
+        String actualSQL = template.generateTableSource("test_db", table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -91,7 +94,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithEmptyColumnsReturnsSQLWithoutIncludes()
     {
-        StreamInfo streamInfo = new StreamInfo("empty_stream", Map.of());
+        Stream stream = new Stream("empty_stream", Map.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_stream (*)
             WITH (
@@ -104,7 +107,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource("test_db", streamInfo);
+        String actualSQL = template.generateStreamSource("test_db", stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -132,9 +135,9 @@ public class RisingwaveCreateSourceTemplateTest
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
-        StreamInfo streamInfo = new StreamInfo("include_stream", columns);
+        Stream stream = new Stream("include_stream", columns);
 
-        String actualSQL = template.generateStreamSource("test_db", streamInfo);
+        String actualSQL = template.generateStreamSource("test_db", stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -142,7 +145,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithEmptyColumnsAndWithoutIncludes()
     {
-        TableInfo tableInfo = new TableInfo("empty_table", Map.of(), Set.of());
+        Table table = new Table("empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_table_source (*)
             WITH (
@@ -155,7 +158,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource("test_db", tableInfo);
+        String actualSQL = template.generateTableSource("test_db", table);
 
         assertEquals(expectedSQL, actualSQL);
     }

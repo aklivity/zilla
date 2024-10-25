@@ -14,15 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableInfo;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private static final String DATABASE_PLACEHOLDER = "{database}";
-
-    private final StringBuilder schemaBuilder = new StringBuilder();
+    private final ObjectMapper mapper = new ObjectMapper();
     private final String namespace;
 
     public PgsqlKafkaValueAvroSchemaTemplate(
@@ -31,40 +34,76 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         this.namespace = namespace;
     }
 
-    public String generateSchema(
+    public String generate(
         String database,
-        TableInfo createTable)
+        Table table)
     {
-        schemaBuilder.setLength(0);
-
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = createTable.name();
 
-        schemaBuilder.append("{\n");
-        schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
-        schemaBuilder.append("\"schema\": \"");
+        ObjectNode schemaNode = mapper.createObjectNode();
+        schemaNode.put("type", "record");
+        schemaNode.put("name", table.name());
+        schemaNode.put("namespace", newNamespace);
 
-        schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
-        schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
-        schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
-        schemaBuilder.append(" \\\"fields\\\": [");
+        ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (Map.Entry<String, String> column : createTable.columns().entrySet())
+        for (TableColumn column : table.columns())
         {
-            String fieldName = column.getKey();
-            String pgsqlType = column.getValue();
+            String columnName = column.name();
+            String sqlType = column.type();
+            Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            String avroType = convertPgsqlTypeToAvro(pgsqlType);
+            boolean isNullable = !column.constraints().contains("NOT NULL");
 
-            schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": ").append(avroType).append("},");
+            ObjectNode fieldNode = mapper.createObjectNode();
+            fieldNode.put("name", columnName);
+
+            if (isNullable)
+            {
+                ArrayNode unionType = mapper.createArrayNode();
+                unionType.add("null");
+                unionType.addPOJO(avroType);
+                fieldNode.set("type", unionType);
+            }
+            else
+            {
+                fieldNode.set("type", mapper.valueToTree(avroType));
+            }
+
+            fieldsArray.add(fieldNode);
         }
 
-        schemaBuilder.setLength(schemaBuilder.length() - 1);
-        schemaBuilder.append("]");
+        schemaNode.set("fields", fieldsArray);
 
-        schemaBuilder.append("}\"\n}");
+        ObjectNode parentNode = mapper.createObjectNode();
+        parentNode.put("schemaType", "AVRO");
+        parentNode.put("schema", schemaNode.toString());
 
-        return schemaBuilder.toString();
+        return parentNode.toPrettyString();
+    }
+
+    public String generate(
+        String existingSchemaJson,
+        Alter alter)
+    {
+        String newSchemaJson = null;
+        try
+        {
+            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
+            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
+            ArrayNode fields = (ArrayNode) schema.get("fields");
+
+            final boolean applied = applyAlterations(fields, alter.alterExpressions());
+            if (applied)
+            {
+                schemaNode.put("schema", schema.toString());
+                newSchemaJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
+            }
+        }
+        catch (JsonProcessingException ignored)
+        {
+        }
+
+        return newSchemaJson;
     }
 }
