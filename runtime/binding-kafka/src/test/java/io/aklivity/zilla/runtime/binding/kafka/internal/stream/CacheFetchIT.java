@@ -459,12 +459,12 @@ public class CacheFetchIT
         "${app}/messages.after.retention.max/client",
         "${app}/messages.after.retention.max/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "1000")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "200")
     public void shouldReceiveMessagesAfterRetentionMax() throws Exception
     {
         partition.append(10L);
         k3po.start();
-        Thread.sleep(1500);
+        Thread.sleep(250);
         k3po.notifyBarrier("SEND_MESSAGE_2");
         k3po.finish();
     }

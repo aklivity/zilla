@@ -163,7 +163,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final int reconnectDelay;
     private final EngineContext context;
     private final boolean verbose;
-    public final long retentionMillisMaxConfig;
+    private final long retentionMillisMaxLive;
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -189,7 +189,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.supplyCacheRoute = supplyCacheRoute;
         this.reconnectDelay = config.cacheServerReconnect();
         this.verbose = config.verbose();
-        this.retentionMillisMaxConfig = config.cacheRetentionMillisMax();
+        this.retentionMillisMaxLive = config.cacheRetentionMillisMax();
     }
 
     @Override
@@ -529,7 +529,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.partition = partition;
             this.deltaType = deltaType;
             this.defaultOffset = defaultOffset;
-            this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxConfig : Long.MAX_VALUE;
+            this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
             this.convertKey = topicType.keyReader;
