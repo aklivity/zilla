@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.pgsql.kafka
 {
+    requires com.fasterxml.jackson.databind;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.pgsql;
 
