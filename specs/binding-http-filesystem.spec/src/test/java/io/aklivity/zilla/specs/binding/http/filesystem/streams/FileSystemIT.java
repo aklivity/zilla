@@ -125,4 +125,31 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.create.existing.file.failed/client",
+        "${filesystem}/client.create.existing.file.failed/server"})
+    public void shouldRejectClientCreateExistingFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.write.file/client",
+        "${filesystem}/client.write.file/server"})
+    public void shouldReceiveClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.write.file.failed/client",
+        "${filesystem}/client.write.file.failed/server"})
+    public void shouldRejectClientWriteFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

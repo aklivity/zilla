@@ -41,6 +41,7 @@ public final class HttpFileSystemWithResolver
     private static final Pattern PREFER_WAIT_PATTERN = Pattern.compile("wait=(\\d+)");
     private static final String8FW HEADER_METHOD_NAME = new String8FW(":method");
     private static final String8FW HEADER_IF_NONE_MATCH_NAME = new String8FW("if-none-match");
+    private static final String8FW HEADER_IF_MATCH_NAME = new String8FW("if-match");
     private static final String8FW HEADER_PREFER_NAME = new String8FW("prefer");
     private static final String16FW HEADER_METHOD_VALUE_GET = new String16FW("GET");
     private static final String16FW HEADER_METHOD_VALUE_HEAD = new String16FW("HEAD");
@@ -79,6 +80,7 @@ public final class HttpFileSystemWithResolver
             path0 = pathMatcher.replaceAll(replacer);
         }
         String16FW path = new String16FW(path0);
+        String16FW etag = new String16FW("");
 
         HttpHeaderFW method = httpBeginEx.headers().matchFirst(h -> HEADER_METHOD_NAME.equals(h.name()));
         int capabilities = 0;
@@ -99,10 +101,15 @@ public final class HttpFileSystemWithResolver
             else if (HEADER_METHOD_VALUE_PUT.equals(method.value()))
             {
                 capabilities = HEADER_METHOD_MASK_PUT;
+                HttpHeaderFW ifMatched = httpBeginEx.headers().matchFirst(h -> HEADER_IF_MATCH_NAME.equals(h.name()));
+                if (ifMatched != null)
+                {
+                    String16FW value = ifMatched.value();
+                    etag = etagRO.wrap(value.buffer(), value.offset(), value.limit());
+                }
             }
         }
         HttpHeaderFW ifNotMatched = httpBeginEx.headers().matchFirst(h -> HEADER_IF_NONE_MATCH_NAME.equals(h.name()));
-        String16FW etag = new String16FW("");
         if (ifNotMatched != null)
         {
             String16FW value = ifNotMatched.value();

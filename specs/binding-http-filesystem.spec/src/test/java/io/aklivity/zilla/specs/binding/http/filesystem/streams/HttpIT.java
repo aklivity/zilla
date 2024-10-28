@@ -153,4 +153,31 @@ public class HttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/client.create.existing.file.failed/client",
+        "${http}/client.create.existing.file.failed/server"})
+    public void shouldRejectClientCreateExistingFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.write.file/client",
+        "${http}/client.write.file/server"})
+    public void shouldReceiveClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.write.file.failed/client",
+        "${http}/client.write.file.failed/server"})
+    public void shouldRejectClientWriteFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
