@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.99...HEAD)
+
+**Implemented enhancements:**
+
+- Replace jsqlparser with antlr grammar [\#1301](https://github.com/aklivity/zilla/issues/1301)
+- Support `pgsql-kafka` binding [\#1058](https://github.com/aklivity/zilla/issues/1058)
+- syntax check mqtt topic names and topic filters in zilla.yaml [\#521](https://github.com/aklivity/zilla/issues/521)
+
+**Fixed bugs:**
+
+- Zilla `asyncapi.mqtt.kafka.proxy` crash on startup with NPE: Cannot read field "values" because the return value of "...AsyncapiServerVariableResolver.resolve\(String\)" is null [\#1304](https://github.com/aklivity/zilla/issues/1304)
+- Using the Zilla MQTT broker the producer periodically disconnect and only reconnects after pod restart [\#1302](https://github.com/aklivity/zilla/issues/1302)
+- SSE notifications stop after about 5-6 times when using kafka-sse [\#1291](https://github.com/aklivity/zilla/issues/1291)
+- POST application/protobuf binary data can get stuck [\#1283](https://github.com/aklivity/zilla/issues/1283)
+- JSON to Protobuf breaks after processing an invalid message [\#1282](https://github.com/aklivity/zilla/issues/1282)
+- Zilla intermittently crashes with IndexOutOfBoundsException at high mqtt load [\#1206](https://github.com/aklivity/zilla/issues/1206)
+- Load testing MQTT QOS 0,1,2 with Empty messages in the `retained` topic and Zilla crashing [\#1164](https://github.com/aklivity/zilla/issues/1164)
+
+**Closed issues:**
+
+- `pgsql` `DROP TOPIC` command to `KafkaDeleteTopicsBeginEx` [\#1307](https://github.com/aklivity/zilla/issues/1307)
+- Log missing enviroment variables.  [\#1188](https://github.com/aklivity/zilla/issues/1188)
+
+**Merged pull requests:**
+
+- Support asyncapi server variables locally and via references [\#1314](https://github.com/aklivity/zilla/pull/1314) ([jfallows](https://github.com/jfallows))
+- Support `https` scheme for zilla.yaml config watcher [\#1313](https://github.com/aklivity/zilla/pull/1313) ([jfallows](https://github.com/jfallows))
+- Add missing dependency [\#1311](https://github.com/aklivity/zilla/pull/1311) ([akrambek](https://github.com/akrambek))
+- Fix kafka cache fetch server retention issue [\#1310](https://github.com/aklivity/zilla/pull/1310) ([bmaidics](https://github.com/bmaidics))
+- pgsql ALTER TOPIC command to register new schema [\#1309](https://github.com/aklivity/zilla/pull/1309) ([akrambek](https://github.com/akrambek))
+- Fix IndexOutOfBoundsException at KafkaCacheClientProduceFactory [\#1303](https://github.com/aklivity/zilla/pull/1303) ([bmaidics](https://github.com/bmaidics))
+- Log missing enviroment variables [\#1299](https://github.com/aklivity/zilla/pull/1299) ([ankitk-me](https://github.com/ankitk-me))
+- Replace jsqlparser with antlr gramma [\#1298](https://github.com/aklivity/zilla/pull/1298) ([akrambek](https://github.com/akrambek))
+- syntax check mqtt topic names in zilla.yaml [\#1297](https://github.com/aklivity/zilla/pull/1297) ([ankitk-me](https://github.com/ankitk-me))
+- Include prefer wait in watch request even after initial 404 read request [\#1295](https://github.com/aklivity/zilla/pull/1295) ([jfallows](https://github.com/jfallows))
+- protobuf validation failure fix [\#1292](https://github.com/aklivity/zilla/pull/1292) ([ankitk-me](https://github.com/ankitk-me))
+- Upgrade agrona version [\#1281](https://github.com/aklivity/zilla/pull/1281) ([bmaidics](https://github.com/bmaidics))
+- Support DROP TABLE, STREAM, and MATERIALIZED VIEW [\#1266](https://github.com/aklivity/zilla/pull/1266) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.99](https://github.com/aklivity/zilla/tree/0.9.99) (2024-10-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.98...0.9.99)
