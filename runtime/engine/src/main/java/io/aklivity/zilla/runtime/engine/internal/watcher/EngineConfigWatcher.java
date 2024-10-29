@@ -51,6 +51,7 @@ public final class EngineConfigWatcher implements AutoCloseable
     {
         Map<String, Function<Path, Set<Path>>> resolvers = new HashMap<>();
         resolvers.put("http", Set::of);
+        resolvers.put("https", Set::of);
 
         Function<Path, Set<Path>> defaultResolver = EngineConfigWatcher::resolveWatchables;
         LOOKUP_RESOLVER = scheme -> resolvers.getOrDefault(scheme, defaultResolver);
@@ -247,7 +248,7 @@ public final class EngineConfigWatcher implements AutoCloseable
         for (Path watchedPath : watchedPaths)
         {
             Path parentPath = watchedPath.getParent();
-            if (Files.exists(parentPath))
+            if (parentPath != null && Files.exists(parentPath))
             {
                 watchables.add(parentPath);
             }
