@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -51,6 +51,7 @@ public final class EngineConfigWatcher implements AutoCloseable
     {
         Map<String, Function<Path, Set<Path>>> resolvers = new HashMap<>();
         resolvers.put("http", Set::of);
+        resolvers.put("https", Set::of);
 
         Function<Path, Set<Path>> defaultResolver = EngineConfigWatcher::resolveWatchables;
         LOOKUP_RESOLVER = scheme -> resolvers.getOrDefault(scheme, defaultResolver);
@@ -247,7 +248,7 @@ public final class EngineConfigWatcher implements AutoCloseable
         for (Path watchedPath : watchedPaths)
         {
             Path parentPath = watchedPath.getParent();
-            if (Files.exists(parentPath))
+            if (parentPath != null && Files.exists(parentPath))
             {
                 watchables.add(parentPath);
             }

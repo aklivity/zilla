@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,8 +14,9 @@
  */
 module io.aklivity.zilla.runtime.binding.pgsql.kafka
 {
-    requires net.sf.jsqlparser;
+    requires com.fasterxml.jackson.databind;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.binding.pgsql;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaBindingFactorySpi;

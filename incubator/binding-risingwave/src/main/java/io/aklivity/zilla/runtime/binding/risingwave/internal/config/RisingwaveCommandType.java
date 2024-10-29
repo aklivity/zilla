@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -23,6 +23,10 @@ public enum RisingwaveCommandType
     CREATE_STREAM_COMMAND("CREATE STREAM".getBytes()),
     CREATE_MATERIALIZED_VIEW_COMMAND("CREATE MATERIALIZED VIEW".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE FUNCTION".getBytes()),
+    DROP_TOPIC_COMMAND("DROP TOPIC".getBytes()),
+    DROP_TABLE_COMMAND("DROP TABLE".getBytes()),
+    DROP_STREAM_COMMAND("DROP STREAM".getBytes()),
+    DROP_MATERIALIZED_VIEW_COMMAND("DROP MATERIALIZED VIEW".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;

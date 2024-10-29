@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -23,6 +23,17 @@ public class EnvironmentResolverSpi implements ResolverSpi
     public String resolve(
         String var)
     {
-        return System.getenv(var);
+        String value = System.getenv(var);
+
+        if (value == null)
+        {
+            System.err.println("Environment variable %s is not set.".formatted(var));
+        }
+        else if (value.isEmpty() || value.isBlank())
+        {
+            System.err.println("Environment variable %s is empty.".formatted(var));
+        }
+
+        return value;
     }
 }

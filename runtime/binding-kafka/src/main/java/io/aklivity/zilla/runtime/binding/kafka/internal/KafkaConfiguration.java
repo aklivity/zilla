@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -57,6 +57,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
     public static final IntPropertyDef KAFKA_CACHE_MAX_MESSAGE_BYTES;
     public static final LongPropertyDef KAFKA_CACHE_RETENTION_MILLIS;
+    public static final LongPropertyDef KAFKA_CACHE_RETENTION_MILLIS_MAX;
     public static final LongPropertyDef KAFKA_CACHE_RETENTION_BYTES;
     public static final LongPropertyDef KAFKA_CACHE_DELETE_RETENTION_MILLIS;
     public static final LongPropertyDef KAFKA_CACHE_MIN_COMPACTION_LAG_MILLIS;
@@ -120,6 +121,7 @@ public class KafkaConfiguration extends Configuration
                 KafkaConfiguration::cleanupPolicy, "delete");
         KAFKA_CACHE_MAX_MESSAGE_BYTES = config.property("cache.max.message.bytes", 1000012);
         KAFKA_CACHE_RETENTION_MILLIS = config.property("cache.retention.ms", 604800000L);
+        KAFKA_CACHE_RETENTION_MILLIS_MAX = config.property("cache.retention.ms.max", 30000L);
         KAFKA_CACHE_RETENTION_BYTES = config.property("cache.retention.bytes", -1L);
         KAFKA_CACHE_DELETE_RETENTION_MILLIS = config.property("cache.delete.retention.ms", 86400000L);
         KAFKA_CACHE_MIN_COMPACTION_LAG_MILLIS = config.property("cache.min.compaction.lag.ms", 0L);
@@ -233,6 +235,11 @@ public class KafkaConfiguration extends Configuration
     public long cacheRetentionMillis()
     {
         return KAFKA_CACHE_RETENTION_MILLIS.getAsLong(this);
+    }
+
+    public long cacheRetentionMillisMax()
+    {
+        return KAFKA_CACHE_RETENTION_MILLIS_MAX.getAsLong(this);
     }
 
     public long cacheSegmentMillis()

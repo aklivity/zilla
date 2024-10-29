@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.99</version>
+    <version>0.9.100</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.82</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.85</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -42,8 +42,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.jsqlparser</groupId>
-      <artifactId>jsqlparser</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.15.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-pgsql</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -195,7 +200,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/pgsql/kafka/internal/types/**/*.class</exclude>
-            <exclude>net/sf/jsqlparser/parser/*</exclude>
           </excludes>
           <rules>
             <rule>

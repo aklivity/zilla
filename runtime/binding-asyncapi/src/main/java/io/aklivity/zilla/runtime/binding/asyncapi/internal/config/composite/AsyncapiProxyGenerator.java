@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteC
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaFilter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaOperationBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaFilter;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiCorrelationIdView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
@@ -64,7 +65,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.specs.binding.asyncapi.internal.types.MqttQoS;
 
 public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 {

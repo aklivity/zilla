@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,17 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.table.Index;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private static final String DATABASE_PLACEHOLDER = "{database}";
-
-    private final StringBuilder schemaBuilder = new StringBuilder();
     private final String namespace;
 
     public PgsqlKafkaKeyAvroSchemaTemplate(
@@ -33,67 +30,42 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
         this.namespace = namespace;
     }
 
-    public String generateSchema(
+    public String generate(
         String database,
-        CreateTable createTable)
+        Table table)
     {
-        schemaBuilder.setLength(0);
-
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = String.format("%s_key", createTable.getTable().getName());
 
-        schemaBuilder.append("{\n");
-        schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
-        schemaBuilder.append("\"schema\": \""); // Begin the schema field
+        ObjectNode schemaNode = mapper.createObjectNode();
+        schemaNode.put("type", "record");
+        schemaNode.put("name", table.name());
+        schemaNode.put("namespace", newNamespace);
 
-        // Building the actual Avro schema
-        schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
-        schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
-        schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
-        schemaBuilder.append(" \\\"fields\\\": [");
+        ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (ColumnDefinition column : createTable.getColumnDefinitions())
+        for (TableColumn column : table.columns())
         {
-            String fieldName = column.getColumnName();
-            String pgsqlType = column.getColDataType().getDataType();
+            String columnName = column.name();
+            String sqlType = column.type();
+            Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            String avroType = convertPgsqlTypeToAvro(pgsqlType);
+            ObjectNode fieldNode = mapper.createObjectNode();
+            fieldNode.put("name", columnName);
 
-            schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": [").append(avroType).append(", \\\"null\\\"] },");
+            ArrayNode unionType = mapper.createArrayNode();
+            unionType.add("null");
+            unionType.addPOJO(avroType);
+            fieldNode.set("type", unionType);
+
+            fieldsArray.add(fieldNode);
         }
 
-        // Remove the last comma and close the fields array
-        schemaBuilder.setLength(schemaBuilder.length() - 1);
-        schemaBuilder.append("]");
+        schemaNode.set("fields", fieldsArray);
 
-        // Closing the Avro schema
-        schemaBuilder.append("}\"\n}");
+        ObjectNode parentNode = mapper.createObjectNode();
+        parentNode.put("schemaType", "AVRO");
+        parentNode.put("schema", schemaNode.toString());
 
-        return schemaBuilder.toString();
-    }
-
-    public String primaryKey(
-        CreateTable statement)
-    {
-        String primaryKey = null;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                    primaryKey = primaryKeyColumns.get(0).columnName;
-                    break match;
-                }
-            }
-        }
-
-        return primaryKey;
+        return parentNode.toPrettyString();
     }
 }

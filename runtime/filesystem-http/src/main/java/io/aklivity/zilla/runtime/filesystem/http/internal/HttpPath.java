@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -358,11 +358,12 @@ public final class HttpPath implements Path
     {
         HttpRequest.Builder request = HttpRequest.newBuilder()
             .GET()
-            .uri(location);
+            .uri(location)
+            .header("Prefer", "wait=86400");
 
         if (etag != null)
         {
-            request = request.headers("If-None-Match", etag, "Prefer", "wait=86400");
+            request = request.header("If-None-Match", etag);
         }
 
         return request.build();

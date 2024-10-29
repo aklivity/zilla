@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -760,7 +760,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 flushClientFanInitialIfNecessary(traceId);
             }
 
-            if ((flags & FLAGS_INCOMPLETE) != 0x00)
+            if ((flags & FLAGS_INCOMPLETE) != 0x00 || error == ERROR_INVALID_RECORD)
             {
                 markEntryDirty(traceId, stream.partitionOffset);
             }
@@ -1349,7 +1349,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 doClientReplyAbortIfNecessary(traceId);
                 fan.onClientFanMemberClosed(traceId, this);
             }
-            else
+            else if (!KafkaState.initialClosed(state))
             {
                 fan.onClientInitialData(this, data);
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -42,6 +42,26 @@ public class PgsqlIT
         "${app}/create.topic/server"
     })
     public void shouldCreateTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/alter.topic.add.column/client",
+        "${app}/alter.topic.add.column/server"
+    })
+    public void shouldAlterTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/alter.topic.modify.column.rejected/client",
+        "${app}/alter.topic.modify.column.rejected/server"
+    })
+    public void shouldNotAlterTopicModifyColumn() throws Exception
     {
         k3po.finish();
     }

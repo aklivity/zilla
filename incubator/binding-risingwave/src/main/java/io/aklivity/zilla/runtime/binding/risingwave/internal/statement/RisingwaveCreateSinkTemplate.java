@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.Map;
 import java.util.Optional;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
@@ -51,9 +51,9 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     public String generate(
         String database,
         Map<String, String> columns,
-        CreateView createView)
+        View view)
     {
-        String viewName = createView.getView().getName();
+        String viewName = view.name();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
             .filter(e -> "id".equalsIgnoreCase(e.getKey()))
@@ -74,19 +74,18 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 
     public String generate(
         String database,
-        String primaryKey,
-        CreateTable createTable)
+        Table tableInfo)
     {
-        String table = createTable.getTable().getName();
+        String table = tableInfo.name();
 
         return String.format(sqlKafkaFormat, table, table, bootstrapServer, database, table,
-            primaryKeyFormat.formatted(primaryKey), schemaRegistry);
+            primaryKeyFormat.formatted(tableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
     }
 
     public String generate(
-        CreateTable createTable)
+        Table tableInfo)
     {
-        String table = createTable.getTable().getName();
+        String table = tableInfo.name();
 
         return String.format(sqlFormat, table, table, table);
     }

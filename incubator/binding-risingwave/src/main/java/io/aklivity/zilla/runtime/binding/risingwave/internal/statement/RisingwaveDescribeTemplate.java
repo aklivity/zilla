@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
 {
@@ -27,11 +26,10 @@ public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        Statement statement)
+        View view)
     {
-        CreateView createView = (CreateView) statement;
-        String view = createView.getView().getName();
+        String name = view.name();
 
-        return String.format(sqlFormat, view);
+        return String.format(sqlFormat, name);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -208,6 +208,36 @@ public class ProxyIT
         "${pgsql}/set.variable/client",
         "${effective}/set.variable/server" })
     public void shouldSetVariable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.stream/client",
+        "${effective}/drop.stream/server" })
+    public void shouldDropStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.table/client",
+        "${effective}/drop.table/server" })
+    public void shouldDropTable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.materialized.view/client",
+        "${effective}/drop.materialized.view/server" })
+    public void shouldDropMaterializedView() throws Exception
     {
         k3po.finish();
     }

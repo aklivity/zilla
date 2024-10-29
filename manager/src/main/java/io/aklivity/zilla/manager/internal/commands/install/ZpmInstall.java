@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -753,7 +753,6 @@ public final class ZpmInstall extends ZpmCommand
                 "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
                 String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
-                    "--add-opens java.base/sun.nio.ch=org.agrona.core",
                     "$JAVA_OPTIONS",
                     "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
                     imageDir)));

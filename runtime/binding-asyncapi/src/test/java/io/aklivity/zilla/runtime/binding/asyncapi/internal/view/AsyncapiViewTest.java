@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -19,8 +19,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
 
@@ -48,6 +51,16 @@ public class AsyncapiViewTest
             info:
               title: Test API
               version: 0.1.0
+            servers:
+              staging:
+                host: 'localhost:{port}'
+                protocol: mqtt
+                variables:
+                  port:
+                    description: Secure connection (TLS) is available through port 8883.
+                    default: '7183'
+                    enum:
+                      - '7183'
             operations:
               doSend:
                 action: send
@@ -77,7 +90,11 @@ public class AsyncapiViewTest
                   schema:
                     type: string
             """);
-        AsyncapiView view = AsyncapiView.of(model);
+
+        AsyncapiServerConfig server = AsyncapiServerConfig.builder()
+            .host("localhost:7143")
+            .build();
+        AsyncapiView view = AsyncapiView.of(model, List.of(server));
 
         assertThat(view, is(not(nullValue())));
     }

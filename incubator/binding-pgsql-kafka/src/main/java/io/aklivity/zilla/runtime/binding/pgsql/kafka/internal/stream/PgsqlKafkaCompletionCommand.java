@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 public enum PgsqlKafkaCompletionCommand
 {
     CREATE_TOPIC_COMMAND("CREATE_TOPIC".getBytes()),
+    ALTER_TOPIC_COMMAND("ALTER_TOPIC".getBytes()),
     DROP_TOPIC_COMMAND("DROP_TOPIC".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 

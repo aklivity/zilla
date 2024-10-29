@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,8 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 {
@@ -34,17 +35,18 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        CreateTable createTable)
+        Table table)
     {
-        String topic = createTable.getTable().getName();
-        String primaryKeyField = primaryKey(createTable);
-        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
+        String topic = table.name();
+        String primaryKey = !table.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, table.primaryKeys().stream().findFirst().get())
+            : "";
 
         fieldBuilder.setLength(0);
 
-        createTable.getColumnDefinitions()
+        table.columns()
             .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
+                String.format(fieldFormat, c.name(), c.type())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
@@ -52,35 +54,29 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        Stream stream)
     {
-        CreateTable createTable = command.createTable;
-        String topic = createTable.getTable().getName();
-        String primaryKeyField = primaryKey(createTable);
-        String primaryKey = primaryKeyField != null ? String.format(primaryKeyFormat, primaryKeyField) : "";
+        String topic = stream.name();
 
         fieldBuilder.setLength(0);
 
-        createTable.getColumnDefinitions()
-            .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.getColumnName(), c.getColDataType().getDataType())));
-
-        if (command.includes != null)
-        {
-            command.includes.forEach((k, v) -> fieldBuilder.append(
-                String.format(fieldFormat, v, ZILLA_INCLUDE_TYPE_MAPPINGS.get(k))));
-        }
+        stream.columns()
+            .entrySet()
+            .stream()
+            .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .forEach(e -> fieldBuilder.append(
+                String.format(fieldFormat, e.getKey(), e.getValue())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
-        return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
+        return String.format(sqlFormat, topic, fieldBuilder, "");
     }
 
     public String generate(
-        CreateView createView,
+        View view,
         Map<String, String> columns)
     {
-        String topic = createView.getView().getName();
+        String topic = view.name();
 
         primaryKeyBuilder.setLength(0);
         columns.keySet().forEach(k -> primaryKeyBuilder.append(k).append(", "));

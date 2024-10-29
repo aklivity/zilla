@@ -10,5 +10,8 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
-  JSQLParser library under GNU Library or Lesser General Public License (LGPL) V2.1 or The Apache Software License, Version 2.0
+  Jackson-annotations under The Apache Software License, Version 2.0
+  Jackson-core under The Apache Software License, Version 2.0
+  jackson-databind under The Apache Software License, Version 2.0
+  zilla::incubator::binding-pgsql under Aklivity Community License Agreement
 

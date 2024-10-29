@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -111,12 +111,15 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 try
                 {
                     DynamicMessage message = builder.mergeFrom(in).build();
-                    builder.clear();
                     status = message.getUnknownFields().asMap().isEmpty();
                 }
                 catch (IOException ex)
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
+                }
+                finally
+                {
+                    builder.clear();
                 }
             }
         }
@@ -175,7 +178,6 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 {
                     parser.merge(input, builder);
                     DynamicMessage message = builder.build();
-                    builder.clear();
                     if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
                     {
                         out.wrap(out.buffer());
@@ -186,6 +188,10 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 catch (IOException ex)
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
+                }
+                finally
+                {
+                    builder.clear();
                 }
             }
         }

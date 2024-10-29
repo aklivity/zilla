@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -55,6 +55,26 @@ public class ProxyIT
         "${kafka}/create.topic/server"
     })
     public void shouldCreateTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.topic.add.column/client"
+    })
+    public void shouldAlterTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.topic.modify.column.rejected/client"
+    })
+    public void shouldNotAlterTopicModifyColumn() throws Exception
     {
         k3po.finish();
     }

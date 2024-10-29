@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,17 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.table.Index;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private static final String DATABASE_PLACEHOLDER = "{database}";
-
-    private final StringBuilder schemaBuilder = new StringBuilder();
+    private final ObjectMapper mapper = new ObjectMapper();
     private final String namespace;
 
     public PgsqlKafkaValueAvroSchemaTemplate(
@@ -33,90 +34,76 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         this.namespace = namespace;
     }
 
-    public String generateSchema(
+    public String generate(
         String database,
-        CreateTable createTable)
+        Table table)
     {
-        schemaBuilder.setLength(0);
-
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-        final String recordName = createTable.getTable().getName();
 
-        schemaBuilder.append("{\n");
-        schemaBuilder.append("\"schemaType\": \"AVRO\",\n");
-        schemaBuilder.append("\"schema\": \""); // Begin the schema field
+        ObjectNode schemaNode = mapper.createObjectNode();
+        schemaNode.put("type", "record");
+        schemaNode.put("name", table.name());
+        schemaNode.put("namespace", newNamespace);
 
-        // Building the actual Avro schema
-        schemaBuilder.append("{\\\"type\\\": \\\"record\\\",");
-        schemaBuilder.append(" \\\"name\\\": \\\"").append(recordName).append("\\\",");
-        schemaBuilder.append(" \\\"namespace\\\": \\\"").append(newNamespace).append("\\\",");
-        schemaBuilder.append(" \\\"fields\\\": [");
+        ArrayNode fieldsArray = mapper.createArrayNode();
 
-        for (ColumnDefinition column : createTable.getColumnDefinitions())
+        for (TableColumn column : table.columns())
         {
-            String fieldName = column.getColumnName();
-            String pgsqlType = column.getColDataType().getDataType();
+            String columnName = column.name();
+            String sqlType = column.type();
+            Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            String avroType = convertPgsqlTypeToAvro(pgsqlType);
+            boolean isNullable = !column.constraints().contains("NOT NULL");
 
-            schemaBuilder.append(" {\\\"name\\\": \\\"").append(fieldName).append("\\\",");
-            schemaBuilder.append(" \\\"type\\\": ").append(avroType).append("},");
+            ObjectNode fieldNode = mapper.createObjectNode();
+            fieldNode.put("name", columnName);
+
+            if (isNullable)
+            {
+                ArrayNode unionType = mapper.createArrayNode();
+                unionType.add("null");
+                unionType.addPOJO(avroType);
+                fieldNode.set("type", unionType);
+            }
+            else
+            {
+                fieldNode.set("type", mapper.valueToTree(avroType));
+            }
+
+            fieldsArray.add(fieldNode);
         }
 
-        // Remove the last comma and close the fields array
-        schemaBuilder.setLength(schemaBuilder.length() - 1);
-        schemaBuilder.append("]");
+        schemaNode.set("fields", fieldsArray);
 
-        // Closing the Avro schema
-        schemaBuilder.append("}\"\n}");
+        ObjectNode parentNode = mapper.createObjectNode();
+        parentNode.put("schemaType", "AVRO");
+        parentNode.put("schema", schemaNode.toString());
 
-        return schemaBuilder.toString();
+        return parentNode.toPrettyString();
     }
 
-    public String primaryKey(
-        CreateTable statement)
+    public String generate(
+        String existingSchemaJson,
+        Alter alter)
     {
-        String primaryKey = null;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
+        String newSchemaJson = null;
+        try
         {
-            match:
-            for (Index index : indexes)
+            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
+            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
+            ArrayNode fields = (ArrayNode) schema.get("fields");
+
+            final boolean applied = applyAlterations(fields, alter.alterExpressions());
+            if (applied)
             {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                    primaryKey = primaryKeyColumns.get(0).columnName;
-                    break match;
-                }
+                schemaNode.put("schema", schema.toString());
+                newSchemaJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
             }
         }
-
-        return primaryKey;
-    }
-
-    public int primaryKeyCount(
-        CreateTable statement)
-    {
-        int primaryKeyCount = 0;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
+        catch (JsonProcessingException ignored)
         {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    primaryKeyCount = index.getColumns().size();
-                    break match;
-                }
-            }
         }
 
-        return primaryKeyCount;
+        return newSchemaJson;
     }
 }

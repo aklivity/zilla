@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,138 +14,33 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import java.io.StringReader;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.table.Index;
 
 public abstract class RisingwaveCommandTemplate
 {
-    private final CCJSqlParserManager parserManager = new CCJSqlParserManager();
-    private final Map<String, String> includeMap = new LinkedHashMap<>();
+    protected static final String ZILLA_CORRELATION_ID = "zilla_correlation_id";
+    protected static final String ZILLA_IDENTITY = "zilla_identity";
+    protected static final String ZILLA_TIMESTAMP = "zilla_timestamp";
 
     protected final StringBuilder fieldBuilder = new StringBuilder();
     protected final StringBuilder includeBuilder = new StringBuilder();
+
     protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {
-        ZILLA_MAPPINGS.put("zilla_correlation_id", "INCLUDE header 'zilla:correlation-id' AS %s\n");
-        ZILLA_MAPPINGS.put("zilla_identity", "INCLUDE header 'zilla:identity' AS %s\n");
-        ZILLA_MAPPINGS.put("timestamp", "INCLUDE timestamp AS %s\n");
+        ZILLA_MAPPINGS.put(ZILLA_CORRELATION_ID, "INCLUDE header 'zilla:correlation-id' AS %s\n");
+        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s\n");
+        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s\n");
     }
 
     protected static final Map<String, String> ZILLA_INCLUDE_TYPE_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put("zilla_correlation_id", "VARCHAR");
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put("zilla_identity", "VARCHAR");
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put("timestamp", "TIMESTAMP");
-    }
-
-    public String primaryKey(
-        CreateTable statement)
-    {
-        String primaryKey = null;
-
-        final List<Index> indexes = statement.getIndexes();
-
-        if (indexes != null && !indexes.isEmpty())
-        {
-            match:
-            for (Index index : indexes)
-            {
-                if ("PRIMARY KEY".equalsIgnoreCase(index.getType()))
-                {
-                    final List<Index.ColumnParams> primaryKeyColumns = index.getColumns();
-                    primaryKey = primaryKeyColumns.get(0).columnName;
-                    break match;
-                }
-            }
-        }
-
-        return primaryKey;
-    }
-
-    public RisingwaveCreateTableCommand parserCreateTable(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        String query = buffer.getStringWithoutLengthUtf8(offset, length);
-        query = query.replaceAll("(?i)\\bCREATE\\s+STREAM\\b", "CREATE TABLE");
-
-        int includeIndex = query.indexOf("INCLUDE");
-
-        String createTablePart;
-        String includePart = null;
-
-        CreateTable createTable = null;
-        Map<String, String> includes = null;
-
-        if (includeIndex != -1)
-        {
-            createTablePart = query.substring(0, includeIndex).trim();
-            includePart = query.substring(includeIndex).trim();
-        }
-        else
-        {
-            createTablePart = query.trim();
-        }
-
-        try
-        {
-            createTable = (CreateTable) parserManager.parse(new StringReader(createTablePart));
-        }
-        catch (Exception ignore)
-        {
-        }
-
-        if (includePart != null)
-        {
-            includes = parseSpecificIncludes(includePart);
-        }
-
-        return new RisingwaveCreateTableCommand(createTable, includes);
-    }
-
-    private Map<String, String> parseSpecificIncludes(
-        String includePart)
-    {
-        String[] includeClauses = includePart.toLowerCase().split("include");
-        for (String clause : includeClauses)
-        {
-            clause = clause.trim();
-            if (!clause.isEmpty())
-            {
-                String[] parts = clause.toLowerCase().split("as");
-                if (parts.length == 2)
-                {
-                    String key = parts[0].trim();
-                    String value = parts[1].trim().replace(";", "");
-
-                    if (isValidInclude(key))
-                    {
-                        includeMap.put(key, value);
-                    }
-                }
-            }
-        }
-
-        return includeMap;
-    }
-
-    private static boolean isValidInclude(
-        String key)
-    {
-        return "zilla_correlation_id".equals(key) ||
-               "zilla_identity".equals(key) ||
-               "timestamp".equals(key);
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_CORRELATION_ID, "VARCHAR");
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_IDENTITY, "VARCHAR");
+        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_TIMESTAMP, "TIMESTAMP");
     }
 }

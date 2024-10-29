@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.99</version>
+  <version>0.9.100</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -55,7 +55,7 @@
     <checkstyle.config.location>io/aklivity/zilla/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
-    <agrona.version>1.21.1</agrona.version>
+    <agrona.version>1.23.1</agrona.version>
     <slf4j.version>1.7.36</slf4j.version>
     <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.23</byteman.version>
@@ -205,11 +205,6 @@
         <version>0.1.4</version>
       </dependency>
       <dependency>
-        <groupId>com.github.jsqlparser</groupId>
-        <artifactId>jsqlparser</artifactId>
-        <version>5.0</version>
-      </dependency>
-      <dependency>
         <groupId>io.aklivity.k3po</groupId>
         <artifactId>driver</artifactId>
         <version>${k3po.version}</version>
@@ -302,7 +297,7 @@
           <configuration>
             <header>COPYRIGHT</header>
             <properties>
-              <copyrightYears>${project.inceptionYear}-2023</copyrightYears>
+              <copyrightYears>${project.inceptionYear}-2024</copyrightYears>
             </properties>
             <includes>
               <include>src/**</include>
@@ -430,7 +425,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/sun.nio.ch=ALL-UNNAMED</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -443,7 +438,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M4</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/sun.nio.ch=ALL-UNNAMED -Djdk.attach.allowAttachSelf=true</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true</argLine>
           </configuration>
           <executions>
             <execution>

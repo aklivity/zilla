@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -188,7 +188,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 try
                 {
                     DynamicMessage message = builder.mergeFrom(in).build();
-                    builder.clear();
                     if (!message.getUnknownFields().asMap().isEmpty())
                     {
                         break validate;
@@ -214,6 +213,10 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 catch (IOException ex)
                 {
                     event.validationFailure(traceId, bindingId, ex.getMessage());
+                }
+                finally
+                {
+                    builder.clear();
                 }
             }
         }

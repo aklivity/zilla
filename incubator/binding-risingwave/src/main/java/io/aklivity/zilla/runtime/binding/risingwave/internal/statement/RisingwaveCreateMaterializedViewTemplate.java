@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,53 +14,65 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import net.sf.jsqlparser.statement.create.table.CreateTable;
-import net.sf.jsqlparser.statement.create.view.CreateView;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
-    private final String includeFormat = "COALESCE(%s, zilla_%s_header::varchar) as %s, ";
+    private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
+    private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
 
     public RisingwaveCreateMaterializedViewTemplate()
     {
     }
 
     public String generate(
-        CreateView createView)
+        View view)
     {
-        String view = createView.getView().getName();
-        String select = createView.getSelect().toString();
+        String name = view.name();
+        String select = view.select();
 
-        return String.format(sqlFormat, view, select);
+        return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        RisingwaveCreateTableCommand command)
+        Table table)
     {
-        CreateTable createTable = command.createTable;
-        String name = createTable.getTable().getName();
+        String name = table.name();
 
         String select = "*";
 
-        if (command.includes != null)
+        List<TableColumn> includes = table.columns().stream()
+            .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
+            .collect(Collectors.toCollection(ArrayList::new));
+
+        if (!includes.isEmpty())
         {
             fieldBuilder.setLength(0);
 
-            createTable.getColumnDefinitions()
-                .forEach(c -> fieldBuilder.append(
-                    String.format(fieldFormat, c.getColumnName())));
-            command.includes.forEach((k, v) ->
+            table.columns()
+                .stream()
+                .filter(c -> !ZILLA_MAPPINGS.containsKey(c.name()))
+                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c.name())));
+
+            includes.forEach(c ->
             {
-                if ("timestamp".equals(k))
+                String columnName = c.name();
+                if (ZILLA_TIMESTAMP.equals(columnName))
                 {
-                    fieldBuilder.append(String.format(fieldFormat, v));
+                    fieldBuilder.append(String.format(timestampFormat,  columnName, columnName, columnName));
                 }
                 else
                 {
-                    fieldBuilder.append(String.format(includeFormat, v, v, v));
+                    fieldBuilder.append(String.format(includeFormat, columnName, columnName, columnName));
                 }
             });
 

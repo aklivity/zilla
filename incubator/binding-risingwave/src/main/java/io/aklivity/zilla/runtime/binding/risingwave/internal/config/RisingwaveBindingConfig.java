@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -31,6 +31,11 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropMaterializedViewTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSinkTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSourceTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTableTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -50,6 +55,11 @@ public final class RisingwaveBindingConfig
     public final RisingwaveCreateSourceTemplate createSource;
     public final RisingwaveCreateSinkTemplate createSink;
     public final RisingwaveCreateFunctionTemplate createFunction;
+    public final RisingwaveDropTableTemplate dropTable;
+    public final RisingwaveDropSourceTemplate dropSource;
+    public final RisingwaveDropTopicTemplate dropTopic;
+    public final RisingwaveDropMaterializedViewTemplate dropMaterializedView;
+    public final RisingwaveDropSinkTemplate dropSink;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -83,6 +93,11 @@ public final class RisingwaveBindingConfig
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.describeView = new RisingwaveDescribeTemplate();
+        this.dropTopic = new RisingwaveDropTopicTemplate();
+        this.dropTable = new RisingwaveDropTableTemplate();
+        this.dropSource = new RisingwaveDropSourceTemplate();
+        this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
+        this.dropSink = new RisingwaveDropSinkTemplate();
         this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
     }
 
