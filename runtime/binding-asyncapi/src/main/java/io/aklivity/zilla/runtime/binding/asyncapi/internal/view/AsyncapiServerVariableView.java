@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public final class AsyncapiServerVariableView
 {
+    public String name;
     public final String defaultValue;
     public final List<String> values;
 
@@ -31,6 +32,7 @@ public final class AsyncapiServerVariableView
     {
         final AsyncapiVariable resolved = resolver.serverVariables.resolve(model);
 
+        this.name = name;
         this.defaultValue = resolved.defaultValue;
         this.values = resolved.values;
     }
