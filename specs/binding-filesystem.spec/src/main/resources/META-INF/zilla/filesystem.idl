@@ -34,5 +34,10 @@ scope filesystem
             string16 tag = null;
             int64 timeout = 0;
         }
+
+        struct FileSystemResetEx extends core::stream::Extension
+        {
+            string16 error;
+        }
     }
 }

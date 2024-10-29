@@ -137,9 +137,9 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/read.file.payload.etag.not.matched/client"
+        "${app}/read.file.payload.tag.not.matched/client"
     })
-    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    public void shouldReadFilePayloadTagNotMatched() throws Exception
     {
         k3po.finish();
     }

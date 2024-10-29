@@ -81,6 +81,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
+    private static final String DEFAULT_TAG = "";
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
@@ -770,7 +771,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.relativePath = relativePath;
             this.resolvedPath = Paths.get(resolvedPath);
             this.capabilities = capabilities;
-            this.tag = tag;
+            this.tag = DEFAULT_TAG.equals(tag) ? null : tag;
             this.initialMax = decodeMax;
         }
 
@@ -829,15 +830,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
-            doAppWindow(traceId);
-
             String currentTag = calculateTag();
             if (!Objects.equals(currentTag, tag) ||
                 !(canCreatePayload(capabilities, resolvedPath) ||
                     canWritePayload(capabilities, resolvedPath)))
             {
-                cleanup(traceId);
+                doAppReset(traceId);
             }
+
+            doAppWindow(traceId);
         }
 
         private void onAppData(
@@ -1042,10 +1043,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void doAppWindow(
             long traceId)
         {
-            state = FileSystemState.openInitial(state);
+            if (!FileSystemState.initialClosed(state))
+            {
+                state = FileSystemState.openInitial(state);
 
-            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
-                     0L, 0L, 0);
+                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                    0L, 0L, 0);
+            }
         }
 
         private void cleanup(

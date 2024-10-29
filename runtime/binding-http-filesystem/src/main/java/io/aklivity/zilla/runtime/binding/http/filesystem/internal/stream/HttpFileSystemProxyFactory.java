@@ -63,7 +63,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
 
-    private static final Predicate<HttpHeaderFW> ALLOWED_HTTP_METHOD;
+    private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
     static
     {
@@ -95,7 +95,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         test = test.or(headerMethodHead::equals);
         test = test.or(headerMethodPost::equals);
         test = test.or(headerMethodPut::equals);
-        ALLOWED_HTTP_METHOD = test;
+        SUPPORTED_HTTP_METHOD = test;
     }
 
     private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
@@ -190,7 +190,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         HttpFileSystemRouteConfig route = null;
 
-        if (binding != null && beginEx.headers().anyMatch(ALLOWED_HTTP_METHOD))
+        if (binding != null && beginEx.headers().anyMatch(SUPPORTED_HTTP_METHOD))
         {
             route = binding.resolve(authorization, beginEx);
         }

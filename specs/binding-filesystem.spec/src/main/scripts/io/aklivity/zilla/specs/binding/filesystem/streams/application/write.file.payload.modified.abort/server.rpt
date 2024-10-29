@@ -16,16 +16,5 @@
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-accepted
 
-read zilla:begin.ext ${filesystem:matchBeginEx()
-                                 .typeId(zilla:id("filesystem"))
-                                 .capabilities("WRITE_PAYLOAD")
-                                 .path("index_write.html")
-                                 .type("text/html")
-                                 .payloadSize(77)
-                                 .tag("INIT")
-                                 .build()}
-connected
-
-read abort
+rejected

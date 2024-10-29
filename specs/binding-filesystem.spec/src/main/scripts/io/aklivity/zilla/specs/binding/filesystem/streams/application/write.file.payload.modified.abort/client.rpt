@@ -25,6 +25,4 @@ write zilla:begin.ext ${filesystem:beginEx()
                                   .payloadSize(77)
                                   .tag("INIT")
                                   .build()}
-connected
-
-write aborted
+connect aborted

@@ -98,10 +98,10 @@ public class FileSystemIT
 
     @Test
     @Specification({
-        "${app}/read.file.payload.etag.not.matched/client",
-        "${app}/read.file.payload.etag.not.matched/server"
+        "${app}/read.file.payload.tag.not.matched/client",
+        "${app}/read.file.payload.tag.not.matched/server"
     })
-    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    public void shouldReadFilePayloadTagNotMatched() throws Exception
     {
         k3po.finish();
     }
