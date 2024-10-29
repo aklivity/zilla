@@ -63,7 +63,14 @@ public final class AsyncapiView
     public static AsyncapiView of(
         Asyncapi model)
     {
-        return of(0, null, model, List.of());
+        return of(model, List.of());
+    }
+
+    public static AsyncapiView of(
+        Asyncapi model,
+        List<AsyncapiServerConfig> configs)
+    {
+        return of(0, null, model, configs);
     }
 
     public static AsyncapiView of(

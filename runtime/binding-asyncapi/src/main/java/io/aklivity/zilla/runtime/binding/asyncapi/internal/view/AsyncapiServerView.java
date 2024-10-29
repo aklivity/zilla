@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
 
 import java.net.URI;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,28 +48,34 @@ public final class AsyncapiServerView
         AsyncapiServer model,
         AsyncapiServerConfig config)
     {
+        Map<String, AsyncapiServerVariableView> variables = model.variables != null
+                ? model.variables.entrySet().stream()
+                    .map(e -> new AsyncapiServerVariableView(resolver, e.getKey(), e.getValue()))
+                    .collect(toMap(v -> v.name, identity()))
+                : Map.of();
+
         this.name = name;
         this.url = model.url != null
-                ? new VariableMatcher(resolver, model.url)
-                        .resolve(config != null ? config.url : null)
-                : null;
+            ? new VariableMatcher(variables::get, model.url)
+                    .resolve(config != null ? config.url : null)
+            : null;
 
         this.host = model.host != null
-            ? new VariableMatcher(resolver, model.host)
+            ? new VariableMatcher(variables::get, model.host)
                     .resolve(config != null ? config.host : null)
             : null;
 
         String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
         this.hostname = urlOrHost != null
-                ? URI.create(urlOrHost).getHost()
-                : null;
+            ? URI.create(urlOrHost).getHost()
+            : null;
 
         this.port = urlOrHost != null
-                ? URI.create(urlOrHost).getPort()
-                : 0;
+            ? URI.create(urlOrHost).getPort()
+            : 0;
 
         this.pathname = model.pathname != null
-            ? new VariableMatcher(resolver, model.pathname)
+            ? new VariableMatcher(variables::get, model.pathname)
                     .resolve(config != null ? config.pathname : null)
             : null;
 
@@ -85,16 +95,16 @@ public final class AsyncapiServerView
         }
 
         private VariableMatcher(
-            AsyncapiResolver resolver,
+            Function<String, AsyncapiServerVariableView> resolver,
             String value)
         {
             String regex = VARIABLE.matcher(value)
-                .replaceAll(mr -> resolver.serverVariables.resolve(mr.group(1)).values.stream()
+                .replaceAll(mr -> resolver.apply(mr.group(1)).values.stream()
                     .collect(joining("|", "(", ")")));
 
             this.matcher = Pattern.compile(regex).matcher("");
             this.defaultValue = VARIABLE.matcher(value)
-                    .replaceAll(mr -> resolver.serverVariables.resolve(mr.group(1)).defaultValue);
+                    .replaceAll(mr -> resolver.apply(mr.group(1)).defaultValue);
         }
     }
 }
