@@ -22,8 +22,6 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("DELETE_PAYLOAD")
                                  .path("error.html")
-                                 .type("text/html")
-                                 .payloadSize(77)
                                  .build()}
 connected
 

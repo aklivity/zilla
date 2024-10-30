@@ -16,20 +16,4 @@
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-accepted
-
-read zilla:begin.ext ${filesystem:matchBeginEx()
-                                 .typeId(zilla:id("filesystem"))
-                                 .capabilities("DELETE_PAYLOAD")
-                                 .path("error.html")
-                                 .type("text/html")
-                                 .payloadSize(77)
-                                 .build()}
-connected
-
-write zilla:reset.ext ${filesystem:resetEx()
-                           .typeId(zilla:id("filesystem"))
-                           .error("Not Found")
-                           .build()}
-
-read abort
+rejected

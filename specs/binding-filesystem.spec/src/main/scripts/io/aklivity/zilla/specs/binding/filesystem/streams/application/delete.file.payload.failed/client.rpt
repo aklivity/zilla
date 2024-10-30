@@ -21,14 +21,5 @@ write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
                                   .capabilities("DELETE_PAYLOAD")
                                   .path("error.html")
-                                  .type("text/html")
-                                  .payloadSize(77)
                                   .build()}
-connected
-
-read zilla:reset.ext ${filesystem:resetEx()
-                           .typeId(zilla:id("filesystem"))
-                           .error("Not Found")
-                           .build()}
-
-write aborted
+connect aborted

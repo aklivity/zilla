@@ -205,4 +205,24 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/delete.file.payload/client",
+        "${app}/delete.file.payload/server",
+    })
+    public void shouldDeleteFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/delete.file.payload.failed/client",
+        "${app}/delete.file.payload.failed/server",
+    })
+    public void shouldDeleteFilePayloadFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

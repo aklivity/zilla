@@ -837,8 +837,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
-            doAppWindow(traceId);
-
             String error = null;
 
             if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
@@ -881,6 +879,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 doAppReset(traceId, error);
             }
+
+            doAppWindow(traceId);
         }
 
         private void onAppData(
@@ -1202,6 +1202,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             try
             {
                 Files.delete(resolvedPath);
+                doAppWindow(traceId);
                 doAppBegin(traceId, null);
                 doAppEnd(traceId);
             }
