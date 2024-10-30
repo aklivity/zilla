@@ -125,7 +125,7 @@
                                             "max-age":
                                             {
                                                 "title": "Max Age",
-                                                "type": "number"
+                                                "type": "integer"
                                             },
                                             "expose":
                                             {
