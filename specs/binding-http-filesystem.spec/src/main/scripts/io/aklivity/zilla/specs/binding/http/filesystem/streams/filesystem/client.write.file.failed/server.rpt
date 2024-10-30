@@ -26,4 +26,9 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .build()}
 connected
 
-write abort
+write zilla:reset.ext ${filesystem:resetEx()
+                           .typeId(zilla:id("filesystem"))
+                           .error("Precondition Failed")
+                           .build()}
+
+read abort

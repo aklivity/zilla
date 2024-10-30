@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 
 public class FileSystemFunctionsTest
 {
@@ -348,6 +349,88 @@ public class FileSystemFunctionsTest
             .payloadSize(77L)
             .tag("AAAAAAAAAAAAAAAA")
             .timeout(60)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(0);
+
+        assertNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateResetExtension()
+    {
+        byte[] build = FileSystemFunctions.resetEx()
+            .typeId(0x01)
+            .error("Precondition Failed")
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        FileSystemResetExFW resetEx = new FileSystemResetExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals("Precondition Failed", resetEx.error().asString());
+    }
+
+    @Test
+    public void shouldMatchResetExtension() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchResetEx()
+            .typeId(0x01)
+            .error("Precondition Failed")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .error("Precondition Failed")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExtensionWhenErrorDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchResetEx()
+            .typeId(0x01)
+            .error("Precondition Failed")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .error("Not Found")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExtensionWhenTypeIdDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchResetEx()
+            .typeId(0x01)
+            .error("Precondition Failed")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x02)
+            .error("Not Found")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchResetExtensionWhenBufferOverflow() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchResetEx()
+            .typeId(0x01)
+            .error("Precondition Failed")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(0);

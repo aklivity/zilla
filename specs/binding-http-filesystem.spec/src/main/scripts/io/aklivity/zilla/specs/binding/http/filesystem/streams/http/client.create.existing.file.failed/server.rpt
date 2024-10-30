@@ -28,4 +28,10 @@ read zilla:begin.ext ${http:beginEx()
 
 connected
 
-write abort
+write zilla:reset.ext ${http:resetEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "409")
+                           .header("content-length", "0")
+                           .build()}
+
+read abort

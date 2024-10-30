@@ -28,4 +28,10 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-read aborted
+read zilla:reset.ext ${http:resetEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "412")
+                           .header("content-length", "0")
+                           .build()}
+
+write aborted

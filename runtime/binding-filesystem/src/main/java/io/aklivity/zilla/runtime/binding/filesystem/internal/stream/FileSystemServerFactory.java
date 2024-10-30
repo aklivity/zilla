@@ -37,7 +37,6 @@ import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -61,6 +60,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.BeginF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
@@ -83,6 +83,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
     private static final String DEFAULT_TAG = "";
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+    private static final String ERROR_PRECONDITION_FAILED = "Precondition Failed";
+    private static final String ERROR_CONFLICT = "Conflict";
+    private static final String ERROR_PRECONDITION_REQUIRED = "Precondition Required";
+    private static final String ERROR_NOT_FOUND = "Not Found";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
     private static final int FLAG_FIN = 0x01;
@@ -106,6 +110,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final FileSystemBeginExFW.Builder beginExRW = new FileSystemBeginExFW.Builder();
+    private final FileSystemResetExFW.Builder resetExRW = new FileSystemResetExFW.Builder();
     private final OctetsFW payloadRO = new OctetsFW();
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
@@ -636,7 +641,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = FileSystemState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0L);
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, 0L, EMPTY_EXTENSION);
             }
         }
 
@@ -830,12 +836,35 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
-            String currentTag = calculateTag();
-            if (!Objects.equals(currentTag, tag) ||
-                !(canCreatePayload(capabilities, resolvedPath) ||
-                    canWritePayload(capabilities, resolvedPath)))
+            String error = null;
+
+            if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
             {
-                doAppReset(traceId);
+                error = ERROR_CONFLICT;
+            }
+            else if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+            {
+                if (Files.notExists(resolvedPath))
+                {
+                    error = ERROR_NOT_FOUND;
+                }
+                else if (tag == null)
+                {
+                    error = ERROR_PRECONDITION_REQUIRED;
+                }
+                else
+                {
+                    String currentTag = calculateTag();
+                    if (!tag.equals(currentTag))
+                    {
+                        error = ERROR_PRECONDITION_FAILED;
+                    }
+                }
+            }
+
+            if (error != null)
+            {
+                doAppReset(traceId, error);
             }
 
             doAppWindow(traceId);
@@ -982,7 +1011,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             cleanupTmpFileIfExists();
 
-            doAppReset(traceId);
+            doAppReset(traceId, null);
         }
 
         private void doAppBegin(
@@ -1030,13 +1059,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         private void doAppReset(
-            long traceId)
+            long traceId,
+            String error)
         {
             if (FileSystemState.initialOpening(state) && !FileSystemState.initialClosed(state))
             {
                 state = FileSystemState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0L);
+                FileSystemResetExFW.Builder extension = resetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(fileSystemTypeId);
+
+                if (error != null)
+                {
+                    resetExRW.error(error);
+                }
+
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, 0L, extension.build());
             }
         }
 
@@ -1058,7 +1098,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             cleanupTmpFileIfExists();
 
             doAppAbort(traceId);
-            doAppReset(traceId);
+            doAppReset(traceId, null);
         }
 
         private void cleanupTmpFileIfExists()
@@ -1264,7 +1304,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1275,6 +1316,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
