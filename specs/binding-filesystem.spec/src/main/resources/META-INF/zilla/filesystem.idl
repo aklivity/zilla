@@ -20,7 +20,8 @@ scope filesystem
         READ_EXTENSION,
         READ_CHANGES,
         CREATE_PAYLOAD,
-        WRITE_PAYLOAD
+        WRITE_PAYLOAD,
+        DELETE_PAYLOAD
     }
 
     scope stream

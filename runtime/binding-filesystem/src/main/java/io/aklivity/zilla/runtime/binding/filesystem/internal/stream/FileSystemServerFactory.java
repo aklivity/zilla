@@ -81,6 +81,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
+    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
     private static final String DEFAULT_TAG = "";
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final String ERROR_PRECONDITION_FAILED = "Precondition Failed";
@@ -201,7 +202,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String tag = beginEx.tag().asString();
             try
             {
-                if (writeOrCreateOperation(capabilities))
+                if (writeOperation(capabilities))
                 {
                     String type = probeContentTypeOrDefault(path);
                     newStream = new FileSystemServerWriter(
@@ -836,6 +837,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
+            doAppWindow(traceId);
+
             String error = null;
 
             if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
@@ -852,13 +855,25 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     error = ERROR_PRECONDITION_REQUIRED;
                 }
+                else if (!validateTag())
+                {
+                    error = ERROR_PRECONDITION_FAILED;
+                }
+            }
+            else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+            {
+                if (Files.notExists(resolvedPath))
+                {
+                    error = ERROR_NOT_FOUND;
+
+                }
+                else if (tag != null && !validateTag())
+                {
+                    error = ERROR_PRECONDITION_FAILED;
+                }
                 else
                 {
-                    String currentTag = calculateTag();
-                    if (!tag.equals(currentTag))
-                    {
-                        error = ERROR_PRECONDITION_FAILED;
-                    }
+                    delete(traceId);
                 }
             }
 
@@ -866,8 +881,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 doAppReset(traceId, error);
             }
-
-            doAppWindow(traceId);
         }
 
         private void onAppData(
@@ -1142,6 +1155,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             return newTag;
         }
 
+        private boolean validateTag()
+        {
+            return tag.equals(calculateTag());
+        }
+
         private InputStream getInputStream()
         {
             InputStream input = null;
@@ -1176,6 +1194,21 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 // reject
             }
             return output;
+        }
+
+        private void delete(
+            long traceId)
+        {
+            try
+            {
+                Files.delete(resolvedPath);
+                doAppBegin(traceId, null);
+                doAppEnd(traceId);
+            }
+            catch (IOException ex)
+            {
+                cleanup(traceId);
+            }
         }
     }
 
@@ -1371,9 +1404,18 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         return (capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.notExists(path);
     }
 
-    private boolean writeOrCreateOperation(
+    private boolean canDeletePayload(
+        int capabilities,
+        Path path)
+    {
+        return (capabilities & DELETE_PAYLOAD_MASK) != 0 && Files.exists(path);
+    }
+
+    private boolean writeOperation(
         int capabilities)
     {
-        return (capabilities & CREATE_PAYLOAD_MASK) != 0 || (capabilities & WRITE_PAYLOAD_MASK) != 0;
+        return (capabilities & CREATE_PAYLOAD_MASK) != 0 ||
+            (capabilities & WRITE_PAYLOAD_MASK) != 0 ||
+            (capabilities & DELETE_PAYLOAD_MASK) != 0;
     }
 }

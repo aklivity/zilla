@@ -321,4 +321,36 @@ public class FileSystemServerIT
 
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/delete.file.payload/client",
+    })
+    public void shouldDeleteFilePayload() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("error.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/delete.file.payload.failed/client",
+    })
+    public void shouldRejectDeleteFilePayload() throws Exception
+    {
+        k3po.finish();
+    }
 }
