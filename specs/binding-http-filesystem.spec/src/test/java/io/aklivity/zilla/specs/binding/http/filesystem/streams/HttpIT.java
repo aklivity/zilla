@@ -180,4 +180,22 @@ public class HttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/client.delete.file/client",
+        "${http}/client.delete.file/server"})
+    public void shouldReceiveClientDeleteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.delete.non.existent.file/client",
+        "${http}/client.delete.non.existent.file/server"})
+    public void shouldRejectClientDeleteNonExistentFile() throws Exception
+    {
+        k3po.finish();
+    }
 }

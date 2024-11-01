@@ -152,4 +152,22 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.delete.file/client",
+        "${filesystem}/client.delete.file/server"})
+    public void shouldReceiveClientDeleteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.delete.non.existent.file/client",
+        "${filesystem}/client.delete.non.existent.file/server"})
+    public void shouldRejectClientDeleteNonExistentFile() throws Exception
+    {
+        k3po.finish();
+    }
 }

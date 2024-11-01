@@ -72,6 +72,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
+    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
 
     private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
@@ -101,10 +102,17 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             .value("PUT")
             .build();
 
+        HttpHeaderFW headerMethodDelete = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("DELETE")
+            .build();
+
         Predicate<HttpHeaderFW> test = headerMethodGet::equals;
         test = test.or(headerMethodHead::equals);
         test = test.or(headerMethodPost::equals);
         test = test.or(headerMethodPut::equals);
+        test = test.or(headerMethodDelete::equals);
         SUPPORTED_HTTP_METHOD = test;
     }
 
@@ -727,10 +735,17 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         .typeId(httpTypeId);
                 final boolean validTag = tag != null ? tag.length() != -1 && tag.asString() != null : false;
 
-                if (createOrWritePayload(fsBeginEx.capabilities()) && validTag)
+                int capabilities = fsBeginEx.capabilities();
+                if (createOrWritePayload(capabilities) && validTag)
                 {
                     httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
-                        .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                        .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag))
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
+                }
+                else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
                 }
                 else
                 {
