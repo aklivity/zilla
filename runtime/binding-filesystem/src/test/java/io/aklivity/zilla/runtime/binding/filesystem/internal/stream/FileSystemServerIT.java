@@ -137,9 +137,9 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/read.file.payload.etag.not.matched/client"
+        "${app}/read.file.payload.tag.not.matched/client"
     })
-    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    public void shouldReadFilePayloadTagNotMatched() throws Exception
     {
         k3po.finish();
     }
@@ -249,6 +249,107 @@ public class FileSystemServerIT
         "${app}/client.read.abort/client",
     })
     public void shouldReceiveClientReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/create.file.payload/client",
+    })
+    public void shouldCreateFilePayloadOnly() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.deleteIfExists(indexFile);
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.modified/client",
+    })
+    public void shouldWriteFilePayloadModified() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.modified.abort/client",
+    })
+    public void shouldWriteFilePayloadModifiedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/write.file.payload.interrupt/client",
+    })
+    public void shouldWriteFilePayloadInterrupt() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("index_write.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/delete.file.payload/client",
+    })
+    public void shouldDeleteFilePayload() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path indexFile = targetDirectory.resolve("error.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/delete.file.payload.failed/client",
+    })
+    public void shouldRejectDeleteFilePayload() throws Exception
     {
         k3po.finish();
     }

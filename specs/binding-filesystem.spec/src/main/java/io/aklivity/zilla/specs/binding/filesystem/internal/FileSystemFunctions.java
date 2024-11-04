@@ -26,6 +26,9 @@ import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemErrorFW;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 
 public final class FileSystemFunctions
 {
@@ -36,9 +39,21 @@ public final class FileSystemFunctions
     }
 
     @Function
+    public static FileSystemResetExBuilder resetEx()
+    {
+        return new FileSystemResetExBuilder();
+    }
+
+    @Function
     public static FileSystemBeginExMatcherBuilder matchBeginEx()
     {
         return new FileSystemBeginExMatcherBuilder();
+    }
+
+    @Function
+    public static FileSystemResetExMatcherBuilder matchResetEx()
+    {
+        return new FileSystemResetExMatcherBuilder();
     }
 
     public static final class FileSystemBeginExBuilder
@@ -253,6 +268,105 @@ public final class FileSystemFunctions
             FileSystemBeginExFW beginEx)
         {
             return timeout == null || timeout == beginEx.timeout();
+        }
+    }
+
+    public static final class FileSystemResetExBuilder
+    {
+        private final FileSystemResetExFW.Builder resetExRW;
+        private final FileSystemErrorFW.Builder errorExRW;
+
+        private FileSystemResetExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.resetExRW = new FileSystemResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            MutableDirectBuffer errorBuffer = new UnsafeBuffer(new byte[1]);
+            this.errorExRW = new FileSystemErrorFW.Builder().wrap(errorBuffer, 0, errorBuffer.capacity());
+        }
+
+        public FileSystemResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public FileSystemResetExBuilder error(
+            String error)
+        {
+            resetExRW.error(errorExRW.set(FileSystemError.valueOf(error)).build());
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final FileSystemResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class FileSystemResetExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final FileSystemResetExFW resetExRO = new FileSystemResetExFW();
+
+        private Integer typeId;
+        private String error;
+
+        public FileSystemResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public FileSystemResetExMatcherBuilder error(
+            String error)
+        {
+            this.error = error;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private FileSystemResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final FileSystemResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchError(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(resetEx.toString());
+        }
+
+        private boolean matchTypeId(
+            FileSystemResetExFW resetEx)
+        {
+            return typeId == resetEx.typeId();
+        }
+
+        private boolean matchError(
+            FileSystemResetExFW resetEx)
+        {
+            return error == null || error.equals(resetEx.error().get().name());
         }
     }
 

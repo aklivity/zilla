@@ -93,15 +93,6 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/client.write.file.rejected/client",
-        "${http}/client.write.file.rejected/server"})
-    public void shouldRejectClientWriteFile() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${http}/client.sent.message/client",
         "${http}/client.sent.message/server"})
     public void shouldRejectClientSentMessage() throws Exception
@@ -150,6 +141,60 @@ public class HttpIT
         "${http}/server.sent.flush/client",
         "${http}/server.sent.flush/server"})
     public void shouldReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.create.file/client",
+        "${http}/client.create.file/server"})
+    public void shouldReceiveClientCreateFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.create.existing.file.failed/client",
+        "${http}/client.create.existing.file.failed/server"})
+    public void shouldRejectClientCreateExistingFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.write.file/client",
+        "${http}/client.write.file/server"})
+    public void shouldReceiveClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.write.file.failed/client",
+        "${http}/client.write.file.failed/server"})
+    public void shouldRejectClientWriteFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.delete.file/client",
+        "${http}/client.delete.file/server"})
+    public void shouldReceiveClientDeleteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.delete.non.existent.file/client",
+        "${http}/client.delete.non.existent.file/server"})
+    public void shouldRejectClientDeleteNonExistentFile() throws Exception
     {
         k3po.finish();
     }

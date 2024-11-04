@@ -128,15 +128,6 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.yaml")
-    @Specification({
-        "${http}/client.write.file.rejected/client"})
-    public void shouldRejectClientWriteFile() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Specification({
         "${http}/client.rejected/client"})
     public void shouldRejectClientWithNoRoute() throws Exception
@@ -200,6 +191,66 @@ public class HttpFileSystemProxyIT
         "${http}/client.sent.abort/client",
         "${filesystem}/client.sent.abort/server"})
     public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.create.file/client",
+        "${filesystem}/client.create.file/server"})
+    public void shouldReceiveClientCreateFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.create.existing.file.failed/client",
+        "${filesystem}/client.create.existing.file.failed/server"})
+    public void shouldRejectClientCreateExistingFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.write.file/client",
+        "${filesystem}/client.write.file/server"})
+    public void shouldReceiveClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.write.file.failed/client",
+        "${filesystem}/client.write.file.failed/server"})
+    public void shouldRejectClientWriteFileFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.delete.file/client",
+        "${filesystem}/client.delete.file/server"})
+    public void shouldReceiveClientDeleteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/client.delete.non.existent.file/client",
+        "${filesystem}/client.delete.non.existent.file/server"})
+    public void shouldRejectClientDeleteNonExistentFile() throws Exception
     {
         k3po.finish();
     }

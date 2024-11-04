@@ -18,11 +18,22 @@ scope filesystem
     {
         READ_PAYLOAD,
         READ_EXTENSION,
-        READ_CHANGES
+        READ_CHANGES,
+        CREATE_PAYLOAD,
+        WRITE_PAYLOAD,
+        DELETE_PAYLOAD
     }
 
     scope stream
     {
+        enum FileSystemError
+        {
+            FILE_NOT_FOUND,
+            FILE_ALREADY_EXISTS,
+            FILE_MODIFIED,
+            FILE_TAG_MISSING
+        }
+
         struct FileSystemBeginEx extends core::stream::Extension
         {
             int32 capabilities = 3;
@@ -31,6 +42,11 @@ scope filesystem
             int64 payloadSize = 0;
             string16 tag = null;
             int64 timeout = 0;
+        }
+
+        struct FileSystemResetEx extends core::stream::Extension
+        {
+            FileSystemError error;
         }
     }
 }
