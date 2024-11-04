@@ -26,7 +26,7 @@ connected
 
 read zilla:reset.ext ${filesystem:resetEx()
                            .typeId(zilla:id("filesystem"))
-                           .error("Not Found")
+                           .error("FILE_NOT_FOUND")
                            .build()}
 
 write aborted

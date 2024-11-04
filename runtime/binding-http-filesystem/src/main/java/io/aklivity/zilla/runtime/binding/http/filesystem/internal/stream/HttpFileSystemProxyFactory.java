@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.D
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemErrorFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemResetExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpBeginExFW;
@@ -51,9 +53,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFactory
 {
-    private static final String ERROR_CONFLICT = "Conflict";
-    private static final String ERROR_PRECONDITION_FAILED = "Precondition Failed";
-    private static final String ERROR_PRECONDITION_REQUIRED = "Precondition Required";
     private static final String HTTP_TYPE_NAME = "http";
     private static final String FILE_SYSTEM_TYPE_NAME = "filesystem";
 
@@ -533,39 +532,45 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         private void doHttpReset(
             long traceId,
-            String16FW error)
+            FileSystemErrorFW error)
         {
             if (!HttpFileSystemState.initialClosed(state))
             {
                 state = HttpFileSystemState.closeInitial(state);
 
-                HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(httpTypeId);
+                String16FW httpStatus;
 
                 if (error != null)
                 {
-                    String errorMessage = error.asString();
-                    String16FW httpStatus;
+                    FileSystemError errorMessage = error.get();
                     switch (errorMessage)
                     {
-                    case ERROR_CONFLICT:
+                    case FILE_ALREADY_EXISTS:
                         httpStatus = HEADER_STATUS_VALUE_409;
                         break;
-                    case ERROR_PRECONDITION_FAILED:
+                    case FILE_MODIFIED:
                         httpStatus = HEADER_STATUS_VALUE_412;
                         break;
-                    case ERROR_PRECONDITION_REQUIRED:
+                    case FILE_TAG_MISSING:
                         httpStatus = HEADER_STATUS_VALUE_428;
                         break;
                     default:
                         httpStatus = HEADER_STATUS_VALUE_404;
                         break;
                     }
-                    resetEx.headersItem(h -> h.name(HEADER_STATUS_NAME).value(httpStatus))
-                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
+                }
+                else
+                {
+                    httpStatus = HEADER_STATUS_VALUE_404;
                 }
 
-                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, resetEx.build());
+                HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HEADER_STATUS_NAME).value(httpStatus))
+                    .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"))
+                    .build();
+
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, resetEx);
             }
         }
     }
@@ -907,7 +912,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
             final FileSystemResetExFW resetEx = extension.get(fsResetExRO::tryWrap);
-            final String16FW error = resetEx != null ? resetEx.error() : null;
+            final FileSystemErrorFW error = resetEx != null ? resetEx.error() : null;
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;

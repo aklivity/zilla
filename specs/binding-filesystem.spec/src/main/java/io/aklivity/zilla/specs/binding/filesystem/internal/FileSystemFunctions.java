@@ -26,6 +26,8 @@ import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemErrorFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 
 public final class FileSystemFunctions
@@ -272,11 +274,14 @@ public final class FileSystemFunctions
     public static final class FileSystemResetExBuilder
     {
         private final FileSystemResetExFW.Builder resetExRW;
+        private final FileSystemErrorFW.Builder errorExRW;
 
         private FileSystemResetExBuilder()
         {
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             this.resetExRW = new FileSystemResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            MutableDirectBuffer errorBuffer = new UnsafeBuffer(new byte[1]);
+            this.errorExRW = new FileSystemErrorFW.Builder().wrap(errorBuffer, 0, errorBuffer.capacity());
         }
 
         public FileSystemResetExBuilder typeId(
@@ -289,7 +294,7 @@ public final class FileSystemFunctions
         public FileSystemResetExBuilder error(
             String error)
         {
-            resetExRW.error(error);
+            resetExRW.error(errorExRW.set(FileSystemError.valueOf(error)).build());
             return this;
         }
 
@@ -361,7 +366,7 @@ public final class FileSystemFunctions
         private boolean matchError(
             FileSystemResetExFW resetEx)
         {
-            return error == null || error.equals(resetEx.error().asString());
+            return error == null || error.equals(resetEx.error().get().name());
         }
     }
 

@@ -26,7 +26,7 @@ connected
 
 read zilla:reset.ext ${filesystem:resetEx()
                            .typeId(zilla:id("filesystem"))
-                           .error("Conflict")
+                           .error("FILE_ALREADY_EXISTS")
                            .build()}
 
 write aborted

@@ -34,6 +34,8 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemErrorFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 
 public class FileSystemFunctionsTest
@@ -361,14 +363,14 @@ public class FileSystemFunctionsTest
     {
         byte[] build = FileSystemFunctions.resetEx()
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error("FILE_MODIFIED")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         FileSystemResetExFW resetEx = new FileSystemResetExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, resetEx.typeId());
-        assertEquals("Precondition Failed", resetEx.error().asString());
+        assertEquals(FileSystemError.FILE_MODIFIED, resetEx.error().get());
     }
 
     @Test
@@ -376,14 +378,15 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchResetEx()
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error("FILE_MODIFIED")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+                .set(FileSystemError.FILE_MODIFIED).build())
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -394,14 +397,15 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchResetEx()
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error("FILE_MODIFIED")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .error("Not Found")
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+                .set(FileSystemError.FILE_NOT_FOUND).build())
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -412,14 +416,15 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchResetEx()
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error("FILE_MODIFIED")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
-            .error("Not Found")
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+                .set(FileSystemError.FILE_NOT_FOUND).build())
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -430,7 +435,7 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchResetEx()
             .typeId(0x01)
-            .error("Precondition Failed")
+            .error("FILE_MODIFIED")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(0);

@@ -15,6 +15,10 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_ALREADY_EXISTS;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_MODIFIED;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_NOT_FOUND;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_TAG_MISSING;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
@@ -60,6 +64,8 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.BeginF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemErrorFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemResetExFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
@@ -82,12 +88,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
     private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
     private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
-    private static final String DEFAULT_TAG = "";
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
-    private static final String ERROR_PRECONDITION_FAILED = "Precondition Failed";
-    private static final String ERROR_CONFLICT = "Conflict";
-    private static final String ERROR_PRECONDITION_REQUIRED = "Precondition Required";
-    private static final String ERROR_NOT_FOUND = "Not Found";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
     private static final int FLAG_FIN = 0x01;
@@ -112,12 +113,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private final FileSystemBeginExFW.Builder beginExRW = new FileSystemBeginExFW.Builder();
     private final FileSystemResetExFW.Builder resetExRW = new FileSystemResetExFW.Builder();
+    private final FileSystemErrorFW.Builder errorExRW = new FileSystemErrorFW.Builder();
     private final OctetsFW payloadRO = new OctetsFW();
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer errorBuffer;
     private final MutableDirectBuffer readBuffer;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
@@ -141,6 +144,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.readBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.errorBuffer = new UnsafeBuffer(new byte[1]);
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
@@ -778,7 +782,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.relativePath = relativePath;
             this.resolvedPath = Paths.get(resolvedPath);
             this.capabilities = capabilities;
-            this.tag = DEFAULT_TAG.equals(tag) ? null : tag;
+            this.tag = tag != null && !tag.isEmpty() ? tag : null;
             this.initialMax = decodeMax;
         }
 
@@ -837,37 +841,37 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
-            String error = null;
+            FileSystemError error = null;
 
             if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
             {
-                error = ERROR_CONFLICT;
+                error = FILE_ALREADY_EXISTS;
             }
             else if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
-                    error = ERROR_NOT_FOUND;
+                    error = FILE_NOT_FOUND;
                 }
                 else if (tag == null)
                 {
-                    error = ERROR_PRECONDITION_REQUIRED;
+                    error = FILE_TAG_MISSING;
                 }
                 else if (!validateTag())
                 {
-                    error = ERROR_PRECONDITION_FAILED;
+                    error = FILE_MODIFIED;
                 }
             }
             else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
-                    error = ERROR_NOT_FOUND;
+                    error = FILE_NOT_FOUND;
 
                 }
                 else if (tag != null && !validateTag())
                 {
-                    error = ERROR_PRECONDITION_FAILED;
+                    error = FILE_MODIFIED;
                 }
                 else
                 {
@@ -877,7 +881,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             if (error != null)
             {
-                doAppReset(traceId, error);
+                errorExRW.wrap(errorBuffer, 0, errorBuffer.capacity()).set(error);
+
+                FileSystemResetExFW extension = resetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(fileSystemTypeId)
+                    .error(errorExRW.build())
+                    .build();
+
+                doAppReset(traceId, extension);
             }
 
             doAppWindow(traceId);
@@ -1024,7 +1036,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             cleanupTmpFileIfExists();
 
-            doAppReset(traceId, null);
+            doAppReset(traceId, EMPTY_EXTENSION);
         }
 
         private void doAppBegin(
@@ -1073,23 +1085,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void doAppReset(
             long traceId,
-            String error)
+            Flyweight extension)
         {
             if (FileSystemState.initialOpening(state) && !FileSystemState.initialClosed(state))
             {
                 state = FileSystemState.closeInitial(state);
 
-                FileSystemResetExFW.Builder extension = resetExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(fileSystemTypeId);
-
-                if (error != null)
-                {
-                    resetExRW.error(error);
-                }
-
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, 0L, extension.build());
+                    traceId, 0L, extension);
             }
         }
 
@@ -1111,7 +1114,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             cleanupTmpFileIfExists();
 
             doAppAbort(traceId);
-            doAppReset(traceId, null);
+            doAppReset(traceId, EMPTY_EXTENSION);
         }
 
         private void cleanupTmpFileIfExists()

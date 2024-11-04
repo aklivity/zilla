@@ -28,7 +28,7 @@ connected
 
 write zilla:reset.ext ${filesystem:resetEx()
                            .typeId(zilla:id("filesystem"))
-                           .error("Precondition Failed")
+                           .error("FILE_MODIFIED")
                            .build()}
 
 read abort
