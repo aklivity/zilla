@@ -38,10 +38,10 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
@@ -121,14 +121,14 @@ public final class OpenapiBindingConfig
     public void attach(
         BindingConfig binding)
     {
-        List<OpenapiSchemaConfig> configs = convertToOpenapi(options.openapis);
+        List<OpenapiSchemaConfig> configs = convertToOpenapi(options.specs);
 
         final Map<Integer, OpenapiNamespaceConfig> namespaceConfigs = new HashMap<>();
         for (OpenapiSchemaConfig config : configs)
         {
             Openapi openapi = config.openapi;
             final List<OpenapiServerView> servers =
-                namespaceGenerator.filterOpenapiServers(openapi.servers, options.openapis.stream()
+                namespaceGenerator.filterOpenapiServers(openapi.servers, options.specs.stream()
                     .flatMap(o -> o.servers.stream())
                     .collect(Collectors.toList()));
 
@@ -233,10 +233,10 @@ public final class OpenapiBindingConfig
     }
 
     private List<OpenapiSchemaConfig> convertToOpenapi(
-        List<OpenapiConfig> configs)
+        List<OpenapiSpecificationConfig> configs)
     {
         final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
-        for (OpenapiConfig config : configs)
+        for (OpenapiSpecificationConfig config : configs)
         {
             for (OpenapiCatalogConfig catalog : config.catalogs)
             {

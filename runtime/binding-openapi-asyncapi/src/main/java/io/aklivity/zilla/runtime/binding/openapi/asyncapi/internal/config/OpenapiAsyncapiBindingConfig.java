@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.Asyncapi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -184,10 +184,10 @@ public final class OpenapiAsyncapiBindingConfig
     }
 
     private List<OpenapiSchemaConfig> convertToOpenapi(
-        Set<OpenapiConfig> configs)
+        Set<OpenapiSpecificationConfig> configs)
     {
         final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
-        for (OpenapiConfig config : configs)
+        for (OpenapiSpecificationConfig config : configs)
         {
             for (OpenapiCatalogConfig catalog : config.catalogs)
             {

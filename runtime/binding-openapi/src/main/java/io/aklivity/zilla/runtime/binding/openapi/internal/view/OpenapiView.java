@@ -34,20 +34,21 @@ public final class OpenapiView
 
     public final OpenapiComponentsView components;
     public final Map<String, OpenapiPathView> paths;
-    private Object servers;
+    public final List<OpenapiServerView> servers;
 
     public static OpenapiView of(
-        Openapi openapi)
+        Openapi model)
     {
-        return of(0, null, openapi);
+        return of(0, null, model, List.of());
     }
 
     public static OpenapiView of(
         int id,
         String label,
-        Openapi openapi)
+        Openapi model,
+        List<OpenapiServerConfig> configs)
     {
-        return new OpenapiView(id, label, openapi);
+        return new OpenapiView(id, label, model, configs);
     }
 
     private OpenapiView(
@@ -63,7 +64,7 @@ public final class OpenapiView
 
         this.servers = openapi.servers != null
             ? openapi.servers.stream()
-                .map(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                 .toList()
             : null;
 

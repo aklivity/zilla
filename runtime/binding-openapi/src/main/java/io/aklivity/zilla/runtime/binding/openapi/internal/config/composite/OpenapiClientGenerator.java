@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -27,18 +27,13 @@ import java.util.stream.Stream;
 
 import jakarta.json.bind.Jsonb;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.OpenapiChannelView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.OpenapiMessageView;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeRouteConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiChannelView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -46,7 +41,6 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilde
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -18,7 +18,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +41,9 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
@@ -109,7 +111,7 @@ public abstract class OpenapiCompositeGenerator
                         : specification.servers;
                 final OpenapiView asyncapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
-                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
+                schemas.add(new OpenapiSchemaConfig(label, schemaId, asyncapi));
             }
         }
 

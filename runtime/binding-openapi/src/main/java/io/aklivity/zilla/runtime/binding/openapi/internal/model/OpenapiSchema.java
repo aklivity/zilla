@@ -18,7 +18,14 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
+import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
+@JsonbPropertyOrder({
+    "type",
+    "items",
+    "properties",
+    "required"
+})
 public class OpenapiSchema extends AbstractOpenapiResolvable
 {
     public String type;

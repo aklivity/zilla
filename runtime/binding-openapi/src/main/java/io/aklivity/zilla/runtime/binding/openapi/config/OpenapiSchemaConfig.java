@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
-
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 
 public class OpenapiSchemaConfig

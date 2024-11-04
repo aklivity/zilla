@@ -18,13 +18,13 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 
-public class OpenapiConfig
+public class OpenapiSpecificationConfig
 {
     public final String apiLabel;
     public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
 
-    public OpenapiConfig(
+    public OpenapiSpecificationConfig(
         String apiLabel,
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
@@ -34,7 +34,7 @@ public class OpenapiConfig
         this.catalogs = catalogs;
     }
 
-    public OpenapiConfig(
+    public OpenapiSpecificationConfig(
         String apiLabel,
         List<OpenapiCatalogConfig> catalogs)
     {

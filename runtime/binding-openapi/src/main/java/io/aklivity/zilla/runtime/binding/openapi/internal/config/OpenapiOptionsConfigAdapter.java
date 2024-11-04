@@ -30,11 +30,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfigBuilder;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -104,10 +104,10 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
-        if (openapiOptions.openapis != null)
+        if (openapiOptions.specs != null)
         {
             final JsonObjectBuilder specs = Json.createObjectBuilder();
-            for (OpenapiConfig openapiConfig : openapiOptions.openapis)
+            for (OpenapiSpecificationConfig openapiConfig : openapiOptions.specs)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 final JsonArrayBuilder servers = Json.createArrayBuilder();
@@ -178,8 +178,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (object.containsKey(SPECS_NAME))
         {
-            JsonObject openapi = object.getJsonObject(SPECS_NAME);
-            for (Map.Entry<String, JsonValue> entry : openapi.entrySet())
+            JsonObject specs = object.getJsonObject(SPECS_NAME);
+            for (Map.Entry<String, JsonValue> entry : specs.entrySet())
             {
                 final String apiLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
@@ -225,7 +225,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                         catalogs.add(catalogBuilder.build());
                     }
                 }
-                openapiOptions.openapi(new OpenapiConfig(apiLabel, servers, catalogs));
+                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, servers, catalogs));
             }
         }
 

@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapi
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -72,7 +72,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         JsonObjectBuilder spec = Json.createObjectBuilder();
 
         JsonObjectBuilder openapi = Json.createObjectBuilder();
-        for (OpenapiConfig openapiConfig : proxyOptions.specs.openapi)
+        for (OpenapiSpecificationConfig openapiConfig : proxyOptions.specs.openapi)
         {
             final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
             final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
@@ -128,7 +128,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         JsonObject specs = object.getJsonObject(SPECS_NAME);
 
         JsonObject openapi = specs.getJsonObject(OPENAPI_NAME);
-        Set<OpenapiConfig> openapis = new LinkedHashSet<>();
+        Set<OpenapiSpecificationConfig> openapis = new LinkedHashSet<>();
         for (Map.Entry<String, JsonValue> entry : openapi.entrySet())
         {
             final String apiLabel = entry.getKey();
@@ -157,7 +157,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
                     catalogs.add(catalogBuilder.build());
                 }
-                openapis.add(new OpenapiConfig(apiLabel, catalogs));
+                openapis.add(new OpenapiSpecificationConfig(apiLabel, catalogs));
             }
         }
 

@@ -17,17 +17,9 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.bind.annotation.JsonbPropertyOrder;
-
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
 
-@JsonbPropertyOrder({
-    "type",
-    "items",
-    "properties",
-    "required"
-})
 public final class OpenapiSchemaView extends OpenapiResolvable<OpenapiSchema>
 {
     private static final String ARRAY_TYPE = "array";

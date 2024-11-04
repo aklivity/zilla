@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -19,13 +19,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiChannelView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiParameterView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -35,8 +30,11 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiParameterView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
