@@ -143,6 +143,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::decodeCreateMaterializedViewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
+        clientTransforms.put(RisingwaveCommandType.ALTER_TABLE_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_TABLE_COMMAND, this::decodeDropTableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_MATERIALIZED_VIEW_COMMAND, this::decodeDropMaterializedViewCommand);
@@ -1660,6 +1661,63 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             if (server.commandsProcessed == 0)
             {
                 newStatement = binding.createFunction.generate(function);
+            }
+
+            statementBuffer.putBytes(progress, newStatement.getBytes());
+            progress += newStatement.length();
+
+            final RisingwaveRouteConfig route =
+                server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            client.typeCommand = ignoreFlushCommand;
+        }
+    }
+
+    private void decodeAlterTableCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.commandsProcessed == 6 ||
+            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
+        {
+            final int length = statement.length();
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.ALTER_TABLE_COMMAND);
+        }
+        else
+        {
+            final RisingwaveBindingConfig binding = server.binding;
+            final Table table = parser.parseCreateTable(statement);
+
+            String newStatement = "";
+            int progress = 0;
+
+            if (server.commandsProcessed == 0)
+            {
+                newStatement = binding.createTopic.generate(table);
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                newStatement = binding.createSource.generateTableSource(server.database, table);
+            }
+            else if (server.commandsProcessed == 2)
+            {
+                newStatement = binding.createView.generate(table);
+            }
+            else if (server.commandsProcessed == 3)
+            {
+                newStatement = binding.createTable.generate(table);
+            }
+            else if (server.commandsProcessed == 4)
+            {
+                newStatement = binding.createSink.generate(table);
+            }
+            else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.createSink.generate(server.database, table);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
