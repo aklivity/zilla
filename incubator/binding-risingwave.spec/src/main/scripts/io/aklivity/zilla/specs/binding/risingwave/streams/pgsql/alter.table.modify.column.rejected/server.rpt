@@ -34,7 +34,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "ALTER TOPIC cities ALTER COLUMN name TYPE VARCHAR(100);"
+read  "ALTER TABLE cities ALTER COLUMN name TYPE VARCHAR(100);"
       [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -42,7 +42,7 @@ write advise zilla:flush ${pgsql:flushEx()
                               .error()
                                 .severity("ERROR")
                                 .code("XX000")
-                                .message("Unable to alter topic cities")
+                                .message("Unable to execute command because ALTER TABLE only supports ADD")
                                 .build()
                               .build()}
 

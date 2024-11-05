@@ -408,6 +408,36 @@ altertablestmt
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
+    | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
+    ;
+
+alter_stream_cmds
+    : alter_stream_cmd (COMMA alter_stream_cmd)*
+    ;
+
+alter_stream_cmd
+    : ADD_P columnDef
+    | ADD_P IF_P NOT EXISTS columnDef
+    | ADD_P COLUMN columnDef
+    | ADD_P COLUMN IF_P NOT EXISTS columnDef
+    | ALTER opt_column colid alter_column_default
+    | ALTER opt_column colid DROP NOT NULL_P
+    | ALTER opt_column colid SET NOT NULL_P
+    | ALTER opt_column colid DROP EXPRESSION
+    | ALTER opt_column colid DROP EXPRESSION IF_P EXISTS
+    | ALTER opt_column colid SET STATISTICS signediconst
+    | ALTER opt_column iconst SET STATISTICS signediconst
+    | ALTER opt_column colid SET reloptions
+    | ALTER opt_column colid RESET reloptions
+    | ALTER opt_column colid SET STORAGE colid
+    | ALTER opt_column colid ADD_P GENERATED generated_when AS IDENTITY_P optparenthesizedseqoptlist
+    | ALTER opt_column colid alter_identity_column_option_list
+    | ALTER opt_column colid DROP IDENTITY_P
+    | ALTER opt_column colid DROP IDENTITY_P IF_P EXISTS
+    | DROP opt_column IF_P EXISTS colid opt_drop_behavior
+    | DROP opt_column colid opt_drop_behavior
+    | ALTER opt_column colid opt_set_data TYPE_P typename opt_collate_clause alter_using
+    | ALTER opt_column colid alter_generic_options
     ;
 
 alter_table_cmds

@@ -224,4 +224,31 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/alter.stream.add.column/client",
+        "${app}/alter.stream.add.column/server" })
+    public void shouldAlterStreamAddColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/alter.table.modify.column.rejected/client",
+        "${app}/alter.table.modify.column.rejected/server" })
+    public void shouldNotAlterTableModifyColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/alter.stream.modify.column.rejected/client",
+        "${app}/alter.stream.modify.column.rejected/server" })
+    public void shouldNotAlterStreamModifyColumn() throws Exception
+    {
+        k3po.finish();
+    }
 }

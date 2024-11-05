@@ -62,6 +62,10 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         {
             command = "ALTER TOPIC";
         }
+        else if (ctx.ALTER() != null && ctx.STREAM() != null)
+        {
+            command = "ALTER STREAM";
+        }
     }
 
     @Override

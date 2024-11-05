@@ -226,4 +226,13 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/alter.stream.add.column/client",
+        "${app}/alter.stream.add.column/server" })
+    public void shouldAlterStreamAddColumn() throws Exception
+    {
+        k3po.finish();
+    }
 }

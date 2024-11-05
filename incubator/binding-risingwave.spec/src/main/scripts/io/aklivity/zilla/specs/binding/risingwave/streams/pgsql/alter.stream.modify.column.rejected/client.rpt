@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                .query()
                                 .build()
                               .build()}
-write "ALTER TABLE cities ALTER COLUMN name TYPE VARCHAR(100);"
+write "ALTER STREAM cities ALTER COLUMN name TYPE VARCHAR(100);"
       [0x00]
 write flush
 
@@ -41,7 +41,7 @@ read advised zilla:flush ${pgsql:flushEx()
                               .error()
                                 .severity("ERROR")
                                 .code("XX000")
-                                .message("Unable to execute command because ALTER TABLE only supports ADD")
+                                .message("Unable to execute command because ALTER STREAM only supports ADD")
                                 .build()
                               .build()}
 

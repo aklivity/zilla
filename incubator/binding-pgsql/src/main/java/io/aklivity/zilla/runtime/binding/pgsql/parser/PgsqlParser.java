@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
@@ -46,6 +47,7 @@ public final class PgsqlParser
     private final SqlCreateStreamListener createStreamListener;
     private final SqlCreateTableTopicListener createTableListener;
     private final SqlAlterTableTopicListener alterTableListener;
+    private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateMaterializedViewListener createMaterializedViewListener;
     private final SqlDropListener dropListener;
@@ -60,6 +62,7 @@ public final class PgsqlParser
         this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateTableTopicListener(tokens);
         this.alterTableListener = new SqlAlterTableTopicListener(tokens);
+        this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
@@ -86,6 +89,13 @@ public final class PgsqlParser
     {
         parser(sql, alterTableListener);
         return alterTableListener.alter();
+    }
+
+    public Alter parseAlterStream(
+        String sql)
+    {
+        parser(sql, alterStreamListener);
+        return alterStreamListener.alter();
     }
 
     public Stream parseCreateStream(

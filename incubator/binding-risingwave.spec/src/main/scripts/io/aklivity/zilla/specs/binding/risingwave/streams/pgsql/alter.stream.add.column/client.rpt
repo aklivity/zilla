@@ -17,6 +17,7 @@ connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
+
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
                               .parameter("user", "root")
@@ -32,16 +33,14 @@ write zilla:data.ext ${pgsql:dataEx()
                                .query()
                                 .build()
                               .build()}
-write "ALTER TABLE cities ALTER COLUMN name TYPE VARCHAR(100);"
+write "ALTER STREAM cities ADD COLUMN zip INT;"
       [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .error()
-                                .severity("ERROR")
-                                .code("XX000")
-                                .message("Unable to execute command because ALTER TABLE only supports ADD")
+                              .completion()
+                                .tag("ALTER_STREAM")
                                 .build()
                               .build()}
 

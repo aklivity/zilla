@@ -251,4 +251,34 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.stream.add.column/client",
+        "${effective}/alter.stream.add.column/server" })
+    public void shouldAlterStreamAddColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.table.modify.column.rejected/client",
+        "${effective}/client.stream.established/server" })
+    public void shouldNotAlterTableModifyColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.stream.modify.column.rejected/client",
+        "${effective}/client.stream.established/server" })
+    public void shouldNotAlterStreamModifyColumn() throws Exception
+    {
+        k3po.finish();
+    }
 }

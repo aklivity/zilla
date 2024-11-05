@@ -456,4 +456,49 @@ public class PgsqlParserTest
 
         assertEquals(expectedCommand, parsedCommand);
     }
+
+    @Test
+    public void shouldParseAlterStreamAddColumn()
+    {
+        String sql = "ALTER STREAM test_stream ADD COLUMN new_column INT;";
+        Alter alter = parser.parseAlterStream(sql);
+
+        assertEquals("test_stream", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
+        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
+        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+    }
+
+    @Test
+    public void shouldParseAlterStreamDropColumn()
+    {
+        String sql = "ALTER STREAM test_stream DROP COLUMN old_column;";
+        Alter alter = parser.parseAlterStream(sql);
+
+        assertEquals("test_stream", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.DROP, alter.alterExpressions().get(0).operation());
+        assertEquals("old_column", alter.alterExpressions().get(0).columnName());
+    }
+
+    @Test(expected = ParseCancellationException.class)
+    public void shouldHandleInvalidAlterStream()
+    {
+        String sql = "ALTER STREAM";
+        parser.parseAlterStream(sql);
+    }
+
+    @Test
+    public void shouldParseAlterStreamModifyColumn()
+    {
+        String sql = "ALTER STREAM test_stream ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        Alter alter = parser.parseAlterStream(sql);
+
+        assertEquals("test_stream", alter.name());
+        assertEquals(1, alter.alterExpressions().size());
+        assertEquals(Operation.MODIFY, alter.alterExpressions().get(0).operation());
+        assertEquals("existing_column", alter.alterExpressions().get(0).columnName());
+        assertEquals("VARCHAR(100)", alter.alterExpressions().get(0).columnType());
+    }
 }
