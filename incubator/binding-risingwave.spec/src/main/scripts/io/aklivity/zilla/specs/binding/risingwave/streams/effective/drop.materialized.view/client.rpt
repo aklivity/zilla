@@ -32,14 +32,14 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP MATERIALIZED VIEW weather;"
+write "DROP SINK weather_sink;"
       [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("DROP_MATERIALIZED_VIEW")
+                                .tag("DROP_SINK")
                                 .build()
                               .build()}
 
@@ -55,14 +55,14 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP SINK weather_sink;"
+write "DROP MATERIALIZED VIEW weather;"
       [0x00]
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("DROP_SINK")
+                                .tag("DROP_MATERIALIZED_VIEW")
                                 .build()
                               .build()}
 

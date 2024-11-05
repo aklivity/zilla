@@ -1924,15 +1924,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.dropMaterializedView.generate(view);
+                newStatement = binding.dropTopic.generate(view);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.dropTopic.generate(view);
+                newStatement = binding.dropSink.generate(view);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.dropSink.generate(view);
+                newStatement = binding.dropMaterializedView.generate(view);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
