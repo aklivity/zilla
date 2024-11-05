@@ -2946,7 +2946,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     responseState = HttpExchangeState.CLOSED;
-                    doEncodeHeaders(this, traceId, authorization, 0L, headers404);
+
+                    OctetsFW extension = reset.extension();
+                    HttpResetExFW httpResetEx = extension.get(resetExRO::tryWrap);
+                    Array32FW<HttpHeaderFW> headers = httpResetEx != null && !httpResetEx.headers().isEmpty() ?
+                        httpResetEx.headers() : headers404;
+
+                    doEncodeHeaders(this, traceId, authorization, 0L, headers);
                 }
 
                 requestState = HttpExchangeState.CLOSED;

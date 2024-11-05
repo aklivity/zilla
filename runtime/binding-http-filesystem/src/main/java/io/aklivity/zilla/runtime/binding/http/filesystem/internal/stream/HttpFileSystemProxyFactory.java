@@ -38,8 +38,12 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.D
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemError;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemErrorFW;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemResetExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -54,13 +58,22 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
+    private static final String16FW HEADER_STATUS_VALUE_204 = new String16FW("204");
     private static final String16FW HEADER_STATUS_VALUE_304 = new String16FW("304");
+    private static final String16FW HEADER_STATUS_VALUE_404 = new String16FW("404");
+    private static final String16FW HEADER_STATUS_VALUE_409 = new String16FW("409");
+    private static final String16FW HEADER_STATUS_VALUE_428 = new String16FW("428");
+    private static final String16FW HEADER_STATUS_VALUE_412 = new String16FW("412");
     private static final String8FW HEADER_ETAG_NAME = new String8FW("etag");
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
+    private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
+    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
+    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
+    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
 
-    private static final Predicate<HttpHeaderFW> HEADER_METHOD_GET_OR_HEAD;
+    private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
     static
     {
@@ -76,9 +89,30 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .value("HEAD")
                 .build();
 
+        HttpHeaderFW headerMethodPost = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("POST")
+            .build();
+
+        HttpHeaderFW headerMethodPut = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("PUT")
+            .build();
+
+        HttpHeaderFW headerMethodDelete = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .name(":method")
+            .value("DELETE")
+            .build();
+
         Predicate<HttpHeaderFW> test = headerMethodGet::equals;
         test = test.or(headerMethodHead::equals);
-        HEADER_METHOD_GET_OR_HEAD = test;
+        test = test.or(headerMethodPost::equals);
+        test = test.or(headerMethodPut::equals);
+        test = test.or(headerMethodDelete::equals);
+        SUPPORTED_HTTP_METHOD = test;
     }
 
     private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
@@ -104,8 +138,10 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final FileSystemBeginExFW fsBeginExRO = new FileSystemBeginExFW();
+    private final FileSystemResetExFW fsResetExRO = new FileSystemResetExFW();
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
 
     private final FileSystemBeginExFW.Builder fsBeginExRW = new FileSystemBeginExFW.Builder();
     private final MutableDirectBuffer writeBuffer;
@@ -173,7 +209,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         HttpFileSystemRouteConfig route = null;
 
-        if (binding != null && beginEx.headers().anyMatch(HEADER_METHOD_GET_OR_HEAD))
+        if (binding != null && beginEx.headers().anyMatch(SUPPORTED_HTTP_METHOD))
         {
             route = binding.resolve(authorization, beginEx);
         }
@@ -300,6 +336,10 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -308,8 +348,15 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
             assert initialAck <= initialSeq;
 
-            doHttpReset(traceId);
-            delegate.doFileSystemAbort(traceId, authorization);
+            if (delegate.createOrWritePayload(resolved.capabilities()))
+            {
+                delegate.doFileSystemData(traceId, authorization, budgetId, reserved, flags, payload);
+            }
+            else
+            {
+                doHttpReset(traceId, null);
+                delegate.doFileSystemAbort(traceId, authorization);
+            }
         }
 
         private void onHttpEnd(
@@ -484,13 +531,46 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         }
 
         private void doHttpReset(
-            long traceId)
+            long traceId,
+            FileSystemErrorFW error)
         {
             if (!HttpFileSystemState.initialClosed(state))
             {
                 state = HttpFileSystemState.closeInitial(state);
 
-                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+                String16FW httpStatus;
+
+                if (error != null)
+                {
+                    FileSystemError errorMessage = error.get();
+                    switch (errorMessage)
+                    {
+                    case FILE_ALREADY_EXISTS:
+                        httpStatus = HEADER_STATUS_VALUE_409;
+                        break;
+                    case FILE_MODIFIED:
+                        httpStatus = HEADER_STATUS_VALUE_412;
+                        break;
+                    case FILE_TAG_MISSING:
+                        httpStatus = HEADER_STATUS_VALUE_428;
+                        break;
+                    default:
+                        httpStatus = HEADER_STATUS_VALUE_404;
+                        break;
+                    }
+                }
+                else
+                {
+                    httpStatus = HEADER_STATUS_VALUE_404;
+                }
+
+                HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HEADER_STATUS_NAME).value(httpStatus))
+                    .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"))
+                    .build();
+
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, resetEx);
             }
         }
     }
@@ -540,6 +620,18 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             filesystem = newFileSystemStream(this::onFileSystemMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
+        }
+
+        private void doFileSystemData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            Flyweight payload)
+        {
+            doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, flags, reserved, payload);
         }
 
         private void doFileSystemEnd(
@@ -645,13 +737,31 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             {
                 final HttpBeginExFW.Builder httpBeginExBuilder =
                     httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
+                        .typeId(httpTypeId);
+                final boolean validTag = tag != null ? tag.length() != -1 && tag.asString() != null : false;
+
+                int capabilities = fsBeginEx.capabilities();
+                if (createOrWritePayload(capabilities) && validTag)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
+                        .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag))
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
+                }
+                else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
+                }
+                else
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
                         .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
-                if (tag.length() != -1 && tag.asString() != null)
-                {
-                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+
+                    if (validTag)
+                    {
+                        httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                    }
                 }
                 httpBeginEx = httpBeginExBuilder.build();
             }
@@ -673,6 +783,12 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int capabilities)
         {
             return (capabilities & READ_PAYLOAD_MASK) != 0;
+        }
+
+        private boolean createOrWritePayload(
+            int capabilities)
+        {
+            return (capabilities & CREATE_PAYLOAD_MASK) != 0 || (capabilities & WRITE_PAYLOAD_MASK) != 0;
         }
 
         private void onFileSystemData(
@@ -794,6 +910,9 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
+            final FileSystemResetExFW resetEx = extension.get(fsResetExRO::tryWrap);
+            final FileSystemErrorFW error = resetEx != null ? resetEx.error() : null;
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -802,7 +921,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
             assert delegate.initialAck <= delegate.initialSeq;
 
-            delegate.doHttpReset(traceId);
+            delegate.doHttpReset(traceId, error);
         }
 
         private void doFileSystemReset(
@@ -813,7 +932,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 state = HttpFileSystemState.closeReply(state);
 
                 doReset(filesystem, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId);
+                        traceId, EMPTY_EXTENSION);
             }
         }
 
@@ -1055,7 +1174,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long sequence,
         long acknowledge,
         int maximum,
-        long traceId)
+        long traceId,
+        Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1065,6 +1185,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
