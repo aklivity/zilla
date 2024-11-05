@@ -1831,11 +1831,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.dropSource.generate(table, "_source");
+                newStatement = binding.dropSink.generate(table);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.dropMaterializedView.generate(table, "_view");
+                newStatement = binding.dropSink.generate(table, "_view_sink");
             }
             else if (server.commandsProcessed == 3)
             {
@@ -1843,11 +1843,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.dropSink.generate(table, "_view_sink");
+                newStatement = binding.dropMaterializedView.generate(table, "_view");
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.dropSink.generate(table);
+                newStatement = binding.dropSource.generate(table, "_source");
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
