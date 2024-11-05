@@ -35,7 +35,9 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
@@ -73,6 +75,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final int FLAGS_CONT = 0x00;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
+
+    private static final String SEVERITY_ERROR = "ERROR\u0000";
+    private static final String SEVERITY_FATAL = "FATAL\u0000";
+    private static final String SEVERITY_WARNING = "WARNING\u0000";
+    private static final String CODE_XX000 = "XX000\u0000";
 
     private static final int COMMAND_PROCESSED_ERRORED = -1;
     private static final int COMMAND_PROCESSED_NONE = 0;
@@ -143,7 +150,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::decodeCreateMaterializedViewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
-        clientTransforms.put(RisingwaveCommandType.ALTER_TABLE_COMMAND, this::decodeCreateFunctionCommand);
+        clientTransforms.put(RisingwaveCommandType.ALTER_TABLE_COMMAND, this::decodeAlterTableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_TABLE_COMMAND, this::decodeDropTableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_MATERIALIZED_VIEW_COMMAND, this::decodeDropMaterializedViewCommand);
@@ -664,6 +671,24 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, initialBudgetId, initialPad);
             }
+        }
+
+        private void doCommandError(
+            long traceId,
+            long authorization,
+            String severity,
+            String code,
+            String message)
+        {
+            Consumer<OctetsFW.Builder> errorEx =
+                e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                    .typeId(pgsqlTypeId)
+                    .error(c -> c.severity(severity)
+                        .code(code)
+                        .message(message))
+                    .build().sizeof());
+
+            doAppFlush(traceId, authorization, errorEx);
         }
 
         private void doAppFlush(
@@ -1681,7 +1706,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 6 ||
+        final RisingwaveBindingConfig binding = server.binding;
+        final Alter alter = parser.parseAlterTable(statement);
+
+        boolean supportedOperation = alter.alterExpressions().stream()
+            .noneMatch(c -> c.operation() != Operation.ADD);
+
+        if (!supportedOperation)
+        {
+            decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_TABLE_COMMAND,
+                statement, "ALTER TABLE only supports ADD");
+        }
+        else if (server.commandsProcessed == 2 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
@@ -1689,35 +1725,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
         else
         {
-            final RisingwaveBindingConfig binding = server.binding;
-            final Table table = parser.parseCreateTable(statement);
-
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(table);
+                newStatement = binding.alterTopic.generate(alter);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateTableSource(server.database, table);
-            }
-            else if (server.commandsProcessed == 2)
-            {
-                newStatement = binding.createView.generate(table);
-            }
-            else if (server.commandsProcessed == 3)
-            {
-                newStatement = binding.createTable.generate(table);
-            }
-            else if (server.commandsProcessed == 4)
-            {
-                newStatement = binding.createSink.generate(table);
-            }
-            else if (server.commandsProcessed == 5)
-            {
-                newStatement = binding.createSink.generate(server.database, table);
+                newStatement = binding.alterTable.generate(alter);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1730,6 +1747,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = ignoreFlushCommand;
         }
+    }
+
+    private void decodeUnsupportedCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        RisingwaveCompletionCommand command,
+        String statement,
+        String reason)
+    {
+        server.doCommandError(traceId, authorization, SEVERITY_ERROR, CODE_XX000,
+                "Unable to execute command %s because %s\u0000".formatted(statement, reason));
+        server.commandsProcessed = COMMAND_PROCESSED_ERRORED;
+
+        final int length = statement.length();
+        server.onCommandCompleted(traceId, authorization, length, command);
     }
 
     private void decodeDropTableCommand(

@@ -16,13 +16,13 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 
-public class RisingwaveAlterTableTemplate extends RisingwaveCommandTemplate
+public class RisingwaveAlterTopicTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        ALTER TABLE %s %s;\u0000""";
+        ALTER TOPIC %s %s;\u0000""";
     private final String fieldFormat = "%s COLUMN %s %s, ";
 
-    public RisingwaveAlterTableTemplate()
+    public RisingwaveAlterTopicTemplate()
     {
     }
 

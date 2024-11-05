@@ -241,4 +241,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/alter.table.add.column/client",
+        "${effective}/alter.table.add.column/server" })
+    public void shouldAlterTableAddColumn() throws Exception
+    {
+        k3po.finish();
+    }
 }

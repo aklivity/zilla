@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConf
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveAlterTableTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveAlterTopicTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateFunctionTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkTemplate;
@@ -57,6 +58,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveCreateSinkTemplate createSink;
     public final RisingwaveCreateFunctionTemplate createFunction;
     public final RisingwaveAlterTableTemplate alterTable;
+    public final RisingwaveAlterTopicTemplate alterTopic;
     public final RisingwaveDropTableTemplate dropTable;
     public final RisingwaveDropSourceTemplate dropSource;
     public final RisingwaveDropTopicTemplate dropTopic;
@@ -95,6 +97,7 @@ public final class RisingwaveBindingConfig
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.alterTable = new RisingwaveAlterTableTemplate();
+        this.alterTopic = new RisingwaveAlterTopicTemplate();
         this.describeView = new RisingwaveDescribeTemplate();
         this.dropTopic = new RisingwaveDropTopicTemplate();
         this.dropTable = new RisingwaveDropTableTemplate();

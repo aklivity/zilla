@@ -114,7 +114,7 @@
                                                 "items":
                                                 {
                                                     "type": "string",
-                                                    "enum": [ "CREATE TOPIC", "DROP TOPIC" ]
+                                                    "enum": [ "CREATE TOPIC", "ALTER TOPIC", "DROP TOPIC" ]
                                                 }
                                             }
                                         }
