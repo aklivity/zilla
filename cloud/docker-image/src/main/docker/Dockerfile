@@ -22,7 +22,7 @@ COPY zpm.json.template zpm.json.template
 
 RUN cat zpm.json.template | sed "s/\${VERSION}/${project.version}/g" | tee zpm.json
 
-RUN ./zpmw install --debug --exclude-remote-repositories
+RUN ./zpmw install --debug --instrument --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
 FROM ubuntu:jammy-20240530
