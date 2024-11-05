@@ -20,5 +20,8 @@ module io.aklivity.zilla.runtime.command
 
     exports io.aklivity.zilla.runtime.command;
 
+    opens io.aklivity.zilla.runtime.command
+       to com.github.rvesse.airline;
+
     uses io.aklivity.zilla.runtime.command.ZillaCommandSpi;
 }
