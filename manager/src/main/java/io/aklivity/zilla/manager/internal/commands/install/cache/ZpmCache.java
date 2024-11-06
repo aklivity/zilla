@@ -16,8 +16,6 @@
 package io.aklivity.zilla.manager.internal.commands.install.cache;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Optional.ofNullable;
-import static org.apache.ivy.util.filter.FilterHelper.getArtifactTypeFilter;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -28,64 +26,69 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.ivy.Ivy;
-import org.apache.ivy.core.module.descriptor.Configuration;
-import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
-import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
-import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
-import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
-import org.apache.ivy.core.module.id.ModuleId;
-import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.report.ArtifactDownloadReport;
-import org.apache.ivy.core.report.ResolveReport;
-import org.apache.ivy.core.resolve.IvyNode;
-import org.apache.ivy.core.resolve.ResolveOptions;
-import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.plugins.parser.m2.PomModuleDescriptorBuilder;
-import org.apache.ivy.plugins.resolver.ChainResolver;
-import org.apache.ivy.plugins.resolver.IBiblioResolver;
-import org.apache.ivy.plugins.resolver.RepositoryResolver;
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
+import org.eclipse.aether.DefaultRepositorySystemSession;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
+import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.impl.DefaultServiceLocator;
+import org.eclipse.aether.repository.LocalRepository;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResolutionException;
+import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
+import org.eclipse.aether.spi.connector.transport.TransporterFactory;
+import org.eclipse.aether.transport.file.FileTransporterFactory;
+import org.eclipse.aether.transport.http.HttpTransporterFactory;
+import org.eclipse.aether.util.repository.SimpleArtifactDescriptorPolicy;
 
 import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
 
 public final class ZpmCache
 {
-    private final Ivy ivy;
-    private final ResolveOptions options;
+    private final RepositorySystem repositorySystem;
+    private final RepositorySystemSession session;
+    private final List<RemoteRepository> repositories;
 
     public ZpmCache(
-        List<ZpmRepository> repositories,
+        List<ZpmRepository> repositoriesConfig,
         Path directory)
     {
-        ResolveOptions options = new ResolveOptions();
-        options.setLog(ResolveOptions.LOG_DOWNLOAD_ONLY);
-        options.setArtifactFilter(getArtifactTypeFilter(new String[]{"jar", "bundle"}));
-        options.setConfs("master,runtime".split(","));
-        options.setRefresh(true);
-        options.setOutputReport(false);
-        this.options = options;
 
-        ChainResolver chain = new ChainResolver();
-        chain.setName("default");
-        repositories.stream().map(this::newResolver).forEach(chain::add);
+        // Set up RepositorySystem and session
+        DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
+        locator.addService(RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class);
+        locator.addService(TransporterFactory.class, FileTransporterFactory.class);
+        locator.addService(TransporterFactory.class, HttpTransporterFactory.class);
+        this.repositorySystem = locator.getService(RepositorySystem.class);
+        this.session = newSession(repositorySystem, directory);
 
-        IvySettings ivySettings = new IvySettings();
-        ivySettings.setDefaultCache(directory.toFile());
-        ivySettings.addConfigured(chain);
-        ivySettings.setDefaultResolver(chain.getName());
-
-        this.ivy = Ivy.newInstance(ivySettings);
+        // Map ZpmRepository to RemoteRepository for Maven Resolver
+        this.repositories = repositoriesConfig.stream()
+            .map(this::toRemoteRepository)
+            .collect(Collectors.toList());
     }
 
     public List<ZpmArtifact> resolve(
         List<ZpmDependency> imports,
         List<ZpmDependency> dependencies)
     {
-        Map<ZpmDependency, String> imported = resolveImports(imports);
-        ModuleDescriptor resolvable = createResolvableDescriptor(imported, dependencies);
 
-        return resolveDependencyArtifacts(resolvable);
+        // Resolve imported dependencies and collect versions
+        Map<ZpmDependency, String> imported = resolveImports(imports);
+
+        // Build CollectRequest for dependencies
+        CollectRequest collectRequest = createCollectRequest(imported, dependencies);
+
+        return resolveDependencyArtifacts(collectRequest);
     }
 
     private Map<ZpmDependency, String> resolveImports(
@@ -95,158 +98,124 @@ public final class ZpmCache
 
         if (imports != null)
         {
-            ModuleDescriptor resolvable = createResolvableDescriptor(emptyMap(), imports);
-            List<ModuleDescriptor> importedIds = resolveDependencyDescriptors(resolvable);
-            importedIds.stream()
-                .map(PomModuleDescriptorBuilder::getDependencyManagementMap)
-                .flatMap(m -> m.entrySet().stream())
-                .forEach(e -> imported.put(asDependency(e.getKey()), e.getValue()));
+            CollectRequest collectRequest = createCollectRequest(emptyMap(), imports);
+            DependencyRequest dependencyRequest = new DependencyRequest(collectRequest, null);
+
+            try
+            {
+                DependencyResult importResult = repositorySystem.resolveDependencies(session, dependencyRequest);
+                collectVersionsFromDependencyResult(importResult, imported);
+            }
+            catch (DependencyResolutionException e)
+            {
+                throw new RuntimeException("Failed to resolve imports", e);
+            }
         }
 
         return imported;
     }
 
-    private ZpmDependency asDependency(
-        ModuleId moduleId)
+    private void collectVersionsFromDependencyResult(
+        DependencyResult result,
+        Map<ZpmDependency, String> imported)
     {
-        return ZpmDependency.of(moduleId.getOrganisation(), moduleId.getName(), null);
+
+        for (ArtifactResult artifactResult : result.getArtifactResults())
+        {
+            Artifact artifact = artifactResult.getArtifact();
+            ZpmDependency dependency = ZpmDependency.of(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+            imported.put(dependency, artifact.getVersion());
+        }
     }
 
-    private DefaultModuleDescriptor createResolvableDescriptor(
+    private CollectRequest createCollectRequest(
         Map<ZpmDependency, String> imported,
         List<ZpmDependency> dependencies)
     {
-        List<ModuleRevisionId> revisionIds = dependencies.stream()
-            .map(d -> ModuleRevisionId.newInstance(d.groupId, d.artifactId, ofNullable(d.version).orElse(imported.get(d))))
-            .collect(Collectors.toList());
 
-        ModuleRevisionId[] resolveIds = revisionIds.toArray(new ModuleRevisionId[0]);
-
-        boolean changing = false;
-        DefaultModuleDescriptor moduleDescriptor = new DefaultModuleDescriptor(
-                ModuleRevisionId.newInstance("caller", "all-caller", "working"), "integration", null, true);
-        for (String conf : options.getConfs())
+        CollectRequest collectRequest = new CollectRequest();
+        dependencies.forEach(dep ->
         {
-            moduleDescriptor.addConfiguration(new Configuration(conf));
-        }
-        moduleDescriptor.setLastModified(System.currentTimeMillis());
-        for (ModuleRevisionId mrid : resolveIds)
-        {
-            DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(moduleDescriptor, mrid,
-                    true, changing, options.isTransitive());
-            for (String conf : options.getConfs())
-            {
-                dd.addDependencyConfiguration(conf, conf);
-            }
-            moduleDescriptor.addDependency(dd);
-        }
-        return moduleDescriptor;
-    }
+            String version = dep.version != null ? dep.version : imported.get(dep);
+            Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
+            collectRequest.addDependency(new Dependency(artifact, "runtime"));
+        });
+        repositories.forEach(collectRequest::addRepository);
 
-    private List<ModuleDescriptor> resolveDependencyDescriptors(
-        ModuleDescriptor moduleDescriptor)
-    {
-        List<ModuleDescriptor> descriptors = new LinkedList<>();
-        try
-        {
-            ResolveReport report = ivy.resolve(moduleDescriptor, options);
-            if (report.hasError())
-            {
-                throw new Exception("Unable to resolve: " + report);
-            }
-
-            for (IvyNode node : report.getDependencies())
-            {
-                ModuleDescriptor descriptor = node.getDescriptor();
-                if (descriptor == null)
-                {
-                    continue;
-                }
-                descriptors.add(descriptor);
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException(ex);
-        }
-
-        return descriptors;
+        return collectRequest;
     }
 
     private List<ZpmArtifact> resolveDependencyArtifacts(
-        ModuleDescriptor moduleDescriptor)
+        CollectRequest collectRequest)
     {
         List<ZpmArtifact> artifacts = new LinkedList<>();
         try
         {
-            ResolveReport report = ivy.resolve(moduleDescriptor, options);
-            if (report.hasError())
+            DependencyRequest dependencyRequest = new DependencyRequest(collectRequest, null);
+            DependencyResult result = repositorySystem.resolveDependencies(session, dependencyRequest);
+
+            for (ArtifactResult artifactResult : result.getArtifactResults())
             {
-                throw new Exception("Unable to resolve: " + report);
-            }
+                Artifact artifact = artifactResult.getArtifact();
+                Set<ZpmArtifactId> depends = collectDependenciesFromNode(result.getRoot());
 
-            for (IvyNode node : report.getDependencies())
-            {
-                ModuleDescriptor descriptor = node.getDescriptor();
-                if (descriptor == null)
-                {
-                    continue;
-                }
-
-                ModuleRevisionId resolveId = descriptor.getModuleRevisionId();
-                ArtifactDownloadReport[] downloads = report.getArtifactsReports(resolveId);
-                if (downloads.length == 0)
-                {
-                    continue;
-                }
-
-                Set<ZpmArtifactId> depends = new LinkedHashSet<>();
-                for (DependencyDescriptor dd : descriptor.getDependencies())
-                {
-                    ModuleRevisionId dependId = dd.getDependencyRevisionId();
-                    ArtifactDownloadReport[] dependDownloads = report.getArtifactsReports(dependId);
-                    if (dependDownloads.length != 0)
-                    {
-                        ZpmArtifactId depend = newArtifactId(dependId);
-                        depends.add(depend);
-                    }
-                }
-
-                ZpmArtifactId id = newArtifactId(resolveId);
-                Path local = downloads[0].getLocalFile().toPath();
-                ZpmArtifact artifact = new ZpmArtifact(id, local, depends);
-                artifacts.add(artifact);
+                ZpmArtifactId id = new ZpmArtifactId(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+                Path localPath = artifact.getFile().toPath();
+                artifacts.add(new ZpmArtifact(id, localPath, depends));
             }
         }
-        catch (Exception ex)
+        catch (DependencyResolutionException e)
         {
-            throw new RuntimeException(ex);
+            throw new RuntimeException("Failed to resolve dependencies", e);
         }
 
         return artifacts;
     }
 
-    private ZpmArtifactId newArtifactId(
-        ModuleRevisionId resolveId)
+    private Set<ZpmArtifactId> collectDependenciesFromNode(
+        DependencyNode rootNode)
     {
-        String groupId = resolveId.getOrganisation();
-        String artifactId = resolveId.getName();
-        String version = resolveId.getRevision();
-
-        return new ZpmArtifactId(groupId, artifactId, version);
+        Set<ZpmArtifactId> depends = new LinkedHashSet<>();
+        collectDependenciesRecursive(rootNode, depends);
+        return depends;
     }
 
-    private RepositoryResolver newResolver(
+    private void collectDependenciesRecursive(
+        DependencyNode node,
+        Set<ZpmArtifactId> depends)
+    {
+        if (node.getDependency() != null && node.getDependency().getArtifact() != null)
+        {
+            Artifact artifact = node.getDependency().getArtifact();
+            ZpmArtifactId dependencyId =
+                new ZpmArtifactId(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+            depends.add(dependencyId);
+        }
+
+        // Recurse for each child node
+        for (DependencyNode child : node.getChildren())
+        {
+            collectDependenciesRecursive(child, depends);
+        }
+    }
+
+    private RemoteRepository toRemoteRepository(
         ZpmRepository repository)
     {
-        String name = "maven"; // TODO
-        String root = repository.location;
 
-        IBiblioResolver resolver = new IBiblioResolver();
-        resolver.setName(name);
-        resolver.setRoot(root);
-        resolver.setM2compatible(true);
+        return new RemoteRepository.Builder("central", "default", repository.location)
+            .setRepositoryManager(true)
+            .build();
+    }
 
-        return resolver;
+    private static DefaultRepositorySystemSession newSession(
+        RepositorySystem system, Path directory)
+    {
+
+        DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
+        session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, new LocalRepository(directory.toFile())));
+        session.setArtifactDescriptorPolicy(new SimpleArtifactDescriptorPolicy(true, true));
+
+        return session;
     }
 }
