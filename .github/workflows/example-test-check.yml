@@ -30,58 +30,38 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Create container tar
-        run: docker save ghcr.io/aklivity/zilla:develop-SNAPSHOT > /tmp/zilla.tar
+        run: docker save ghcr.io/aklivity/zilla:develop-SNAPSHOT > /tmp/zilla-image.tar
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: zilla-image
-          path: /tmp/zilla.tar
+          path: /tmp/zilla-image.tar
 
-  test-openapi-proxy:
+  get-example-dirs:
     runs-on: ubuntu-latest
-    needs: build-image
-    env:
-      ZILLA_VERSION: develop-SNAPSHOT
-      ZILLA_PULL_POLICY: never
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: zilla-image
-          path: /tmp
-      
-      - name: Load image
-        run: |
-          docker load --input /tmp/zilla.tar
-          docker image ls -a
-
-      - name: Checkout docs repo
+      - name: Checkout examples repo
         uses: actions/checkout@v4
         with:
           repository: aklivity/zilla-examples
-          ref: refs/heads/example-startup-compose
+          ref: refs/heads/example-startup-compose # change to main
+      - id: dirs
+        run: echo "dirs=$(ls -d */ | sed 's#/##'  | jq --raw-input --slurp --compact-output 'split("\n")[:-1]')" >> ${GITHUB_OUTPUT}
 
-      - name: Startup
-        run: ./startup.sh openapi.proxy
-
-      - name: Execute Test
-        working-directory: openapi.proxy
-        run: |
-          set -o pipefail
-          ./test.sh | tee $GITHUB_STEP_SUMMARY
-
-      - name: Collect docker logs on failure
-        if: failure()
-        uses: jwalton/gh-docker-logs@v2
-        with:
-          dest: './logs'
-      - name: Tar logs
-        if: failure()
-        run: tar cvzf ./logs.tgz ./logs
-      - name: Upload logs to GitHub
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs.tgz
-          path: ./logs.tgz
+  testing:
+    if: ${{ needs.get-example-dirs.outputs.dirs != '' }}
+    strategy:
+      matrix:
+        dir: ${{ fromJson(needs.get-example-dirs.outputs.dirs) }}
+      fail-fast: false
+    needs:
+      - build-image
+      - get-example-dirs
+    uses: ./.github/workflows/reusable_test_runner.yaml
+    with:
+      example-dir: ${{ matrix.dir }}
+      zilla-image-tag: develop-SNAPSHOT
+      zilla-image-artifact-name: zilla-image
