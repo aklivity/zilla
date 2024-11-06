@@ -55,6 +55,7 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
             result = "double";
             break;
         case "DECIMAL":
+        case "DECIMAL DOUBLE":
             ObjectNode decimalNode = mapper.createObjectNode();
             decimalNode.put("type", "bytes");
             decimalNode.put("logicalType", "decimal");
@@ -95,10 +96,17 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
         {
             if (alterExpr.operation() == Operation.ADD)
             {
-                ObjectNode newField = mapper.createObjectNode();
-                newField.put("name", alterExpr.columnName());
-                newField.set("type", mapper.valueToTree(mapSqlTypeToAvroType(alterExpr.columnType())));
-                fields.add(newField);
+                ObjectNode fieldNode = mapper.createObjectNode();
+                fieldNode.put("name", alterExpr.columnName());
+                Object avroType = mapSqlTypeToAvroType(alterExpr.columnType());
+
+                ArrayNode unionType = mapper.createArrayNode();
+                unionType.add("null");
+                unionType.addPOJO(avroType);
+                fieldNode.set("type", unionType);
+                fieldNode.put("default", "null");
+
+                fields.add(fieldNode);
             }
             else
             {

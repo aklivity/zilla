@@ -60,7 +60,7 @@ public class ProxyIT
     }
 
     @Test
-    @Configuration("proxy.yaml")
+    @Configuration("proxy.alter.yaml")
     @Specification({
         "${pgsql}/alter.topic.add.column/client"
     })

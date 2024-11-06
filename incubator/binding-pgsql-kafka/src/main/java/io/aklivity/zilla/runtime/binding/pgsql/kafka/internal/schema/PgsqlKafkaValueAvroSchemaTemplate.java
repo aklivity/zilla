@@ -83,25 +83,31 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     }
 
     public String generate(
+        String database,
         String existingSchemaJson,
         Alter alter)
     {
         String newSchemaJson = null;
         try
         {
-            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
-            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
+            final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
+
+            ObjectNode schema = (ObjectNode) mapper.readTree(existingSchemaJson);
             ArrayNode fields = (ArrayNode) schema.get("fields");
 
             final boolean applied = applyAlterations(fields, alter.alterExpressions());
             if (applied)
             {
-                schemaNode.put("schema", schema.toString());
-                newSchemaJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
+                ObjectNode parentNode = mapper.createObjectNode();
+                parentNode.put("schemaType", "AVRO");
+                parentNode.put("schema", schema.toString());
+
+                newSchemaJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parentNode);
             }
         }
         catch (JsonProcessingException ignored)
         {
+            String.format("Unable to update schema for table %s\u0000", alter.name());
         }
 
         return newSchemaJson;
