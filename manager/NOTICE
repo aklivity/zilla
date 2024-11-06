@@ -12,16 +12,38 @@ specific language governing permissions and limitations
 under the License.
 
 This project includes:
+  Aether API under Eclipse Public License, Version 1.0
+  Aether Connector Basic under Eclipse Public License, Version 1.0
+  Aether Implementation under Eclipse Public License, Version 1.0
+  Aether SPI under Eclipse Public License, Version 1.0
+  Aether Transport File under Eclipse Public License, Version 1.0
+  Aether Transport HTTP under Eclipse Public License, Version 1.0
+  Aether Utilities under Eclipse Public License, Version 1.0
   Airline - IO Library under The Apache License, Version 2.0
   Airline - Library under The Apache License, Version 2.0
+  Apache Commons Codec under Apache License, Version 2.0
   Apache Commons Collections under Apache License, Version 2.0
   Apache Commons Lang under Apache License, Version 2.0
-  Apache Ivy under The Apache Software License, Version 2.0
+  Apache HttpClient under Apache License, Version 2.0
+  Apache HttpCore under Apache License, Version 2.0
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   javax.annotation API under CDDL + GPLv2 with classpath exception
+  javax.inject under The Apache Software License, Version 2.0
+  JCL 1.1.1 implemented over SLF4J under MIT License
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   JSON-P Default Provider under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  Maven Artifact under Apache-2.0
+  Maven Artifact Resolver API under Apache-2.0
+  Maven Artifact Resolver Implementation under Apache-2.0
+  Maven Artifact Resolver Named Locks under Apache-2.0
+  Maven Artifact Resolver Provider under Apache License, Version 2.0
+  Maven Artifact Resolver SPI under Apache-2.0
+  Maven Artifact Resolver Utilities under Apache-2.0
+  Maven Builder Support under Apache-2.0
+  Maven Model under Apache-2.0
+  Maven Model Builder under Apache-2.0
+  Maven Repository Metadata Model under Apache-2.0
   org.eclipse.sisu.inject under Eclipse Public License, Version 1.0
   org.eclipse.sisu.plexus under Eclipse Public License, Version 1.0
   org.eclipse.yasson under Eclipse Public License v. 2.0 or Eclipse Distribution License v. 1.0
@@ -29,8 +51,10 @@ This project includes:
   Plexus Cipher: encryption/decryption Component under Apache Public License 2.0
   Plexus Classworlds under Apache License, Version 2.0
   Plexus Common Utilities under Apache License, Version 2.0
+  Plexus Interpolation API under Apache License, Version 2.0
   Plexus Security Dispatcher Component under Apache Public License 2.0
   Sisu-Inject-Plexus : legacy wrapper under Eclipse Public License, Version 1.0
+  SLF4J API Module under MIT License
 
 
 This project also includes code under copyright of the following entities:

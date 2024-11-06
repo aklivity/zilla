@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install.cache;
 
-import static java.util.Collections.unmodifiableSet;
-
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
@@ -35,7 +33,12 @@ public final class ZpmArtifact
     {
         this.id = id;
         this.path = path;
-        this.depends = unmodifiableSet(depends);
+        this.depends = depends;
+    }
+
+    public String getId()
+    {
+        return id.artifact;
     }
 
     @Override
