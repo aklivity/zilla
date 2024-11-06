@@ -1397,7 +1397,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final String subjectValue = String.format("%s.%s-value", server.database, topic);
         final int schemaId = catalog.resolve(subjectValue, "latest");
         final String existingSchemaJson = catalog.resolve(schemaId);
-        final String schemaValue = binding.avroValueSchema.generate(server.database, existingSchemaJson, alter);
+        final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
 
         if (schemaValue != null)
         {

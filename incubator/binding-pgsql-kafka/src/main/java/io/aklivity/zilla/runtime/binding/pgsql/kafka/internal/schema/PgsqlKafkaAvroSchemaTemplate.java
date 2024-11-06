@@ -52,10 +52,10 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
             result = "float";
             break;
         case "DOUBLE":
+        case "DOUBLE PRECISION":
             result = "double";
             break;
         case "DECIMAL":
-        case "DECIMAL DOUBLE":
             ObjectNode decimalNode = mapper.createObjectNode();
             decimalNode.put("type", "bytes");
             decimalNode.put("logicalType", "decimal");

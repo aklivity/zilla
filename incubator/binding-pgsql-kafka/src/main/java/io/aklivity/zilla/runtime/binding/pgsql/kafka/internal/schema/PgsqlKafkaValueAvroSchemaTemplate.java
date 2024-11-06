@@ -83,15 +83,12 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     }
 
     public String generate(
-        String database,
         String existingSchemaJson,
         Alter alter)
     {
         String newSchemaJson = null;
         try
         {
-            final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
-
             ObjectNode schema = (ObjectNode) mapper.readTree(existingSchemaJson);
             ArrayNode fields = (ArrayNode) schema.get("fields");
 
@@ -107,7 +104,6 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
         }
         catch (JsonProcessingException ignored)
         {
-            String.format("Unable to update schema for table %s\u0000", alter.name());
         }
 
         return newSchemaJson;
