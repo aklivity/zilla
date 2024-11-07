@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.100...HEAD)
+
+**Fixed bugs:**
+
+- Running emqtt\_bench triggers exception in KafkaCacheCursorFactory [\#752](https://github.com/aklivity/zilla/issues/752)
+
+**Closed issues:**
+
+- Support `ALTER STREAM` and `ALTER TABLE` transformation [\#1319](https://github.com/aklivity/zilla/issues/1319)
+
+**Merged pull requests:**
+
+- Support instrumentation via Java agent [\#1321](https://github.com/aklivity/zilla/pull/1321) ([jfallows](https://github.com/jfallows))
+- `number` -\> `integer` for `max-age` attribute [\#1316](https://github.com/aklivity/zilla/pull/1316) ([ankitk-me](https://github.com/ankitk-me))
+- support file write in binding-filesystem & binding-http-filesystem [\#1300](https://github.com/aklivity/zilla/pull/1300) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.100](https://github.com/aklivity/zilla/tree/0.9.100) (2024-10-29)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.99...0.9.100)
@@ -1768,7 +1786,6 @@
 
 **Implemented enhancements:**
 
-- Feature request:  Reqeust limiter [\#86](https://github.com/aklivity/zilla/issues/86)
 - Configurable isolation level for kafka binding [\#85](https://github.com/aklivity/zilla/issues/85)
 - Configurable acknowledgement mode for kafka binding [\#84](https://github.com/aklivity/zilla/issues/84)
 
