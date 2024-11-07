@@ -57,6 +57,7 @@ public class FileSystemFunctionsTest
         byte[] build = FileSystemFunctions.beginEx()
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
+            .directory("/var")
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
@@ -69,6 +70,7 @@ public class FileSystemFunctionsTest
 
         assertEquals(0x01, beginEx.typeId());
         assertEquals("index.html", beginEx.path().asString());
+        assertEquals("/var", beginEx.directory().asString());
         assertEquals(1 << READ_PAYLOAD.ordinal(), beginEx.capabilities());
         assertEquals(77L, beginEx.payloadSize());
     }
@@ -79,6 +81,7 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
+            .directory("/var")
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
@@ -91,6 +94,7 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
+            .directory("/var")
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
@@ -222,6 +226,36 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenDirectoryDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .directory("/var")
+            .path("index.json")
+            .type("text/html")
+            .payloadSize(77L)
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .directory("/var/tmp")
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)

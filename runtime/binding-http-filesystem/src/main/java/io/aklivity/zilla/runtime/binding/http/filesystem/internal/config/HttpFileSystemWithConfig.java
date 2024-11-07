@@ -18,11 +18,14 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpFileSystemWithConfig extends WithConfig
 {
+    public final String directory;
     public final String path;
 
     public HttpFileSystemWithConfig(
+        String directory,
         String path)
     {
+        this.directory = directory;
         this.path = path;
     }
 }

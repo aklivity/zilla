@@ -69,12 +69,35 @@
                                         {
                                             "title": "Topic",
                                             "type": "string"
+                                        },
+                                        "directory":
+                                        {
+                                            "title": "Topic",
+                                            "type": "string"
                                         }
                                     },
                                     "additionalProperties": false,
-                                    "required":
+                                    "anyOf":
                                     [
-                                        "path"
+                                        {
+                                            "required":
+                                            [
+                                                "path"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "directory"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "directory"
+                                            ]
+                                        }
                                     ]
                                 }
                             }

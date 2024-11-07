@@ -77,12 +77,27 @@ public final class HttpFileSystemWithResolver
     {
         // TODO: hoist to constructor if constant
         String path0 = with.path;
-        Matcher pathMatcher = paramsMatcher.reset(with.path);
-        if (pathMatcher.matches())
+        if (path0 != null)
         {
-            path0 = pathMatcher.replaceAll(replacer);
+            Matcher pathMatcher = paramsMatcher.reset(with.path);
+            if (pathMatcher.matches())
+            {
+                path0 = pathMatcher.replaceAll(replacer);
+            }
         }
         String16FW path = new String16FW(path0);
+
+        String directory0 = with.directory;
+        if (directory0 != null)
+        {
+            Matcher directoryMatcher = paramsMatcher.reset(with.directory);
+            if (directoryMatcher.matches())
+            {
+                directory0 = directoryMatcher.replaceAll(replacer);
+            }
+        }
+        String16FW directory = new String16FW(directory0);
+
         String16FW etag = new String16FW("");
 
         HttpHeaderFW method = httpBeginEx.headers().matchFirst(h -> HEADER_METHOD_NAME.equals(h.name()));
@@ -128,6 +143,6 @@ public final class HttpFileSystemWithResolver
                 wait = Integer.parseInt(waitMatcher.group(1));
             }
         }
-        return new HttpFileSystemWithResult(path, capabilities, etag, TimeUnit.SECONDS.toMillis(wait));
+        return new HttpFileSystemWithResult(directory, path, capabilities, etag, TimeUnit.SECONDS.toMillis(wait));
     }
 }

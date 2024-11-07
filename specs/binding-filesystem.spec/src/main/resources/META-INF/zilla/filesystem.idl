@@ -21,7 +21,10 @@ scope filesystem
         READ_CHANGES,
         CREATE_PAYLOAD,
         WRITE_PAYLOAD,
-        DELETE_PAYLOAD
+        DELETE_PAYLOAD,
+        CREATE_DIRECTORY,
+        DELETE_DIRECTORY,
+        LIST_CONTENTS
     }
 
     scope stream
@@ -31,13 +34,16 @@ scope filesystem
             FILE_NOT_FOUND,
             FILE_ALREADY_EXISTS,
             FILE_MODIFIED,
-            FILE_TAG_MISSING
+            FILE_TAG_MISSING,
+            DIRECTORY_ALREADY_EXISTS,
+            DIRECTORY_NOT_FOUND
         }
 
         struct FileSystemBeginEx extends core::stream::Extension
         {
             int32 capabilities = 3;
-            string16 path;
+            string16 directory = null;
+            string16 path = null;
             string16 type = null;
             int64 payloadSize = 0;
             string16 tag = null;

@@ -1109,6 +1109,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             fsBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(fsTypeId)
                 .capabilities(resolved.capabilities())
+                .directory(resolved.directory())
                 .path(resolved.path())
                 .tag(resolved.tag())
                 .timeout(resolved.timeout())
