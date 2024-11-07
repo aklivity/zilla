@@ -16,5 +16,22 @@
 accept "zilla://streams/http0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+accepted
 
-rejected
+read zilla:begin.ext ${http:beginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "DELETE")
+                           .header(":scheme", "https")
+                           .header(":authority", "example.com:9090")
+                           .header(":path", "/index.html")
+                           .build()}
+
+connected
+
+write zilla:reset.ext ${http:resetEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "404")
+                           .header("content-length", "0")
+                           .build()}
+
+read abort

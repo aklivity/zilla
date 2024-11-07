@@ -60,7 +60,7 @@
                             "max-age":
                             {
                                 "title": "Max Age",
-                                "type": "number",
+                                "type": "integer",
                                 "default": 300
                             }
                         },

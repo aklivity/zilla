@@ -98,10 +98,10 @@ public class FileSystemIT
 
     @Test
     @Specification({
-        "${app}/read.file.payload.etag.not.matched/client",
-        "${app}/read.file.payload.etag.not.matched/server"
+        "${app}/read.file.payload.tag.not.matched/client",
+        "${app}/read.file.payload.tag.not.matched/server"
     })
-    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    public void shouldReadFilePayloadTagNotMatched() throws Exception
     {
         k3po.finish();
     }
@@ -162,6 +162,66 @@ public class FileSystemIT
         "${app}/client.read.abort/server",
     })
     public void shouldReceiveClientReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.file.payload/client",
+        "${app}/create.file.payload/server",
+    })
+    public void shouldCreateFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.modified/client",
+        "${app}/write.file.payload.modified/server",
+    })
+    public void shouldWriteFilePayloadModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.modified.abort/client",
+        "${app}/write.file.payload.modified.abort/server",
+    })
+    public void shouldWriteFilePayloadModifiedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/write.file.payload.interrupt/client",
+        "${app}/write.file.payload.interrupt/server",
+    })
+    public void shouldWriteFilePayloadInterrupt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/delete.file.payload/client",
+        "${app}/delete.file.payload/server",
+    })
+    public void shouldDeleteFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/delete.file.payload.failed/client",
+        "${app}/delete.file.payload.failed/server",
+    })
+    public void shouldDeleteFilePayloadFailed() throws Exception
     {
         k3po.finish();
     }
