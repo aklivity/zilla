@@ -30,10 +30,6 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     private final StringBuilder fieldBuilder = new StringBuilder();
     private final StringBuilder primaryKeyBuilder = new StringBuilder();
 
-    public RisingwaveCreateTopicTemplate()
-    {
-    }
-
     public String generate(
         Table table)
     {

@@ -1710,7 +1710,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final RisingwaveBindingConfig binding = server.binding;
         final Alter alter = parser.parseAlterTable(statement);
 
-        boolean supportedOperation = alter.alterExpressions().stream()
+        boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);
 
         if (!supportedOperation)
@@ -1759,7 +1759,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final RisingwaveBindingConfig binding = server.binding;
         final Alter alter = parser.parseAlterStream(statement);
 
-        boolean supportedOperation = alter.alterExpressions().stream()
+        boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);
 
         if (!supportedOperation)

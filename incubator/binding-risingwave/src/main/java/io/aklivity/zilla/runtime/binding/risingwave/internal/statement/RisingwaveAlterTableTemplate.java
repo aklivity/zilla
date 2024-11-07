@@ -22,17 +22,13 @@ public class RisingwaveAlterTableTemplate extends RisingwaveCommandTemplate
         ALTER TABLE %s %s;\u0000""";
     private final String fieldFormat = "%s COLUMN %s %s, ";
 
-    public RisingwaveAlterTableTemplate()
-    {
-    }
-
     public String generate(
         Alter alter)
     {
         String topic = alter.name();
         fieldBuilder.setLength(0);
 
-        alter.alterExpressions()
+        alter.expressions()
             .forEach(c -> fieldBuilder.append(
                 String.format(fieldFormat, c.operation().name(), c.columnName(), c.columnType())));
 

@@ -434,10 +434,10 @@ alter_stream_cmd
     | ALTER opt_column colid alter_identity_column_option_list
     | ALTER opt_column colid DROP IDENTITY_P
     | ALTER opt_column colid DROP IDENTITY_P IF_P EXISTS
-    | DROP opt_column IF_P EXISTS colid opt_drop_behavior
-    | DROP opt_column colid opt_drop_behavior
     | ALTER opt_column colid opt_set_data TYPE_P typename opt_collate_clause alter_using
     | ALTER opt_column colid alter_generic_options
+    | DROP opt_column IF_P EXISTS colid opt_drop_behavior
+    | DROP opt_column colid opt_drop_behavior
     ;
 
 alter_table_cmds

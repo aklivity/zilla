@@ -19,10 +19,6 @@ public class RisingwaveDropSourceTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         DROP SOURCE %s;\u0000""";
 
-    public RisingwaveDropSourceTemplate()
-    {
-    }
-
     public String generate(
         String drop)
     {

@@ -385,10 +385,10 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
-        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
-        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.ADD, alter.expressions().get(0).operation());
+        assertEquals("new_column", alter.expressions().get(0).columnName());
+        assertEquals("INT", alter.expressions().get(0).columnType());
     }
 
     @Test
@@ -398,10 +398,10 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
-        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
-        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.ADD, alter.expressions().get(0).operation());
+        assertEquals("new_column", alter.expressions().get(0).columnName());
+        assertEquals("INT", alter.expressions().get(0).columnType());
     }
 
     @Test
@@ -411,9 +411,9 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.DROP, alter.alterExpressions().get(0).operation());
-        assertEquals("old_column", alter.alterExpressions().get(0).columnName());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.DROP, alter.expressions().get(0).operation());
+        assertEquals("old_column", alter.expressions().get(0).columnName());
     }
 
     @Test
@@ -423,9 +423,9 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.MODIFY, alter.alterExpressions().get(0).operation());
-        assertEquals("existing_column", alter.alterExpressions().get(0).columnName());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.MODIFY, alter.expressions().get(0).operation());
+        assertEquals("existing_column", alter.expressions().get(0).columnName());
     }
 
     @Test(expected = ParseCancellationException.class)
@@ -464,10 +464,10 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.ADD, alter.alterExpressions().get(0).operation());
-        assertEquals("new_column", alter.alterExpressions().get(0).columnName());
-        assertEquals("INT", alter.alterExpressions().get(0).columnType());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.ADD, alter.expressions().get(0).operation());
+        assertEquals("new_column", alter.expressions().get(0).columnName());
+        assertEquals("INT", alter.expressions().get(0).columnType());
     }
 
     @Test
@@ -477,9 +477,9 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.DROP, alter.alterExpressions().get(0).operation());
-        assertEquals("old_column", alter.alterExpressions().get(0).columnName());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.DROP, alter.expressions().get(0).operation());
+        assertEquals("old_column", alter.expressions().get(0).columnName());
     }
 
     @Test(expected = ParseCancellationException.class)
@@ -496,9 +496,9 @@ public class PgsqlParserTest
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.alterExpressions().size());
-        assertEquals(Operation.MODIFY, alter.alterExpressions().get(0).operation());
-        assertEquals("existing_column", alter.alterExpressions().get(0).columnName());
-        assertEquals("VARCHAR(100)", alter.alterExpressions().get(0).columnType());
+        assertEquals(1, alter.expressions().size());
+        assertEquals(Operation.MODIFY, alter.expressions().get(0).operation());
+        assertEquals("existing_column", alter.expressions().get(0).columnName());
+        assertEquals("VARCHAR(100)", alter.expressions().get(0).columnType());
     }
 }

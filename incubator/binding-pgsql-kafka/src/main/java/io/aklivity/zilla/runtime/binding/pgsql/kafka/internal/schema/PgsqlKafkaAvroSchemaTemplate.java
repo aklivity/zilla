@@ -16,9 +16,14 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
@@ -27,86 +32,90 @@ public abstract class PgsqlKafkaAvroSchemaTemplate
 {
     protected static final String DATABASE_PLACEHOLDER = "{database}";
 
-    protected final ObjectMapper mapper = new ObjectMapper();
+    protected Jsonb jsonbFormatted = JsonbBuilder.create(new JsonbConfig().withFormatting(true));
+    protected Jsonb jsonb = JsonbBuilder.create();
 
-    protected Object mapSqlTypeToAvroType(
+    protected JsonObject mapSqlTypeToAvroType(
         String sqlType)
     {
         sqlType = sqlType.toUpperCase();
 
-        Object result = null;
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        JsonObject result = null;
 
         switch (sqlType)
         {
         case "INT":
         case "INTEGER":
-            result = "int";
+            result = builder.add("type", "int").build();
             break;
         case "BIGINT":
-            result = "long";
+            result = builder.add("type", "long").build();
             break;
         case "BOOLEAN":
-            result = "boolean";
+            result = builder.add("type", "boolean").build();
             break;
         case "FLOAT":
-            result = "float";
+            result = builder.add("type", "float").build();
             break;
         case "DOUBLE":
         case "DOUBLE PRECISION":
-            result = "double";
+            result = builder.add("type", "double").build();
             break;
         case "DECIMAL":
-            ObjectNode decimalNode = mapper.createObjectNode();
-            decimalNode.put("type", "bytes");
-            decimalNode.put("logicalType", "decimal");
-            decimalNode.put("precision", 10);
-            decimalNode.put("scale", 2);
-            result = decimalNode;
+            result = builder
+                .add("type", "bytes")
+                .add("logicalType", "decimal")
+                .add("precision", 10)
+                .add("scale", 2)
+                .build();
             break;
         case "DATE":
-            ObjectNode dateNode = mapper.createObjectNode();
-            dateNode.put("type", "int");
-            dateNode.put("logicalType", "date");
-            result = dateNode;
+            result = builder
+                .add("type", "int")
+                .add("logicalType", "date")
+                .build();
             break;
         case "TIMESTAMP":
-            ObjectNode timestampNode = mapper.createObjectNode();
-            timestampNode.put("type", "long");
-            timestampNode.put("logicalType", "timestamp-millis");
-            result = timestampNode;
+            builder.add("type", "long");
+            builder.add("logicalType", "timestamp-millis");
+            result = builder.build();
             break;
         case "VARCHAR":
         case "CHAR":
         case "TEXT":
         default:
-            result = "string";
+            builder.add("type", "string");
+            result = builder.build();
+            break;
         }
 
         return result;
     }
 
     protected boolean applyAlterations(
-        ArrayNode fields,
-        List<AlterExpression> alterExpressions)
+        JsonArrayBuilder fields,
+        List<AlterExpression> expressions)
     {
         boolean applied = true;
 
         apply:
-        for (AlterExpression alterExpr : alterExpressions)
+        for (AlterExpression alterExpr : expressions)
         {
             if (alterExpr.operation() == Operation.ADD)
             {
-                ObjectNode fieldNode = mapper.createObjectNode();
-                fieldNode.put("name", alterExpr.columnName());
+                JsonObjectBuilder field = Json.createObjectBuilder()
+                    .add("name", alterExpr.columnName());
                 Object avroType = mapSqlTypeToAvroType(alterExpr.columnType());
 
-                ArrayNode unionType = mapper.createArrayNode();
-                unionType.add("null");
-                unionType.addPOJO(avroType);
-                fieldNode.set("type", unionType);
-                fieldNode.put("default", "null");
+                JsonArray unionType = Json.createArrayBuilder()
+                    .add("null")
+                    .add(jsonb.toJson(avroType))
+                    .build();
+                field.add("type", unionType);
+                field.add("default", Json.createValue("null"));
 
-                fields.add(fieldNode);
+                fields.add(field.build());
             }
             else
             {

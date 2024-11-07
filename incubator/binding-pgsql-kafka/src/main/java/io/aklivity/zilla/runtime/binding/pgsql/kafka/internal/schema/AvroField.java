@@ -12,20 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
+package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
-
-public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
+public record AvroField(
+    String name,
+    Object type)
 {
-    private final String sqlFormat = """
-        DESCRIBE %s;\u0000""";
-
-    public String generate(
-        View view)
-    {
-        String name = view.name();
-
-        return String.format(sqlFormat, name);
-    }
 }
