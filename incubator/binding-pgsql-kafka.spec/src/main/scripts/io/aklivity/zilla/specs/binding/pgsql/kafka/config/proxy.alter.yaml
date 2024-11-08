@@ -20,25 +20,34 @@ catalogs:
     type: test
     options:
       url: http://localhost:8081
-
+      id: 1
+      schema: |-
+        {
+          "type": "record",
+          "name": "cities",
+          "namespace": "dev",
+          "fields": [
+            {
+              "name": "id",
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            {
+              "name": "city",
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          ]
+        }
 bindings:
   app0:
-    type: risingwave
+    type: pgsql-kafka
     kind: proxy
-    options:
-      kafka:
-        properties:
-          bootstrap.server: localhost:9092
-        format:
-          model: test
-          catalog:
-            catalog0:
-              - strategy: topic
-    routes:
-      - exit: app2
-        when:
-          - commands:
-              - "CREATE TOPIC"
-              - "ALTER TOPIC"
-              - "DROP TOPIC"
+    catalog:
+      catalog0:
+        - strategy: topic
     exit: app1

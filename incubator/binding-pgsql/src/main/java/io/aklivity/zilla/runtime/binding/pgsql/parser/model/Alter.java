@@ -18,6 +18,6 @@ import java.util.List;
 
 public record Alter(
     String name,
-    List<AlterExpression> alterExpressions)
+    List<AlterExpression> expressions)
 {
 }

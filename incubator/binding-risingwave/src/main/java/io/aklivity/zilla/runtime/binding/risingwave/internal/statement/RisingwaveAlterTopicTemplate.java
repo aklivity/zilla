@@ -14,31 +14,26 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 
-public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
+public class RisingwaveAlterTopicTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE TABLE IF NOT EXISTS %s (%s%s);\u0000""";
-    private final String fieldFormat = "%s %s, ";
+        ALTER TOPIC %s %s;\u0000""";
+    private final String fieldFormat = "%s COLUMN %s %s, ";
 
     public String generate(
-        Table table)
+        Alter alter)
     {
-        String topic = table.name();
-        String primaryKeyFormat = ", PRIMARY KEY (%s)";
-        String primaryKey = !table.primaryKeys().isEmpty()
-            ? String.format(primaryKeyFormat, table.primaryKeys().stream().findFirst().get())
-            : "";
-
+        String topic = alter.name();
         fieldBuilder.setLength(0);
 
-        table.columns()
+        alter.expressions()
             .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.name(), c.type())));
+                String.format(fieldFormat, c.operation().name(), c.columnName(), c.columnType())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
-        return String.format(sqlFormat, topic, fieldBuilder, primaryKey);
+        return String.format(sqlFormat, topic, fieldBuilder);
     }
 }
