@@ -41,7 +41,7 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-      <dependency>
+    <dependency>
       <groupId>jakarta.json</groupId>
       <artifactId>jakarta.json-api</artifactId>
     </dependency>

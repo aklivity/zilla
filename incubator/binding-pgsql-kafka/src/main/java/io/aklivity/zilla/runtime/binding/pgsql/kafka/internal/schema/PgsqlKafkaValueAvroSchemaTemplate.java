@@ -53,14 +53,9 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
 
                 boolean isNullable = !column.constraints().contains("NOT NULL");
 
-                if (isNullable)
-                {
-                    return new AvroField(columnName, new Object[]{"null", avroType});
-                }
-                else
-                {
-                    return new AvroField(columnName, avroType);
-                }
+                return isNullable
+                    ? new AvroField(columnName, new Object[]{"null", avroType})
+                    : new AvroField(columnName, avroType);
             })
             .collect(Collectors.toList());
 
