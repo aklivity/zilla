@@ -30,9 +30,9 @@ Zilla Frame
         Stream Type ID: 0x9eaae6e4
         Stream Type: filesystem
         Capabilities: 0x00000002
-            .... .... .... .... .... .... .... ...0 = READ_PAYLOAD: Not set (0)
-            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
-            .... .... .... .... .... .... .... .0.. = READ_CHANGES: Not set (0)
+            .... .... .... .... .... .... .... ...0 = READ_FILE: Not set (0)
+            .... .... .... .... .... .... .... ..1. = READ_METADATA: Set (1)
+            .... .... .... .... .... .... .... .0.. = READ_FILE_CHANGES: Not set (0)
         Path: index.html
             Length: 10
             Path: index.html
@@ -139,9 +139,9 @@ Zilla Frame
         Stream Type ID: 0x9eaae6e4
         Stream Type: filesystem
         Capabilities: 0x00000002
-            .... .... .... .... .... .... .... ...0 = READ_PAYLOAD: Not set (0)
-            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
-            .... .... .... .... .... .... .... .0.. = READ_CHANGES: Not set (0)
+            .... .... .... .... .... .... .... ...0 = READ_FILE: Not set (0)
+            .... .... .... .... .... .... .... ..1. = READ_METADATA: Set (1)
+            .... .... .... .... .... .... .... .0.. = READ_FILE_CHANGES: Not set (0)
         Path: index.html
             Length: 10
             Path: index.html

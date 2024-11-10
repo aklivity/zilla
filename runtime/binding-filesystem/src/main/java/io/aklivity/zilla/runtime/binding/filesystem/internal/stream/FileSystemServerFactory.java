@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
-import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_ALREADY_EXISTS;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_EXISTS;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_MODIFIED;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_TAG_MISSING;
@@ -84,10 +84,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
-    private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
-    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
-    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
-    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
+    private static final int READ_FILE_MASK = 1 << FileSystemCapabilities.READ_FILE.ordinal();
+    private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
+    private static final int CREATE_FILE_MASK = 1 << FileSystemCapabilities.CREATE_FILE.ordinal();
+    private static final int DELETE_FILE_MASK = 1 << FileSystemCapabilities.DELETE_FILE.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
@@ -843,11 +843,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             FileSystemError error = null;
 
-            if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
+            if ((capabilities & CREATE_FILE_MASK) != 0 && Files.exists(resolvedPath))
             {
-                error = FILE_ALREADY_EXISTS;
+                error = FILE_EXISTS;
             }
-            else if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+            else if ((capabilities & WRITE_FILE_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
@@ -862,7 +862,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     error = FILE_MODIFIED;
                 }
             }
-            else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+            else if ((capabilities & DELETE_FILE_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
@@ -936,7 +936,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     {
                         out.close();
 
-                        if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+                        if ((capabilities & WRITE_FILE_MASK) != 0)
                         {
                             Files.move(tmpPath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE);
                         }
@@ -1391,35 +1391,35 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private boolean canReadPayload(
         int capabilities)
     {
-        return (capabilities & READ_PAYLOAD_MASK) != 0;
+        return (capabilities & READ_FILE_MASK) != 0;
     }
 
     private boolean canWritePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & WRITE_PAYLOAD_MASK) != 0 && Files.exists(path);
+        return (capabilities & WRITE_FILE_MASK) != 0 && Files.exists(path);
     }
 
     private boolean canCreatePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.notExists(path);
+        return (capabilities & CREATE_FILE_MASK) != 0 && Files.notExists(path);
     }
 
     private boolean canDeletePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & DELETE_PAYLOAD_MASK) != 0 && Files.exists(path);
+        return (capabilities & DELETE_FILE_MASK) != 0 && Files.exists(path);
     }
 
     private boolean writeOperation(
         int capabilities)
     {
-        return (capabilities & CREATE_PAYLOAD_MASK) != 0 ||
-            (capabilities & WRITE_PAYLOAD_MASK) != 0 ||
-            (capabilities & DELETE_PAYLOAD_MASK) != 0;
+        return (capabilities & CREATE_FILE_MASK) != 0 ||
+            (capabilities & WRITE_FILE_MASK) != 0 ||
+            (capabilities & DELETE_FILE_MASK) != 0;
     }
 }

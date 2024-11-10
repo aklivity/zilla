@@ -20,14 +20,14 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("CREATE_PAYLOAD")
+                                 .capabilities("CREATE_FILE")
                                  .path("index.html")
                                  .build()}
 connected
 
 write zilla:reset.ext ${filesystem:resetEx()
                            .typeId(zilla:id("filesystem"))
-                           .error("FILE_ALREADY_EXISTS")
+                           .error("FILE_EXISTS")
                            .build()}
 
 read abort

@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_PAYLOAD")
+                                 .capabilities("READ_FILE")
                                  .path("index_modify.html")
                                  .tag("f2c912a30f38a124c3249f8e802e0d90")
                                  .timeout(60000)
@@ -32,7 +32,7 @@ read closed
 write notify FILE_MODIFIED
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_PAYLOAD")
+                                  .capabilities("READ_FILE")
                                   .path("index_modify.html")
                                   .type("text/html")
                                   .payloadSize(74)
@@ -52,7 +52,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_PAYLOAD")
+                                 .capabilities("READ_FILE")
                                  .path("index_modify.html")
                                  .tag("f2c912a30f38a124c3249f8e802e0d90")
                                  .timeout(60000)
@@ -64,7 +64,7 @@ read closed
 write notify FILE_MODIFIED
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_PAYLOAD")
+                                  .capabilities("READ_FILE")
                                   .path("index_modify.html")
                                   .type("text/html")
                                   .payloadSize(74)

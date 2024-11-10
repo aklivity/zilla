@@ -16,15 +16,15 @@ scope filesystem
 {
     enum FileSystemCapabilities
     {
-        READ_PAYLOAD,
-        READ_EXTENSION,
-        READ_CHANGES,
-        CREATE_PAYLOAD,
-        WRITE_PAYLOAD,
-        DELETE_PAYLOAD,
         CREATE_DIRECTORY,
+        CREATE_FILE,
         DELETE_DIRECTORY,
-        LIST_CONTENTS
+        DELETE_FILE,
+        READ_DIRECTORY,
+        READ_FILE,
+        READ_FILE_CHANGES,
+        READ_METADATA,
+        WRITE_FILE
     }
 
     scope stream
@@ -32,10 +32,10 @@ scope filesystem
         enum FileSystemError
         {
             FILE_NOT_FOUND,
-            FILE_ALREADY_EXISTS,
+            FILE_EXISTS,
             FILE_MODIFIED,
             FILE_TAG_MISSING,
-            DIRECTORY_ALREADY_EXISTS,
+            DIRECTORY_EXISTS,
             DIRECTORY_NOT_FOUND
         }
 

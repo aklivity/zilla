@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_PAYLOAD")
+                                  .capabilities("READ_FILE")
                                   .path("index_modify_symlink_changes.html")
                                   .tag("f2c912a30f38a124c3249f8e802e0d90")
                                   .timeout(600000)
@@ -31,7 +31,7 @@ write notify CONNECTED
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_PAYLOAD")
+                                 .capabilities("READ_FILE")
                                  .path("index_modify_symlink_changes.html")
                                  .type("text/html")
                                  .payloadSize(74)

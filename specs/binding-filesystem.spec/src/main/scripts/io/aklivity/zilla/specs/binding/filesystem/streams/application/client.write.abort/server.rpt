@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_EXTENSION")
+                                 .capabilities("READ_METADATA")
                                  .path("index.html")
                                  .build()}
 connected

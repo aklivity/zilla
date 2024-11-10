@@ -68,10 +68,10 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
-    private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
-    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
-    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
-    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
+    private static final int READ_FILE_MASK = 1 << FileSystemCapabilities.READ_FILE.ordinal();
+    private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
+    private static final int CREATE_FILE_MASK = 1 << FileSystemCapabilities.CREATE_FILE.ordinal();
+    private static final int DELETE_FILE_MASK = 1 << FileSystemCapabilities.DELETE_FILE.ordinal();
 
     private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
@@ -545,7 +545,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     FileSystemError errorMessage = error.get();
                     switch (errorMessage)
                     {
-                    case FILE_ALREADY_EXISTS:
+                    case FILE_EXISTS:
                         httpStatus = HEADER_STATUS_VALUE_409;
                         break;
                     case FILE_MODIFIED:
@@ -747,7 +747,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
                 }
-                else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+                else if ((capabilities & DELETE_FILE_MASK) != 0)
                 {
                     httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
@@ -782,13 +782,13 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         private boolean canReadPayload(
             int capabilities)
         {
-            return (capabilities & READ_PAYLOAD_MASK) != 0;
+            return (capabilities & READ_FILE_MASK) != 0;
         }
 
         private boolean createOrWritePayload(
             int capabilities)
         {
-            return (capabilities & CREATE_PAYLOAD_MASK) != 0 || (capabilities & WRITE_PAYLOAD_MASK) != 0;
+            return (capabilities & CREATE_FILE_MASK) != 0 || (capabilities & WRITE_FILE_MASK) != 0;
         }
 
         private void onFileSystemData(

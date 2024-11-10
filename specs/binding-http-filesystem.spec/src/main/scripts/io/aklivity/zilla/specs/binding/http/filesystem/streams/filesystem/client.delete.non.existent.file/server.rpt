@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("DELETE_PAYLOAD")
+                                 .capabilities("DELETE_FILE")
                                  .path("index.html")
                                  .build()}
 connected

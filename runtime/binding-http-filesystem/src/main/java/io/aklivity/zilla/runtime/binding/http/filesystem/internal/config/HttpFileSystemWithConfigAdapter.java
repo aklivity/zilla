@@ -54,6 +54,9 @@ public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterS
         String directory = object.containsKey(DIRECTORY_NAME) ? object.getString(DIRECTORY_NAME) : null;
         String path = object.containsKey(PATH_NAME) ? object.getString(PATH_NAME) : null;
 
-        return new HttpFileSystemWithConfig(directory, path);
+        return HttpFileSystemWithConfig.builder()
+            .directory(directory)
+            .path(path)
+            .build();
     }
 }

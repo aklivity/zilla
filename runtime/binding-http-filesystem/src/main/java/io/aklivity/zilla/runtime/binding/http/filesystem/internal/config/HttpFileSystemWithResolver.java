@@ -14,11 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.CREATE_PAYLOAD;
-import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.DELETE_PAYLOAD;
-import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_EXTENSION;
-import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_PAYLOAD;
-import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.WRITE_PAYLOAD;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.CREATE_FILE;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.DELETE_FILE;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_FILE;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_METADATA;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.WRITE_FILE;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -33,11 +33,11 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.H
 
 public final class HttpFileSystemWithResolver
 {
-    public static final int HEADER_METHOD_MASK_HEAD = 1 << READ_EXTENSION.ordinal();
-    private static final int HEADER_METHOD_MASK_GET = 1 << READ_PAYLOAD.ordinal() | 1 << READ_EXTENSION.ordinal();
-    public static final int HEADER_METHOD_MASK_POST = 1 << CREATE_PAYLOAD.ordinal();
-    public static final int HEADER_METHOD_MASK_PUT = 1 << WRITE_PAYLOAD.ordinal();
-    public static final int HEADER_METHOD_MASK_DELETE = 1 << DELETE_PAYLOAD.ordinal();
+    public static final int HEADER_METHOD_MASK_HEAD = 1 << READ_METADATA.ordinal();
+    private static final int HEADER_METHOD_MASK_GET = 1 << READ_FILE.ordinal() | 1 << READ_METADATA.ordinal();
+    public static final int HEADER_METHOD_MASK_POST = 1 << CREATE_FILE.ordinal();
+    public static final int HEADER_METHOD_MASK_PUT = 1 << WRITE_FILE.ordinal();
+    public static final int HEADER_METHOD_MASK_DELETE = 1 << DELETE_FILE.ordinal();
 
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern PREFER_WAIT_PATTERN = Pattern.compile("wait=(\\d+)");

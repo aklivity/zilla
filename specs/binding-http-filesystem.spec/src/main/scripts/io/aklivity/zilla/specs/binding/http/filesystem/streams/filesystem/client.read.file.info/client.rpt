@@ -19,7 +19,7 @@ connect "zilla://streams/filesystem0"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_EXTENSION")
+                                  .capabilities("READ_METADATA")
                                   .path("index.html")
                                   .build()}
 connected
@@ -28,7 +28,7 @@ write close
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_EXTENSION")
+                                 .capabilities("READ_METADATA")
                                  .path("index.html")
                                  .type("text/html")
                                  .payloadSize(77)
