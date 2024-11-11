@@ -546,6 +546,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     switch (errorMessage)
                     {
                     case FILE_EXISTS:
+                    case DIRECTORY_EXISTS:
+                    case DIRECTORY_NOT_EMPTY:
                         httpStatus = HEADER_STATUS_VALUE_409;
                         break;
                     case FILE_MODIFIED:
@@ -754,9 +756,14 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 }
                 else
                 {
-                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
-                        .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
-                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)));
+
+                    if (type.length() != -1)
+                    {
+                        httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type));
+                    }
+
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
 
                     if (validTag)
                     {

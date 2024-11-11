@@ -36,7 +36,8 @@ scope filesystem
             FILE_MODIFIED,
             FILE_TAG_MISSING,
             DIRECTORY_EXISTS,
-            DIRECTORY_NOT_FOUND
+            DIRECTORY_NOT_FOUND,
+            DIRECTORY_NOT_EMPTY
         }
 
         struct FileSystemBeginEx extends core::stream::Extension

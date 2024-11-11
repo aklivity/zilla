@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.CREATE_DIRECTORY;
 import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.CREATE_FILE;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.DELETE_DIRECTORY;
 import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.DELETE_FILE;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_DIRECTORY;
 import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_FILE;
 import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_METADATA;
 import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.WRITE_FILE;
@@ -38,6 +41,9 @@ public final class HttpFileSystemWithResolver
     public static final int HEADER_METHOD_MASK_POST = 1 << CREATE_FILE.ordinal();
     public static final int HEADER_METHOD_MASK_PUT = 1 << WRITE_FILE.ordinal();
     public static final int HEADER_METHOD_MASK_DELETE = 1 << DELETE_FILE.ordinal();
+    public static final int HEADER_METHOD_MASK_POST_DIRECTORY = 1 << CREATE_DIRECTORY.ordinal();
+    public static final int HEADER_METHOD_MASK_DELETE_DIRECTORY = 1 << DELETE_DIRECTORY.ordinal();
+    public static final int HEADER_METHOD_MASK_GET_DIRECTORY = 1 << READ_DIRECTORY.ordinal();
 
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern PREFER_WAIT_PATTERN = Pattern.compile("wait=(\\d+)");
@@ -98,33 +104,12 @@ public final class HttpFileSystemWithResolver
         }
         String16FW directory = new String16FW(directory0);
 
+        boolean isDir = with.path != null ? with.path.endsWith("/") : with.directory != null;
+
         String16FW etag = new String16FW("");
 
         HttpHeaderFW method = httpBeginEx.headers().matchFirst(h -> HEADER_METHOD_NAME.equals(h.name()));
-        int capabilities = 0;
-        if (method != null)
-        {
-            if (HEADER_METHOD_VALUE_HEAD.equals(method.value()))
-            {
-                capabilities = HEADER_METHOD_MASK_HEAD;
-            }
-            else if (HEADER_METHOD_VALUE_GET.equals(method.value()))
-            {
-                capabilities = HEADER_METHOD_MASK_GET;
-            }
-            else if (HEADER_METHOD_VALUE_POST.equals(method.value()))
-            {
-                capabilities = HEADER_METHOD_MASK_POST;
-            }
-            else if (HEADER_METHOD_VALUE_PUT.equals(method.value()))
-            {
-                capabilities = HEADER_METHOD_MASK_PUT;
-            }
-            else if (HEADER_METHOD_VALUE_DELETE.equals(method.value()))
-            {
-                capabilities = HEADER_METHOD_MASK_DELETE;
-            }
-        }
+        int capabilities = getCapabilities(method, isDir);
         HttpHeaderFW tag = httpBeginEx.headers().matchFirst(h ->
             HEADER_IF_MATCH_NAME.equals(h.name()) || HEADER_IF_NONE_MATCH_NAME.equals(h.name()));
         if (tag != null)
@@ -144,5 +129,57 @@ public final class HttpFileSystemWithResolver
             }
         }
         return new HttpFileSystemWithResult(directory, path, capabilities, etag, TimeUnit.SECONDS.toMillis(wait));
+    }
+
+    private static int getCapabilities(
+        HttpHeaderFW method,
+        boolean isDir)
+    {
+        int capabilities = 0;
+        if (method != null)
+        {
+            if (HEADER_METHOD_VALUE_HEAD.equals(method.value()))
+            {
+                capabilities = HEADER_METHOD_MASK_HEAD;
+            }
+            else if (HEADER_METHOD_VALUE_GET.equals(method.value()))
+            {
+                if (isDir)
+                {
+                    capabilities = HEADER_METHOD_MASK_GET_DIRECTORY;
+                }
+                else
+                {
+                    capabilities = HEADER_METHOD_MASK_GET;
+                }
+            }
+            else if (HEADER_METHOD_VALUE_POST.equals(method.value()))
+            {
+                if (isDir)
+                {
+                    capabilities = HEADER_METHOD_MASK_POST_DIRECTORY;
+                }
+                else
+                {
+                    capabilities = HEADER_METHOD_MASK_POST;
+                }
+            }
+            else if (HEADER_METHOD_VALUE_PUT.equals(method.value()))
+            {
+                capabilities = HEADER_METHOD_MASK_PUT;
+            }
+            else if (HEADER_METHOD_VALUE_DELETE.equals(method.value()))
+            {
+                if (isDir)
+                {
+                    capabilities = HEADER_METHOD_MASK_DELETE_DIRECTORY;
+                }
+                else
+                {
+                    capabilities = HEADER_METHOD_MASK_DELETE;
+                }
+            }
+        }
+        return capabilities;
     }
 }

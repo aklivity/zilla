@@ -198,4 +198,13 @@ public class HttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/client.read.directory/client",
+        "${http}/client.read.directory/server"})
+    public void shouldReceiveClientReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
 }
