@@ -915,8 +915,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 processOperation(traceId);
             }
-
-            //doAppWindow(traceId);
         }
 
         private FileSystemError detectErrorCondition(
