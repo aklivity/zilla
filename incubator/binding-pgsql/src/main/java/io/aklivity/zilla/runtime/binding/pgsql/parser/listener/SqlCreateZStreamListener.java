@@ -23,14 +23,14 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 
-public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
+public class SqlCreateZStreamListener extends PostgreSqlParserBaseListener
 {
     private final Map<String, String> columns = new LinkedHashMap<>();
     private final TokenStream tokens;
 
     private String name;
 
-    public SqlCreateStreamListener(
+    public SqlCreateZStreamListener(
         TokenStream tokens)
     {
         this.tokens = tokens;
@@ -57,8 +57,8 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatestreamstmt(
-        PostgreSqlParser.CreatestreamstmtContext ctx)
+    public void enterCreatezstreamstmt(
+        PostgreSqlParser.CreatezstreamstmtContext ctx)
     {
         if (ctx.stream_columns() != null)
         {

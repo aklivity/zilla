@@ -1524,7 +1524,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Table table = parser.parseCreateTable(statement);
+            final Table table = parser.parseCreateZTable(statement);
 
             String newStatement = "";
             int progress = 0;
@@ -1581,7 +1581,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Stream stream = parser.parseCreateStream(statement);
+            final Stream stream = parser.parseCreateZStream(statement);
 
             String newStatement = "";
             int progress = 0;
@@ -1623,7 +1623,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final View view = parser.parseCreateMaterializedView(statement);
+            final View view = parser.parseCreateZView(statement);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
             PgsqlDataCommand dataCommand = proxyDataCommand;
 
@@ -1708,7 +1708,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String statement)
     {
         final RisingwaveBindingConfig binding = server.binding;
-        final Alter alter = parser.parseAlterTable(statement);
+        final Alter alter = parser.parseAlterZTable(statement);
 
         boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);
@@ -1757,7 +1757,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String statement)
     {
         final RisingwaveBindingConfig binding = server.binding;
-        final Alter alter = parser.parseAlterStream(statement);
+        final Alter alter = parser.parseAlterZStream(statement);
 
         boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);

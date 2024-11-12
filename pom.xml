@@ -304,7 +304,8 @@
             </includes>
             <excludes>
               <exclude>src/conf/**</exclude>
-              <exclude>src/**/*.btm</exclude>
+              <exclude>src/**/*.tokens</exclude>
+              <exclude>src/**/*.interp</exclude>
             </excludes>
             <mapping>
               <g4>SLASHSTAR_STYLE</g4>

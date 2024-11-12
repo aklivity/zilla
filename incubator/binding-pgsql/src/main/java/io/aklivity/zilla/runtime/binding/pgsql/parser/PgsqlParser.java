@@ -22,13 +22,13 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTopicListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZStreamTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZStreamListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZViewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
@@ -44,12 +44,12 @@ public final class PgsqlParser
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
-    private final SqlCreateStreamListener createStreamListener;
-    private final SqlCreateTableTopicListener createTableListener;
-    private final SqlAlterTableTopicListener alterTableListener;
-    private final SqlAlterStreamTopicListener alterStreamListener;
+    private final SqlCreateZStreamListener createStreamListener;
+    private final SqlCreateZTableTopicListener createTableListener;
+    private final SqlAlterZTableTopicListener alterTableListener;
+    private final SqlAlterZStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
-    private final SqlCreateMaterializedViewListener createMaterializedViewListener;
+    private final SqlCreateZViewListener createMaterializedViewListener;
     private final SqlDropListener dropListener;
 
     public PgsqlParser()
@@ -60,12 +60,12 @@ public final class PgsqlParser
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener(tokens);
-        this.createTableListener = new SqlCreateTableTopicListener(tokens);
-        this.alterTableListener = new SqlAlterTableTopicListener(tokens);
-        this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
-        this.createStreamListener = new SqlCreateStreamListener(tokens);
+        this.createTableListener = new SqlCreateZTableTopicListener(tokens);
+        this.alterTableListener = new SqlAlterZTableTopicListener(tokens);
+        this.alterStreamListener = new SqlAlterZStreamTopicListener(tokens);
+        this.createStreamListener = new SqlCreateZStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
-        this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
+        this.createMaterializedViewListener = new SqlCreateZViewListener(tokens);
         this.dropListener = new SqlDropListener();
         parser.setErrorHandler(errorStrategy);
     }
@@ -77,28 +77,28 @@ public final class PgsqlParser
         return commandListener.command();
     }
 
-    public Table parseCreateTable(
+    public Table parseCreateZTable(
         String sql)
     {
         parser(sql, createTableListener);
         return createTableListener.table();
     }
 
-    public Alter parseAlterTable(
+    public Alter parseAlterZTable(
         String sql)
     {
         parser(sql, alterTableListener);
         return alterTableListener.alter();
     }
 
-    public Alter parseAlterStream(
+    public Alter parseAlterZStream(
         String sql)
     {
         parser(sql, alterStreamListener);
         return alterStreamListener.alter();
     }
 
-    public Stream parseCreateStream(
+    public Stream parseCreateZStream(
         String sql)
     {
         parser(sql, createStreamListener);
@@ -112,7 +112,7 @@ public final class PgsqlParser
         return createFunctionListener.function();
     }
 
-    public View parseCreateMaterializedView(
+    public View parseCreateZView(
         String sql)
     {
         parser(sql, createMaterializedViewListener);

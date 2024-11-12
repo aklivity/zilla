@@ -20,14 +20,14 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
-public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListener
+public class SqlCreateZViewListener extends PostgreSqlParserBaseListener
 {
     private final TokenStream tokens;
 
     private String name;
     private String select;
 
-    public SqlCreateMaterializedViewListener(
+    public SqlCreateZViewListener(
         TokenStream tokens)
     {
         this.tokens = tokens;
@@ -47,8 +47,8 @@ public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListe
     }
 
     @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
+    public void enterCreatezviewstmt(
+        PostgreSqlParser.CreatezviewstmtContext ctx)
     {
         name = ctx.create_mv_target().qualified_name().getText();
     }
