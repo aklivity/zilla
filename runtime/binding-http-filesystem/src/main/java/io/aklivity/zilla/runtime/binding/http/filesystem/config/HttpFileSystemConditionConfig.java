@@ -19,10 +19,13 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 public final class HttpFileSystemConditionConfig extends ConditionConfig
 {
     public final String path;
+    public final String method;
 
     public HttpFileSystemConditionConfig(
-        String path)
+        String path,
+        String method)
     {
         this.path = path;
+        this.method = method;
     }
 }

@@ -32,7 +32,7 @@ write close
 read zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
-                           .header("content-length", "37")
+                           .header("content-length", "-1")
                            .build()}
 read '[{"path":"index.html","type":"file"}]'
 

@@ -36,14 +36,14 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.H
 
 public final class HttpFileSystemWithResolver
 {
-    public static final int HEADER_METHOD_MASK_HEAD = 1 << READ_METADATA.ordinal();
+    private static final int HEADER_METHOD_MASK_HEAD = 1 << READ_METADATA.ordinal();
     private static final int HEADER_METHOD_MASK_GET = 1 << READ_FILE.ordinal() | 1 << READ_METADATA.ordinal();
-    public static final int HEADER_METHOD_MASK_POST = 1 << CREATE_FILE.ordinal();
-    public static final int HEADER_METHOD_MASK_PUT = 1 << WRITE_FILE.ordinal();
-    public static final int HEADER_METHOD_MASK_DELETE = 1 << DELETE_FILE.ordinal();
-    public static final int HEADER_METHOD_MASK_POST_DIRECTORY = 1 << CREATE_DIRECTORY.ordinal();
-    public static final int HEADER_METHOD_MASK_DELETE_DIRECTORY = 1 << DELETE_DIRECTORY.ordinal();
-    public static final int HEADER_METHOD_MASK_GET_DIRECTORY = 1 << READ_DIRECTORY.ordinal();
+    private static final int HEADER_METHOD_MASK_POST = 1 << CREATE_FILE.ordinal();
+    private static final int HEADER_METHOD_MASK_PUT = 1 << WRITE_FILE.ordinal();
+    private static final int HEADER_METHOD_MASK_DELETE = 1 << DELETE_FILE.ordinal();
+    private static final int HEADER_METHOD_MASK_POST_DIRECTORY = 1 << CREATE_DIRECTORY.ordinal();
+    private static final int HEADER_METHOD_MASK_DELETE_DIRECTORY = 1 << DELETE_DIRECTORY.ordinal();
+    private static final int HEADER_METHOD_MASK_GET_DIRECTORY = 1 << READ_DIRECTORY.ordinal();
 
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern PREFER_WAIT_PATTERN = Pattern.compile("wait=(\\d+)");
@@ -75,13 +75,17 @@ public final class HttpFileSystemWithResolver
     public void onConditionMatched(
         HttpFileSystemConditionMatcher condition)
     {
-        this.replacer = r -> condition.parameter(r.group(1));
+        this.replacer = r ->
+        {
+            String replacement = condition.parameter(r.group(1));
+            return replacement != null ? replacement : "";
+        };
     }
 
     public HttpFileSystemWithResult resolve(
         HttpBeginExFW httpBeginEx)
     {
-        // TODO: hoist to constructor if constant
+        boolean isDir = true;
         String path0 = with.path;
         if (path0 != null)
         {
@@ -91,6 +95,7 @@ public final class HttpFileSystemWithResolver
                 path0 = pathMatcher.replaceAll(replacer);
             }
         }
+        isDir = path0 == null || path0.isEmpty() || path0.endsWith("/");
         String16FW path = new String16FW(path0);
 
         String directory0 = with.directory;
@@ -103,8 +108,6 @@ public final class HttpFileSystemWithResolver
             }
         }
         String16FW directory = new String16FW(directory0);
-
-        boolean isDir = with.path != null ? with.path.endsWith("/") : with.directory != null;
 
         String16FW etag = new String16FW("");
 

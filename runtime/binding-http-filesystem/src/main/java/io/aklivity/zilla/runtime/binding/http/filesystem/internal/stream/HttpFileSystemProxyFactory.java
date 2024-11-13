@@ -72,6 +72,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
     private static final int CREATE_FILE_MASK = 1 << FileSystemCapabilities.CREATE_FILE.ordinal();
     private static final int DELETE_FILE_MASK = 1 << FileSystemCapabilities.DELETE_FILE.ordinal();
+    private static final int CREATE_DIRECTORY_MASK = 1 << FileSystemCapabilities.CREATE_DIRECTORY.ordinal();
+    private static final int DELETE_DIRECTORY_MASK = 1 << FileSystemCapabilities.DELETE_DIRECTORY.ordinal();
 
     private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
@@ -749,7 +751,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
                 }
-                else if ((capabilities & DELETE_FILE_MASK) != 0)
+                else if ((capabilities & DELETE_FILE_MASK) != 0 ||
+                    (capabilities & CREATE_DIRECTORY_MASK) != 0 || (capabilities & DELETE_DIRECTORY_MASK) != 0)
                 {
                     httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));

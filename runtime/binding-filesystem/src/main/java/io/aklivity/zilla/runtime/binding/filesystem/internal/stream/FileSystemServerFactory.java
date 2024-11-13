@@ -62,7 +62,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
-import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemObject;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemBindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
@@ -79,6 +78,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSy
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -134,6 +134,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer errorBuffer;
     private final MutableDirectBuffer readBuffer;
+    private final MutableDirectBuffer directoryBuffer;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
@@ -157,6 +158,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.readBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.errorBuffer = new UnsafeBuffer(new byte[1]);
+        this.directoryBuffer = new UnsafeBuffer();
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
@@ -609,22 +611,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             attributes = getAttributes();
             if (canReadDirectory(capabilities) && attributes.isDirectory())
             {
-                try (Jsonb jsonb = JsonbBuilder.create();
-                     Stream<Path> list = Files.list(resolvedPath))
-                {
-                    String response = jsonb.toJson(
-                        list.map(path -> new FileSystemObject(
-                                path.getFileName().toString(),
-                                Files.isDirectory(path) ? "directory" : "file"))
-                            .toList());
-                    readBuffer.wrap(response.getBytes(StandardCharsets.UTF_8));
-                    size = readBuffer.capacity();
-                }
-                catch (Exception ex)
-                {
-                    doAppAbort(traceId);
-                    doAppReset(traceId);
-                }
+                size = -1;
             }
             else
             {
@@ -717,67 +704,108 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             if (replyWin > 0)
             {
-                InputStream input = getInputStream();
-
                 try
                 {
-                    if (input != null)
+                    if (canReadDirectory(capabilities))
                     {
-                        input.skip(replyBytes);
-                    }
-
-                    int available = canReadDirectory(capabilities)
-                        ? readBuffer.capacity()
-                        : input != null ? input.available() : 0;
-
-                    if (available > 0)
-                    {
-                        int reserved = Math.min(replyWin, available + replyPad);
-                        int length = Math.max(reserved - replyPad, 0);
-
-                        if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                        try (Jsonb jsonb = JsonbBuilder.create();
+                             Stream<Path> list = Files.list(resolvedPath))
                         {
-                            final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
-                            reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
-                            length = Math.max(reserved - replyPad, 0);
-                        }
+                            String response = jsonb.toJson(
+                                list.map(path -> new FileSystemObject(
+                                        path.getFileName().toString(),
+                                        Files.isDirectory(path) ? "directory" : "file"))
+                                    .toList());
+                            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+                            int size = responseBytes.length;
 
-                        if (length > 0)
-                        {
-                            int bytesRead;
-                            if (canReadDirectory(capabilities))
+                            if (size > 0)
                             {
-                                bytesRead = readBuffer.capacity();
+                                directoryBuffer.wrap(responseBytes);
+
+                                int reserved = Math.min(replyWin, size + replyPad);
+                                int length = Math.max(reserved - replyPad, 0);
+
+                                if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                                {
+                                    final int minimum = Math.min(bufferPool.slotCapacity(), reserved);
+                                    reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                    length = Math.max(reserved - replyPad, 0);
+                                }
+
+                                if (length > 0)
+                                {
+                                    OctetsFW payload = payloadRO.wrap(directoryBuffer, 0, size);
+
+                                    doAppData(traceId, reserved, payload);
+
+                                    replyBytes += size;
+
+                                    if (replyBytes == size)
+                                    {
+                                        replyBytes = 0;
+                                        doAppEnd(traceId);
+                                    }
+                                }
                             }
                             else
                             {
-                                final byte[] readArray = readBuffer.byteArray();
-                                bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-                            }
-                            if (bytesRead != -1)
-                            {
-                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
-
-                                doAppData(traceId, reserved, payload);
-
-                                replyBytes += bytesRead;
-
-                                if (replyBytes == attributes.size())
-                                {
-                                    input.close();
-                                    input = null;
-                                    replyBytes = 0;
-                                }
+                                doAppEnd(traceId);
                             }
                         }
                     }
-
-                    if (available <= 0 || input == null)
+                    else
                     {
-                        doAppEnd(traceId);
+                        InputStream input = getInputStream();
+
+                        if (input != null)
+                        {
+                            input.skip(replyBytes);
+                        }
+
+                        int available = input != null ? input.available() : 0;
+
+                        if (available > 0)
+                        {
+                            int reserved = Math.min(replyWin, available + replyPad);
+                            int length = Math.max(reserved - replyPad, 0);
+
+                            if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                            {
+                                final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
+                                reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                length = Math.max(reserved - replyPad, 0);
+                            }
+
+                            if (length > 0)
+                            {
+                                final byte[] readArray = readBuffer.byteArray();
+                                int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
+                                if (bytesRead != -1)
+                                {
+                                    OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+
+                                    doAppData(traceId, reserved, payload);
+
+                                    replyBytes += bytesRead;
+
+                                    if (replyBytes == attributes.size())
+                                    {
+                                        input.close();
+                                        input = null;
+                                        replyBytes = 0;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (available <= 0 || input == null)
+                        {
+                            doAppEnd(traceId);
+                        }
                     }
                 }
-                catch (IOException ex)
+                catch (Exception ex)
                 {
                     doAppAbort(traceId);
                 }
@@ -922,9 +950,16 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             FileSystemError error = null;
 
-            if ((capabilities & CREATE_FILE_MASK) != 0 && Files.exists(resolvedPath))
+            if ((capabilities & CREATE_FILE_MASK) != 0)
             {
-                error = FILE_EXISTS;
+                if (Files.notExists(resolvedPath.getParent()))
+                {
+                    error = DIRECTORY_NOT_FOUND;
+                }
+                else if (Files.exists(resolvedPath))
+                {
+                    error = FILE_EXISTS;
+                }
             }
             else if ((capabilities & WRITE_FILE_MASK) != 0)
             {

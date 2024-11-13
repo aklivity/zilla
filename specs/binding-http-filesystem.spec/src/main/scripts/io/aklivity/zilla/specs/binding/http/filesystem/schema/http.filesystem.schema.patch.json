@@ -52,6 +52,18 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "method":
+                                            {
+                                                "type": "string",
+                                                "enum":
+                                                [
+                                                    "GET",
+                                                    "PUT",
+                                                    "POST",
+                                                    "DELETE",
+                                                    "HEAD"
+                                                ]
+                                            },
                                             "path":
                                             {
                                                 "title": "Path",
@@ -67,12 +79,12 @@
                                     {
                                         "path":
                                         {
-                                            "title": "Topic",
+                                            "title": "Path",
                                             "type": "string"
                                         },
                                         "directory":
                                         {
-                                            "title": "Topic",
+                                            "title": "Directory",
                                             "type": "string"
                                         }
                                     },
