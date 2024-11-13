@@ -139,6 +139,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.retained.multiple.topic/client",
+        "${app}/publish.retained.multiple.topic/server"})
+    public void shouldPublishRetainedMessageMultipleTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
