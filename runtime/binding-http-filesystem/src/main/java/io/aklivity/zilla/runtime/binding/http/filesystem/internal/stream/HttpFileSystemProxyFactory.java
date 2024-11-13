@@ -74,6 +74,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final int DELETE_FILE_MASK = 1 << FileSystemCapabilities.DELETE_FILE.ordinal();
     private static final int CREATE_DIRECTORY_MASK = 1 << FileSystemCapabilities.CREATE_DIRECTORY.ordinal();
     private static final int DELETE_DIRECTORY_MASK = 1 << FileSystemCapabilities.DELETE_DIRECTORY.ordinal();
+    private static final int READ_DIRECTORY_MASK = 1 << FileSystemCapabilities.READ_DIRECTORY.ordinal();
 
     private static final Predicate<HttpHeaderFW> SUPPORTED_HTTP_METHOD;
 
@@ -745,14 +746,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 final boolean validTag = tag != null ? tag.length() != -1 && tag.asString() != null : false;
 
                 int capabilities = fsBeginEx.capabilities();
-                if (createOrWritePayload(capabilities) && validTag)
-                {
-                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
-                        .headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag))
-                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
-                }
-                else if ((capabilities & DELETE_FILE_MASK) != 0 ||
-                    (capabilities & CREATE_DIRECTORY_MASK) != 0 || (capabilities & DELETE_DIRECTORY_MASK) != 0)
+                if (writeOperation(capabilities))
                 {
                     httpBeginExBuilder.headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_204))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"));
@@ -766,13 +760,17 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type));
                     }
 
-                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
-
-                    if (validTag)
+                    if ((capabilities & READ_DIRECTORY_MASK) == 0)
                     {
-                        httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                        httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
                     }
                 }
+
+                if (validTag)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                }
+
                 httpBeginEx = httpBeginExBuilder.build();
             }
 
@@ -799,6 +797,16 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int capabilities)
         {
             return (capabilities & CREATE_FILE_MASK) != 0 || (capabilities & WRITE_FILE_MASK) != 0;
+        }
+
+        private boolean writeOperation(
+            int capabilities)
+        {
+            return (capabilities & CREATE_FILE_MASK) != 0 ||
+                (capabilities & WRITE_FILE_MASK) != 0 ||
+                (capabilities & DELETE_FILE_MASK) != 0 ||
+                (capabilities & CREATE_DIRECTORY_MASK) != 0 ||
+                (capabilities & DELETE_DIRECTORY_MASK) != 0;
         }
 
         private void onFileSystemData(
