@@ -19,10 +19,6 @@ public class RisingwaveDropTableTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         DROP TABLE %s;\u0000""";
 
-    public RisingwaveDropTableTemplate()
-    {
-    }
-
     public String generate(
         String drop)
     {

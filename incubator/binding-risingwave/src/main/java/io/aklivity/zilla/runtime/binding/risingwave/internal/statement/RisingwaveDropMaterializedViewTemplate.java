@@ -19,10 +19,6 @@ public class RisingwaveDropMaterializedViewTemplate extends RisingwaveCommandTem
     private final String sqlFormat = """
         DROP MATERIALIZED VIEW %s;\u0000""";
 
-    public RisingwaveDropMaterializedViewTemplate()
-    {
-    }
-
     public String generate(
         String drop)
     {

@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.100...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.101...HEAD)
+
+**Implemented enhancements:**
+
+- Support `risingwave` `pgsql` message transformations [\#1208](https://github.com/aklivity/zilla/issues/1208)
+
+**Merged pull requests:**
+
+- Fix MQTT binding selecting incorrect publish stream [\#1328](https://github.com/aklivity/zilla/pull/1328) ([bmaidics](https://github.com/bmaidics))
+- Support ALTER STREAM and ALTER TABLE transformation [\#1320](https://github.com/aklivity/zilla/pull/1320) ([akrambek](https://github.com/akrambek))
+
+## [0.9.101](https://github.com/aklivity/zilla/tree/0.9.101) (2024-11-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.100...0.9.101)
 
 **Fixed bugs:**
 

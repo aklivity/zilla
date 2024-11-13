@@ -19,10 +19,6 @@ public class RisingwaveDropSinkTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         DROP SINK %s;\u0000""";
 
-    public RisingwaveDropSinkTemplate()
-    {
-    }
-
     public String generate(
         String drop)
     {

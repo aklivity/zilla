@@ -21,10 +21,6 @@ public class RisingwaveDescribeTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         DESCRIBE %s;\u0000""";
 
-    public RisingwaveDescribeTemplate()
-    {
-    }
-
     public String generate(
         View view)
     {

@@ -14,11 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -36,36 +35,13 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
     {
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
 
-        ObjectNode schemaNode = mapper.createObjectNode();
-        schemaNode.put("type", "record");
-        schemaNode.put("name", table.name());
-        schemaNode.put("namespace", newNamespace);
+        List<AvroField> fields = table.columns().stream()
+            .map(column -> new AvroField(column.name(), mapSqlTypeToAvroType(column.type())))
+            .collect(Collectors.toList());
 
-        ArrayNode fieldsArray = mapper.createArrayNode();
+        AvroSchema schema = new AvroSchema("record", table.name(), newNamespace, fields);
+        AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
-        for (TableColumn column : table.columns())
-        {
-            String columnName = column.name();
-            String sqlType = column.type();
-            Object avroType = mapSqlTypeToAvroType(sqlType);
-
-            ObjectNode fieldNode = mapper.createObjectNode();
-            fieldNode.put("name", columnName);
-
-            ArrayNode unionType = mapper.createArrayNode();
-            unionType.add("null");
-            unionType.addPOJO(avroType);
-            fieldNode.set("type", unionType);
-
-            fieldsArray.add(fieldNode);
-        }
-
-        schemaNode.set("fields", fieldsArray);
-
-        ObjectNode parentNode = mapper.createObjectNode();
-        parentNode.put("schemaType", "AVRO");
-        parentNode.put("schema", schemaNode.toString());
-
-        return parentNode.toPrettyString();
+        return jsonbFormatted.toJson(payload);
     }
 }

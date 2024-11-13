@@ -22,10 +22,6 @@ public class RisingwaveCreateTableTemplate extends RisingwaveCommandTemplate
         CREATE TABLE IF NOT EXISTS %s (%s%s);\u0000""";
     private final String fieldFormat = "%s %s, ";
 
-    public RisingwaveCreateTableTemplate()
-    {
-    }
-
     public String generate(
         Table table)
     {

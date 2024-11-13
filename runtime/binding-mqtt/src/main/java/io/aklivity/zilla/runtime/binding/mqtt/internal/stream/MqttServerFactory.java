@@ -1311,8 +1311,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         break decode;
                     }
-                    server.decodePublisherKey = topicKey;
                 }
+                server.decodePublisherKey = topicKey;
 
                 server.decodedQos = mqttPublishHelper.qos;
                 server.decodedRetained = mqttPublishHelper.retained;

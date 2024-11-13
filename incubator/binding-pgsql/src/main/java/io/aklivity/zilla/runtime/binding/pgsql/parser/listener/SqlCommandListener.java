@@ -62,6 +62,10 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         {
             command = "ALTER TOPIC";
         }
+        else if (ctx.ALTER() != null && ctx.STREAM() != null)
+        {
+            command = "ALTER STREAM";
+        }
     }
 
     @Override
@@ -94,6 +98,6 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterDropstmt(
         PostgreSqlParser.DropstmtContext ctx)
     {
-        command = "DROP %s".formatted(tokens.getText(ctx.object_type_any_name()));
+        command = "DROP %s".formatted(tokens.getText(ctx.object_type_any_name()).toUpperCase());
     }
 }

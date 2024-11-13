@@ -14,18 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
-    private final ObjectMapper mapper = new ObjectMapper();
     private final String namespace;
 
     public PgsqlKafkaValueAvroSchemaTemplate(
@@ -40,68 +44,64 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     {
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
 
-        ObjectNode schemaNode = mapper.createObjectNode();
-        schemaNode.put("type", "record");
-        schemaNode.put("name", table.name());
-        schemaNode.put("namespace", newNamespace);
-
-        ArrayNode fieldsArray = mapper.createArrayNode();
-
-        for (TableColumn column : table.columns())
-        {
-            String columnName = column.name();
-            String sqlType = column.type();
-            Object avroType = mapSqlTypeToAvroType(sqlType);
-
-            boolean isNullable = !column.constraints().contains("NOT NULL");
-
-            ObjectNode fieldNode = mapper.createObjectNode();
-            fieldNode.put("name", columnName);
-
-            if (isNullable)
+        List<AvroField> fields = table.columns().stream()
+            .map(column ->
             {
-                ArrayNode unionType = mapper.createArrayNode();
-                unionType.add("null");
-                unionType.addPOJO(avroType);
-                fieldNode.set("type", unionType);
-            }
-            else
-            {
-                fieldNode.set("type", mapper.valueToTree(avroType));
-            }
+                String columnName = column.name();
+                String sqlType = column.type();
+                Object avroType = mapSqlTypeToAvroType(sqlType);
 
-            fieldsArray.add(fieldNode);
-        }
+                boolean isNullable = !column.constraints().contains("NOT NULL");
 
-        schemaNode.set("fields", fieldsArray);
+                return isNullable
+                    ? new AvroField(columnName, new Object[]{"null", avroType})
+                    : new AvroField(columnName, avroType);
+            })
+            .collect(Collectors.toList());
 
-        ObjectNode parentNode = mapper.createObjectNode();
-        parentNode.put("schemaType", "AVRO");
-        parentNode.put("schema", schemaNode.toString());
+        AvroSchema schema = new AvroSchema("record", table.name(), newNamespace, fields);
+        AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
-        return parentNode.toPrettyString();
+        return jsonbFormatted.toJson(payload);
     }
 
     public String generate(
         String existingSchemaJson,
         Alter alter)
     {
-        String newSchemaJson = null;
-        try
-        {
-            ObjectNode schemaNode = (ObjectNode) mapper.readTree(existingSchemaJson);
-            ObjectNode schema = (ObjectNode) mapper.readTree(schemaNode.get("schema").asText());
-            ArrayNode fields = (ArrayNode) schema.get("fields");
+        JsonObject schema = jsonb.fromJson(existingSchemaJson, JsonObject.class);
+        JsonArray fields = schema.getJsonArray("fields");
 
-            final boolean applied = applyAlterations(fields, alter.alterExpressions());
-            if (applied)
+        JsonArrayBuilder fieldsBuilder = Json.createArrayBuilder();
+        if (fields != null)
+        {
+            for (JsonValue field : fields)
             {
-                schemaNode.put("schema", schema.toString());
-                newSchemaJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemaNode);
+                fieldsBuilder.add(field);
             }
         }
-        catch (JsonProcessingException ignored)
+
+        boolean applied = applyAlterations(fieldsBuilder, alter.expressions());
+        String newSchemaJson = null;
+
+        if (applied)
         {
+            JsonObjectBuilder schemaBuilder = Json.createObjectBuilder();
+            for (Map.Entry<String, JsonValue> entry : schema.entrySet())
+            {
+                if (entry.getKey().equals("fields"))
+                {
+                    schemaBuilder.add("fields", fieldsBuilder.build());
+                }
+                else
+                {
+                    schemaBuilder.add(entry.getKey(), entry.getValue());
+                }
+            }
+
+            AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schemaBuilder.build()));
+
+            newSchemaJson = jsonbFormatted.toJson(payload);
         }
 
         return newSchemaJson;

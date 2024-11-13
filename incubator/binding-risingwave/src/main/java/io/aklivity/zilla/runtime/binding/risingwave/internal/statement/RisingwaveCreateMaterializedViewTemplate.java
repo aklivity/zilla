@@ -30,10 +30,6 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
     private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
 
-    public RisingwaveCreateMaterializedViewTemplate()
-    {
-    }
-
     public String generate(
         View view)
     {
