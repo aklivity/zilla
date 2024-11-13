@@ -105,6 +105,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
+    private static final String DIRECTORY = "directory";
+    private static final String FILE = "file";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -714,7 +716,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                             String response = jsonb.toJson(
                                 list.map(path -> new FileSystemObject(
                                         path.getFileName().toString(),
-                                        Files.isDirectory(path) ? "directory" : "file"))
+                                        Files.isDirectory(path) ? DIRECTORY : FILE))
                                     .toList());
                             byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
                             int size = responseBytes.length;

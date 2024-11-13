@@ -85,7 +85,6 @@ public final class HttpFileSystemWithResolver
     public HttpFileSystemWithResult resolve(
         HttpBeginExFW httpBeginEx)
     {
-        boolean isDir = true;
         String path0 = with.path;
         if (path0 != null)
         {
@@ -95,7 +94,7 @@ public final class HttpFileSystemWithResolver
                 path0 = pathMatcher.replaceAll(replacer);
             }
         }
-        isDir = path0 == null || path0.isEmpty() || path0.endsWith("/");
+        boolean isDir = path0 == null || path0.isEmpty() || path0.endsWith("/");
         String16FW path = new String16FW(path0);
 
         String directory0 = with.directory;
