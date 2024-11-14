@@ -699,7 +699,7 @@
                       <message>No Snapshots Allowed!</message>
                     </requireReleaseDeps>
                     <requireJavaVersion>
-                      <version>[20,21)</version>
+                      <version>[21,22)</version>
                     </requireJavaVersion>
                     <requireProperty>
                       <property>release</property>
