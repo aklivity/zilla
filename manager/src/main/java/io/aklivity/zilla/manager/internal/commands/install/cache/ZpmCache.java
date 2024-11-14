@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
-import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
@@ -37,23 +34,21 @@ import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.graph.DependencyVisitor;
-import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
-import org.eclipse.aether.util.repository.SimpleArtifactDescriptorPolicy;
+import org.eclipse.aether.supplier.SessionBuilderSupplier;
 
 import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
 
 public final class ZpmCache
 {
-    @Component
-    private RepositorySystem repoSystem;
+    private final RepositorySystem repositorySystem;
 
-    private RepositorySystemSession session;
+    private final RepositorySystemSession session;
 
     private final List<RemoteRepository> repositories;
 
@@ -61,7 +56,8 @@ public final class ZpmCache
         List<ZpmRepository> repositoriesConfig,
         Path directory)
     {
-        this.session = newSession(repoSystem, directory);
+        this.repositorySystem = SupplierRepositorySystemFactory.newRepositorySystem();
+        this.session = newRepositorySystemSession(repositorySystem, directory);
 
         // Map ZpmRepository to RemoteRepository for Maven Resolver
         this.repositories = repositoriesConfig.stream()
@@ -200,14 +196,17 @@ public final class ZpmCache
             .build();
     }
 
-    private static DefaultRepositorySystemSession newSession(
-        RepositorySystem system, Path directory)
+    public static RepositorySystemSession newRepositorySystemSession(
+        RepositorySystem system,
+        Path dir)
     {
-
-        DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
-        session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, new LocalRepository(directory.toFile())));
-        session.setArtifactDescriptorPolicy(new SimpleArtifactDescriptorPolicy(true, true));
-
-        return session;
+        return new SessionBuilderSupplier(system)
+            .get()
+                .withLocalRepositoryBaseDirectories(dir)
+                .setRepositoryListener(new ConsoleRepositoryListener())
+                .setTransferListener(new ConsoleTransferListener())
+                .setConfigProperty("aether.generator.gpg.enabled", Boolean.TRUE.toString())
+                .setConfigProperty("aether.syncContext.named.factory", "noop")
+                .build();
     }
 }

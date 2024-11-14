@@ -26,7 +26,6 @@ This project includes:
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   javax.annotation API under CDDL + GPLv2 with classpath exception
-  javax.inject under The Apache Software License, Version 2.0
   Jetty :: ALPN :: Client under Eclipse Public License - Version 2.0 or Apache Software License - Version 2.0
   Jetty :: ALPN :: JDK9 Client Implementation under Eclipse Public License - Version 2.0 or Apache Software License - Version 2.0
   Jetty :: Asynchronous HTTP Client under Eclipse Public License - Version 2.0 or Apache Software License - Version 2.0
@@ -44,9 +43,9 @@ This project includes:
   Maven Artifact Resolver Connector Basic under Apache-2.0
   Maven Artifact Resolver GnuPG Signer Generator under Apache-2.0
   Maven Artifact Resolver Implementation under Apache-2.0
-  Maven Artifact Resolver Instance Supplier Maven4 under Apache-2.0
+  Maven Artifact Resolver Instance Supplier Maven3 under Apache-2.0
   Maven Artifact Resolver Named Locks under Apache-2.0
-  Maven Artifact Resolver Provider under Apache License, Version 2.0
+  Maven Artifact Resolver Provider under Apache-2.0
   Maven Artifact Resolver SPI under Apache-2.0
   Maven Artifact Resolver Transport Apache under Apache-2.0
   Maven Artifact Resolver Transport File under Apache-2.0
@@ -66,6 +65,7 @@ This project includes:
   Plexus Common Utilities under Apache License, Version 2.0
   Plexus Interpolation API under Apache License, Version 2.0
   Plexus Security Dispatcher Component under Apache Public License 2.0
+  Plexus XML Utilities under Apache License, Version 2.0
   Sisu-Inject-Plexus : legacy wrapper under Eclipse Public License, Version 1.0
   SLF4J API Module under MIT License
 
