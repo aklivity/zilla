@@ -23,7 +23,7 @@ public final class HttpFileSystemWithConfig extends WithConfig
     public final String directory;
     public final String path;
 
-    public HttpFileSystemWithConfig(
+    HttpFileSystemWithConfig(
         String directory,
         String path)
     {

@@ -30,7 +30,6 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("READ_DIRECTORY")
                                  .directory("var")
-                                 .payloadSize(-1)
                                  .build()}
 read '[{"path":"index.html","type":"file"}]'
 

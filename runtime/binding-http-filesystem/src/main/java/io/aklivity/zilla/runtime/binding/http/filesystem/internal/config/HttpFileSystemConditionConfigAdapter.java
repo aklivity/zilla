@@ -44,6 +44,11 @@ public final class HttpFileSystemConditionConfigAdapter
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (httpCondition.method != null)
+        {
+            object.add(METHOD_NAME, httpCondition.method);
+        }
+
         if (httpCondition.path != null)
         {
             object.add(PATH_NAME, httpCondition.path);
@@ -64,6 +69,9 @@ public final class HttpFileSystemConditionConfigAdapter
             ? object.getString(METHOD_NAME)
             : null;
 
-        return new HttpFileSystemConditionConfig(path, method);
+        return HttpFileSystemConditionConfig.builder()
+            .path(path)
+            .method(method)
+            .build();
     }
 }

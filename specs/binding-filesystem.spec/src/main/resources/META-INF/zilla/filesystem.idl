@@ -46,7 +46,7 @@ scope filesystem
             string16 directory = null;
             string16 path = null;
             string16 type = null;
-            int64 payloadSize = 0;
+            int64 payloadSize = -1;
             string16 tag = null;
             int64 timeout = 0;
         }

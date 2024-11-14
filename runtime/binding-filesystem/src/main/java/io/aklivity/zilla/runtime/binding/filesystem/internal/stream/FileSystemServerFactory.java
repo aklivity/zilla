@@ -105,8 +105,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
-    private static final String DIRECTORY = "directory";
-    private static final String FILE = "file";
+    private static final String DIRECTORY_NAME = "directory";
+    private static final String FILE_NAME = "file";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -609,27 +609,22 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             int capabilities)
         {
             state = FileSystemState.openingReply(state);
-            long size = 0L;
             attributes = getAttributes();
-            if (canReadDirectory(capabilities) && attributes.isDirectory())
-            {
-                size = -1;
-            }
-            else
-            {
-                if (attributes != null)
-                {
-                    size = attributes.size();
-                }
-            }
-            Flyweight extension = beginExRW
+
+            FileSystemBeginExFW.Builder builder = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
                 .directory(relativeDir)
                 .path(relativePath)
-                .type(type)
-                .payloadSize(size)
+                .type(type);
+
+            if ((capabilities & READ_DIRECTORY_MASK) == 0 && attributes != null)
+            {
+                builder.payloadSize(attributes.size());
+            }
+
+            Flyweight extension = builder
                 .tag(tag)
                 .build();
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
@@ -716,7 +711,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                             String response = jsonb.toJson(
                                 list.map(path -> new FileSystemObject(
                                         path.getFileName().toString(),
-                                        Files.isDirectory(path) ? DIRECTORY : FILE))
+                                        Files.isDirectory(path) ? DIRECTORY_NAME : FILE_NAME))
                                     .toList());
                             byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
                             int size = responseBytes.length;

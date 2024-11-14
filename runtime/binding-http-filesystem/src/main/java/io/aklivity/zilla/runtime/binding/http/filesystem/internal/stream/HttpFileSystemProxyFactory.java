@@ -760,7 +760,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type));
                     }
 
-                    if ((capabilities & READ_DIRECTORY_MASK) == 0)
+                    if (Integer.parseInt(length) != -1)
                     {
                         httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
                     }
