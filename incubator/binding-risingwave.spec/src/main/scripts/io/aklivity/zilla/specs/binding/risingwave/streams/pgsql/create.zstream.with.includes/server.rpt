@@ -36,7 +36,8 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE ZSTREAM weather (\n"
+read  "CREATE ZSTREAM commands (\n"
+      "    type VARCHAR,\n"
       "    city VARCHAR,\n"
       "    temperature DOUBLE,\n"
       "    date DATE,\n"

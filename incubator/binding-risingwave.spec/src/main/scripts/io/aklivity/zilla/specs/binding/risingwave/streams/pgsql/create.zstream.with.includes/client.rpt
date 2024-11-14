@@ -33,7 +33,8 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 
-write "CREATE ZSTREAM weather (\n"
+write "CREATE ZSTREAM commands (\n"
+      "    type VARCHAR,\n"
       "    city VARCHAR,\n"
       "    temperature DOUBLE,\n"
       "    date DATE,\n"
