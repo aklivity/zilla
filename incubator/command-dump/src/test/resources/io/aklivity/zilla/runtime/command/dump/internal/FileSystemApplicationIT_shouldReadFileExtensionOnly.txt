@@ -48,7 +48,7 @@ Zilla Frame
         Type: 
             Length: -1
             Type: 
-        Payload Size: -1
+        Payload Size: 0
         Tag: 
             Length: -1
             Tag: 

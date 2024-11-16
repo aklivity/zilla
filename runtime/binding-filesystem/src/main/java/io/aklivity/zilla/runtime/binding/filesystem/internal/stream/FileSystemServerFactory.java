@@ -429,7 +429,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             }
         }
 
-        private BasicFileAttributes getAttributes()
+        private BasicFileAttributes readAttributes()
         {
             BasicFileAttributes attributes = null;
             try
@@ -609,24 +609,23 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             int capabilities)
         {
             state = FileSystemState.openingReply(state);
-            attributes = getAttributes();
+            attributes = readAttributes();
 
-            FileSystemBeginExFW.Builder builder = beginExRW
+            long size = (capabilities & READ_DIRECTORY_MASK) == 0 && attributes != null
+                ? attributes.size()
+                : FileSystemBeginExFW.Builder.DEFAULT_PAYLOAD_SIZE;
+
+            FileSystemBeginExFW extension = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
                 .directory(relativeDir)
                 .path(relativePath)
-                .type(type);
-
-            if ((capabilities & READ_DIRECTORY_MASK) == 0 && attributes != null)
-            {
-                builder.payloadSize(attributes.size());
-            }
-
-            Flyweight extension = builder
+                .type(type)
+                .payloadSize(size)
                 .tag(tag)
                 .build();
+
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
