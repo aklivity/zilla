@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("WRITE_PAYLOAD")
+                                  .capabilities("WRITE_FILE")
                                   .path("index_write.html")
                                   .type("text/html")
                                   .payloadSize(77)
@@ -37,7 +37,7 @@ write close
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("WRITE_PAYLOAD")
+                                 .capabilities("WRITE_FILE")
                                  .path("index_write.html")
                                  .tag("c3ce2fda552e43985939a773852f45d1")
                                  .build()}

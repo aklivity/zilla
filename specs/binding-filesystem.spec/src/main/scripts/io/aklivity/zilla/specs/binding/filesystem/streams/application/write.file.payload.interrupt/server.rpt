@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("WRITE_PAYLOAD")
+                                 .capabilities("WRITE_FILE")
                                  .path("index_write.html")
                                  .type("text/html")
                                  .payloadSize(77)

@@ -170,4 +170,13 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.read.directory/client",
+        "${filesystem}/client.read.directory/server"})
+    public void shouldReceiveClientReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
 }

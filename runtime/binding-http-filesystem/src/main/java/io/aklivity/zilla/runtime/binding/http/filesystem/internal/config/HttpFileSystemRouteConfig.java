@@ -55,8 +55,9 @@ public final class HttpFileSystemRouteConfig
     }
 
     boolean matches(
-        String path)
+        String path,
+        String method)
     {
-        return when.isEmpty() || path != null && when.stream().anyMatch(m -> m.matches(path));
+        return when.isEmpty() || path != null && when.stream().anyMatch(m -> m.matches(path, method));
     }
 }

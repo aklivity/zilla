@@ -225,4 +225,54 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/read.directory/client",
+        "${app}/read.directory/server",
+    })
+    public void shouldReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.directory.empty/client",
+        "${app}/read.directory.empty/server",
+    })
+    public void shouldReadDirectoryEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.directory.failed/client",
+        "${app}/read.directory.failed/server",
+    })
+    public void shouldRejectReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.directory/client",
+        "${app}/create.directory/server",
+    })
+    public void shouldCreateDirectory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/delete.directory/client",
+        "${app}/delete.directory/server",
+    })
+    public void shouldDeleteDirectory() throws Exception
+    {
+        k3po.finish();
+    }
 }

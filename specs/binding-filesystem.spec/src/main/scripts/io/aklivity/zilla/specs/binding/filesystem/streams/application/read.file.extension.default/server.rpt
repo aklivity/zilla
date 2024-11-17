@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_EXTENSION")
+                                 .capabilities("READ_METADATA")
                                  .path("script.js.map")
                                  .build()}
 connected
@@ -29,7 +29,7 @@ read closed
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_EXTENSION")
+                                  .capabilities("READ_METADATA")
                                   .path("script.js.map")
                                   .type("application/octet-stream")
                                   .payloadSize(3)

@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemCo
 
 public final class HttpFileSystemConditionMatcher
 {
+    private final String method;
     private final Matcher path;
     private Consumer<HttpFileSystemConditionMatcher> observer;
 
@@ -29,19 +30,22 @@ public final class HttpFileSystemConditionMatcher
         HttpFileSystemConditionConfig condition)
     {
         this.path = condition.path != null ? asMatcher(condition.path) : null;
+        this.method = condition.method;
     }
 
     public boolean matches(
-        String path)
+        String path,
+        String method)
     {
         return matchPath(path) &&
+               matchMethod(method) &&
                observeMatched();
     }
 
     public String parameter(
         String name)
     {
-        return path.group(name);
+        return path.namedGroups().containsKey(name) ? path.group(name) : null;
     }
 
     public void observe(
@@ -64,6 +68,12 @@ public final class HttpFileSystemConditionMatcher
         String path)
     {
         return this.path == null || this.path.reset(path).matches();
+    }
+
+    private boolean matchMethod(
+        String method)
+    {
+        return this.method == null || this.method.equals(method);
     }
 
     private static Matcher asMatcher(
