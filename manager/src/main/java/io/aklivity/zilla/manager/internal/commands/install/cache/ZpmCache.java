@@ -19,11 +19,12 @@ import static java.util.Collections.emptyMap;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.aether.RepositorySystem;
@@ -33,13 +34,17 @@ import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
-import org.eclipse.aether.graph.DependencyVisitor;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactDescriptorException;
+import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
+import org.eclipse.aether.resolution.ArtifactDescriptorResult;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.supplier.SessionBuilderSupplier;
+import org.eclipse.aether.util.graph.visitor.NodeListGenerator;
+import org.eclipse.aether.util.graph.visitor.PreorderDependencyNodeConsumerVisitor;
 
 import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
@@ -70,64 +75,72 @@ public final class ZpmCache
         List<ZpmDependency> dependencies)
     {
         final List<ZpmArtifact> artifacts = new ArrayList<>();
-        // Resolve imported dependencies and collect versions
-        Map<ZpmDependency, String> imported = resolveImports(imports);
+        Map<ZpmDependency, String> imported = new HashMap<>();
+        imports.forEach(imp ->
+        {
+            Artifact artifact = new DefaultArtifact(imp.groupId, imp.artifactId, "pom", imp.version);
+            ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
+            repositories.forEach(descriptorRequest::addRepository);
+            descriptorRequest.setArtifact(artifact);
+            try
+            {
+                ArtifactDescriptorResult descriptorResult = repositorySystem.readArtifactDescriptor(session, descriptorRequest);
+                final List<Dependency> managedDependencies = descriptorResult.getManagedDependencies();
+                managedDependencies.forEach(dep ->
+                {
+                    final Artifact managedArtifact = dep.getArtifact();
+                    imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
+                        managedArtifact.getVersion());
 
-        // Build CollectRequest for dependencies
-        DependencyRequest collectRequest = createDependencyRequest(imported, dependencies);
+                });
+            }
+            catch (ArtifactDescriptorException e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
+
+        CollectRequest collectRequest = new CollectRequest();
+        dependencies.forEach(dep ->
+        {
+            String version = dep.version != null ? dep.version : imported.get(dep);
+            Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
+            collectRequest.addDependency(new Dependency(artifact, null));
+        });
+        repositories.forEach(collectRequest::addRepository);
 
         DependencyResult result;
         try
         {
-            result = repositorySystem.resolveDependencies(session, collectRequest);
+            DependencyRequest dependencyRequest = new DependencyRequest(collectRequest, null);
+            result = repositorySystem.resolveDependencies(session, dependencyRequest);
         }
         catch (Exception e)
         {
             throw new RuntimeException("Failed to resolve dependencies", e);
         }
         DependencyNode root = result.getRoot();
-        root.accept(new DependencyVisitor()
+
+        NodeListGenerator nlg = new NodeListGenerator();
+
+        root.accept(new PreorderDependencyNodeConsumerVisitor(nlg));
+        List<DependencyNode> nodesWithDependencies = nlg.getNodesWithDependencies();
+
+        nodesWithDependencies.forEach(node ->
         {
-            final AtomicInteger level = new AtomicInteger();
-            int i = -1;
-
-            @Override
-            public boolean visitEnter(
-                DependencyNode node)
+            Dependency dep = node.getDependency();
+            if (dep != null)
             {
-                StringBuilder sb = new StringBuilder();
-                int currentLevel = level.getAndIncrement();
-                for (int i = 0; i < currentLevel; i++)
+                final Artifact artifact = dep.getArtifact();
+                List<DependencyNode> children = node.getChildren();
+                final ZpmArtifactId id =
+                    new ZpmArtifactId(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+                final Set<ZpmArtifactId> depends = new LinkedHashSet<>();
+                children.forEach(c ->
                 {
-                    sb.append("  ");
-                }
 
-                final Dependency dep = node.getDependency();
-                if (dep != null)
-                {
-                    final Artifact artifact = dep.getArtifact();
-                    final ZpmArtifactId id =
-                        new ZpmArtifactId(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
-                    if (currentLevel != 1)
-                    {
-                        artifacts.get(i).depends.add(id);
-                    }
-                    else
-                    {
-                        System.err.println(sb.toString() + dep);
-                        artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), new LinkedHashSet<>()));
-                        i++;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public boolean visitLeave(
-                DependencyNode node)
-            {
-                level.decrementAndGet();
-                return true;
+                });
+                artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
             }
         });
 
@@ -180,7 +193,7 @@ public final class ZpmCache
         {
             String version = dep.version != null ? dep.version : imported.get(dep);
             Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
-            collectRequest.addDependency(new Dependency(artifact, "runtime"));
+            collectRequest.addDependency(new Dependency(artifact, "compile"));
         });
         repositories.forEach(collectRequest::addRepository);
 

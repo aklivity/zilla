@@ -36,11 +36,6 @@ public final class ZpmArtifact
         this.depends = depends;
     }
 
-    public String getId()
-    {
-        return id.artifact;
-    }
-
     @Override
     public int hashCode()
     {
