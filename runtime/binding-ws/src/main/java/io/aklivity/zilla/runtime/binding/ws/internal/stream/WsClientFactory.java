@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.ResetFW;
@@ -113,6 +114,7 @@ public final class WsClientFactory implements WsStreamFactory
     private final OctetsFW.Builder payloadRW = new OctetsFW.Builder();
 
     private final OctetsFW payloadRO = new OctetsFW();
+    private final ExtensionFW extensionExRO = new ExtensionFW();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
@@ -184,7 +186,10 @@ public final class WsClientFactory implements WsStreamFactory
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
-        final WsBeginExFW wsBeginEx = extension.get(wsBeginExRO::tryWrap);
+        final ExtensionFW extensionEx = extension.get(extensionExRO::tryWrap);
+        final WsBeginExFW wsBeginEx = extensionEx != null && extensionEx.typeId() == wsTypeId
+            ? extension.get(wsBeginExRO::tryWrap)
+            : null;
 
         MessageConsumer newStream = null;
 
