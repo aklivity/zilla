@@ -162,10 +162,18 @@ public final class ZpmInstall extends ZpmCommand
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
                 .map(a -> a.id)
-                .collect(
-                    toMap(
-                        id -> ZpmDependency.of(id.group, id.artifact, null),
-                        id -> ZpmDependency.of(id.group, id.artifact, id.version)));
+                .collect(toMap(
+                    id -> ZpmDependency.of(id.group, id.artifact, null),
+                    id -> ZpmDependency.of(id.group, id.artifact, id.version),
+                    (first, second) -> second));
+
+            System.out.println("Resolvables:");
+            resolvables.forEach((k, v) ->
+            {
+                System.out.printf(k + " ----> ");
+                System.out.println(v);
+            });
+            System.out.println("********");
 
             ZpmConfiguration resolved = new ZpmConfiguration();
             resolved.repositories = config.repositories;

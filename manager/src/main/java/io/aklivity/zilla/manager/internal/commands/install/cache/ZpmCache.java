@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install.cache;
 
-import static java.util.Collections.emptyMap;
+import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +37,10 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactDescriptorException;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactDescriptorResult;
-import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
-import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.supplier.SessionBuilderSupplier;
+import org.eclipse.aether.util.graph.traverser.StaticDependencyTraverser;
 import org.eclipse.aether.util.graph.visitor.NodeListGenerator;
 import org.eclipse.aether.util.graph.visitor.PreorderDependencyNodeConsumerVisitor;
 
@@ -124,7 +122,7 @@ public final class ZpmCache
         NodeListGenerator nlg = new NodeListGenerator();
 
         root.accept(new PreorderDependencyNodeConsumerVisitor(nlg));
-        List<DependencyNode> nodesWithDependencies = nlg.getNodesWithDependencies();
+        List<DependencyNode> nodesWithDependencies = nlg.getNodes();
 
         nodesWithDependencies.forEach(node ->
         {
@@ -138,66 +136,16 @@ public final class ZpmCache
                 final Set<ZpmArtifactId> depends = new LinkedHashSet<>();
                 children.forEach(c ->
                 {
-
+                    final Artifact cArtifact = c.getArtifact();
+                    final ZpmArtifactId cid =
+                        new ZpmArtifactId(cArtifact.getGroupId(), cArtifact.getArtifactId(), cArtifact.getVersion());
+                    depends.add(cid);
                 });
                 artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
             }
         });
 
         return artifacts;
-    }
-
-    private Map<ZpmDependency, String> resolveImports(
-        List<ZpmDependency> imports)
-    {
-        Map<ZpmDependency, String> imported = new LinkedHashMap<>();
-
-        if (imports != null)
-        {
-            DependencyRequest dependencyRequest = createDependencyRequest(emptyMap(), imports);
-
-            try
-            {
-                DependencyResult importResult = repositorySystem.resolveDependencies(session, dependencyRequest);
-                collectVersionsFromDependencyResult(importResult, imported);
-            }
-            catch (DependencyResolutionException e)
-            {
-                throw new RuntimeException("Failed to resolve imports", e);
-            }
-        }
-
-        return imported;
-    }
-
-    private void collectVersionsFromDependencyResult(
-        DependencyResult result,
-        Map<ZpmDependency, String> imported)
-    {
-
-        for (ArtifactResult artifactResult : result.getArtifactResults())
-        {
-            Artifact artifact = artifactResult.getArtifact();
-            ZpmDependency dependency = ZpmDependency.of(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
-            imported.put(dependency, artifact.getVersion());
-        }
-    }
-
-    private DependencyRequest createDependencyRequest(
-        Map<ZpmDependency, String> imported,
-        List<ZpmDependency> dependencies)
-    {
-
-        CollectRequest collectRequest = new CollectRequest();
-        dependencies.forEach(dep ->
-        {
-            String version = dep.version != null ? dep.version : imported.get(dep);
-            Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
-            collectRequest.addDependency(new Dependency(artifact, "compile"));
-        });
-        repositories.forEach(collectRequest::addRepository);
-
-        return new DependencyRequest(collectRequest, null);
     }
 
     private RemoteRepository toRemoteRepository(
@@ -217,9 +165,11 @@ public final class ZpmCache
             .get()
                 .withLocalRepositoryBaseDirectories(dir)
                 .setRepositoryListener(new ConsoleRepositoryListener())
+                .setDependencyTraverser(new StaticDependencyTraverser(true))
                 .setTransferListener(new ConsoleTransferListener())
                 .setConfigProperty("aether.generator.gpg.enabled", Boolean.TRUE.toString())
                 .setConfigProperty("aether.syncContext.named.factory", "noop")
+                .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .build();
     }
 }
