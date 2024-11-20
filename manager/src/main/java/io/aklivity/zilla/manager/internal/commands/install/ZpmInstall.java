@@ -167,14 +167,6 @@ public final class ZpmInstall extends ZpmCommand
                     id -> ZpmDependency.of(id.group, id.artifact, id.version),
                     (first, second) -> second));
 
-            System.out.println("Resolvables:");
-            resolvables.forEach((k, v) ->
-            {
-                System.out.printf(k + " ----> ");
-                System.out.println(v);
-            });
-            System.out.println("********");
-
             ZpmConfiguration resolved = new ZpmConfiguration();
             resolved.repositories = config.repositories;
             resolved.imports = null;
@@ -197,6 +189,13 @@ public final class ZpmInstall extends ZpmCommand
             generateSystemOnlyAutomatic(logger, modules);
             delegateAutomatic(modules, delegate);
             copyNonDelegating(modules);
+
+            System.out.println("Delegates:");
+            delegate.paths.forEach(p ->
+            {
+                System.out.println(p.toString());
+            });
+            System.out.println("********");
 
             if (!delegate.paths.isEmpty())
             {
