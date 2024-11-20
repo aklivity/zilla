@@ -122,7 +122,7 @@ public final class ZpmCache
         NodeListGenerator nlg = new NodeListGenerator();
 
         root.accept(new PreorderDependencyNodeConsumerVisitor(nlg));
-        List<DependencyNode> nodesWithDependencies = nlg.getNodes();
+        List<DependencyNode> nodesWithDependencies = nlg.getNodesWithDependencies();
 
         nodesWithDependencies.forEach(node ->
         {
@@ -141,7 +141,10 @@ public final class ZpmCache
                         new ZpmArtifactId(cArtifact.getGroupId(), cArtifact.getArtifactId(), cArtifact.getVersion());
                     depends.add(cid);
                 });
-                artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
+                if (artifacts.stream().noneMatch(a -> a.id.equals(id)))
+                {
+                    artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
+                }
             }
         });
 

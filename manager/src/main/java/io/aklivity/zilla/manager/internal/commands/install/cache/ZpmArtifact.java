@@ -42,6 +42,11 @@ public final class ZpmArtifact
         return Objects.hash(id, path, depends);
     }
 
+    public String getId()
+    {
+        return id.artifact;
+    }
+
     @Override
     public boolean equals(
         Object obj)
