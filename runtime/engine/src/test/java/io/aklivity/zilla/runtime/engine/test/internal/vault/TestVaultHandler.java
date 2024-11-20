@@ -47,8 +47,8 @@ public final class TestVaultHandler implements VaultHandler
 {
     private static final Pattern PATTERN_KEY_ENTRY =
         Pattern.compile(
-            "(?<key>-----BEGIN PRIVATE KEY-----\n[^-]+-----END PRIVATE KEY-----\n)" +
-            "(?<chain>(?:-----BEGIN CERTIFICATE-----\n[^-]+-----END CERTIFICATE-----\n)+)");
+            "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]+)" +
+            "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]+)+)");
 
     private final TestVaultEntryConfig key;
     private final TestVaultEntryConfig signer;
@@ -87,8 +87,8 @@ public final class TestVaultHandler implements VaultHandler
 
                     String base64 = encodedKey
                             .replace("-----BEGIN PRIVATE KEY-----", "")
-                            .replaceAll(System.lineSeparator(), "")
-                            .replace("-----END PRIVATE KEY-----", "");
+                            .replace("-----END PRIVATE KEY-----", "")
+                            .replaceAll("[^a-zA-Z0-9+/=]", "");
                     byte[] encoded = Base64.getMimeDecoder().decode(base64);
 
                     KeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
