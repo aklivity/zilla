@@ -67,6 +67,12 @@ class TestExporterHandler implements ExporterHandler
             {
                 readEvent.read(this::handleEvent, Integer.MAX_VALUE);
             }
+
+            if (options.events == null ||
+                options.events.isEmpty())
+            {
+                readEvent.read(this::handleEvent, 1);
+            }
         }
         catch (Exception ex)
         {
@@ -87,7 +93,12 @@ class TestExporterHandler implements ExporterHandler
         String name = context.supplyEventName(event.id());
         String message = formatter.format(msgTypeId, buffer, index, length);
 
-        if (options.events != null && eventIndex < options.events.size())
+        if (options.events == null || options.events.isEmpty())
+        {
+            throw new IllegalStateException(String.format("event not expected: %s %s %s %s",
+                    qname, id, name, message));
+        }
+        else if (eventIndex < options.events.size())
         {
             TestExporterOptionsConfig.Event e = options.events.get(eventIndex);
             if (!qname.equals(e.qName) || !id.equals(e.id) || !name.equals(e.name) || !message.equals(e.message))
