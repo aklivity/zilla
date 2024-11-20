@@ -33,7 +33,6 @@ import org.eclipse.aether.spi.artifact.generator.ArtifactGeneratorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.supplier.RepositorySystemSupplier;
 import org.eclipse.aether.transport.jdk.JdkTransporterFactory;
-import org.eclipse.aether.transport.jetty.JettyTransporterFactory;
 
 /**
  * A factory for repository system instances that employs Maven Artifact Resolver's provided supplier.
@@ -43,7 +42,6 @@ public final class SupplierRepositorySystemFactory
 
     private SupplierRepositorySystemFactory()
     {
-
     }
 
     public static RepositorySystem newRepositorySystem()
@@ -110,9 +108,6 @@ public final class SupplierRepositorySystemFactory
                 result.put(
                     JdkTransporterFactory.NAME,
                     new JdkTransporterFactory(getChecksumExtractor(), getPathProcessor()));
-                result.put(
-                    JettyTransporterFactory.NAME,
-                    new JettyTransporterFactory(getChecksumExtractor(), getPathProcessor()));
                 return result;
             }
         }.get();

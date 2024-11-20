@@ -28,9 +28,10 @@ import org.eclipse.aether.transfer.AbstractTransferListener;
 import org.eclipse.aether.transfer.TransferEvent;
 import org.eclipse.aether.transfer.TransferResource;
 
+
+//todo: rename, subclass
 public class ConsoleTransferListener extends AbstractTransferListener
 {
-
     private final PrintStream out;
 
     private final Map<TransferResource, Long> downloads = new ConcurrentHashMap<>();
