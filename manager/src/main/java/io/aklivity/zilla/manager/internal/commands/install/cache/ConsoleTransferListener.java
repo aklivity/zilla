@@ -25,13 +25,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.aether.transfer.AbstractTransferListener;
-import org.eclipse.aether.transfer.MetadataNotFoundException;
 import org.eclipse.aether.transfer.TransferEvent;
 import org.eclipse.aether.transfer.TransferResource;
 
-/**
- * A simplistic transfer listener that logs uploads/downloads to the console.
- */
 public class ConsoleTransferListener extends AbstractTransferListener
 {
 
@@ -157,11 +153,6 @@ public class ConsoleTransferListener extends AbstractTransferListener
     {
         requireNonNull(event, "event cannot be null");
         transferCompleted(event);
-
-        if (!(event.getException() instanceof MetadataNotFoundException))
-        {
-            event.getException().printStackTrace(out);
-        }
     }
 
     private void transferCompleted(
@@ -174,13 +165,6 @@ public class ConsoleTransferListener extends AbstractTransferListener
         pad(buffer, lastLength);
         buffer.append('\r');
         out.print(buffer);
-    }
-
-    public void transferCorrupted(
-        TransferEvent event)
-    {
-        requireNonNull(event, "event cannot be null");
-        event.getException().printStackTrace(out);
     }
 
     @SuppressWarnings("checkstyle:magicnumber")

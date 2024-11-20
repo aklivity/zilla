@@ -51,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -161,19 +160,6 @@ public final class ZpmInstall extends ZpmCommand
             ZpmCache cache = new ZpmCache(repositories, cacheDir);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
-            System.out.println("Gathered artifacts: ");
-            // Sort the artifacts by artifactId and collect into a new sorted list
-            List<ZpmArtifact> sortedArtifacts = artifacts.stream()
-                .sorted(Comparator.comparing(ZpmArtifact::getId))
-                .toList();
-
-            for (ZpmArtifact a : sortedArtifacts)
-            {
-                System.out.println(a);
-            }
-
-            System.out.println("*******");
-
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
                 .map(a -> a.id)
                 .collect(toMap(
@@ -203,13 +189,6 @@ public final class ZpmInstall extends ZpmCommand
             generateSystemOnlyAutomatic(logger, modules);
             delegateAutomatic(modules, delegate);
             copyNonDelegating(modules);
-
-            System.out.println("Delegates:");
-            delegate.paths.forEach(p ->
-            {
-                System.out.println(p.toString());
-            });
-            System.out.println("********");
 
             if (!delegate.paths.isEmpty())
             {

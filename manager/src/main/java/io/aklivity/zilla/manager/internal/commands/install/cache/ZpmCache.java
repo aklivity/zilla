@@ -18,8 +18,8 @@ package io.aklivity.zilla.manager.internal.commands.install.cache;
 import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,11 +68,11 @@ public final class ZpmCache
             .collect(Collectors.toList());
     }
 
-    public Set<ZpmArtifact> resolve(
+    public List<ZpmArtifact> resolve(
         List<ZpmDependency> imports,
         List<ZpmDependency> dependencies)
     {
-        final Set<ZpmArtifact> artifacts = new HashSet<>();
+        final List<ZpmArtifact> artifacts = new ArrayList<>();
         Map<ZpmDependency, String> imported = new HashMap<>();
         imports.forEach(imp ->
         {
