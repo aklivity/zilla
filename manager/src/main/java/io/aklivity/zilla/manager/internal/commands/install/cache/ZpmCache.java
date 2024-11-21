@@ -95,7 +95,6 @@ public final class ZpmCache
     {
         final List<ZpmArtifact> artifacts = new ArrayList<>();
         Map<ZpmDependency, String> imported = new HashMap<>();
-        String defaultVersion = "";
         if (imports != null)
         {
             for (ZpmDependency imp : imports)
@@ -109,20 +108,13 @@ public final class ZpmCache
                     ArtifactDescriptorResult descriptorResult =
                         repositorySystem.readArtifactDescriptor(session, descriptorRequest);
                     final List<Dependency> managedDependencies = descriptorResult.getManagedDependencies();
-                    if (!managedDependencies.isEmpty())
+                    managedDependencies.forEach(dep ->
                     {
-                        managedDependencies.forEach(dep ->
-                        {
-                            final Artifact managedArtifact = dep.getArtifact();
-                            imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
-                                managedArtifact.getVersion());
+                        final Artifact managedArtifact = dep.getArtifact();
+                        imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
+                            managedArtifact.getVersion());
 
-                        });
-                    }
-                    else
-                    {
-                        defaultVersion = descriptorResult.getArtifact().getVersion();
-                    }
+                    });
                 }
                 catch (ArtifactDescriptorException e)
                 {
@@ -133,7 +125,7 @@ public final class ZpmCache
         CollectRequest collectRequest = new CollectRequest();
         for (ZpmDependency dep : dependencies)
         {
-            String version = ofNullable(ofNullable(dep.version).orElse(imported.get(dep))).orElse(defaultVersion);
+            String version = ofNullable(dep.version).orElse(imported.get(dep));
             Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
             collectRequest.addDependency(new Dependency(artifact, null));
         }

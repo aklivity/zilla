@@ -155,6 +155,12 @@ public final class ZpmInstall extends ZpmCommand
             createDirectories(cacheDir);
             List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
 
+            if (!excludeLocalRepo)
+            {
+                String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
+                repositories.add(0, new ZpmRepository(localRepo));
+            }
+
             if (excludeRemoteRepos)
             {
                 repositories.removeIf(r -> !r.location.startsWith("file:"));
