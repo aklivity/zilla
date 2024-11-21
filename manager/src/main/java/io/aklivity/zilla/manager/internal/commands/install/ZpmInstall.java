@@ -102,6 +102,10 @@ public final class ZpmInstall extends ZpmCommand
 
     private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
 
+    @Option(name = { "--verbose" },
+        description = "Enable verbose logging")
+    public Boolean verbose = false;
+
     @Option(name = {"--debug"},
         description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
@@ -126,7 +130,7 @@ public final class ZpmInstall extends ZpmCommand
     @Override
     public void invoke()
     {
-        int level = silent ? ConsoleLogger.LEVEL_WARN : ConsoleLogger.LEVEL_INFO;
+        int level = silent ? ConsoleLogger.LEVEL_WARN : verbose ? ConsoleLogger.LEVEL_DEBUG : ConsoleLogger.LEVEL_INFO;
         ConsoleLogger logger = new ConsoleLogger(level, "ZpmInstall");
 
         try
@@ -157,7 +161,7 @@ public final class ZpmInstall extends ZpmCommand
                 repositories.removeIf(r -> !r.location.startsWith("file:"));
             }
 
-            ZpmCache cache = new ZpmCache(repositories, cacheDir);
+            ZpmCache cache = new ZpmCache(repositories, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
