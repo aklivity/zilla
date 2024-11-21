@@ -31,7 +31,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
@@ -63,12 +62,11 @@ import org.eclipse.aether.supplier.SessionBuilderSupplier;
 import org.eclipse.aether.transfer.AbstractTransferListener;
 import org.eclipse.aether.transfer.TransferEvent;
 import org.eclipse.aether.transfer.TransferResource;
-import org.eclipse.aether.transport.jdk.JdkTransporterFactory;
+import org.eclipse.aether.transport.apache.ApacheTransporterFactory;
 import org.eclipse.aether.util.graph.visitor.NodeListGenerator;
 import org.eclipse.aether.util.graph.visitor.PreorderDependencyNodeConsumerVisitor;
 
 import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
-import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
 
 public final class ZpmCache
 {
@@ -80,7 +78,7 @@ public final class ZpmCache
     private final ConsoleLogger logger;
 
     public ZpmCache(
-        List<ZpmRepository> repositoriesConfig,
+        List<RemoteRepository> repositories,
         Path directory,
         ConsoleLogger logger)
     {
@@ -88,10 +86,7 @@ public final class ZpmCache
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
         this.session = newRepositorySystemSession(repositorySystem, directory);
 
-        // Map ZpmRepository to RemoteRepository for Maven Resolver
-        this.repositories = repositoriesConfig.stream()
-            .map(this::toRemoteRepository)
-            .collect(Collectors.toList());
+        this.repositories = repositories;
     }
 
     public List<ZpmArtifact> resolve(
@@ -100,9 +95,10 @@ public final class ZpmCache
     {
         final List<ZpmArtifact> artifacts = new ArrayList<>();
         Map<ZpmDependency, String> imported = new HashMap<>();
+        String defaultVersion = "";
         if (imports != null)
         {
-            imports.forEach(imp ->
+            for (ZpmDependency imp : imports)
             {
                 Artifact artifact = new DefaultArtifact(imp.groupId, imp.artifactId, "pom", imp.version);
                 ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
@@ -113,27 +109,34 @@ public final class ZpmCache
                     ArtifactDescriptorResult descriptorResult =
                         repositorySystem.readArtifactDescriptor(session, descriptorRequest);
                     final List<Dependency> managedDependencies = descriptorResult.getManagedDependencies();
-                    managedDependencies.forEach(dep ->
+                    if (!managedDependencies.isEmpty())
                     {
-                        final Artifact managedArtifact = dep.getArtifact();
-                        imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
-                            managedArtifact.getVersion());
+                        managedDependencies.forEach(dep ->
+                        {
+                            final Artifact managedArtifact = dep.getArtifact();
+                            imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
+                                managedArtifact.getVersion());
 
-                    });
+                        });
+                    }
+                    else
+                    {
+                        defaultVersion = descriptorResult.getArtifact().getVersion();
+                    }
                 }
                 catch (ArtifactDescriptorException e)
                 {
                     throw new RuntimeException(e);
                 }
-            });
+            }
         }
         CollectRequest collectRequest = new CollectRequest();
-        dependencies.forEach(dep ->
+        for (ZpmDependency dep : dependencies)
         {
-            String version = ofNullable(dep.version).orElse(imported.get(dep));
+            String version = ofNullable(ofNullable(dep.version).orElse(imported.get(dep))).orElse(defaultVersion);
             Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
             collectRequest.addDependency(new Dependency(artifact, null));
-        });
+        }
         repositories.forEach(collectRequest::addRepository);
 
         DependencyResult result;
@@ -175,20 +178,10 @@ public final class ZpmCache
                 {
                     artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
                 }
-
             }
         });
 
         return artifacts;
-    }
-
-    private RemoteRepository toRemoteRepository(
-        ZpmRepository repository)
-    {
-
-        return new RemoteRepository.Builder("central", "default", repository.location)
-            .setRepositoryManager(true)
-            .build();
     }
 
     private RepositorySystemSession newRepositorySystemSession(
@@ -231,7 +224,6 @@ public final class ZpmCache
                 private Map<String, GnupgSignatureArtifactGeneratorFactory.Loader>
                     getGnupgSignatureArtifactGeneratorFactoryLoaders()
                 {
-                    // order matters
                     LinkedHashMap<String, GnupgSignatureArtifactGeneratorFactory.Loader> loaders = new LinkedHashMap<>();
                     loaders.put(GpgEnvLoader.NAME, new GpgEnvLoader());
                     loaders.put(GpgConfLoader.NAME, new GpgConfLoader());
@@ -271,8 +263,8 @@ public final class ZpmCache
                 {
                     Map<String, TransporterFactory> result = super.createTransporterFactories();
                     result.put(
-                        JdkTransporterFactory.NAME,
-                        new JdkTransporterFactory(getChecksumExtractor(), getPathProcessor()));
+                        ApacheTransporterFactory.NAME,
+                        new ApacheTransporterFactory(getChecksumExtractor(), getPathProcessor()));
                     return result;
                 }
             }.get();

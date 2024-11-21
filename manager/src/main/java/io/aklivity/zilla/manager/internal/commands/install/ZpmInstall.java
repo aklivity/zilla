@@ -60,6 +60,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
@@ -76,6 +77,9 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.codehaus.plexus.logging.console.ConsoleLogger;
+import org.eclipse.aether.repository.Authentication;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.util.repository.AuthenticationBuilder;
 import org.sonatype.plexus.components.cipher.PlexusCipherException;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -87,6 +91,7 @@ import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifactId;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmCache;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmModule;
 import io.aklivity.zilla.manager.internal.settings.ZpmCredentials;
+import io.aklivity.zilla.manager.internal.settings.ZpmSecrets;
 import io.aklivity.zilla.manager.internal.settings.ZpmSecurity;
 import io.aklivity.zilla.manager.internal.settings.ZpmSettings;
 
@@ -147,21 +152,17 @@ public final class ZpmInstall extends ZpmCommand
             config = overrideConfigIfLocked(config, zpmFile, lockFile);
 
             logger.info("resolving dependencies");
-            readSettings(settingsDir);
             createDirectories(cacheDir);
             List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
-            if (!excludeLocalRepo)
-            {
-                String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
-                repositories.add(0, new ZpmRepository(localRepo));
-            }
 
             if (excludeRemoteRepos)
             {
                 repositories.removeIf(r -> !r.location.startsWith("file:"));
             }
 
-            ZpmCache cache = new ZpmCache(repositories, cacheDir, logger);
+            List<RemoteRepository> remoteRepositories = getRemoteRepositories(settingsDir, repositories);
+
+            ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
@@ -214,9 +215,11 @@ public final class ZpmInstall extends ZpmCommand
         }
     }
 
-    private void readSettings(
-        Path settingsDir) throws IOException, PlexusCipherException
+    private List<RemoteRepository> getRemoteRepositories(
+        Path settingsDir,
+        List<ZpmRepository> repositories) throws IOException, PlexusCipherException
     {
+        final List<RemoteRepository> remoteRepositories = new ArrayList<>();
         Path settingsFile = settingsDir.resolve("settings.json");
 
         ZpmSettings settings = new ZpmSettings();
@@ -234,22 +237,48 @@ public final class ZpmInstall extends ZpmCommand
             }
         }
 
-        if (settings.credentials.size() > 0)
+        Path securityFile = settingsDir.resolve("security.json");
+
+        ZpmSecurity security = new ZpmSecurity();
+
+        if (Files.exists(securityFile))
         {
-            Path securityFile = settingsDir.resolve("security.json");
-
-            ZpmSecurity security = new ZpmSecurity();
-
-            if (Files.exists(securityFile))
+            try (InputStream in = newInputStream(securityFile))
             {
-                try (InputStream in = newInputStream(securityFile))
-                {
-                    security = builder.fromJson(in, ZpmSecurity.class);
-                }
+                security = builder.fromJson(in, ZpmSecurity.class);
             }
-
-            security.secret = decryptSecret(security.secret, SYSTEM_PROPERTY_SEC_LOCATION);
         }
+
+        for (ZpmRepository repository : repositories)
+        {
+            security.secret = decryptSecret(security.secret, SYSTEM_PROPERTY_SEC_LOCATION);
+
+            RemoteRepository.Builder repoBuilder =
+                new RemoteRepository.Builder("central", "default", repository.location)
+                    .setRepositoryManager(true);
+
+            Optional<ZpmCredentials> optionalCredentials = settings.credentials.stream()
+                .filter(c -> c.host.equals(repository.host))
+                .findFirst();
+
+            if (optionalCredentials.isPresent())
+            {
+                ZpmCredentials credentials = optionalCredentials.get();
+                String realm = defaultRealmIfNecessary(credentials);
+                String host = credentials.host;
+                String username = credentials.username;
+                String password = ZpmSecrets.decryptSecret(credentials.password, security.secret);
+
+                Authentication authentication = new AuthenticationBuilder()
+                    .addUsername(username)
+                    .addPassword(password)
+                    .build();
+
+                repoBuilder.setAuthentication(authentication);
+            }
+            remoteRepositories.add(repoBuilder.build());
+        }
+        return remoteRepositories;
     }
 
     private ZpmConfiguration readOrDefaultConfig(
