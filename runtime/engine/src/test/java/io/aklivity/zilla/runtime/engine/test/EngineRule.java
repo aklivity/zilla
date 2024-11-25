@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHE
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 import static java.nio.file.Files.exists;
+import static java.util.Collections.synchronizedList;
 import static java.util.Objects.requireNonNull;
 import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
@@ -317,7 +318,7 @@ public final class EngineRule implements TestRule
             {
                 final EngineConfiguration config = configuration();
                 final Thread baseThread = Thread.currentThread();
-                final List<Throwable> errors = new ArrayList<>();
+                final List<Throwable> errors = synchronizedList(new ArrayList<>());
                 final ErrorHandler errorHandler = ex ->
                 {
                     ex.printStackTrace();

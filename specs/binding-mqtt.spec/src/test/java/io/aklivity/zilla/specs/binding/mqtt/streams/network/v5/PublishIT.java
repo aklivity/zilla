@@ -295,6 +295,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.retained.multiple.topic/client",
+        "${net}/publish.retained.multiple.topic/server"})
+    public void shouldPublishRetainedMessageMultipleTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.empty.retained.message/client",
         "${net}/publish.empty.retained.message/server"})
     public void shouldSendEmptyRetainedMessage() throws Exception

@@ -36,7 +36,6 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "304")
                             .header("content-type", "text/html")
-                            .header("content-length", "0")
                             .header("etag", "AAAAAAAAAAAAAAAA")
                             .build()}
 write close

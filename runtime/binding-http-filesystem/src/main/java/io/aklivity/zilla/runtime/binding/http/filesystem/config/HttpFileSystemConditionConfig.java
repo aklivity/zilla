@@ -14,15 +14,31 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class HttpFileSystemConditionConfig extends ConditionConfig
 {
     public final String path;
+    public final String method;
 
-    public HttpFileSystemConditionConfig(
-        String path)
+    HttpFileSystemConditionConfig(
+        String path,
+        String method)
     {
         this.path = path;
+        this.method = method;
+    }
+
+    public static HttpFileSystemConditionConfigBuilder<HttpFileSystemConditionConfig> builder()
+    {
+        return new HttpFileSystemConditionConfigBuilder<>(HttpFileSystemConditionConfig.class::cast);
+    }
+
+    public static <T> HttpFileSystemConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new HttpFileSystemConditionConfigBuilder<>(mapper);
     }
 }

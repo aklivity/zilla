@@ -92,6 +92,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.retained.multiple.topic/client",
+        "${app}/publish.retained.multiple.topic/server"})
+    public void shouldPublishRetainedMessageMultipleTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
     public void shouldPublishMultipleMessages() throws Exception

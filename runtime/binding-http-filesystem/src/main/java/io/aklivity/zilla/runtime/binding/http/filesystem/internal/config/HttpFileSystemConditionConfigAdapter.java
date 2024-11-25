@@ -28,6 +28,7 @@ public final class HttpFileSystemConditionConfigAdapter
     implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
+    private static final String METHOD_NAME = "method";
 
     @Override
     public String type()
@@ -42,6 +43,11 @@ public final class HttpFileSystemConditionConfigAdapter
         HttpFileSystemConditionConfig httpCondition = (HttpFileSystemConditionConfig) condition;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (httpCondition.method != null)
+        {
+            object.add(METHOD_NAME, httpCondition.method);
+        }
 
         if (httpCondition.path != null)
         {
@@ -59,6 +65,13 @@ public final class HttpFileSystemConditionConfigAdapter
                 ? object.getString(PATH_NAME)
                 : null;
 
-        return new HttpFileSystemConditionConfig(path);
+        String method = object.containsKey(METHOD_NAME)
+            ? object.getString(METHOD_NAME)
+            : null;
+
+        return HttpFileSystemConditionConfig.builder()
+            .path(path)
+            .method(method)
+            .build();
     }
 }

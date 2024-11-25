@@ -39,4 +39,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithDynamicDirectory()
+    {
+        JsonObject config = schema.validate("proxy.with.directory.dynamic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

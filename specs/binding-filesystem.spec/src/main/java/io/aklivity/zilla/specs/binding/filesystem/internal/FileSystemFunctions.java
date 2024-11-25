@@ -84,6 +84,13 @@ public final class FileSystemFunctions
             return this;
         }
 
+        public FileSystemBeginExBuilder directory(
+            String directory)
+        {
+            beginExRW.directory(directory);
+            return this;
+        }
+
         public FileSystemBeginExBuilder path(
             String path)
         {
@@ -137,6 +144,7 @@ public final class FileSystemFunctions
         private Integer typeId;
         private Integer capabilities;
         private String path;
+        private String directory;
         private String type;
         private Long payloadSize;
         private Long modifiedTime;
@@ -158,6 +166,13 @@ public final class FileSystemFunctions
                 .mapToInt(FileSystemCapabilities::ordinal)
                 .map(n -> 1 << n)
                 .sum();
+            return this;
+        }
+
+        public FileSystemBeginExMatcherBuilder directory(
+            String directory)
+        {
+            this.directory = directory;
             return this;
         }
 
@@ -215,6 +230,7 @@ public final class FileSystemFunctions
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
                 matchCapabilities(beginEx) &&
+                matchDirectory(beginEx) &&
                 matchPath(beginEx) &&
                 matchType(beginEx) &&
                 matchPayloadSize(beginEx) &&
@@ -244,6 +260,12 @@ public final class FileSystemFunctions
             FileSystemBeginExFW beginEx)
         {
             return payloadSize == null || payloadSize == beginEx.payloadSize();
+        }
+
+        private boolean matchDirectory(
+            FileSystemBeginExFW beginEx)
+        {
+            return directory == null || directory.equals(beginEx.directory().asString());
         }
 
         private boolean matchPath(
