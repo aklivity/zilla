@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSourceTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTableTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveInsertIntoCatalogTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -64,6 +65,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveDropTopicTemplate dropTopic;
     public final RisingwaveDropMaterializedViewTemplate dropMaterializedView;
     public final RisingwaveDropSinkTemplate dropSink;
+    public final RisingwaveInsertIntoCatalogTemplate catalogInsert;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -105,6 +107,7 @@ public final class RisingwaveBindingConfig
         this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
         this.dropSink = new RisingwaveDropSinkTemplate();
         this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
+        this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate();
     }
 
     public RisingwaveRouteConfig resolve(

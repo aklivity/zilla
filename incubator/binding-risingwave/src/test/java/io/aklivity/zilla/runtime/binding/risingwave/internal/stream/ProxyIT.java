@@ -114,10 +114,10 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.materialized.view/client",
-        "${effective}/create.materialized.view/server"
+        "${pgsql}/create.zview/client",
+        "${effective}/create.zview/server"
     })
-    public void shouldCreateMaterializedView() throws Exception
+    public void shouldCreateZview() throws Exception
     {
         k3po.finish();
     }

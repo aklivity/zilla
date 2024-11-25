@@ -13,13 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${pgsql:beginEx()
+write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
                               .parameter("user", "root")
                               .parameter("database", "dev")
@@ -29,38 +27,39 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-read zilla:data.ext ${pgsql:dataEx()
+write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities "
-     "AS SELECT id, city FROM weather GROUP BY city;"
-     [0x00]
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities "
+      "AS SELECT id, city FROM weather GROUP BY city;"
+      [0x00]
+write flush
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
                                 .tag("CREATE_MATERIALIZED_VIEW")
                                 .build()
                               .build()}
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")
                                 .build()
                               .build()}
 
-read zilla:data.ext ${pgsql:dataEx()
+write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read "DESCRIBE distinct_cities;"
+write "DESCRIBE distinct_cities;"
       [0x00]
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .type()
                                 .column()
@@ -102,93 +101,126 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write flush
-
-write zilla:data.ext ${pgsql:dataEx()
+read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .row()
                                 .build()
                               .build()}
-write [0x00 0x04]                                  # Field Count
-      [0x00 0x00 0x00 0x02]                        # Length
-      "id"                                         # Data
-      [0x00 0x00 0x00 0x11]                        # Length
-      "character varying"                          # Data
-      [0x00 0x00 0x00 0x05]                        # Length
-      "false"                                      # Data
-      [0xff 0xff 0xff 0xff]                        # Length
+read [0x00 0x04]                                  # Field Count
+     [0x00 0x00 0x00 0x02]                        # Length
+     "id"                                         # Data
+     [0x00 0x00 0x00 0x11]                        # Length
+     "character varying"                          # Data
+     [0x00 0x00 0x00 0x05]                        # Length
+     "false"                                      # Data
+     [0xff 0xff 0xff 0xff]                        # Length
 
-write flush
-
-write zilla:data.ext ${pgsql:dataEx()
+read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .row()
                                 .build()
                               .build()}
-write  [0x00 0x04]                                 # Field Count
-       [0x00 0x00 0x00 0x04]                       # Length
-       "city"                                      # Data
-       [0x00 0x00 0x00 0x11]                       # Length
-       "character varying"                         # Data
-       [0x00 0x00 0x00 0x05]                       # Length
-       "false"                                     # Data
-       [0xff 0xff 0xff 0xff]                       # Length
-write flush
+read  [0x00 0x04]                                 # Field Count
+      [0x00 0x00 0x00 0x04]                       # Length
+      "city"                                      # Data
+      [0x00 0x00 0x00 0x11]                       # Length
+      "character varying"                         # Data
+      [0x00 0x00 0x00 0x05]                       # Length
+      "false"                                     # Data
+      [0xff 0xff 0xff 0xff]                       # Length
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
                                 .tag("DESCRIBE")
                                 .build()
                               .build()}
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")
                                 .build()
                               .build()}
 
-read await CREATE_TOPIC_COMPLETED
+read notify RECEIVED_DESCRIBE_RESPONSE
 
-read zilla:data.ext ${pgsql:dataEx()
+connect await RECEIVED_DESCRIBE_RESPONSE
+    "zilla://streams/app2"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "zillabase")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
+
+write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read "CREATE SINK distinct_cities_sink\n"
-     "FROM distinct_cities\n"
-     "WITH (\n"
-     "   connector='kafka',\n"
-     "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.distinct_cities',\n"
-     "   primary_key='id'\n"
-     ") FORMAT UPSERT ENCODE AVRO (\n"
-     "   schema.registry='http://localhost:8081'\n"
-     ") KEY ENCODE TEXT;"
+write "CREATE SINK cg_zillabase.distinct_cities_sink\n"
+      "FROM distinct_cities\n"
+      "WITH (\n"
+      "   connector='kafka',\n"
+      "   properties.bootstrap.server='localhost:9092',\n"
+      "   topic='public.distinct_cities',\n"
+      "   primary_key='id'\n"
+      ") FORMAT UPSERT ENCODE AVRO (\n"
+      "   schema.registry='http://localhost:8081'\n"
+      ") KEY ENCODE TEXT;"
      [0x00]
+write flush
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
                                 .tag("CREATE_SINK")
                                 .build()
                               .build()}
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")
                                 .build()
                               .build()}
 
-accept "zilla://streams/app2"
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "INSERT INTO cg_zillabase.zviews VALUES "
+      "('distinct_cities', 'CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;');"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("INSERT 0 2")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+connect "zilla://streams/app2"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${pgsql:beginEx()
+write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
                               .parameter("user", "root")
                               .parameter("database", "dev")
@@ -198,25 +230,24 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-read zilla:data.ext ${pgsql:dataEx()
+write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read  "CREATE TOPIC IF NOT EXISTS distinct_cities "
+write "CREATE TOPIC IF NOT EXISTS distinct_cities "
       "(id VARCHAR, city VARCHAR, PRIMARY KEY (id, city));"
-     [0x00]
+      [0x00]
+write flush
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
                                 .tag("CREATE_TOPIC")
                                 .build()
                               .build()}
 
-write notify CREATE_TOPIC_COMPLETED
-
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")
