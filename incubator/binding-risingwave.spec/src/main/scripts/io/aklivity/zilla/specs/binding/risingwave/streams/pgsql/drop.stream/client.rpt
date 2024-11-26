@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP ZSTREAM weather;"
+write "DROP STREAM weather;"
       [0x00]
 
 write flush
@@ -40,7 +40,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("DROP_ZSTREAM")
+                                .tag("DROP_STREAM")
                                 .build()
                               .build()}
 

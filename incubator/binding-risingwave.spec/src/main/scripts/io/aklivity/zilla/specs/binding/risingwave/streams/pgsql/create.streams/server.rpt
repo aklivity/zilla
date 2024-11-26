@@ -36,14 +36,32 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE ZSTREAM IF NOT EXISTS weather "
+read "CREATE STREAM IF NOT EXISTS weather_c "
       "(city VARCHAR, temperature DOUBLE, date DATE);"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_ZSTREAM")
+                                .tag("CREATE_STREAM")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read "CREATE STREAM IF NOT EXISTS weather_f "
+      "(city VARCHAR, temperature DOUBLE, date DATE);"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_STREAM")
                                 .build()
                               .build()}
 

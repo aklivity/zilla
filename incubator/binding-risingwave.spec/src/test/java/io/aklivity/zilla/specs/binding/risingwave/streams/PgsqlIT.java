@@ -58,8 +58,8 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.materialized.view/client",
-        "${app}/create.materialized.view/server"
+        "${app}/create.zview/client",
+        "${app}/create.zview/server"
     })
     public void shouldCreateMaterializedView() throws Exception
     {
