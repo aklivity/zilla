@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListen
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
-public class SqlCreateZTableTopicListener extends PostgreSqlParserBaseListener
+public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
     private final List<TableColumn> columns = new ArrayList<>();
     private final Set<String> primaryKeys = new ObjectHashSet<>();
@@ -34,7 +34,7 @@ public class SqlCreateZTableTopicListener extends PostgreSqlParserBaseListener
 
     private String name;
 
-    public SqlCreateZTableTopicListener(
+    public SqlCreateTableTopicListener(
         TokenStream tokens)
     {
         this.tokens = tokens;

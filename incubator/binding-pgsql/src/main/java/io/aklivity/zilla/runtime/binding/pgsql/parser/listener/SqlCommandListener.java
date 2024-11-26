@@ -54,25 +54,25 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterAltertablestmt(
         PostgreSqlParser.AltertablestmtContext ctx)
     {
-        if (ctx.ALTER() != null && ctx.ZTABLE() != null)
+        if (ctx.ALTER() != null && ctx.TABLE() != null)
         {
-            command = "ALTER ZTABLE";
+            command = "ALTER TABLE";
         }
         else if (ctx.ALTER() != null && ctx.TOPIC() != null)
         {
             command = "ALTER TOPIC";
         }
-        else if (ctx.ALTER() != null && ctx.ZSTREAM() != null)
+        else if (ctx.ALTER() != null && ctx.STREAM() != null)
         {
-            command = "ALTER ZSTREAM";
+            command = "ALTER STREAM";
         }
     }
 
     @Override
-    public void enterCreatezstreamstmt(
-        PostgreSqlParser.CreatezstreamstmtContext ctx)
+    public void enterCreatestreamstmt(
+        PostgreSqlParser.CreatestreamstmtContext ctx)
     {
-        command = "CREATE ZSTREAM";
+        command = "CREATE STREAM";
     }
 
     @Override

@@ -19,6 +19,20 @@ connect "zilla://streams/app1"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
+                              .parameter("user", "zillabase")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
+
+connect "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
                               .parameter("user", "zillabase_admin")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")

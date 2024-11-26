@@ -14,31 +14,28 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
-public class SqlCreateZStreamListener extends PostgreSqlParserBaseListener
+public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
 {
-    private final Map<String, String> columns = new LinkedHashMap<>();
     private final TokenStream tokens;
 
     private String name;
+    private String select;
 
-    public SqlCreateZStreamListener(
+    public SqlCreateZviewListener(
         TokenStream tokens)
     {
         this.tokens = tokens;
     }
 
-    public Stream stream()
+    public View view()
     {
-        return new Stream(name, columns);
+        return new View(name, select);
     }
 
     @Override
@@ -46,28 +43,20 @@ public class SqlCreateZStreamListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.RootContext ctx)
     {
         name = null;
-        columns.clear();
+        select = null;
     }
 
     @Override
-    public void enterQualified_name(
-        PostgreSqlParser.Qualified_nameContext ctx)
+    public void enterCreatezviewstmt(
+        PostgreSqlParser.CreatezviewstmtContext ctx)
     {
-        name = ctx.getText();
+        name = ctx.create_mv_target().qualified_name().getText();
     }
 
     @Override
-    public void enterCreatezstreamstmt(
-        PostgreSqlParser.CreatezstreamstmtContext ctx)
+    public void enterSelectstmt(
+        PostgreSqlParser.SelectstmtContext ctx)
     {
-        if (ctx.stream_columns() != null)
-        {
-            for (PostgreSqlParser.Stream_columnContext streamElement : ctx.stream_columns().stream_column())
-            {
-                String columnName = streamElement.colid().getText();
-                String dataType = tokens.getText(streamElement.typename());
-                columns.put(columnName, dataType);
-            }
-        }
+        select = tokens.getText(ctx);
     }
 }

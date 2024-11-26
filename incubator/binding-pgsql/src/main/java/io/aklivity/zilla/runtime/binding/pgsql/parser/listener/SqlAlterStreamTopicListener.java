@@ -25,14 +25,14 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
-public class SqlAlterZTableTopicListener extends PostgreSqlParserBaseListener
+public class SqlAlterStreamTopicListener extends PostgreSqlParserBaseListener
 {
     private final TokenStream tokens;
 
     private String name;
     private final List<AlterExpression> alterExpressions = new ArrayList<>();
 
-    public SqlAlterZTableTopicListener(
+    public SqlAlterStreamTopicListener(
         TokenStream tokens)
     {
         this.tokens = tokens;
@@ -59,35 +59,35 @@ public class SqlAlterZTableTopicListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterAlter_table_cmds(
-        PostgreSqlParser.Alter_table_cmdsContext ctx)
+    public void enterAlter_stream_cmds(
+        PostgreSqlParser.Alter_stream_cmdsContext ctx)
     {
-        for (PostgreSqlParser.Alter_table_cmdContext alterTableCmdCtx : ctx.alter_table_cmd())
+        for (PostgreSqlParser.Alter_stream_cmdContext alterStreamCmdCtx : ctx.alter_stream_cmd())
         {
-            if (alterTableCmdCtx.ADD_P() != null)
+            if (alterStreamCmdCtx.ADD_P() != null)
             {
                 alterExpressions.add(new AlterExpression(
                     Operation.ADD,
-                    alterTableCmdCtx.columnDef().colid().getText(),
-                    alterTableCmdCtx.columnDef().typename().getText()
+                    alterStreamCmdCtx.columnDef().colid().getText(),
+                    alterStreamCmdCtx.columnDef().typename().getText()
                 ));
             }
-            else if (alterTableCmdCtx.DROP() != null)
+            else if (alterStreamCmdCtx.DROP() != null)
             {
-                alterTableCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
+                alterStreamCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
                     new AlterExpression(
                         Operation.DROP,
                         colidCtxs.identifier().getText(),
                         null
                 )));
             }
-            else if (alterTableCmdCtx.ALTER() != null)
+            else if (alterStreamCmdCtx.ALTER() != null)
             {
-                alterTableCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
+                alterStreamCmdCtx.colid().forEach(colidCtxs -> alterExpressions.add(
                     new AlterExpression(
                         Operation.MODIFY,
                         colidCtxs.getText(),
-                        alterTableCmdCtx.typename() != null ? alterTableCmdCtx.typename().getText() : null
+                        alterStreamCmdCtx.typename() != null ? alterStreamCmdCtx.typename().getText() : null
                     )));
             }
         }

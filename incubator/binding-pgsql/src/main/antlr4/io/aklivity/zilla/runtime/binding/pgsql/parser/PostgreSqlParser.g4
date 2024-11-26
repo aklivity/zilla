@@ -105,7 +105,7 @@ stmt
     | createschemastmt
     | createseqstmt
     | createstmt
-    | createzstreamstmt
+    | createstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
     | createtablespacestmt
@@ -409,13 +409,11 @@ altertablestmt
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
-    | ALTER ZSTREAM (IF_P EXISTS)? relation_expr alter_zstream_cmds
-    | ALTER ZTABLE (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
-    | ALTER ZTABLE ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
+    | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
     | ALTER VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     ;
 
-alter_zstream_cmds
+alter_stream_cmds
     : alter_stream_cmd (COMMA alter_stream_cmd)*
     ;
 
@@ -690,8 +688,8 @@ copy_generic_opt_arg_list_item
     : opt_boolean_or_string
     ;
 
-createzstreamstmt
-    : CREATE ZSTREAM (IF_P NOT EXISTS)? stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
+createstreamstmt
+    : CREATE STREAM (IF_P NOT EXISTS)? stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
     ;
 
 stream_name
@@ -723,7 +721,6 @@ createstmt
 opttable_type
     : TABLE
     | TOPIC
-    | ZTABLE
     ;
 
 opttemp
@@ -1637,7 +1634,7 @@ object_type_any_name
     | VIEW
     | MATERIALIZED VIEW
     | TOPIC
-    | ZSTREAM
+    | STREAM
     | ZVIEW
     | ZTABLE
     | INDEX
