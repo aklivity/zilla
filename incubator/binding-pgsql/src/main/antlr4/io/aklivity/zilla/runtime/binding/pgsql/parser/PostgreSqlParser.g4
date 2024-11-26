@@ -1636,7 +1636,6 @@ object_type_any_name
     | TOPIC
     | STREAM
     | ZVIEW
-    | ZTABLE
     | INDEX
     | FOREIGN TABLE
     | COLLATION

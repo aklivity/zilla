@@ -1335,7 +1335,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            final Table createTopic = parser.parseCreateZTable(statement);
+            final Table createTopic = parser.parseCreateTable(statement);
             final String topic = createTopic.name();
 
             topics.clear();
@@ -1385,7 +1385,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         long authorization,
         String statement)
     {
-        final Alter alter = parser.parseAlterZTable(statement);
+        final Alter alter = parser.parseAlterTable(statement);
         final String topic = alter.name();
 
         topics.clear();

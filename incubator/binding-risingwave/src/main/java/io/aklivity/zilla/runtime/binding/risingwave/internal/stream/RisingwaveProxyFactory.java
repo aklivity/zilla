@@ -1560,7 +1560,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Table table = parser.parseCreateZTable(statement);
+            final Table table = parser.parseCreateTable(statement);
 
             String newStatement = "";
             int progress = 0;
@@ -1751,7 +1751,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String statement)
     {
         final RisingwaveBindingConfig binding = server.binding;
-        final Alter alter = parser.parseAlterZTable(statement);
+        final Alter alter = parser.parseAlterTable(statement);
 
         boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);
@@ -1800,7 +1800,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         String statement)
     {
         final RisingwaveBindingConfig binding = server.binding;
-        final Alter alter = parser.parseAlterZStream(statement);
+        final Alter alter = parser.parseAlterStream(statement);
 
         boolean supportedOperation = alter.expressions().stream()
             .noneMatch(c -> c.operation() != Operation.ADD);

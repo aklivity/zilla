@@ -77,21 +77,21 @@ public final class PgsqlParser
         return commandListener.command();
     }
 
-    public Table parseCreateZTable(
+    public Table parseCreateTable(
         String sql)
     {
         parser(sql, createTableListener);
         return createTableListener.table();
     }
 
-    public Alter parseAlterZTable(
+    public Alter parseAlterTable(
         String sql)
     {
         parser(sql, alterTableListener);
         return alterTableListener.alter();
     }
 
-    public Alter parseAlterZStream(
+    public Alter parseAlterStream(
         String sql)
     {
         parser(sql, alterStreamListener);
