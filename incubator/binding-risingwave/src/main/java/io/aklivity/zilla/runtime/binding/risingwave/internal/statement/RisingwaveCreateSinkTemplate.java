@@ -72,7 +72,8 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
-        return String.format(sqlKafkaFormat, this.schema, viewName, viewName, bootstrapServer, schema, viewName, primaryKey, schemaRegistry);
+        return String.format(sqlKafkaFormat, this.schema, viewName, viewName, bootstrapServer,
+            schema, viewName, primaryKey, schemaRegistry);
     }
 
     public String generate(
