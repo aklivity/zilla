@@ -46,6 +46,8 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
 {
+    private final static String SCHEMA = "cg_zillabase";
+
     public final long id;
     public final String name;
     public final RisingwaveOptionsConfig options;
@@ -95,7 +97,7 @@ public final class RisingwaveBindingConfig
         this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
             location, config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);
+        this.createSink = new RisingwaveCreateSinkTemplate(SCHEMA,bootstrapServer, location);
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.alterTable = new RisingwaveAlterTableTemplate();
@@ -107,7 +109,7 @@ public final class RisingwaveBindingConfig
         this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
         this.dropSink = new RisingwaveDropSinkTemplate();
         this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
-        this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate();
+        this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate(SCHEMA);
     }
 
     public RisingwaveRouteConfig resolve(

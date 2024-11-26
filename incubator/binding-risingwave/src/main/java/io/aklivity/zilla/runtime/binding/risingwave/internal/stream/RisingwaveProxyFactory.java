@@ -81,8 +81,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String SEVERITY_WARNING = "WARNING\u0000";
     private static final String CODE_XX000 = "XX000\u0000";
 
-    private static final String ZILLABASE_USER = "zillabase";
-    private static final String DEFAULT_USER = "default";
+    private static final String ZILLABASE_USER = "zillabase\u0000";
+    private static final String DEFAULT_USER = "default\u0000";
+    private static final String ZVIEW_TABLE_NAME = "zviews";
+
+    private static final int ZILLABASE_USER_HASH = ZILLABASE_USER.hashCode();
+    private static final int DEFAULT_USER_HASH = DEFAULT_USER.hashCode();
 
     private static final int COMMAND_PROCESSED_ERRORED = -1;
     private static final int COMMAND_PROCESSED_NONE = 0;
@@ -151,7 +155,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::decodeCreateTableCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
-        clientTransforms.put(RisingwaveCommandType.CREATE_MATERIALIZED_VIEW_COMMAND, this::decodeCreateZviewCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_ZVIEW_COMMAND, this::decodeCreateZviewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_TABLE_COMMAND, this::decodeAlterTableCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_STREAM_COMMAND, this::decodeAlterStreamCommand);
@@ -307,14 +311,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             binding.routes.forEach(r ->
             {
-                long clientId = r.id + DEFAULT_USER.hashCode();
+                final long clientId = r.id + DEFAULT_USER_HASH;
                 streamsByRouteIds.put(clientId,
                     new PgsqlClient(this, routedId, r.id, clientId, DEFAULT_USER));
             });
 
-            long clientId = risingwaveRouteId + ZILLABASE_USER.hashCode();
-            streamsByRouteIds.put(risingwaveRouteId + ZILLABASE_USER.hashCode(),
+            final long clientId = risingwaveRouteId + ZILLABASE_USER_HASH;
+            streamsByRouteIds.put(clientId,
                 new PgsqlClient(this, routedId, risingwaveRouteId, clientId, ZILLABASE_USER));
+
         }
 
         private void onAppMessage(
@@ -601,7 +606,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
 
         private void doAppData(
-            long clientRouteId,
+            long clientId,
+            long routeId,
             long traceId,
             long authorization,
             int flags,
@@ -610,7 +616,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             int limit,
             OctetsFW extension)
         {
-            responses.add(clientRouteId);
+            responses.add(clientId);
 
             final int length = limit - offset;
             final int reserved = length + initialPad;
@@ -812,6 +818,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         private final long originId;
         private final long routedId;
+        private final long clientId;
         private final String user;
 
         private long initialId;
@@ -844,6 +851,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.server = server;
             this.originId = originId;
             this.routedId = routedId;
+            this.clientId = clientId;
             this.user = user;
 
             this.dataCommand = proxyDataCommand;
@@ -933,7 +941,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 final OctetsFW extension = data.extension();
                 final OctetsFW payload = data.payload();
 
-                dataCommand.handle(server, routedId, traceId, authorization, flags,
+                dataCommand.handle(server, clientId, routedId, traceId, authorization, flags,
                     payload.buffer(), payload.offset(), payload.limit(), extension);
             }
         }
@@ -1103,13 +1111,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     .typeId(pgsqlTypeId)
                     .parameters(p -> server.parameters.forEach((k, v) ->
                     {
-                        if (k.equals("user") && user != null)
+                        if (k.contains("user") && user.equals(ZILLABASE_USER))
                         {
                             p.item(i -> i.name(k).value(user));
-                        }
-                        else if (k.equals("password"))
-                        {
-                            //TODO: Fill out the password
                         }
                         else
                         {
@@ -1650,11 +1654,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length,
-                RisingwaveCompletionCommand.CREATE_MATERIALIZED_VIEW_COMMAND);
+                RisingwaveCompletionCommand.CREATE_ZVIEW_COMMAND);
         }
         else
         {
-            String user = DEFAULT_USER;
+            int user = DEFAULT_USER_HASH;
             final RisingwaveBindingConfig binding = server.binding;
             final View view = parser.parseCreateZView(statement);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
@@ -1680,13 +1684,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 3)
             {
-                user = ZILLABASE_USER;
-                newStatement = binding.createSink.generate(server.database, server.columns, view);
+                user = ZILLABASE_USER_HASH;
+                newStatement = binding.createSink.generate("public", server.columns, view);
             }
             else if (server.commandsProcessed == 4)
             {
-                user = ZILLABASE_USER;
-                newStatement = binding.catalogInsert.generate("cg_zillabase.zview", view.name(), statement);
+                user = ZILLABASE_USER_HASH;
+                newStatement = binding.catalogInsert.generate(ZVIEW_TABLE_NAME, view.name(), statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1695,7 +1699,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id + user.hashCode());
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id + user);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = typeCommand;
             client.dataCommand = dataCommand;
@@ -2048,6 +2052,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private void rowDataCommand(
         PgsqlServer server,
+        long clientId,
         long traceId,
         long authorization,
         long routedId,
@@ -2095,6 +2100,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private void proxyDataCommand(
         PgsqlServer server,
+        long clientId,
         long traceId,
         long authorization,
         long routedId,
@@ -2104,7 +2110,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         int limit,
         OctetsFW extension)
     {
-        server.doAppData(routedId, traceId, authorization, flags, buffer, offset, limit, extension);
+        server.doAppData(clientId, routedId, traceId, authorization, flags, buffer, offset, limit, extension);
     }
 
     public List<String> splitStatements(
@@ -2177,6 +2183,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         void handle(
             PgsqlServer server,
+            long clientId,
             long traceId,
             long authorization,
             long routedId,

@@ -76,8 +76,8 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
+    public void enterCreatezviewstmt(
+        PostgreSqlParser.CreatezviewstmtContext ctx)
     {
         command = "CREATE ZVIEW";
     }

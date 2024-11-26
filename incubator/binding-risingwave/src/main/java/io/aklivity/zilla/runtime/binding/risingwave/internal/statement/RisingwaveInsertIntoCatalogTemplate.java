@@ -17,13 +17,21 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 public class RisingwaveInsertIntoCatalogTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        INSERT INTO %s (name, statement) VALUES('%s', '%s');\u0000""";
+        INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
+    private final String schema;
+
+    public RisingwaveInsertIntoCatalogTemplate(
+        String schema)
+    {
+        this.schema = schema;
+    }
 
     public String generate(
         String catalog,
         String name,
         String statement)
     {
-        return String.format(sqlFormat, catalog, name, statement);
+        statement = statement.replace("ZVIEW", "MATERIALIZED VIEW");
+        return String.format(sqlFormat, schema, catalog, name, statement);
     }
 }

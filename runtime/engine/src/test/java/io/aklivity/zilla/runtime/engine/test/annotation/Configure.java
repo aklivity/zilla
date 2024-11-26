@@ -24,7 +24,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD })
 @Repeatable(Configures.class)
-public @interface Configure
+public @interface
+Configure
 {
     String name();
     String value();
