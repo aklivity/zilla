@@ -405,12 +405,12 @@ altertablestmt
     | ALTER INDEX (IF_P EXISTS)? qualified_name (alter_table_cmds | index_partition_cmd)
     | ALTER INDEX ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER SEQUENCE (IF_P EXISTS)? qualified_name alter_table_cmds
-    | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
+    | ALTER VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
     | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
-    | ALTER VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
+    | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     ;
 
 alter_stream_cmds
