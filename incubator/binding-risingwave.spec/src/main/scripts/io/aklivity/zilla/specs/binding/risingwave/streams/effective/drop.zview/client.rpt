@@ -27,26 +27,12 @@ write zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-connect "zilla://streams/app1"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-
-write zilla:begin.ext ${pgsql:beginEx()
-                              .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
-                              .parameter("database", "dev")
-                              .parameter("application_name", "psql")
-                              .parameter("client_encoding", "UTF8")
-                              .build()}
-
-connected
-
 write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-write "DROP SINK weather_sink;"
+write "DROP SINK cg_zillabase.weather_sink;"
       [0x00]
 write flush
 
@@ -63,6 +49,43 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "DELETE FROM cg_zillabase.zviews WHERE name = 'weather';"
+      [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("DELETE 0 1")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+connect "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "root")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
 
 write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))

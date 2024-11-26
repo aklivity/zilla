@@ -211,9 +211,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/drop.materialized.view/client",
-        "${app}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
+        "${app}/drop.zview/client",
+        "${app}/drop.zview/server" })
+    public void shouldDropZview() throws Exception
     {
         k3po.finish();
     }

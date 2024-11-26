@@ -13,15 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${pgsql:beginEx()
+write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
                               .parameter("user", "root")
                               .parameter("database", "dev")
@@ -31,24 +27,26 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-read zilla:data.ext ${pgsql:dataEx()
+write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read "DROP MATERIALIZED VIEW weather;"
-     [0x00]
+write "DROP ZVIEW weather;"
+      [0x00]
+write flush
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("DROP_MATERIALIZED_VIEW")
+                                .tag("DROP_ZVIEW")
                                 .build()
                               .build()}
 
-write advise zilla:flush ${pgsql:flushEx()
+read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .ready()
                                 .status("IDLE")
                                 .build()
                               .build()}
+
