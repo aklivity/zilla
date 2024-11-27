@@ -12,18 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
+package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-
-public class RisingwaveDropTableTemplate extends RisingwaveCommandTemplate
+public record Drop(
+    String schema,
+    String name)
 {
-    private final String sqlFormat = """
-        DROP TABLE %s;\u0000""";
-
-    public String generate(
-        Drop drop)
-    {
-        return String.format(sqlFormat, drop.name());
-    }
 }

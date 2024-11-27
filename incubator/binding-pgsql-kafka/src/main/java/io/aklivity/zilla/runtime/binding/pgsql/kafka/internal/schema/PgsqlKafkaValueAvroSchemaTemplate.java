@@ -39,10 +39,9 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     }
 
     public String generate(
-        String database,
         Table table)
     {
-        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
+        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, table.schema());
 
         List<AvroField> fields = table.columns().stream()
             .map(column ->

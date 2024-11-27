@@ -29,6 +29,7 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
 {
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
     private final List<AlterExpression> alterExpressions = new ArrayList<>();
 
@@ -40,13 +41,14 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
 
     public Alter alter()
     {
-        return new Alter(name, alterExpressions);
+        return new Alter(schema, name, alterExpressions);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         alterExpressions.clear();
     }
@@ -55,7 +57,10 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        name = ctx.getText();
+        String text = ctx.getText();
+        String[] split = text.split("\\.");
+        schema = split.length > 1 ? split[0] : "public";
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override

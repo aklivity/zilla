@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTop
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
@@ -119,7 +120,7 @@ public final class PgsqlParser
         return createMaterializedViewListener.view();
     }
 
-    public List<String> parseDrop(
+    public List<Drop> parseDrop(
         String sql)
     {
         parser(sql, dropListener);

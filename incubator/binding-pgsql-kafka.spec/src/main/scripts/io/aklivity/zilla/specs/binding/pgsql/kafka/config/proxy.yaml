@@ -23,7 +23,7 @@ catalogs:
       id: 1
       schema: |-
         {
-            "schema": "{\"fields\":[{\"name\":\"id\",\"type\":[\"null\",{\"type\":\"string\"}]},{\"name\":\"city\",\"type\":[\"null\",{\"type\":\"string\"}]}],\"name\":\"cities\",\"namespace\":\"dev\",\"type\":\"record\"}",
+            "schema": "{\"fields\":[{\"name\":\"id\",\"type\":[\"null\",{\"type\":\"string\"}]},{\"name\":\"city\",\"type\":[\"null\",{\"type\":\"string\"}]}],\"name\":\"cities\",\"namespace\":\"public\",\"type\":\"record\"}",
             "schemaType": "AVRO"
         }
 bindings:

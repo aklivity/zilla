@@ -45,6 +45,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
+            "public",
             "test_table",
             columns,
             Set.of("id"));
@@ -64,6 +65,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
+            "public",
             "test_table",
             columns,
             Set.of());
@@ -84,6 +86,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("name", "STRING", List.of()));
 
         Table table = new Table(
+            "public",
             "test_table",
             columns,
             Set.of("id", "name"));

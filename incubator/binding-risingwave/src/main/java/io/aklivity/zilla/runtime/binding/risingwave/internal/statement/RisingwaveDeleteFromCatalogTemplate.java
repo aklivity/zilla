@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+
 public class RisingwaveDeleteFromCatalogTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
@@ -28,8 +30,8 @@ public class RisingwaveDeleteFromCatalogTemplate extends RisingwaveCommandTempla
 
     public String generate(
         String catalog,
-        String name)
+        Drop drop)
     {
-        return String.format(sqlFormat, schema, catalog, name);
+        return String.format(sqlFormat, schema, catalog, drop.name());
     }
 }

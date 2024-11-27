@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
@@ -178,28 +179,31 @@ public class PgsqlParserTest
     public void shouldParseDropSingleTable()
     {
         String sql = "DROP TABLE test_table;";
-        List<String> drops = parser.parseDrop(sql);
+        List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(1, drops.size());
-        assertTrue(drops.contains("test_table"));
+        assertEquals("public", drops.get(0).schema());
+        assertEquals("test_table", drops.get(0).name());
     }
 
     @Test
     public void shouldParseDropMultipleTables()
     {
         String sql = "DROP TABLE table1, table2;";
-        List<String> drops = parser.parseDrop(sql);
+        List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(2, drops.size());
-        assertTrue(drops.contains("table1"));
-        assertTrue(drops.contains("table2"));
+        assertEquals("public", drops.get(0).schema());
+        assertEquals("table1", drops.get(0).name());
+        assertEquals("public", drops.get(1).schema());
+        assertEquals("table2", drops.get(1).name());
     }
 
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleEmptyDropStatement()
     {
         String sql = "DROP TABLE;";
-        List<String> drops = parser.parseDrop(sql);
+        List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(0, drops.size());
     }
@@ -207,21 +211,22 @@ public class PgsqlParserTest
     @Test
     public void shouldParseDropView()
     {
-        String sql = "DROP ZVIEW test_view;";
-        List<String> drops = parser.parseDrop(sql);
+        String sql = "DROP VIEW test_view;";
+        List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(1, drops.size());
-        assertTrue(drops.contains("test_view"));
+        assertEquals("public", drops.get(0).schema());
+        assertEquals("test_view", drops.get(0).name());
     }
 
     @Test
-    public void shouldParseDropZView()
+    public void shouldParseDropZview()
     {
         String sql = "DROP ZVIEW test_materialized_view;";
-        List<String> drops = parser.parseDrop(sql);
+        List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(1, drops.size());
-        assertTrue(drops.contains("test_materialized_view"));
+        assertTrue(drops.get(0).name().equals("test_materialized_view"));
     }
 
     @Test

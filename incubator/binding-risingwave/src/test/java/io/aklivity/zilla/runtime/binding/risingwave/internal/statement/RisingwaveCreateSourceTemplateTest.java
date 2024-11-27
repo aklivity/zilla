@@ -42,20 +42,20 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithValidStreamInfo()
     {
-        Stream stream = new Stream("test_stream", Map.of("id", "INT", "name", "STRING"));
+        Stream stream = new Stream("public", "test_stream", Map.of("id", "INT", "name", "STRING"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_stream (*)
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
-               topic='test_db.test_stream',
+               topic='public.test_stream',
                scan.startup.mode='latest',
                scan.startup.timestamp.millis='1627846260000'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource("test_db", stream);
+        String actualSQL = template.generateStreamSource(stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -70,7 +70,7 @@ public class RisingwaveCreateSourceTemplateTest
         columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
         Table table = new Table(
-            "test_table", columns, Set.of("id"));
+            "public", "test_table", columns, Set.of("id"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_table_source (*)
             INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id_header
@@ -79,14 +79,14 @@ public class RisingwaveCreateSourceTemplateTest
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
-               topic='test_db.test_table',
+               topic='public.test_table',
                scan.startup.mode='latest',
                scan.startup.timestamp.millis='1627846260000'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource("test_db", table);
+        String actualSQL = template.generateTableSource(table);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -94,20 +94,20 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithEmptyColumnsReturnsSQLWithoutIncludes()
     {
-        Stream stream = new Stream("empty_stream", Map.of());
+        Stream stream = new Stream("public", "empty_stream", Map.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_stream (*)
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
-               topic='test_db.empty_stream',
+               topic='public.empty_stream',
                scan.startup.mode='latest',
                scan.startup.timestamp.millis='1627846260000'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource("test_db", stream);
+        String actualSQL = template.generateStreamSource(stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -129,15 +129,15 @@ public class RisingwaveCreateSourceTemplateTest
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
-               topic='test_db.include_stream',
+               topic='public.include_stream',
                scan.startup.mode='latest',
                scan.startup.timestamp.millis='1627846260000'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
-        Stream stream = new Stream("include_stream", columns);
+        Stream stream = new Stream("public", "include_stream", columns);
 
-        String actualSQL = template.generateStreamSource("test_db", stream);
+        String actualSQL = template.generateStreamSource(stream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -145,20 +145,20 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithEmptyColumnsAndWithoutIncludes()
     {
-        Table table = new Table("empty_table", List.of(), Set.of());
+        Table table = new Table("public", "empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_table_source (*)
             WITH (
                connector='kafka',
                properties.bootstrap.server='localhost:9092',
-               topic='test_db.empty_table',
+               topic='public.empty_table',
                scan.startup.mode='latest',
                scan.startup.timestamp.millis='1627846260000'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource("test_db", table);
+        String actualSQL = template.generateTableSource(table);
 
         assertEquals(expectedSQL, actualSQL);
     }

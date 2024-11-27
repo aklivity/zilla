@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Signa
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -1336,10 +1337,11 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         else if (server.commandsProcessed == 0)
         {
             final Table createTopic = parser.parseCreateTable(statement);
+            final String schema = createTopic.schema();
             final String topic = createTopic.name();
 
             topics.clear();
-            topics.add(String.format("%s.%s", server.database, topic));
+            topics.add(String.format("%s.%s", schema, topic));
 
             final PgsqlKafkaBindingConfig binding = server.binding;
 
@@ -1348,7 +1350,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             if (!primaryKeys.isEmpty())
             {
                 //TODO: assign versionId to avoid test failure
-                final String subjectKey = String.format("%s.%s-key", server.database, topic);
+                final String subjectKey = String.format("%s.%s-key", schema, topic);
 
                 String keySchema = primaryKeys.size() > 1
                     ? binding.avroKeySchema.generate(server.database, createTopic)
@@ -1358,8 +1360,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             if (versionId != NO_VERSION_ID)
             {
-                final String subjectValue = String.format("%s.%s-value", server.database, topic);
-                final String schemaValue = binding.avroValueSchema.generate(server.database, createTopic);
+                final String subjectValue = String.format("%s.%s-value", schema, topic);
+                final String schemaValue = binding.avroValueSchema.generate(createTopic);
                 versionId = binding.catalog.register(subjectValue, schemaValue);
             }
 
@@ -1386,15 +1388,16 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         String statement)
     {
         final Alter alter = parser.parseAlterTable(statement);
+        final String schema = alter.schema();
         final String topic = alter.name();
 
         topics.clear();
-        topics.add(String.format("%s.%s", server.database, topic));
+        topics.add(String.format("%s.%s", schema, topic));
 
         final PgsqlKafkaBindingConfig binding = server.binding;
         final CatalogHandler catalog = binding.catalog;
 
-        final String subjectValue = String.format("%s.%s-value", server.database, topic);
+        final String subjectValue = String.format("%s.%s-value", schema, topic);
         final int schemaId = catalog.resolve(subjectValue, "latest");
         final String existingSchemaJson = catalog.resolve(schemaId);
         final String schemaValue = binding.avroValueSchema.generate(existingSchemaJson, alter);
@@ -1428,20 +1431,21 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            List<String> drops = parser.parseDrop(statement);
+            List<Drop> drops = parser.parseDrop(statement);
             drops.stream()
                 .findFirst()
                 .ifPresent(d ->
                 {
                     final PgsqlKafkaBindingConfig binding = server.binding;
-                    final String subjectKey = String.format("%s.%s-key", server.database, d);
-                    final String subjectValue = String.format("%s.%s-value", server.database, d);
+                    final String subjectKey = String.format("%s.%s-key", d.schema(), d.name());
+                    final String subjectValue = String.format("%s.%s-value", d.schema(), d.name());
 
                     binding.catalog.unregister(subjectKey);
                     binding.catalog.unregister(subjectValue);
 
                     final KafkaDeleteTopicsProxy deleteTopicsProxy = server.deleteTopicsProxy;
-                    deleteTopicsProxy.doKafkaBegin(traceId, authorization, List.of("%s.%s".formatted(server.database, d)));
+                    deleteTopicsProxy.doKafkaBegin(
+                        traceId, authorization, List.of("%s.%s".formatted(d.schema(), d.name())));
                 });
         }
     }

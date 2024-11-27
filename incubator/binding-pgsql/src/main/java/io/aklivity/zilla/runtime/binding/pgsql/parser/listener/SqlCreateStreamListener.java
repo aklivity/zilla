@@ -28,6 +28,7 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     private final Map<String, String> columns = new LinkedHashMap<>();
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
 
     public SqlCreateStreamListener(
@@ -38,7 +39,7 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
 
     public Stream stream()
     {
-        return new Stream(name, columns);
+        return new Stream(schema, name, columns);
     }
 
     @Override
@@ -53,7 +54,10 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        name = ctx.getText();
+        String text = ctx.getText();
+        String[] split = text.split("\\.");
+        schema = split.length > 1 ? split[0] : "public";
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override
