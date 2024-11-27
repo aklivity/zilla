@@ -1738,7 +1738,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id + DEFAULT_USER_HASH);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = ignoreFlushCommand;
         }
