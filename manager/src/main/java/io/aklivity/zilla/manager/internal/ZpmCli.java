@@ -19,7 +19,6 @@ import com.github.rvesse.airline.annotations.Cli;
 import com.github.rvesse.airline.help.Help;
 
 import io.aklivity.zilla.manager.internal.commands.clean.ZpmClean;
-import io.aklivity.zilla.manager.internal.commands.encrypt.ZpmEncrypt;
 import io.aklivity.zilla.manager.internal.commands.install.ZpmInstall;
 import io.aklivity.zilla.manager.internal.commands.wrap.ZpmWrap;
 
@@ -31,8 +30,7 @@ import io.aklivity.zilla.manager.internal.commands.wrap.ZpmWrap;
         Help.class,
         ZpmWrap.class,
         ZpmInstall.class,
-        ZpmClean.class,
-        ZpmEncrypt.class
+        ZpmClean.class
     })
 public final class ZpmCli
 {
