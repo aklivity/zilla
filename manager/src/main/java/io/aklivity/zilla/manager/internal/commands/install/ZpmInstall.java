@@ -74,6 +74,17 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
+import org.apache.maven.settings.Server;
+import org.apache.maven.settings.Settings;
+import org.apache.maven.settings.building.DefaultSettingsBuilder;
+import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
+import org.apache.maven.settings.building.SettingsBuildingResult;
+import org.apache.maven.settings.io.DefaultSettingsReader;
+import org.apache.maven.settings.io.DefaultSettingsWriter;
+import org.apache.maven.settings.io.SettingsReader;
+import org.apache.maven.settings.io.SettingsWriter;
+import org.apache.maven.settings.validation.DefaultSettingsValidator;
+import org.apache.maven.settings.validation.SettingsValidator;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.util.repository.AuthenticationBuilder;
@@ -86,7 +97,6 @@ import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifact;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifactId;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmCache;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmModule;
-import io.aklivity.zilla.manager.internal.settings.ZpmCredentials;
 
 @Command(
     name = "install",
@@ -148,9 +158,10 @@ public final class ZpmInstall extends ZpmCommand
             createDirectories(cacheDir);
             List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
 
+            final String home = System.getProperty("user.home");
             if (!excludeLocalRepo)
             {
-                String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
+                String localRepo = String.format("file://%s/.m2/repository", home);
                 repositories.add(0, new ZpmRepository(localRepo));
             }
 
@@ -159,7 +170,22 @@ public final class ZpmInstall extends ZpmCommand
                 repositories.removeIf(r -> !r.location.startsWith("file:"));
             }
 
-            List<RemoteRepository> remoteRepositories = getRemoteRepositories(repositories);
+            File settingsFile = new File(String.format("/%s/.m2/settings.xml", home));
+
+            SettingsReader settingsReader = new DefaultSettingsReader();
+            SettingsWriter settingsWriter = new DefaultSettingsWriter();
+            SettingsValidator settingsValidator = new DefaultSettingsValidator();
+
+            DefaultSettingsBuilder settingsBuilder = new DefaultSettingsBuilder(
+                settingsReader, settingsWriter, settingsValidator);
+            DefaultSettingsBuildingRequest request = new DefaultSettingsBuildingRequest();
+            request.setGlobalSettingsFile(settingsFile);
+            request.setUserSettingsFile(settingsFile);
+
+            SettingsBuildingResult result = settingsBuilder.build(request);
+            Settings settings = result.getEffectiveSettings();
+
+            List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
 
             ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
@@ -214,7 +240,8 @@ public final class ZpmInstall extends ZpmCommand
         }
     }
 
-    private List<RemoteRepository> getRemoteRepositories(
+    private List<RemoteRepository> asRemoteRepositories(
+        Settings settings,
         List<ZpmRepository> repositories) throws URISyntaxException
     {
         final List<RemoteRepository> remoteRepositories = new ArrayList<>();
@@ -222,13 +249,19 @@ public final class ZpmInstall extends ZpmCommand
         for (ZpmRepository repository : repositories)
         {
             final String host = new URI(repository.location).getHost();
-            RemoteRepository.Builder repoBuilder =
-                new RemoteRepository.Builder("central", "default", repository.location)
+            final RemoteRepository.Builder repoBuilder =
+                new RemoteRepository.Builder(host, "default", repository.location)
                     .setRepositoryManager(true)
-                    .setAuthentication(new AuthenticationBuilder()
-                        .addUsername("bmaidics")
-                        .addPassword("goba4055060075AA*")
-                        .build());
+                    .setId(host);
+
+            final Server server = settings.getServer(host);
+            if (server != null)
+            {
+                AuthenticationBuilder authenticationBuilder = new AuthenticationBuilder()
+                    .addUsername(server.getUsername())
+                    .addPassword(server.getPassword());
+                repoBuilder.setAuthentication(authenticationBuilder.build());
+            }
             remoteRepositories.add(repoBuilder.build());
         }
         return remoteRepositories;
@@ -817,13 +850,6 @@ public final class ZpmInstall extends ZpmCommand
                 .map(Path::toFile)
                 .forEach(File::delete);
         }
-    }
-
-    private String defaultRealmIfNecessary(
-        ZpmCredentials credentials)
-    {
-        return ofNullable(credentials.realm)
-            .orElse(DEFAULT_REALMS.get(credentials.host));
     }
 
     private static boolean atLeastVersion(

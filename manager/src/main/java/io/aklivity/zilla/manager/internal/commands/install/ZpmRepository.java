@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Objects;
 
 import jakarta.json.bind.annotation.JsonbTypeAdapter;
@@ -27,7 +25,6 @@ import io.aklivity.zilla.manager.internal.commands.install.adapters.ZpmRepositor
 public final class ZpmRepository
 {
     public String location;
-    public String host;
 
     public ZpmRepository()
     {
@@ -67,13 +64,5 @@ public final class ZpmRepository
         String location)
     {
         this.location = location;
-        try
-        {
-            this.host = new URI(location).getHost();
-        }
-        catch (URISyntaxException e)
-        {
-            throw new RuntimeException("Not valid host", e);
-        }
     }
 }
