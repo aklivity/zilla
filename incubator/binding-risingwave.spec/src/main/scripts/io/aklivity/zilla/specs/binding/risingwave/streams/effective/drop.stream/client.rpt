@@ -33,7 +33,7 @@ connect "zilla://streams/app1"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase_admin")
+                              .parameter("user", "root")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -46,7 +46,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP SOURCE zb_catalog.weather;"
+write "DROP SOURCE weather;"
       [0x00]
 write flush
 

@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP SINK cg_zillabase.weather_sink;"
+write "DROP SINK zb_catalog.weather_sink;"
       [0x00]
 write flush
 
@@ -55,7 +55,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DELETE FROM cg_zillabase.zviews WHERE name = 'weather';"
+write "DELETE FROM zb_catalog.zviews WHERE name = 'weather';"
       [0x00]
 write flush
 

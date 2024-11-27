@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
 {
-    private static final String INTERNAL_SCHEMA = "cg_zillabase";
+    private static final String INTERNAL_SCHEMA = "zb_catalog";
     private static final String PUBLIC_SCHEMA = "public";
 
     public final long id;

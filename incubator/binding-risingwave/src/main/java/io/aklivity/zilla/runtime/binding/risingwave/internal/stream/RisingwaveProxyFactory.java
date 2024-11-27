@@ -1583,7 +1583,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generateOutgress(table);
+                newStatement = binding.createSink.generateInto(table);
             }
             else if (server.commandsProcessed == 5)
             {

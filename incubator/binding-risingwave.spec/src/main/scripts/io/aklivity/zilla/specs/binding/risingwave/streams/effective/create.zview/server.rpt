@@ -34,7 +34,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SINK cg_zillabase.distinct_cities_sink\n"
+read "CREATE SINK zb_catalog.distinct_cities_sink\n"
      "FROM distinct_cities\n"
      "WITH (\n"
      "   connector='kafka',\n"
@@ -65,7 +65,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "INSERT INTO cg_zillabase.zviews (name, sql) VALUES "
+read "INSERT INTO zb_catalog.zviews (name, sql) VALUES "
       "('distinct_cities', 'CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;"
      [0x00]
       "');"

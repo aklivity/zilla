@@ -135,7 +135,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK cg_zillabase.cities_view_sink INTO cities FROM cities_view;"
+write "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM cities_view;"
       [0x00]
 write flush
 
@@ -158,12 +158,12 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK cg_zillabase.cities_sink\n"
+write "CREATE SINK zb_catalog.cities_sink\n"
       "FROM cities\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='dev.cities',\n"
+      "   topic='public.cities',\n"
       "   primary_key='id'\n"
       ") FORMAT UPSERT ENCODE AVRO (\n"
       "   schema.registry='http://localhost:8081'\n"

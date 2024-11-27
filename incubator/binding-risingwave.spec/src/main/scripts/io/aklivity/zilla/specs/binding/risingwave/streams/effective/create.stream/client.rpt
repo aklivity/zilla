@@ -33,7 +33,7 @@ connect "zilla://streams/app1"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase_admin")
+                              .parameter("user", "root")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -46,11 +46,11 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SOURCE IF NOT EXISTS zb_catalog.weather (*)\n"
+write "CREATE SOURCE IF NOT EXISTS weather (*)\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='public.weather',\n"
+      "   topic='dev.weather',\n"
       "   scan.startup.mode='latest',\n"
       "   scan.startup.timestamp.millis='140000000'\n"
       ") FORMAT PLAIN ENCODE AVRO (\n"

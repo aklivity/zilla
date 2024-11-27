@@ -13,7 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app1"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -29,32 +31,21 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-read await CREATE_TOPIC_COMPLETED
-
 read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-read  "CREATE SOURCE IF NOT EXISTS weather (*)\n"
-      "INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id\n"
-      "INCLUDE header 'zilla:identity' AS zilla_identity\n"
-      "INCLUDE timestamp AS zilla_timestamp\n"
-      "WITH (\n"
-      "   connector='kafka',\n"
-      "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='dev.weather',\n"
-      "   scan.startup.mode='latest',\n"
-      "   scan.startup.timestamp.millis='140000000'\n"
-      ") FORMAT PLAIN ENCODE AVRO (\n"
-      "   schema.registry = 'http://localhost:8081'\n"
-      ");"
+read  "CREATE STREAM IF NOT EXISTS weather "
+      "(city VARCHAR, temperature DOUBLE, date DATE,"
+      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP);"
       [0x00]
 
+
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_SOURCE")
+                                .tag("CREATE_STREAM")
                                 .build()
                               .build()}
 
@@ -64,46 +55,3 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-
-
-accept "zilla://streams/app2"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${pgsql:beginEx()
-                              .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
-                              .parameter("database", "dev")
-                              .parameter("application_name", "psql")
-                              .parameter("client_encoding", "UTF8")
-                              .build()}
-
-connected
-
-read zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .query()
-                                .build()
-                              .build()}
-read "CREATE TOPIC IF NOT EXISTS weather "
-     "(city VARCHAR, temperature DOUBLE, date DATE);"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("CREATE_TOPIC")
-                                .build()
-                              .build()}
-
-write notify CREATE_TOPIC_COMPLETED
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
-
