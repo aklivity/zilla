@@ -36,12 +36,6 @@ public abstract class ZpmCommand implements Runnable
             hidden = true)
     public Boolean silent = false;
 
-    @Option(name = { "--settings-directory" },
-            description = "settings directory",
-            typeConverterProvider = ZpmPathConverterProvider.class,
-            hidden = true)
-    public Path settingsDir = Paths.get(System.getProperty("user.home"), ".zpm");
-
     @Option(name = { "--config-directory" },
             description = "config directory",
             typeConverterProvider = ZpmPathConverterProvider.class,
