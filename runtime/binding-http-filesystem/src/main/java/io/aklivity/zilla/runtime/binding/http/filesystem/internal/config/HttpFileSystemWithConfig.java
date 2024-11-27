@@ -14,15 +14,31 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpFileSystemWithConfig extends WithConfig
 {
+    public final String directory;
     public final String path;
 
-    public HttpFileSystemWithConfig(
+    HttpFileSystemWithConfig(
+        String directory,
         String path)
     {
+        this.directory = directory;
         this.path = path;
+    }
+
+    public static HttpFileSystemWithConfigBuilder<HttpFileSystemWithConfig> builder()
+    {
+        return new HttpFileSystemWithConfigBuilder<>(HttpFileSystemWithConfig.class::cast);
+    }
+
+    public static <T> HttpFileSystemWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new HttpFileSystemWithConfigBuilder<>(mapper);
     }
 }

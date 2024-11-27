@@ -18,21 +18,29 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String16
 
 public class HttpFileSystemWithResult
 {
+    private final String16FW directory;
     private final String16FW path;
     private final int capabilities;
     private final String16FW tag;
     private final long timeout;
 
     HttpFileSystemWithResult(
+        String16FW directory,
         String16FW path,
         int capabilities,
         String16FW tag,
         long timeout)
     {
+        this.directory = directory;
         this.path = path;
         this.capabilities = capabilities;
         this.tag = tag;
         this.timeout = timeout;
+    }
+
+    public String16FW directory()
+    {
+        return directory;
     }
 
     public String16FW path()

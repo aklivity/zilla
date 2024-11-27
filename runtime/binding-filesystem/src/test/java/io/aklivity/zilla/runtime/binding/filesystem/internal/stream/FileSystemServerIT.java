@@ -353,4 +353,87 @@ public class FileSystemServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/read.directory/client",
+    })
+    public void shouldReadDirectory() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path varDirectory = targetDirectory.resolve("var");
+        Files.createDirectories(varDirectory);
+        Path indexFile = varDirectory.resolve("index.html");
+
+        Files.createDirectories(targetDirectory);
+
+        Files.write(indexFile, """
+            <html>
+            <head><title>Welcome</title></head>
+            <body>Hello, world</body>
+            </html>
+            """.getBytes());
+
+        k3po.finish();
+
+        Files.delete(indexFile);
+        Files.delete(varDirectory);
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/read.directory.empty/client",
+    })
+    public void shouldReadDirectoryEmpty() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path varDirectory = targetDirectory.resolve("var");
+        Files.createDirectories(varDirectory);
+
+        k3po.finish();
+
+        Files.delete(varDirectory);
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/read.directory.failed/client",
+    })
+    public void shouldRejectReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/create.directory/client",
+    })
+    public void shouldCreateDirectory() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path varDirectory = targetDirectory.resolve("var");
+
+        k3po.finish();
+
+        Files.delete(varDirectory);
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/delete.directory/client",
+    })
+    public void shouldDeleteDirectory() throws Exception
+    {
+        Path targetDirectory = Paths.get("target/files").toAbsolutePath();
+        Path varDirectory = targetDirectory.resolve("var");
+
+        Files.createDirectory(varDirectory);
+
+        k3po.finish();
+    }
 }

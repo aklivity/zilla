@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
+    private static final String DIRECTORY_NAME = "directory";
 
     @Override
     public String type()
@@ -50,8 +51,12 @@ public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterS
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String newPath = object.getString(PATH_NAME);
+        String directory = object.containsKey(DIRECTORY_NAME) ? object.getString(DIRECTORY_NAME) : null;
+        String path = object.containsKey(PATH_NAME) ? object.getString(PATH_NAME) : null;
 
-        return new HttpFileSystemWithConfig(newPath);
+        return HttpFileSystemWithConfig.builder()
+            .directory(directory)
+            .path(path)
+            .build();
     }
 }

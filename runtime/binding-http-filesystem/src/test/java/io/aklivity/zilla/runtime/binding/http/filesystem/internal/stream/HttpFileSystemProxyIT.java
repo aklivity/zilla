@@ -254,4 +254,14 @@ public class HttpFileSystemProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.with.directory.dynamic.yaml")
+    @Specification({
+        "${http}/client.read.directory/client",
+        "${filesystem}/client.read.directory/server"})
+    public void shouldReceiveClientReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
 }

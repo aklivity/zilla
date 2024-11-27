@@ -17,6 +17,7 @@ module io.aklivity.zilla.runtime.binding.filesystem
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.filesystem.config;
+    exports io.aklivity.zilla.runtime.binding.filesystem.model;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBindingFactorySpi;

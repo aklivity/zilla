@@ -55,7 +55,7 @@ public class HttpFileSystemWithConfigAdapterTest
     @Test
     public void shouldWriteWithTopic()
     {
-        HttpFileSystemWithConfig with = new HttpFileSystemWithConfig("test");
+        HttpFileSystemWithConfig with = HttpFileSystemWithConfig.builder().path("test").build();
 
         String text = jsonb.toJson(with);
 

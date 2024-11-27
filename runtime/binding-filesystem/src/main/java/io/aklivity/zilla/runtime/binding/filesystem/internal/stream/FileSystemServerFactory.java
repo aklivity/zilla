@@ -15,7 +15,10 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemSymbolicLinksConfig.IGNORE;
-import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_ALREADY_EXISTS;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.DIRECTORY_EXISTS;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.DIRECTORY_NOT_EMPTY;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.DIRECTORY_NOT_FOUND;
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_EXISTS;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_MODIFIED;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_TAG_MISSING;
@@ -32,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.channels.ByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -44,6 +48,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -70,6 +78,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSy
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -84,15 +93,20 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
-    private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
-    private static final int WRITE_PAYLOAD_MASK = 1 << FileSystemCapabilities.WRITE_PAYLOAD.ordinal();
-    private static final int CREATE_PAYLOAD_MASK = 1 << FileSystemCapabilities.CREATE_PAYLOAD.ordinal();
-    private static final int DELETE_PAYLOAD_MASK = 1 << FileSystemCapabilities.DELETE_PAYLOAD.ordinal();
+    private static final int READ_FILE_MASK = 1 << FileSystemCapabilities.READ_FILE.ordinal();
+    private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
+    private static final int CREATE_FILE_MASK = 1 << FileSystemCapabilities.CREATE_FILE.ordinal();
+    private static final int DELETE_FILE_MASK = 1 << FileSystemCapabilities.DELETE_FILE.ordinal();
+    private static final int READ_DIRECTORY_MASK = 1 << FileSystemCapabilities.READ_DIRECTORY.ordinal();
+    private static final int CREATE_DIRECTORY_MASK = 1 << FileSystemCapabilities.CREATE_DIRECTORY.ordinal();
+    private static final int DELETE_DIRECTORY_MASK = 1 << FileSystemCapabilities.DELETE_DIRECTORY.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
+    private static final String DIRECTORY_NAME = "directory";
+    private static final String FILE_NAME = "file";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -122,6 +136,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer errorBuffer;
     private final MutableDirectBuffer readBuffer;
+    private final MutableDirectBuffer directoryBuffer;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
@@ -145,6 +160,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.readBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.errorBuffer = new UnsafeBuffer(new byte[1]);
+        this.directoryBuffer = new UnsafeBuffer();
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
@@ -199,10 +215,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final LinkOption[] symlinks = options.symlinks == IGNORE ? LINK_OPTIONS_NOFOLLOW : LINK_OPTIONS_NONE;
 
             final int capabilities = beginEx.capabilities();
+            final String relativeDir = beginEx.directory().asString();
+            final String resolvedDir = resolvedRoot.resolve(relativeDir != null ? relativeDir : "").getPath();
             final String relativePath = beginEx.path().asString();
-            final String resolvedPath = resolvedRoot.resolve(relativePath).getPath();
 
-            final Path path = fileSystem.getPath(resolvedPath);
+            final Path path = fileSystem.getPath(resolvedDir).resolve(relativePath != null ? relativePath : "");
+            final String resolvedPath = path.toAbsolutePath().toString();
+
             final String tag = beginEx.tag().asString();
             try
             {
@@ -216,6 +235,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         initialId,
                         type,
                         symlinks,
+                        relativeDir,
                         relativePath,
                         resolvedPath,
                         capabilities,
@@ -233,6 +253,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                             initialId,
                             type,
                             symlinks,
+                            relativeDir,
                             relativePath,
                             resolvedPath,
                             capabilities,
@@ -280,6 +301,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long initialId;
         private final long replyId;
         private final String type;
+        private final String relativeDir;
         private final String relativePath;
         private final Path resolvedPath;
         private final int capabilities;
@@ -311,6 +333,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             long initialId,
             String type,
             LinkOption[] symlinks,
+            String relativeDir,
             String relativePath,
             String resolvedPath,
             int capabilities,
@@ -323,6 +346,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.type = type;
             this.symlinks = symlinks;
+            this.relativeDir = relativeDir;
             this.relativePath = relativePath;
             this.resolvedPath = Paths.get(resolvedPath);
             this.capabilities = capabilities;
@@ -405,7 +429,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             }
         }
 
-        private BasicFileAttributes getAttributes()
+        private BasicFileAttributes readAttributes()
         {
             BasicFileAttributes attributes = null;
             try
@@ -585,21 +609,23 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             int capabilities)
         {
             state = FileSystemState.openingReply(state);
-            attributes = getAttributes();
-            long size = 0L;
-            if (attributes != null)
-            {
-                size = attributes.size();
-            }
-            Flyweight extension = beginExRW
+            attributes = readAttributes();
+
+            long size = (capabilities & READ_DIRECTORY_MASK) == 0 && attributes != null
+                ? attributes.size()
+                : FileSystemBeginExFW.Builder.DEFAULT_PAYLOAD_SIZE;
+
+            FileSystemBeginExFW extension = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
+                .directory(relativeDir)
                 .path(relativePath)
                 .type(type)
                 .payloadSize(size)
                 .tag(tag)
                 .build();
+
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
@@ -674,57 +700,108 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             if (replyWin > 0)
             {
-                InputStream input = getInputStream();
-
                 try
                 {
-                    if (input != null)
+                    if (canReadDirectory(capabilities))
                     {
-                        input.skip(replyBytes);
-                    }
-
-                    int available = input != null ? input.available() : 0;
-
-                    if (available > 0)
-                    {
-                        int reserved = Math.min(replyWin, available + replyPad);
-                        int length = Math.max(reserved - replyPad, 0);
-
-                        if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                        try (Jsonb jsonb = JsonbBuilder.create();
+                             Stream<Path> list = Files.list(resolvedPath))
                         {
-                            final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
-                            reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
-                            length = Math.max(reserved - replyPad, 0);
-                        }
+                            String response = jsonb.toJson(
+                                list.map(path -> new FileSystemObject(
+                                        path.getFileName().toString(),
+                                        Files.isDirectory(path) ? DIRECTORY_NAME : FILE_NAME))
+                                    .toList());
+                            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+                            int size = responseBytes.length;
 
-                        if (length > 0)
-                        {
-                            final byte[] readArray = readBuffer.byteArray();
-                            int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-                            if (bytesRead != -1)
+                            if (size > 0)
                             {
-                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                                directoryBuffer.wrap(responseBytes);
 
-                                doAppData(traceId, reserved, payload);
+                                int reserved = Math.min(replyWin, size + replyPad);
+                                int length = Math.max(reserved - replyPad, 0);
 
-                                replyBytes += bytesRead;
-
-                                if (replyBytes == attributes.size())
+                                if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
                                 {
-                                    input.close();
-                                    input = null;
-                                    replyBytes = 0;
+                                    final int minimum = Math.min(bufferPool.slotCapacity(), reserved);
+                                    reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                    length = Math.max(reserved - replyPad, 0);
                                 }
+
+                                if (length > 0)
+                                {
+                                    OctetsFW payload = payloadRO.wrap(directoryBuffer, 0, size);
+
+                                    doAppData(traceId, reserved, payload);
+
+                                    replyBytes += size;
+
+                                    if (replyBytes == size)
+                                    {
+                                        replyBytes = 0;
+                                        doAppEnd(traceId);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                doAppEnd(traceId);
                             }
                         }
                     }
-
-                    if (available <= 0 || input == null)
+                    else
                     {
-                        doAppEnd(traceId);
+                        InputStream input = getInputStream();
+
+                        if (input != null)
+                        {
+                            input.skip(replyBytes);
+                        }
+
+                        int available = input != null ? input.available() : 0;
+
+                        if (available > 0)
+                        {
+                            int reserved = Math.min(replyWin, available + replyPad);
+                            int length = Math.max(reserved - replyPad, 0);
+
+                            if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                            {
+                                final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
+                                reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
+                                length = Math.max(reserved - replyPad, 0);
+                            }
+
+                            if (length > 0)
+                            {
+                                final byte[] readArray = readBuffer.byteArray();
+                                int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
+                                if (bytesRead != -1)
+                                {
+                                    OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+
+                                    doAppData(traceId, reserved, payload);
+
+                                    replyBytes += bytesRead;
+
+                                    if (replyBytes == attributes.size())
+                                    {
+                                        input.close();
+                                        input = null;
+                                        replyBytes = 0;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (available <= 0 || input == null)
+                        {
+                            doAppEnd(traceId);
+                        }
                     }
                 }
-                catch (IOException ex)
+                catch (Exception ex)
                 {
                     doAppAbort(traceId);
                 }
@@ -740,6 +817,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long initialId;
         private final long replyId;
         private final String type;
+        private final String relativeDir;
         private final String relativePath;
         private final Path resolvedPath;
         private final int capabilities;
@@ -767,6 +845,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             long initialId,
             String type,
             LinkOption[] symlinks,
+            String relativeDir,
             String relativePath,
             String resolvedPath,
             int capabilities,
@@ -779,6 +858,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.type = type;
             this.symlinks = symlinks;
+            this.relativeDir = relativeDir;
             this.relativePath = relativePath;
             this.resolvedPath = Paths.get(resolvedPath);
             this.capabilities = capabilities;
@@ -841,13 +921,43 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openingInitial(state);
 
+            FileSystemError error = detectErrorCondition(traceId);
+
+            if (error != null)
+            {
+                errorExRW.wrap(errorBuffer, 0, errorBuffer.capacity()).set(error);
+
+                FileSystemResetExFW extension = resetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(fileSystemTypeId)
+                    .error(errorExRW.build())
+                    .build();
+
+                doAppReset(traceId, extension);
+            }
+            else
+            {
+                processOperation(traceId);
+            }
+        }
+
+        private FileSystemError detectErrorCondition(
+            long traceId)
+        {
             FileSystemError error = null;
 
-            if ((capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.exists(resolvedPath))
+            if ((capabilities & CREATE_FILE_MASK) != 0)
             {
-                error = FILE_ALREADY_EXISTS;
+                if (Files.notExists(resolvedPath.getParent()))
+                {
+                    error = DIRECTORY_NOT_FOUND;
+                }
+                else if (Files.exists(resolvedPath))
+                {
+                    error = FILE_EXISTS;
+                }
             }
-            else if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+            else if ((capabilities & WRITE_FILE_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
@@ -862,7 +972,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     error = FILE_MODIFIED;
                 }
             }
-            else if ((capabilities & DELETE_PAYLOAD_MASK) != 0)
+            else if ((capabilities & DELETE_FILE_MASK) != 0)
             {
                 if (Files.notExists(resolvedPath))
                 {
@@ -873,26 +983,33 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     error = FILE_MODIFIED;
                 }
+            }
+            else if ((capabilities & CREATE_DIRECTORY_MASK) != 0 && Files.exists(resolvedPath))
+            {
+                error = DIRECTORY_EXISTS;
+            }
+            else if ((capabilities & DELETE_DIRECTORY_MASK) != 0)
+            {
+                if (Files.notExists(resolvedPath))
+                {
+                    error = DIRECTORY_NOT_FOUND;
+                }
                 else
                 {
-                    delete(traceId);
+                    try (Stream<Path> files = Files.list(resolvedPath))
+                    {
+                        if (files.findAny().isPresent())
+                        {
+                            error = DIRECTORY_NOT_EMPTY;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        cleanup(traceId);
+                    }
                 }
             }
-
-            if (error != null)
-            {
-                errorExRW.wrap(errorBuffer, 0, errorBuffer.capacity()).set(error);
-
-                FileSystemResetExFW extension = resetExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(fileSystemTypeId)
-                    .error(errorExRW.build())
-                    .build();
-
-                doAppReset(traceId, extension);
-            }
-
-            doAppWindow(traceId);
+            return error;
         }
 
         private void onAppData(
@@ -936,7 +1053,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     {
                         out.close();
 
-                        if ((capabilities & WRITE_PAYLOAD_MASK) != 0)
+                        if ((capabilities & WRITE_FILE_MASK) != 0)
                         {
                             Files.move(tmpPath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE);
                         }
@@ -1056,6 +1173,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
+                .directory(relativeDir)
                 .path(relativePath)
                 .tag(tag)
                 .build();
@@ -1199,15 +1317,30 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             return output;
         }
 
-        private void delete(
+        private void processOperation(
             long traceId)
         {
             try
             {
-                Files.delete(resolvedPath);
+                boolean processed = false;
+                if ((capabilities & DELETE_FILE_MASK) != 0 || (capabilities & DELETE_DIRECTORY_MASK) != 0)
+                {
+                    Files.delete(resolvedPath);
+                    processed = true;
+                }
+                else if ((capabilities & CREATE_DIRECTORY_MASK) != 0)
+                {
+                    Files.createDirectory(resolvedPath);
+                    processed = true;
+                }
+
                 doAppWindow(traceId);
-                doAppBegin(traceId, null);
-                doAppEnd(traceId);
+
+                if (processed)
+                {
+                    doAppBegin(traceId, null);
+                    doAppEnd(traceId);
+                }
             }
             catch (IOException ex)
             {
@@ -1391,35 +1524,43 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private boolean canReadPayload(
         int capabilities)
     {
-        return (capabilities & READ_PAYLOAD_MASK) != 0;
+        return (capabilities & READ_FILE_MASK) != 0;
+    }
+
+    private boolean canReadDirectory(
+        int capabilities)
+    {
+        return (capabilities & READ_DIRECTORY_MASK) != 0;
     }
 
     private boolean canWritePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & WRITE_PAYLOAD_MASK) != 0 && Files.exists(path);
+        return (capabilities & WRITE_FILE_MASK) != 0 && Files.exists(path);
     }
 
     private boolean canCreatePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & CREATE_PAYLOAD_MASK) != 0 && Files.notExists(path);
+        return (capabilities & CREATE_FILE_MASK) != 0 && Files.notExists(path);
     }
 
     private boolean canDeletePayload(
         int capabilities,
         Path path)
     {
-        return (capabilities & DELETE_PAYLOAD_MASK) != 0 && Files.exists(path);
+        return (capabilities & DELETE_FILE_MASK) != 0 && Files.exists(path);
     }
 
     private boolean writeOperation(
         int capabilities)
     {
-        return (capabilities & CREATE_PAYLOAD_MASK) != 0 ||
-            (capabilities & WRITE_PAYLOAD_MASK) != 0 ||
-            (capabilities & DELETE_PAYLOAD_MASK) != 0;
+        return (capabilities & CREATE_FILE_MASK) != 0 ||
+            (capabilities & WRITE_FILE_MASK) != 0 ||
+            (capabilities & DELETE_FILE_MASK) != 0 ||
+            (capabilities & CREATE_DIRECTORY_MASK) != 0 ||
+            (capabilities & DELETE_DIRECTORY_MASK) != 0;
     }
 }

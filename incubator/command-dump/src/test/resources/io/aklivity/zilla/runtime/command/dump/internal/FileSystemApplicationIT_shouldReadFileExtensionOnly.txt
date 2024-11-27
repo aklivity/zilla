@@ -1,7 +1,7 @@
-Frame 1: 250 bytes on wire (2000 bits), 250 bytes captured (2000 bits)
+Frame 1: 252 bytes on wire (2016 bits), 252 bytes captured (2016 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 176
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 178
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -29,10 +29,19 @@ Zilla Frame
     Extension: filesystem
         Stream Type ID: 0x9eaae6e4
         Stream Type: filesystem
-        Capabilities: 0x00000002
-            .... .... .... .... .... .... .... ...0 = READ_PAYLOAD: Not set (0)
-            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
-            .... .... .... .... .... .... .... .0.. = READ_CHANGES: Not set (0)
+        Capabilities: 0x00000080
+            .... .... .... .... .... .... .... ...0 = CREATE_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... .... ..0. = CREATE_FILE: Not set (0)
+            .... .... .... .... .... .... .... .0.. = DELETE_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... .... 0... = DELETE_FILE: Not set (0)
+            .... .... .... .... .... .... ...0 .... = READ_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... ..0. .... = READ_FILE: Not set (0)
+            .... .... .... .... .... .... .0.. .... = READ_FILE_CHANGES: Not set (0)
+            .... .... .... .... .... .... 1... .... = READ_METADATA: Set (1)
+            .... .... .... .... .... ...0 .... .... = WRITE_FILE: Not set (0)
+        Directory: 
+            Length: -1
+            Directory: 
         Path: index.html
             Length: 10
             Path: index.html
@@ -48,7 +57,7 @@ Zilla Frame
 Frame 2: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 176, Ack: 1, Len: 137
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 178, Ack: 1, Len: 137
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
@@ -82,7 +91,7 @@ Zilla Frame
 Frame 3: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 313, Ack: 1, Len: 120
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 315, Ack: 1, Len: 120
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
@@ -107,10 +116,10 @@ Zilla Frame
     Trace ID: 0x8000000000000003
     Authorization: 0x0000000000000000
 
-Frame 4: 259 bytes on wire (2072 bits), 259 bytes captured (2072 bits)
+Frame 4: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 433, Len: 185
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 435, Len: 187
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -138,10 +147,19 @@ Zilla Frame
     Extension: filesystem
         Stream Type ID: 0x9eaae6e4
         Stream Type: filesystem
-        Capabilities: 0x00000002
-            .... .... .... .... .... .... .... ...0 = READ_PAYLOAD: Not set (0)
-            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
-            .... .... .... .... .... .... .... .0.. = READ_CHANGES: Not set (0)
+        Capabilities: 0x00000080
+            .... .... .... .... .... .... .... ...0 = CREATE_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... .... ..0. = CREATE_FILE: Not set (0)
+            .... .... .... .... .... .... .... .0.. = DELETE_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... .... 0... = DELETE_FILE: Not set (0)
+            .... .... .... .... .... .... ...0 .... = READ_DIRECTORY: Not set (0)
+            .... .... .... .... .... .... ..0. .... = READ_FILE: Not set (0)
+            .... .... .... .... .... .... .0.. .... = READ_FILE_CHANGES: Not set (0)
+            .... .... .... .... .... .... 1... .... = READ_METADATA: Set (1)
+            .... .... .... .... .... ...0 .... .... = WRITE_FILE: Not set (0)
+        Directory: 
+            Length: -1
+            Directory: 
         Path: index.html
             Length: 10
             Path: index.html
@@ -157,7 +175,7 @@ Zilla Frame
 Frame 5: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 186, Ack: 433, Len: 120
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 188, Ack: 435, Len: 120
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
@@ -185,7 +203,7 @@ Zilla Frame
 Frame 6: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 306, Ack: 433, Len: 137
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 308, Ack: 435, Len: 137
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW

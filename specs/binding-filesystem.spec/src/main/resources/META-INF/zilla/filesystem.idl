@@ -16,12 +16,15 @@ scope filesystem
 {
     enum FileSystemCapabilities
     {
-        READ_PAYLOAD,
-        READ_EXTENSION,
-        READ_CHANGES,
-        CREATE_PAYLOAD,
-        WRITE_PAYLOAD,
-        DELETE_PAYLOAD
+        CREATE_DIRECTORY,
+        CREATE_FILE,
+        DELETE_DIRECTORY,
+        DELETE_FILE,
+        READ_DIRECTORY,
+        READ_FILE,
+        READ_FILE_CHANGES,
+        READ_METADATA,
+        WRITE_FILE
     }
 
     scope stream
@@ -29,17 +32,21 @@ scope filesystem
         enum FileSystemError
         {
             FILE_NOT_FOUND,
-            FILE_ALREADY_EXISTS,
+            FILE_EXISTS,
             FILE_MODIFIED,
-            FILE_TAG_MISSING
+            FILE_TAG_MISSING,
+            DIRECTORY_EXISTS,
+            DIRECTORY_NOT_FOUND,
+            DIRECTORY_NOT_EMPTY
         }
 
         struct FileSystemBeginEx extends core::stream::Extension
         {
             int32 capabilities = 3;
-            string16 path;
+            string16 directory = null;
+            string16 path = null;
             string16 type = null;
-            int64 payloadSize = 0;
+            int64 payloadSize = -1;
             string16 tag = null;
             int64 timeout = 0;
         }

@@ -2,7 +2,22 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.101...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.102...HEAD)
+
+**Fixed bugs:**
+
+- Mqtt selecting incorrect publish stream [\#1327](https://github.com/aklivity/zilla/issues/1327)
+
+**Merged pull requests:**
+
+- resolve nested `$ref` in schema [\#1337](https://github.com/aklivity/zilla/pull/1337) ([ankitk-me](https://github.com/ankitk-me))
+- Enhance test vault and test exporter [\#1333](https://github.com/aklivity/zilla/pull/1333) ([jfallows](https://github.com/jfallows))
+- validate `begin` frame type for `ws` client [\#1332](https://github.com/aklivity/zilla/pull/1332) ([ankitk-me](https://github.com/ankitk-me))
+- Support `directory` syntax & functionality [\#1323](https://github.com/aklivity/zilla/pull/1323) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.102](https://github.com/aklivity/zilla/tree/0.9.102) (2024-11-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.101...0.9.102)
 
 **Implemented enhancements:**
 

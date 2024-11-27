@@ -57,7 +57,9 @@ public class HttpFileSystemConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        HttpFileSystemConditionConfig condition = new HttpFileSystemConditionConfig("/test");
+        HttpFileSystemConditionConfig condition = HttpFileSystemConditionConfig.builder()
+            .path("/test")
+            .build();
 
         String text = jsonb.toJson(condition);
 
