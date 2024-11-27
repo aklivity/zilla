@@ -161,7 +161,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.ALTER_STREAM_COMMAND, this::decodeAlterStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_TABLE_COMMAND, this::decodeDropTableCommand);
-        clientTransforms.put(RisingwaveCommandType.DROP_MATERIALIZED_VIEW_COMMAND, this::decodeDropMaterializedViewCommand);
+        clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -1583,11 +1583,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generate(table);
+                newStatement = binding.createSink.generateOutgress(table);
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.createSink.generate(server.database, table);
+                newStatement = binding.createSink.generateOutgress(table);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1685,7 +1685,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             else if (server.commandsProcessed == 3)
             {
                 user = ZILLABASE_USER_HASH;
-                newStatement = binding.createSink.generate("public", server.columns, view);
+                newStatement = binding.createSink.generateOutgress(server.columns, view);
             }
             else if (server.commandsProcessed == 4)
             {
@@ -1945,17 +1945,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
     }
 
-    private void decodeDropMaterializedViewCommand(
+    private void decodeDropZviewCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 3)
+        if (server.commandsProcessed == 4)
         {
             final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length,
-                RisingwaveCompletionCommand.DROP_MATERIALIZED_VIEW_COMMAND);
+                RisingwaveCompletionCommand.DROP_ZVIEW_COMMAND);
         }
         else
         {
@@ -1965,15 +1965,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             String newStatement = "";
             int progress = 0;
 
+            int user = DEFAULT_USER_HASH;
             if (server.commandsProcessed == 0)
             {
                 newStatement = binding.dropTopic.generate(view);
             }
             else if (server.commandsProcessed == 1)
             {
+                user = ZILLABASE_USER_HASH;
                 newStatement = binding.dropSink.generate(view);
             }
             else if (server.commandsProcessed == 2)
+            {
+                user = ZILLABASE_USER_HASH;
+                newStatement = binding.catalogDelete.generate(ZVIEW_TABLE_NAME, view);
+            }
+            else if (server.commandsProcessed == 3)
             {
                 newStatement = binding.dropMaterializedView.generate(view);
             }
@@ -1984,7 +1991,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, progress);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id + DEFAULT_USER_HASH);
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id + user);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.completionCommand = ignoreFlushCommand;
         }
@@ -2010,7 +2017,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final RisingwaveRouteConfig route =
                 server.binding.resolve(authorization, statementBuffer, 0, length);
 
-            final PgsqlClient client = server.streamsByRouteIds.get(route.id);
+            final PgsqlClient client = server.streamsByRouteIds.get(route.id + DEFAULT_USER_HASH);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, length);
             client.completionCommand = proxyFlushCommand;
         }

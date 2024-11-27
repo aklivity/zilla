@@ -235,9 +235,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/drop.materialized.view/client",
-        "${effective}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
+        "${pgsql}/drop.zview/client",
+        "${effective}/drop.zview/server" })
+    public void shouldDropZview() throws Exception
     {
         k3po.finish();
     }

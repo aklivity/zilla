@@ -135,7 +135,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK cities_view_sink INTO cities FROM cities_view;"
+write "CREATE SINK cg_zillabase.cities_view_sink INTO cities FROM cities_view;"
       [0x00]
 write flush
 
@@ -158,7 +158,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK cities_sink\n"
+write "CREATE SINK cg_zillabase.cities_sink\n"
       "FROM cities\n"
       "WITH (\n"
       "   connector='kafka',\n"

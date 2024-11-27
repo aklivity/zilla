@@ -14,28 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
-public class RisingwaveDropSinkTemplate extends RisingwaveCommandTemplate
+public class RisingwaveDeleteFromCatalogTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        DROP SINK %s.%s%s;\u0000""";
+        DELETE FROM %s.%s WHERE name = '%s';\u0000""";
     private final String schema;
 
-    public RisingwaveDropSinkTemplate(
+    public RisingwaveDeleteFromCatalogTemplate(
         String schema)
     {
         this.schema = schema;
     }
 
     public String generate(
-        String drop)
+        String catalog,
+        String name)
     {
-        return generate(drop, "_sink");
-    }
-
-    public String generate(
-        String drop,
-        String suffix)
-    {
-        return String.format(sqlFormat, schema, drop, suffix);
+        return String.format(sqlFormat, schema, catalog, name);
     }
 }

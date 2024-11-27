@@ -51,8 +51,7 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         this.schemaRegistry = schemaRegistry;
     }
 
-    public String generate(
-        String schema,
+    public String generateOutgress(
         Map<String, String> columns,
         View view)
     {
@@ -72,25 +71,24 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
-        return String.format(sqlKafkaFormat, this.schema, viewName, viewName, bootstrapServer,
+        return String.format(sqlKafkaFormat, schema, viewName, viewName, bootstrapServer,
             schema, viewName, primaryKey, schemaRegistry);
     }
 
-    public String generate(
-        String schema,
+    public String generateOutgress(
         Table tableInfo)
     {
         String table = tableInfo.name();
 
-        return String.format(sqlKafkaFormat, this.schema, table, table, bootstrapServer, schema, table,
+        return String.format(sqlKafkaFormat, schema, table, table, bootstrapServer, schema, table,
             primaryKeyFormat.formatted(tableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
     }
 
-    public String generate(
+    public String generateInto(
         Table tableInfo)
     {
         String table = tableInfo.name();
 
-        return String.format(sqlFormat, table, table, table);
+        return String.format(sqlFormat, schema, table, table, table);
     }
 }
