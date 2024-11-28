@@ -255,6 +255,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private final List<String> columnTypes;
         private final List<String> columnDescriptions;
         private final Map<String, String> columns;
+        private final String user;
 
         private final long initialId;
         private final long replyId;
@@ -316,6 +317,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long clientId = risingwaveRouteId + ZILLABASE_USER_HASH;
             streamsByRouteIds.put(clientId,
                 new PgsqlClient(this, routedId, risingwaveRouteId, clientId, ZILLABASE_USER));
+
+            String userValue = parameters.get("user\u0000");
+            this.user = userValue.substring(0, userValue.length() - 1);
 
         }
 
@@ -1548,7 +1552,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 6 ||
+        if (server.commandsProcessed == 7 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
@@ -1582,9 +1586,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generateInto(table);
+                newStatement = binding.grantSource.generate("TABLE", table.schema(), table.name(), server.user);
             }
             else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.createSink.generateInto(table);
+            }
+            else if (server.commandsProcessed == 6)
             {
                 newStatement = binding.createSink.generateOutgress(table);
             }
