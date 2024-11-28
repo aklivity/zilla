@@ -97,7 +97,7 @@ connect "zilla://streams/app1"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "app")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -111,7 +111,7 @@ connect "zilla://streams/app2"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "app")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")

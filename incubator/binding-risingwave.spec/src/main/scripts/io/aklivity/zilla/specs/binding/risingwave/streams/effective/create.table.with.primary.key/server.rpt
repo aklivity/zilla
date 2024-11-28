@@ -112,7 +112,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "GRANT ALL PRIVILEGES ON TABLE public.cities TO root;"
+read "GRANT ALL PRIVILEGES ON TABLE public.cities TO app;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -186,7 +186,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "app")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -202,7 +202,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "app")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
