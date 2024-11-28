@@ -181,9 +181,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "INSERT INTO zb_catalog.zviews (name, sql) VALUES "
-      "('distinct_cities', 'CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;"
-     [0x00]
-      "');"
+      "('distinct_cities', 'CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;');"
      [0x00]
 write flush
 
