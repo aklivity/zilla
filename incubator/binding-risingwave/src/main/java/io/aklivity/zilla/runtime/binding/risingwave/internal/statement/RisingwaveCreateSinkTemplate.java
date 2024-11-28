@@ -55,6 +55,7 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         Map<String, String> columns,
         View view)
     {
+        String topicSchema = view.schema();
         String viewName = view.name();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
@@ -71,18 +72,17 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
-        // TODO: Replace 'public' with actual schema
         return String.format(sqlKafkaFormat, schema, viewName, viewName, bootstrapServer,
-            "public", viewName, primaryKey, schemaRegistry);
+            topicSchema, viewName, primaryKey, schemaRegistry);
     }
 
     public String generateOutgress(
         Table tableInfo)
     {
+        String topicSchema = tableInfo.schema();
         String table = tableInfo.name();
 
-        // TODO: Replace 'public' with actual schema
-        return String.format(sqlKafkaFormat, schema, table, table, bootstrapServer, "public", table,
+        return String.format(sqlKafkaFormat, schema, table, table, bootstrapServer, topicSchema, table,
             primaryKeyFormat.formatted(tableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
     }
 
