@@ -55,6 +55,30 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "GRANT ALL PRIVILEGES ON FUNCTION public.gcd TO root;"
+     [0x00]
+write flush
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("GRANT_PRIVILEGES")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
 connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"

@@ -1721,7 +1721,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 1 ||
+        if (server.commandsProcessed == 2 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
@@ -1738,6 +1738,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             if (server.commandsProcessed == 0)
             {
                 newStatement = binding.createFunction.generate(function);
+            }
+            else if (server.commandsProcessed == 1)
+            {
+                newStatement = binding.grantSource.generate("FUNCTION", function.schema(), function.name(), server.user);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
