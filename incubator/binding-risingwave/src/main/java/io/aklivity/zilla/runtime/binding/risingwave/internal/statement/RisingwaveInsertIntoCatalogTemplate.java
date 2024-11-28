@@ -32,6 +32,7 @@ public class RisingwaveInsertIntoCatalogTemplate extends RisingwaveCommandTempla
         String statement)
     {
         statement = statement.replace("ZVIEW", "MATERIALIZED VIEW");
+        statement = statement.replace("\u0000", "");
         return String.format(sqlFormat, schema, catalog, name, statement);
     }
 }
