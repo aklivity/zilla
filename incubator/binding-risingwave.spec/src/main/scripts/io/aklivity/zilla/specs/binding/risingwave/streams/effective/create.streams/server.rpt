@@ -29,18 +29,6 @@ read zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
-accepted
-
-read zilla:begin.ext ${pgsql:beginEx()
-                              .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
-                              .parameter("database", "dev")
-                              .parameter("application_name", "psql")
-                              .parameter("client_encoding", "UTF8")
-                              .build()}
-
-connected
-
 read await CREATE_TOPIC_COMPLETED
 
 read zilla:data.ext ${pgsql:dataEx()
@@ -105,6 +93,17 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+accepted
+
+read zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "root")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
 
 accept "zilla://streams/app2"
     option zilla:window 8192
