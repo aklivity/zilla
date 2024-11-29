@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
@@ -23,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -36,14 +34,14 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "SELECT * FROM balances;"
+read "SELECT * FROM zb_catalog.zviews;"
 read [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .type()
                                 .column()
-                                    .name("balance")
+                                    .name("name")
                                     .tableOid(0)
                                     .index(0)
                                     .typeOid(701)
@@ -52,20 +50,11 @@ write advise zilla:flush ${pgsql:flushEx()
                                     .format("TEXT")
                                     .build()
                                 .column()
-                                    .name("timestamp")
+                                    .name("sql")
                                     .tableOid(0)
                                     .index(0)
                                     .typeOid(20)
                                     .length(8)
-                                    .modifier(-1)
-                                    .format("TEXT")
-                                    .build()
-                                .column()
-                                    .name("user_id")
-                                    .tableOid(0)
-                                    .index(0)
-                                    .typeOid(17)
-                                    .length(-1)
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
@@ -77,13 +66,14 @@ write zilla:data.ext ${pgsql:dataEx()
                               .row()
                                 .build()
                               .build()}
-write [0x00 0x03]                                                 # Field Count
+write [0x00 0x02]                                                 # Field Count
       [0x00 0x00 0x00 0x04]                                       # Length
       [0x31 0x39 0x36 0x34]                                       # Data
-      [0x00 0x00 0x00 0x0a]                                       # Length
-      [0x31 0x37 0x32 0x33 0x35 0x39 0x33 0x31 0x31 0x33]         # Data
-      [0x00 0x00 0x00 0x04]                                       # Length
-      [0x5c 0x78 0x33 0x31]                                       # Data
+      [0x00 0x00 0x00 0x65]                                       # Length
+      "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS" # Data
+      " SELECT id, city FROM weather GROUP BY city;"
+write flush
+
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -99,5 +89,15 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
-write close
-read closed
+accepted
+
+read zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "app")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
+
