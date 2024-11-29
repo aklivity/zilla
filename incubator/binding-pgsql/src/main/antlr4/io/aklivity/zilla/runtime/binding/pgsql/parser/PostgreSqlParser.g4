@@ -121,6 +121,7 @@ stmt
     | definestmt
     | deletestmt
     | discardstmt
+    | showstmt
     | dostmt
     | dropcaststmt
     | dropopclassstmt
@@ -1611,6 +1612,18 @@ dropownedstmt
 
 reassignownedstmt
     : REASSIGN OWNED BY role_list TO rolespec
+    ;
+
+showstmt
+    : SHOW show_object_type_name
+    ;
+
+show_object_type_name
+    : TABLES
+    | VIEWS
+    | MATERIALIZED VIEWS
+    | TOPICS
+    | ZVIEWS
     ;
 
 dropstmt

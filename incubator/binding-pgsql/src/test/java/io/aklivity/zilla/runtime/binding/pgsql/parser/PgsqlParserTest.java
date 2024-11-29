@@ -506,4 +506,13 @@ public class PgsqlParserTest
         assertEquals("existing_column", alter.expressions().get(0).columnName());
         assertEquals("VARCHAR(100)", alter.expressions().get(0).columnType());
     }
+
+    @Test
+    public void shouldParseShowZviews()
+    {
+        String sql = "SHOW ZVIEWS;";
+        String type = parser.parseShow(sql);
+
+        assertEquals("ZVIEWS", type);
+    }
 }

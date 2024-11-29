@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamLi
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
@@ -51,6 +52,7 @@ public final class PgsqlParser
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
+    private final SqlShowListener showListener;
     private final SqlDropListener dropListener;
 
     public PgsqlParser()
@@ -68,6 +70,7 @@ public final class PgsqlParser
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
+        this.showListener = new SqlShowListener();
         parser.setErrorHandler(errorStrategy);
     }
 
@@ -125,6 +128,13 @@ public final class PgsqlParser
     {
         parser(sql, dropListener);
         return dropListener.drops();
+    }
+
+    public String parseShow(
+        String sql)
+    {
+        parser(sql, showListener);
+        return showListener.type();
     }
 
     private void parser(
