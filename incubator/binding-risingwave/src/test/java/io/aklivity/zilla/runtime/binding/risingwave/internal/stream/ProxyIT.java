@@ -281,4 +281,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.zviews/client",
+        "${effective}/show.zviews/server" })
+    public void shouldShowZviews() throws Exception
+    {
+        k3po.finish();
+    }
 }

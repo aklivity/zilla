@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveGrantToSourceTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveInsertIntoCatalogTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveShowTypeTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -73,6 +74,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveInsertIntoCatalogTemplate catalogInsert;
     public final RisingwaveDeleteFromCatalogTemplate catalogDelete;
     public final RisingwaveGrantToSourceTemplate grantSource;
+    public final RisingwaveShowTypeTemplate showType;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -117,6 +119,7 @@ public final class RisingwaveBindingConfig
         this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate(INTERNAL_SCHEMA);
         this.catalogDelete = new RisingwaveDeleteFromCatalogTemplate(INTERNAL_SCHEMA);
         this.grantSource = new RisingwaveGrantToSourceTemplate();
+        this.showType = new RisingwaveShowTypeTemplate();
     }
 
     public RisingwaveRouteConfig resolve(

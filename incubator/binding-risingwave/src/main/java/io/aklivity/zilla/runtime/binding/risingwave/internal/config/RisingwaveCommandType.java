@@ -30,6 +30,7 @@ public enum RisingwaveCommandType
     DROP_TABLE_COMMAND("DROP TABLE".getBytes()),
     DROP_STREAM_COMMAND("DROP STREAM".getBytes()),
     DROP_ZVIEW_COMMAND("DROP ZVIEW".getBytes()),
+    SHOW_ZVIEWS_COMMAND("SHOW ZVIEWS".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;
