@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopi
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
@@ -47,7 +47,7 @@ public final class PgsqlParser
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
     private final SqlCreateStreamListener createStreamListener;
-    private final SqlCreateTableTopicListener createTableListener;
+    private final SqlCreateZtableTopicListener createTableListener;
     private final SqlAlterTableTopicListener alterTableListener;
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
@@ -63,7 +63,7 @@ public final class PgsqlParser
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener(tokens);
-        this.createTableListener = new SqlCreateTableTopicListener(tokens);
+        this.createTableListener = new SqlCreateZtableTopicListener(tokens);
         this.alterTableListener = new SqlAlterTableTopicListener(tokens);
         this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);

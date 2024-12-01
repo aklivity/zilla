@@ -722,6 +722,7 @@ createstmt
 
 opttable_type
     : TABLE
+    | ZTABLE
     | TOPIC
     ;
 
