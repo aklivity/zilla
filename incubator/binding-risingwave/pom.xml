@@ -100,7 +100,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core pgsql protocol</scopeNames>
+          <scopeNames>core pgsql</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.risingwave.internal.types</packageName>
         </configuration>
         <executions>

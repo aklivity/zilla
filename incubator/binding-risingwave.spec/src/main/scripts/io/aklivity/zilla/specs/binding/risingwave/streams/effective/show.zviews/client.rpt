@@ -65,8 +65,8 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read  [0x00 0x02]                                                 # Field Count
-      [0x00 0x00 0x00 0x04]                                       # Length
-      [0x31 0x39 0x36 0x34]                                       # Data
+      [0x00 0x00 0x00 0x06]                                       # Length
+      [0x63 0x69 0x74 0x69 0x65 0x73]                             # Data
       [0x00 0x00 0x00 0x65]                                       # Length
       "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS" # Data
       " SELECT id, city FROM weather GROUP BY city;"

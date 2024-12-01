@@ -49,8 +49,6 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRo
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.codec.RisingwaveDataRowFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.codec.RisingwaveDataRowFieldFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.DataFW;
@@ -130,9 +128,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-
-    private final RisingwaveDataRowFW.Builder dataRowRW = new RisingwaveDataRowFW.Builder();
-    private final RisingwaveDataRowFieldFW.Builder dataRowFieldRW = new RisingwaveDataRowFieldFW.Builder();
 
     private final BufferPool bufferPool;
     private final RisingwaveConfiguration config;
@@ -504,16 +499,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            //assert acknowledge <= sequence;
-            //assert acknowledge >= replyAck;
-            //assert maximum + acknowledge >= replyMax + replyAck;
+            assert acknowledge <= sequence;
+            assert acknowledge >= replyAck;
+            assert maximum + acknowledge >= replyMax + replyAck;
+
+            int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
 
             replyBudgetId = budgetId;
             replyAck = acknowledge;
             replyMax = maximum;
             replyPadding = padding;
 
-            //assert replyAck <= replySeq;
+            assert replyAck <= replySeq;
 
             state = RisingwaveState.openReply(state);
 
@@ -521,8 +518,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 streamsByRouteIds.values().forEach(c -> c.doAppWindow(authorization, traceId));
             }
-
-            int credit = (int)(acknowledge - initialAck) + (maximum - initialMax);
 
             while (credit > 0 && !responses.isEmpty())
             {
@@ -535,9 +530,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                     client.doAppWindow(authorization, traceId);
 
-                    credit = Math.max(credit - (int)(client.initialAck - streamAckSnapshot), 0);
+                    credit = Math.max(credit - (int)(client.replyAck - streamAckSnapshot), 0);
 
-                    if (client.initialAck != client.initialSeq)
+                    if (client.replyAck != client.replySeq)
                     {
                         break;
                     }
@@ -635,6 +630,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 flags, replyBudgetId, reserved, buffer, offset, length, extension);
 
             replySeq += reserved;
+
             assert replySeq <= replyAck + replyMax;
         }
 
@@ -731,6 +727,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, replyBudgetId, reserved, extension);
+
+            replySeq += reserved;
         }
 
         private void doAppFlush(
@@ -742,6 +740,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, replyBudgetId, reserved, extension);
+
+            replySeq += reserved;
         }
 
         private void doCommandCompletion(
@@ -756,7 +756,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
                     .typeId(pgsqlTypeId)
-
                     .completion(c -> c.tag(extBuffer, 0,  command.value().length + 1))
                     .build().sizeof());
 
@@ -1227,6 +1226,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = RisingwaveState.openReply(state);
 
+                replyAck = Math.max(replySeq, server.replyAck);
                 replyMax = server.replyMax;
 
                 doWindow(app, originId, routedId, replyId, replySeq, replyAck, server.replyMax,
@@ -2126,7 +2126,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             .type(t -> t
                 .columns(c -> c
                     .item(s -> s
-                        .name("Name")
+                        .name("Name\u0000")
                         .tableOid(0)
                         .index((short) 0)
                         .typeOid(701)
@@ -2214,19 +2214,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .row(q -> q.deferred(0))
                 .build();
 
-            int dataRowProgress = 0;
-            RisingwaveDataRowFW row = dataRowRW.wrap(statementBuffer, dataRowProgress, statementBuffer.capacity())
-                .fields((short) 1)
-                .build();
-            dataRowProgress = row.limit();
+            final int length = column.sizeof();
 
-            final int length = column.length();
-            RisingwaveDataRowFieldFW field = dataRowFieldRW.wrap(statementBuffer, dataRowProgress, statementBuffer.capacity())
-                .fieldLenght(length)
-                .field(column.value(), 0, length)
-                .build();
+            int statementProgress = 0;
+            statementBuffer.putShort(statementProgress, (short) 1, ByteOrder.BIG_ENDIAN);
+            statementProgress += Short.BYTES;
+            statementBuffer.putBytes(statementProgress, column.buffer(), column.offset(), length);
+            statementProgress += length;
 
-            server.doAppData(clientId, routedId, traceId, authorization, flags, statementBuffer, 0, field.limit(), dataEx);
+            server.doAppData(clientId, routedId, traceId, authorization, flags,
+                statementBuffer, 0, statementProgress, dataEx);
         }
     }
 

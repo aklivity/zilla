@@ -47,7 +47,7 @@ write advise zilla:flush ${pgsql:flushEx()
                                     .tableOid(0)
                                     .index(0)
                                     .typeOid(701)
-                                    .length(8)
+                                    .length(4)
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
@@ -61,8 +61,8 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write [0x00 0x01]                                                 # Field Count
-      [0x00 0x00 0x00 0x04]                                       # Length
-      [0x31 0x39 0x36 0x34]                                       # Data
+      [0x00 0x00 0x00 0x06]                                       # Length
+      [0x63 0x69 0x74 0x69 0x65 0x73]                             # Data
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
