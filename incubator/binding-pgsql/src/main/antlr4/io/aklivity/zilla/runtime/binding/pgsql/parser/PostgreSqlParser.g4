@@ -122,6 +122,7 @@ stmt
     | deletestmt
     | discardstmt
     | showstmt
+    | describestmt
     | dostmt
     | dropcaststmt
     | dropopclassstmt
@@ -1612,6 +1613,10 @@ dropownedstmt
 
 reassignownedstmt
     : REASSIGN OWNED BY role_list TO rolespec
+    ;
+
+describestmt
+    : DESCRIBE any_name
     ;
 
 showstmt

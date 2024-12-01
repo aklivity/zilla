@@ -787,9 +787,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 splitStatements(sql)
                     .stream()
                     .findFirst()
-                    .ifPresent(s ->
+                    .ifPresent(statement ->
                     {
-                        String statement = s;
                         String command = parser.parseCommand(statement);
                         final PgsqlTransform transform = clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
                         transform.transform(this, traceId, authorizationId, statement);
