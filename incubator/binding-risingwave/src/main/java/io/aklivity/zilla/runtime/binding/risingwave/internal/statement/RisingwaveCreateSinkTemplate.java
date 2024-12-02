@@ -23,9 +23,9 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
-        CREATE SINK %s_view_sink INTO %s FROM %s_view;\u0000""";
+        CREATE SINK %s.%s_view_sink INTO %s FROM %s_view;\u0000""";
     private final String sqlKafkaFormat = """
-        CREATE SINK %s_sink
+        CREATE SINK %s.%s_sink
         FROM %s
         WITH (
            connector='kafka',
@@ -37,22 +37,25 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 
     private final String primaryKeyFormat = ",\n   primary_key='%s'";
 
+    private final String schema;
     private final String bootstrapServer;
     private final String schemaRegistry;
 
     public RisingwaveCreateSinkTemplate(
+        String schema,
         String bootstrapServer,
         String schemaRegistry)
     {
+        this.schema = schema;
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
     }
 
-    public String generate(
-        String database,
+    public String generateOutgress(
         Map<String, String> columns,
         View view)
     {
+        String topicSchema = view.schema();
         String viewName = view.name();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
@@ -69,24 +72,25 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
         String textPrimaryKey = primaryKeyMatch.map(Map.Entry::getKey).orElse(null);
         String primaryKey = textPrimaryKey != null ? primaryKeyFormat.formatted(textPrimaryKey) : "";
 
-        return String.format(sqlKafkaFormat, viewName, viewName, bootstrapServer, database, viewName, primaryKey, schemaRegistry);
+        return String.format(sqlKafkaFormat, schema, viewName, viewName, bootstrapServer,
+            topicSchema, viewName, primaryKey, schemaRegistry);
     }
 
-    public String generate(
-        String database,
+    public String generateOutgress(
         Table tableInfo)
     {
+        String topicSchema = tableInfo.schema();
         String table = tableInfo.name();
 
-        return String.format(sqlKafkaFormat, table, table, bootstrapServer, database, table,
+        return String.format(sqlKafkaFormat, schema, table, table, bootstrapServer, topicSchema, table,
             primaryKeyFormat.formatted(tableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
     }
 
-    public String generate(
+    public String generateInto(
         Table tableInfo)
     {
         String table = tableInfo.name();
 
-        return String.format(sqlFormat, table, table, table);
+        return String.format(sqlFormat, schema, table, table, table);
     }
 }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 import java.util.Map;
 
 public record Stream(
+    String schema,
     String name,
     Map<String, String> columns)
 {

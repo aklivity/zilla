@@ -32,6 +32,7 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     private final Set<String> primaryKeys = new ObjectHashSet<>();
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
 
     public SqlCreateTableTopicListener(
@@ -42,13 +43,14 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 
     public Table table()
     {
-        return new Table(name, columns, primaryKeys);
+        return new Table(schema, name, columns, primaryKeys);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         columns.clear();
         primaryKeys.clear();
@@ -58,7 +60,10 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        name = ctx.getText();
+        String text = ctx.getText();
+        String[] split = text.split("\\.");
+        schema = split.length > 1 ? split[0] : "public";
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override

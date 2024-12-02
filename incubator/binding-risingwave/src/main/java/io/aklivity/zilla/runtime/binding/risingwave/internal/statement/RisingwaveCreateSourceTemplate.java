@@ -53,9 +53,9 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
     }
 
     public String generateStreamSource(
-        String database,
         Stream stream)
     {
+        String schema = stream.schema();
         String table = stream.name();
 
         includeBuilder.setLength(0);
@@ -70,13 +70,13 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }
 
-        return String.format(sqlFormat, table, includeBuilder, bootstrapServer, database, table, scanStartupMil, schemaRegistry);
+        return String.format(sqlFormat, table, includeBuilder, bootstrapServer, schema, table, scanStartupMil, schemaRegistry);
     }
 
     public String generateTableSource(
-        String database,
         Table tableInfo)
     {
+        String schema = tableInfo.schema();
         String table = tableInfo.name();
         String sourceName = "%s_source".formatted(table);
 
@@ -104,6 +104,6 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
         }
 
         return String.format(sqlFormat, sourceName, includeBuilder, bootstrapServer,
-            database, table, scanStartupMil, schemaRegistry);
+            schema, table, scanStartupMil, schemaRegistry);
     }
 }

@@ -34,7 +34,7 @@ public class RisingwaveCreateMaterializedViewTemplateTest
     @Test
     public void shouldGenerateMaterializedViewWithValidViewInfo()
     {
-        View view = new View("test_view", "SELECT * FROM test_table");
+        View view = new View("public", "test_view", "SELECT * FROM test_table");
         String expectedSQL = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS test_view AS SELECT * FROM test_table;\u0000""";
 
@@ -48,6 +48,7 @@ public class RisingwaveCreateMaterializedViewTemplateTest
     public void shouldGenerateMaterializedViewWithValidTableInfo()
     {
         Table table = new Table(
+            "public",
             "test_table",
                   List.of(new TableColumn("id", "INT", List.of()),
                           new TableColumn("name", "STRING", List.of())),
@@ -63,7 +64,7 @@ public class RisingwaveCreateMaterializedViewTemplateTest
     @Test
     public void shouldGenerateMaterializedViewWithEmptyColumns()
     {
-        Table table = new Table("empty_table", List.of(), Set.of());
+        Table table = new Table("public", "empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS empty_table_view AS SELECT * FROM empty_table_source;\u0000""";
 
@@ -81,7 +82,7 @@ public class RisingwaveCreateMaterializedViewTemplateTest
         columns.add(new TableColumn("zilla_identity", "VARCHAR", List.of()));
         columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
-        Table table = new Table("test_table", columns, Set.of("id"));
+        Table table = new Table("public", "test_table", columns, Set.of("id"));
         String expectedSQL = "CREATE MATERIALIZED VIEW IF NOT EXISTS test_table_view AS SELECT id," +
             " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id," +
             " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity," +

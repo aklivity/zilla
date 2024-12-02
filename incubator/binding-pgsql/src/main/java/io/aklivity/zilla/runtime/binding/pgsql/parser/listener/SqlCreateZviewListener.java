@@ -20,14 +20,15 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
-public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListener
+public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
 {
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
     private String select;
 
-    public SqlCreateMaterializedViewListener(
+    public SqlCreateZviewListener(
         TokenStream tokens)
     {
         this.tokens = tokens;
@@ -35,22 +36,26 @@ public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListe
 
     public View view()
     {
-        return new View(name, select);
+        return new View(schema, name, select);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         select = null;
     }
 
     @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
+    public void enterCreatezviewstmt(
+        PostgreSqlParser.CreatezviewstmtContext ctx)
     {
-        name = ctx.create_mv_target().qualified_name().getText();
+        String text = ctx.create_mv_target().qualified_name().getText();
+        String[] split = text.split("\\.");
+        schema = split.length > 1 ? split[0] : "public";
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override

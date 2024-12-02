@@ -26,11 +26,13 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTop
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateMaterializedViewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
@@ -49,7 +51,8 @@ public final class PgsqlParser
     private final SqlAlterTableTopicListener alterTableListener;
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
-    private final SqlCreateMaterializedViewListener createMaterializedViewListener;
+    private final SqlCreateZviewListener createMaterializedViewListener;
+    private final SqlShowListener showListener;
     private final SqlDropListener dropListener;
 
     public PgsqlParser()
@@ -65,8 +68,9 @@ public final class PgsqlParser
         this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
-        this.createMaterializedViewListener = new SqlCreateMaterializedViewListener(tokens);
+        this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
+        this.showListener = new SqlShowListener();
         parser.setErrorHandler(errorStrategy);
     }
 
@@ -112,18 +116,25 @@ public final class PgsqlParser
         return createFunctionListener.function();
     }
 
-    public View parseCreateMaterializedView(
+    public View parseCreateZView(
         String sql)
     {
         parser(sql, createMaterializedViewListener);
         return createMaterializedViewListener.view();
     }
 
-    public List<String> parseDrop(
+    public List<Drop> parseDrop(
         String sql)
     {
         parser(sql, dropListener);
         return dropListener.drops();
+    }
+
+    public String parseShow(
+        String sql)
+    {
+        parser(sql, showListener);
+        return showListener.type();
     }
 
     private void parser(

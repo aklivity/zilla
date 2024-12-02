@@ -14,22 +14,24 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+
 public class RisingwaveDropSourceTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         DROP SOURCE %s;\u0000""";
 
     public String generate(
-        String drop)
+        Drop drop)
     {
         return generate(drop, "");
     }
 
     public String generate(
-        String drop,
+        Drop drop,
         String suffix)
     {
-        String source = "%s%s".formatted(drop, suffix);
+        String source = "%s%s".formatted(drop.name(), suffix);
 
         return String.format(sqlFormat, source);
     }

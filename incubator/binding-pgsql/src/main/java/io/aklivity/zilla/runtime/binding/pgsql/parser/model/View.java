@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
 public record View(
+    String schema,
     String name,
     String select)
 {

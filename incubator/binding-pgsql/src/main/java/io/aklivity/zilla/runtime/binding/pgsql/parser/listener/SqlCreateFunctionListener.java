@@ -31,6 +31,7 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
     private String returnType;
     private String asFunction;
@@ -44,13 +45,14 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 
     public Function function()
     {
-        return new Function(name, arguments, returnType, tables, asFunction, language);
+        return new Function(schema, name, arguments, returnType, tables, asFunction, language);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         returnType = null;
         asFunction = null;
@@ -63,7 +65,10 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     public void enterCreatefunctionstmt(
         PostgreSqlParser.CreatefunctionstmtContext ctx)
     {
-        name = ctx.func_name().getText();
+        String text = ctx.func_name().getText();
+        String[] split = text.split("\\.");
+        schema = split.length > 1 ? split[0] : "public";
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override

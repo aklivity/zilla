@@ -14,14 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+
 public class RisingwaveDropTableTemplate extends RisingwaveCommandTemplate
 {
     private final String sqlFormat = """
         DROP TABLE %s;\u0000""";
 
     public String generate(
-        String drop)
+        Drop drop)
     {
-        return String.format(sqlFormat, drop);
+        return String.format(sqlFormat, drop.name());
     }
 }

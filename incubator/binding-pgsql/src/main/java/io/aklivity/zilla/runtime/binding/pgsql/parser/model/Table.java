@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Set;
 
 public record Table(
+    String schema,
     String name,
     List<TableColumn> columns,
     Set<String> primaryKeys)
