@@ -85,7 +85,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private static final String ZILLABASE_USER = "zillabase\u0000";
     private static final String DEFAULT_USER = "default\u0000";
-    private static final String ZVIEW_TABLE_NAME = "zviews";
+    private static final String ZVIEW_NAME = "zviews";
+    private static final String ZTABLE_NAME = "ztables";
 
     private static final int ZILLABASE_USER_HASH = ZILLABASE_USER.hashCode();
     private static final int DEFAULT_USER_HASH = DEFAULT_USER.hashCode();
@@ -1560,7 +1561,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 7 ||
+        if (server.commandsProcessed == 8 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
@@ -1603,6 +1604,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             else if (server.commandsProcessed == 6)
             {
                 newStatement = binding.createSink.generateOutgress(table);
+            }
+            else if (server.commandsProcessed == 7)
+            {
+                newStatement = binding.catalogInsert.generate(ZTABLE_NAME, table.name(), statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1710,7 +1715,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.catalogInsert.generate(ZVIEW_TABLE_NAME, view.name(), statement);
+                newStatement = binding.catalogInsert.generate(ZVIEW_NAME, view.name(), statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -2007,7 +2012,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.catalogDelete.generate(ZVIEW_TABLE_NAME, view);
+                newStatement = binding.catalogDelete.generate(ZVIEW_NAME, view);
             }
             else if (server.commandsProcessed == 3)
             {
