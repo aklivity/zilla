@@ -41,6 +41,10 @@ public class AvroModelTest
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
+    private static final String SCHEMA_WITH_NULL = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+        "{\"name\":\"status\",\"type\":[\"null\",\"string\"]}]," +
+        "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
     private static final String SCHEMA_OBJECT = "{\"type\":\"record\",\"name\":\"ExampleRecord\"," +
         "\"namespace\":\"com.example\"," +
         "\"fields\":[" +
@@ -181,7 +185,7 @@ public class AvroModelTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(SCHEMA)
+                .schema(SCHEMA_WITH_NULL)
                 .build()
             .build();
         AvroModelConfig model = AvroModelConfig.builder()
@@ -202,7 +206,7 @@ public class AvroModelTest
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+            0x30, 0x02, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
         String json =

@@ -27,6 +27,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.CanonicalJsonEncoder;
 import org.apache.avro.io.JsonEncoder;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -191,7 +192,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                 expandable.wrap(expandable.buffer());
                 record = reader.read(record, decoderFactory.binaryDecoder(in, decoder));
                 Schema schema = record.getSchema();
-                JsonEncoder out = encoderFactory.jsonEncoder(schema, expandable);
+                JsonEncoder out = new CanonicalJsonEncoder(schema, expandable);
                 writer.write(record, out);
                 out.flush();
 

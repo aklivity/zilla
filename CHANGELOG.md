@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.102...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.103...HEAD)
+
+**Fixed bugs:**
+
+- `affinity mask must specify at least one bit` crash preventing Zilla from starting on Windows 11 + Docker Compose [\#1338](https://github.com/aklivity/zilla/issues/1338)
+
+**Merged pull requests:**
+
+- Json serialization of nullable fields [\#1341](https://github.com/aklivity/zilla/pull/1341) ([akrambek](https://github.com/akrambek))
+
+## [0.9.103](https://github.com/aklivity/zilla/tree/0.9.103) (2024-11-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.102...0.9.103)
 
 **Fixed bugs:**
 
