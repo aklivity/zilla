@@ -1666,7 +1666,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 5 ||
+        if (server.commandsProcessed == 6 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
@@ -1690,21 +1690,25 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1)
             {
+                newStatement = binding.grantSource.generate("MATERIALIZED VIEW", view.schema(), view.name(), server.user);
+            }
+            else if (server.commandsProcessed == 2)
+            {
                 newStatement = binding.describeView.generate(view);
                 typeCommand = typeFlushCommand;
                 dataCommand = rowDataCommand;
                 server.columns.clear();
             }
-            else if (server.commandsProcessed == 2)
+            else if (server.commandsProcessed == 3)
             {
                 user = DEFAULT_USER_HASH;
                 newStatement = binding.createTopic.generate(view, server.columns);
             }
-            else if (server.commandsProcessed == 3)
+            else if (server.commandsProcessed == 4)
             {
                 newStatement = binding.createSink.generateOutgress(server.columns, view);
             }
-            else if (server.commandsProcessed == 4)
+            else if (server.commandsProcessed == 5)
             {
                 newStatement = binding.catalogInsert.generate(ZVIEW_TABLE_NAME, view.name(), statement);
             }
