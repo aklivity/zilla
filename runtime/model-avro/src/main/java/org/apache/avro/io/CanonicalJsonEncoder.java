@@ -29,18 +29,18 @@ import com.fasterxml.jackson.core.JsonGenerator;
  *
  * @author zfarkas
  */
-public final class ExtendedJsonEncoder extends JsonEncoder
+public final class CanonicalJsonEncoder extends JsonEncoder
 {
 
 
-    public ExtendedJsonEncoder(
+    public CanonicalJsonEncoder(
         final Schema sc,
         final OutputStream out) throws IOException
     {
         super(sc, out);
     }
 
-    public ExtendedJsonEncoder(
+    public CanonicalJsonEncoder(
         final Schema sc,
         final OutputStream out,
         final boolean pretty) throws IOException
@@ -48,7 +48,7 @@ public final class ExtendedJsonEncoder extends JsonEncoder
         super(sc, out, pretty);
     }
 
-    public ExtendedJsonEncoder(
+    public CanonicalJsonEncoder(
         final Schema sc,
         final JsonGenerator out) throws IOException
     {
