@@ -31,3 +31,6 @@ node_modules/
 *.pdf
 *.zshrc
 hs_err_pid*.log
+*.interp
+*.tokens
+gen/
