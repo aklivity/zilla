@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
-public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
+public class SqlAlterZtableTopicListener extends PostgreSqlParserBaseListener
 {
     private final TokenStream tokens;
 
@@ -33,7 +33,7 @@ public class SqlAlterTableTopicListener extends PostgreSqlParserBaseListener
     private String name;
     private final List<AlterExpression> alterExpressions = new ArrayList<>();
 
-    public SqlAlterTableTopicListener(
+    public SqlAlterZtableTopicListener(
         TokenStream tokens)
     {
         this.tokens = tokens;

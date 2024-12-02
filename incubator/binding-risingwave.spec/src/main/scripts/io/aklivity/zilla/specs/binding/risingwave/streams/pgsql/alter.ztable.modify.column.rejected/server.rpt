@@ -34,17 +34,17 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "ALTER TABLE cities ADD COLUMN zip INT;"
+read  "ALTER ZTABLE cities ALTER COLUMN name TYPE VARCHAR(100);"
       [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("ALTER_TABLE")
+                              .error()
+                                .severity("ERROR")
+                                .code("XX000")
+                                .message("Unable to execute command because ALTER ZTABLE only supports ADD")
                                 .build()
                               .build()}
-
-write notify CREATE_TOPIC_COMPLETED
 
 write advise zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))

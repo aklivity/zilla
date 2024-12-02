@@ -23,7 +23,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTopicListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
@@ -48,7 +48,7 @@ public final class PgsqlParser
     private final SqlCommandListener commandListener;
     private final SqlCreateStreamListener createStreamListener;
     private final SqlCreateZtableTopicListener createTableListener;
-    private final SqlAlterTableTopicListener alterTableListener;
+    private final SqlAlterZtableTopicListener alterTableListener;
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
@@ -64,7 +64,7 @@ public final class PgsqlParser
         this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateZtableTopicListener(tokens);
-        this.alterTableListener = new SqlAlterTableTopicListener(tokens);
+        this.alterTableListener = new SqlAlterZtableTopicListener(tokens);
         this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);

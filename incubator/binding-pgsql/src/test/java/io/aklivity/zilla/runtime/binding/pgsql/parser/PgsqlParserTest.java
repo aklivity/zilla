@@ -45,7 +45,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseWithPrimaryKeySql()
     {
-        String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
+        String sql = "CREATE ZTABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -56,7 +56,7 @@ public class PgsqlParserTest
     public void shouldCreateTableParseWithPrimaryKeysSql()
     {
         String sql = """
-            CREATE TABLE example_table (
+            CREATE ZTABLE example_table (
                 id INT PRIMARY KEY,
                 name VARCHAR(100),
                 age INT,
@@ -74,7 +74,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableName()
     {
-        String sql = "CREATE TABLE test (id INT);";
+        String sql = "CREATE ZTABLE test (id INT);";
         Table table = parser.parseCreateTable(sql);
 
         assertEquals("test", table.name());
@@ -83,7 +83,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableNameWithDoublePrecisionTypeField()
     {
-        String sql = "CREATE TABLE test (id DOUBLE PRECISION);";
+        String sql = "CREATE ZTABLE test (id DOUBLE PRECISION);";
         Table table = parser.parseCreateTable(sql);
         assertEquals("test", table.name());
         assertEquals("DOUBLE PRECISION", table.columns().get(0).type());
@@ -92,7 +92,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableColumns()
     {
-        String sql = "CREATE TABLE test (id INT, name VARCHAR(100));";
+        String sql = "CREATE ZTABLE test (id INT, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
 
         assertEquals(2, table.columns().size());
@@ -103,7 +103,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreatreTablePrimaryKey()
     {
-        String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
+        String sql = "CREATE ZTABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
 
         assertEquals(1, table.primaryKeys().size());
@@ -113,7 +113,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableCompositePrimaryKey()
     {
-        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), PRIMARY KEY (id, name));";
+        String sql = "CREATE ZTABLE test (id INT, name VARCHAR(100), PRIMARY KEY (id, name));";
         Table table = parser.parseCreateTable(sql);
 
         assertEquals(2, table.primaryKeys().size());
@@ -124,7 +124,7 @@ public class PgsqlParserTest
     @Test
     public void shouldHandleEmptyCreateTable()
     {
-        String sql = "CREATE TABLE test ();";
+        String sql = "CREATE ZTABLE test ();";
         Table table = parser.parseCreateTable(sql);
 
         assertEquals(0, table.columns().size());
@@ -171,14 +171,14 @@ public class PgsqlParserTest
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleInvalidCreateTable()
     {
-        String sql = "CREATE TABLE test";
+        String sql = "CREATE ZTABLE test";
         parser.parseCreateTable(sql);
     }
 
     @Test
     public void shouldParseDropSingleTable()
     {
-        String sql = "DROP TABLE test_table;";
+        String sql = "DROP ZTABLE test_table;";
         List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(1, drops.size());
@@ -189,7 +189,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseDropMultipleTables()
     {
-        String sql = "DROP TABLE table1, table2;";
+        String sql = "DROP ZTABLE table1, table2;";
         List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(2, drops.size());
@@ -202,7 +202,7 @@ public class PgsqlParserTest
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleEmptyDropStatement()
     {
-        String sql = "DROP TABLE;";
+        String sql = "DROP ZTABLE;";
         List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(0, drops.size());
@@ -306,21 +306,9 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableWithUniqueConstraint()
     {
-        String sql = "CREATE TABLE test (id INT UNIQUE, name VARCHAR(100));";
+        String sql = "CREATE ZTABLE test (id INT UNIQUE, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("id", table.columns().get(0).name());
-        assertEquals("name", table.columns().get(1).name());
-    }
-
-    @Test
-    public void shouldParseCreateTableWithForeignKey()
-    {
-        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CONSTRAINT fk_name FOREIGN KEY (name)" +
-            " REFERENCES other_table(name));";
-        Table table = parser.parseCreateTable(sql);
         assertNotNull(table);
         assertEquals(2, table.columns().size());
         assertEquals("id", table.columns().get(0).name());
@@ -330,7 +318,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableWithCheckConstraint()
     {
-        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CHECK (id > 0));";
+        String sql = "CREATE ZTABLE test (id INT, name VARCHAR(100), CHECK (id > 0));";
         Table table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -342,14 +330,14 @@ public class PgsqlParserTest
     @Test
     public void shouldHandleInvalidCreateTableWithMissingColumns()
     {
-        String sql = "CREATE TABLE test ();";
+        String sql = "CREATE ZTABLE test ();";
         parser.parseCreateTable(sql);
     }
 
     @Test
     public void shouldParseCreateTableWithDefaultValues()
     {
-        String sql = "CREATE TABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
+        String sql = "CREATE ZTABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
         Table table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -361,7 +349,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableWithNotNullConstraint()
     {
-        String sql = "CREATE TABLE test (id INT NOT NULL, name VARCHAR(100) NOT NULL);";
+        String sql = "CREATE ZTABLE test (id INT NOT NULL, name VARCHAR(100) NOT NULL);";
         Table table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -373,7 +361,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseCreateTableWithMultipleConstraints()
     {
-        String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100) UNIQUE, age INT CHECK (age > 0));";
+        String sql = "CREATE ZTABLE test (id INT PRIMARY KEY, name VARCHAR(100) UNIQUE, age INT CHECK (age > 0));";
         Table table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -386,7 +374,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseAlterTableAddColumn()
     {
-        String sql = "ALTER TABLE test_table ADD COLUMN new_column INT;";
+        String sql = "ALTER ZTABLE test_table ADD COLUMN new_column INT;";
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
@@ -412,7 +400,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseAlterTableDropColumn()
     {
-        String sql = "ALTER TABLE test_table DROP COLUMN old_column;";
+        String sql = "ALTER ZTABLE test_table DROP COLUMN old_column;";
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
@@ -424,7 +412,7 @@ public class PgsqlParserTest
     @Test
     public void shouldParseAlterTableModifyColumn()
     {
-        String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        String sql = "ALTER ZTABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
         Alter alter = parser.parseAlterTable(sql);
 
         assertEquals("test_table", alter.name());
@@ -436,15 +424,15 @@ public class PgsqlParserTest
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleInvalidAlterTable()
     {
-        String sql = "ALTER TABLE";
+        String sql = "ALTER ZTABLE";
         parser.parseAlterTable(sql);
     }
 
     @Test
     public void shouldParseCommandForAlterTable()
     {
-        String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
-        String expectedCommand = "ALTER TABLE";
+        String sql = "ALTER ZTABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        String expectedCommand = "ALTER ZTABLE";
 
         String parsedCommand = parser.parseCommand(sql);
 

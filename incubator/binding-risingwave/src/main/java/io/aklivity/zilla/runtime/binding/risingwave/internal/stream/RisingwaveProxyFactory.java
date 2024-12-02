@@ -157,14 +157,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
-        clientTransforms.put(RisingwaveCommandType.CREATE_TABLE_COMMAND, this::decodeCreateTableCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_ZTABLE_COMMAND, this::decodeCreateZtableCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZVIEW_COMMAND, this::decodeCreateZviewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
-        clientTransforms.put(RisingwaveCommandType.ALTER_TABLE_COMMAND, this::decodeAlterTableCommand);
+        clientTransforms.put(RisingwaveCommandType.ALTER_ZTABLE_COMMAND, this::decodeAlterZtableCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_STREAM_COMMAND, this::decodeAlterStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
-        clientTransforms.put(RisingwaveCommandType.DROP_TABLE_COMMAND, this::decodeDropTableCommand);
+        clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
@@ -1554,7 +1554,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private void decodeCreateTableCommand(
+    private void decodeCreateZtableCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1564,7 +1564,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_TABLE_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_ZTABLE_COMMAND);
         }
         else
         {
@@ -1764,7 +1764,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         }
     }
 
-    private void decodeAlterTableCommand(
+    private void decodeAlterZtableCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1778,14 +1778,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         if (!supportedOperation)
         {
-            decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_TABLE_COMMAND,
-                statement, "ALTER TABLE only supports ADD");
+            decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_ZTABLE_COMMAND,
+                statement, "ALTER ZTABLE only supports ADD");
         }
         else if (server.commandsProcessed == 2 ||
             server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
         {
             final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.ALTER_TABLE_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.ALTER_ZTABLE_COMMAND);
         }
         else
         {
@@ -1871,7 +1871,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.onCommandCompleted(traceId, authorization, length, command);
     }
 
-    private void decodeDropTableCommand(
+    private void decodeDropZtableCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1880,7 +1880,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         if (server.commandsProcessed == 6)
         {
             final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.DROP_TABLE_COMMAND);
+            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.DROP_ZTABLE_COMMAND);
         }
         else
         {

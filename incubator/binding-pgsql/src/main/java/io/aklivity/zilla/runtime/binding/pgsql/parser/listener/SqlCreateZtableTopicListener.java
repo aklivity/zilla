@@ -67,8 +67,8 @@ public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatestmt(
-        PostgreSqlParser.CreatestmtContext ctx)
+    public void enterCreateztstmt(
+        PostgreSqlParser.CreateztstmtContext ctx)
     {
         if (ctx.opttableelementlist().tableelementlist() != null)
         {
