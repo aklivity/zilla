@@ -191,6 +191,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/model/avro/internal/types/**/*.class</exclude>
+            <exclude>org/apache/avro/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
