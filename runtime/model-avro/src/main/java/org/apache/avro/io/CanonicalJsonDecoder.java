@@ -29,10 +29,8 @@ package org.apache.avro.io;
 
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.DefaultValueProvider;
 import org.apache.avro.io.parsing.Symbol;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
@@ -43,7 +41,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 
 public final class CanonicalJsonDecoder extends JsonDecoder
@@ -77,19 +74,17 @@ public final class CanonicalJsonDecoder extends JsonDecoder
         }
     }
 
-    private final DefaultValueProvider provider;
 
-    public CanonicalJsonDecoder(final Schema schema, final InputStream in, final DefaultValueProvider provider)
+    public CanonicalJsonDecoder(final Schema schema, final InputStream in)
         throws IOException
     {
         super(schema, in);
-        this.provider = provider;
     }
 
-    public CanonicalJsonDecoder(final Schema schema, final String in, final DefaultValueProvider provider)
+    public CanonicalJsonDecoder(final Schema schema, final String in)
         throws IOException
     {
-        this(schema, new ByteArrayInputStream(in.getBytes(Charset.forName("UTF-8"))), provider);
+        this(schema, new ByteArrayInputStream(in.getBytes(Charset.forName("UTF-8"))));
     }
 
     /**
@@ -200,19 +195,6 @@ public final class CanonicalJsonDecoder extends JsonDecoder
                         }
                     }
                     while (in.getCurrentToken() == JsonToken.FIELD_NAME);
-                    if (injectDefaultValueIfAvailable(in))
-                    {
-                        return null;
-                    }
-                    throw new AvroTypeException("Expected field name not found: " + fa.fname);
-                }
-                else
-                {
-                    if (injectDefaultValueIfAvailable(in))
-                    {
-                        return null;
-                    }
-                    throw new AvroTypeException("Expected field name not found: " + fa.fname);
                 }
             }
             else if (top == Symbol.FIELD_END)
@@ -268,25 +250,6 @@ public final class CanonicalJsonDecoder extends JsonDecoder
     }
 
     private static final JsonElement NULL_JSON_ELEMENT = new JsonElement(null);
-
-    private boolean injectDefaultValueIfAvailable(final JsonParser in) throws IOException, IllegalAccessException
-    {
-        JsonNode defVal = provider.getCurrentFieldDefault();
-        if (null != defVal)
-        {
-            List<JsonElement> result = new ArrayList<JsonElement>(2);
-            result.add(new JsonElement(defVal.asToken(), defVal.asText()));
-            result.add(NULL_JSON_ELEMENT);
-            if (currentReorderBuffer == null)
-            {
-                currentReorderBuffer = new ReorderBuffer();
-            }
-            currentReorderBuffer.origParser = in;
-            setParser(makeParser(result));
-            return true;
-        }
-        return false;
-    }
 
     private JsonParser getParser() throws IllegalAccessException
     {

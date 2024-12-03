@@ -19,8 +19,6 @@ import java.io.IOException;
 import org.agrona.DirectBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.CanonicalGenericDatumReader;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -106,8 +104,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
                         GenericRecord record = supplyRecord(schemaId);
                         in.wrap(buffer, index, length);
                         expandable.wrap(expandable.buffer());
-                        CanonicalGenericDatumReader provider = new CanonicalGenericDatumReader(GenericData.get());
-                        CanonicalJsonDecoder decoder = new CanonicalJsonDecoder(schema, in, provider);
+                        CanonicalJsonDecoder decoder = new CanonicalJsonDecoder(schema, in);
                         record = reader.read(record, decoder);
                         encoderFactory.binaryEncoder(expandable, encoder);
                         writer.write(record, encoder);
