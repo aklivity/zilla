@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.105](https://github.com/aklivity/zilla/tree/0.9.105) (2024-12-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.104...0.9.105)
+
+**Merged pull requests:**
+
+- Json deserialization of nullable fields [\#1342](https://github.com/aklivity/zilla/pull/1342) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.104](https://github.com/aklivity/zilla/tree/0.9.104) (2024-12-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.103...0.9.104)
