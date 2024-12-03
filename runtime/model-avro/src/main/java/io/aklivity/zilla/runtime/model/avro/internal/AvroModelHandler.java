@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.DirectBuffer;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.model.avro.internal.types.AvroDoubleFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroFloatFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroIntFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroLongFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroUnionFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
 
 public abstract class AvroModelHandler
@@ -88,6 +90,7 @@ public abstract class AvroModelHandler
     private final AvroLongFW longRO;
     private final AvroFloatFW floatRO;
     private final AvroDoubleFW doubleRO;
+    private final AvroUnionFW unionRO;
 
     protected int progress;
 
@@ -120,6 +123,7 @@ public abstract class AvroModelHandler
         this.longRO = new AvroLongFW();
         this.floatRO = new AvroFloatFW();
         this.doubleRO = new AvroDoubleFW();
+        this.unionRO = new AvroUnionFW();
 
     }
 
@@ -399,6 +403,25 @@ public abstract class AvroModelHandler
                 field.value.wrap(data, progress, progress + fixedSize);
             }
             progress += fixedSize;
+            break;
+        case UNION:
+            List<Schema> types = schema.getTypes();
+            Integer nullIndex = schema.getIndexNamed("null");
+            if (nullIndex != null && types.size() == 2)
+            {
+                AvroUnionFW avroUnion = unionRO.wrap(data, progress, limit);
+                int index = avroUnion.index();
+
+                if (index != nullIndex)
+                {
+                    progress = avroUnion.limit();
+
+                    int nonNullIndex = nullIndex ^ 1;
+                    Schema nonNull = types.get(nonNullIndex);
+
+                    extract(nonNull, data, limit, field);
+                }
+            }
             break;
         default:
             break;
