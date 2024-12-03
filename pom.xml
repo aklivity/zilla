@@ -331,6 +331,7 @@
           <configuration>
             <includeTestSourceDirectory>true</includeTestSourceDirectory>
             <excludes>**/generated-*/**/*</excludes>
+            <excludes>**/org/apache/avro/**/*</excludes>
           </configuration>
           <executions>
             <execution>
