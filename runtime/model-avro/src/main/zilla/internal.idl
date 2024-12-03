@@ -44,4 +44,9 @@ scope internal
     {
         octets[1] value;
     }
+
+    struct AvroUnion
+    {
+        varint32 index;
+    }
 }
