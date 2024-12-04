@@ -518,6 +518,7 @@ public final class ZpmInstall extends ZpmCommand
             Path moduleInfoPath = Paths.get(MODULE_INFO_CLASS_FILENAME);
             Path manifestPath = Paths.get("META-INF", "MANIFEST.MF");
             Path servicesPath = Paths.get("META-INF", "services");
+            String packageInfoName = "package-info.class";
             Path excludedPackage = Paths.get("org", "eclipse", "yasson", "internal", "components");
             String excludedClass = "BeanManagerInstanceCreator";
             Set<String> entryNames = new HashSet<>();
@@ -532,6 +533,7 @@ public final class ZpmInstall extends ZpmCommand
                         Path entryPath = Paths.get(entryName);
                         if (entryPath.equals(moduleInfoPath) ||
                             entryPath.equals(manifestPath) ||
+                            entryPath.endsWith(packageInfoName) ||
                             (entryPath.startsWith(excludedPackage)) &&
                              entryPath.getFileName().toString().startsWith(excludedClass))
                         {
