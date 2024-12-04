@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.106](https://github.com/aklivity/zilla/tree/0.9.106) (2024-12-04)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.105...0.9.106)
+
+**Merged pull requests:**
+
+- Exclude package-info.class from delegate module to avoid empty packages [\#1343](https://github.com/aklivity/zilla/pull/1343) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.105](https://github.com/aklivity/zilla/tree/0.9.105) (2024-12-03)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.104...0.9.105)
