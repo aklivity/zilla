@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.104...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.105...HEAD)
+
+**Merged pull requests:**
+
+- Exclude package-info.class from delegate module to avoid empty packages [\#1343](https://github.com/aklivity/zilla/pull/1343) ([jfallows](https://github.com/jfallows))
+
+## [0.9.105](https://github.com/aklivity/zilla/tree/0.9.105) (2024-12-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.104...0.9.105)
 
 **Merged pull requests:**
 
