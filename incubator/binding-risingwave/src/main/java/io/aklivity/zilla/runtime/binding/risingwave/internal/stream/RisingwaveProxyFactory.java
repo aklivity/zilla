@@ -1886,7 +1886,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 6)
+        if (server.commandsProcessed == 7)
         {
             final int length = statement.length();
             server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.DROP_ZTABLE_COMMAND);
@@ -1919,9 +1919,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.dropMaterializedView.generate(table, "_view");
+                newStatement = binding.catalogDelete.generate(ZTABLE_NAME, table);
             }
             else if (server.commandsProcessed == 5)
+            {
+                newStatement = binding.dropMaterializedView.generate(table, "_view");
+            }
+            else if (server.commandsProcessed == 6)
             {
                 newStatement = binding.dropSource.generate(table, "_source");
             }
