@@ -87,11 +87,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.ShowstmtContext ctx)
     {
         String type = ctx.show_object_type_name().getText();
-
-        if ("ZVIEWS".equals(type))
-        {
-            command = "SHOW ZVIEWS";
-        }
+        command = "SHOW %s".formatted(type);
     }
 
     @Override

@@ -1645,6 +1645,7 @@ show_object_type_name
     | VIEWS
     | MATERIALIZED VIEWS
     | TOPICS
+    | ZTABLES
     | ZVIEWS
     ;
 

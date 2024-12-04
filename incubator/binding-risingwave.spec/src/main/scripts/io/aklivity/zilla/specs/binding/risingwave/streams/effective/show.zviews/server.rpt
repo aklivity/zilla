@@ -72,6 +72,7 @@ write [0x00 0x02]                                                 # Field Count
       [0x00 0x00 0x00 0x65]                                       # Length
       "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS" # Data
       " SELECT id, city FROM weather GROUP BY city;"
+      [0x00]
 write flush
 
 

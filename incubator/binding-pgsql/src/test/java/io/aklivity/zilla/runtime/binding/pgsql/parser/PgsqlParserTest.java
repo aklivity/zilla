@@ -524,4 +524,13 @@ public class PgsqlParserTest
 
         assertEquals("ZVIEWS", type);
     }
+
+    @Test
+    public void shouldParseShowZtables()
+    {
+        String sql = "SHOW ZTABLES;";
+        String type = parser.parseShow(sql);
+
+        assertEquals("ZTABLES", type);
+    }
 }
