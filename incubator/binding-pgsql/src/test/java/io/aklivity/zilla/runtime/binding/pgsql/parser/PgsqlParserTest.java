@@ -53,6 +53,27 @@ public class PgsqlParserTest
     }
 
     @Test
+    public void shouldCreateTableParseWithGeneratedAsAlwaysSql()
+    {
+        String sql = """
+            CREATE ZTABLE example_table (
+                id INT,
+                name VARCHAR(100),
+                age INT,
+                owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,
+                created_at TIMESTAMP GENERATED ALWAYS AS NOW,
+                PRIMARY KEY (id, name)
+            );""";
+        Table table = parser.parseCreateTable(sql);
+
+        assertNotNull(table);
+        assertEquals(2, table.primaryKeys().size());
+        assertEquals(5, table.columns().size());
+        assertTrue(table.primaryKeys().contains("id"));
+        assertTrue(table.primaryKeys().contains("name"));
+    }
+
+    @Test
     public void shouldCreateTableParseWithPrimaryKeysSql()
     {
         String sql = """

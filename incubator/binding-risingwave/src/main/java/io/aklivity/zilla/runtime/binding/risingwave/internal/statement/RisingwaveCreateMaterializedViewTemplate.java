@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
@@ -28,7 +29,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
     private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
-    private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
+    private final String timestampFormat = "COALESCE(%s, %s_timestamp::timestamp) as %s, ";
 
     public String generate(
         View view)
@@ -47,7 +48,8 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         String select = "*";
 
         List<TableColumn> includes = table.columns().stream()
-            .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
+            .filter(column -> column.constraints().stream()
+                .anyMatch(ZILLA_MAPPINGS::containsKey))
             .collect(Collectors.toCollection(ArrayList::new));
 
         if (!includes.isEmpty())
@@ -55,22 +57,31 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
             fieldBuilder.setLength(0);
 
             table.columns()
-                .stream()
-                .filter(c -> !ZILLA_MAPPINGS.containsKey(c.name()))
-                .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c.name())));
+                .forEach(i ->
+                {
+                    String columnName = i.name();
 
-            includes.forEach(c ->
-            {
-                String columnName = c.name();
-                if (ZILLA_TIMESTAMP.equals(columnName))
-                {
-                    fieldBuilder.append(String.format(timestampFormat,  columnName, columnName, columnName));
-                }
-                else
-                {
-                    fieldBuilder.append(String.format(includeFormat, columnName, columnName, columnName));
-                }
-            });
+                    Optional<String> include = i.constraints().stream()
+                        .filter(ZILLA_MAPPINGS::containsKey)
+                        .findFirst();
+
+                    if (include.isPresent())
+                    {
+                        final String includeName = include.get();
+                        if (ZILLA_TIMESTAMP.equals(includeName))
+                        {
+                            fieldBuilder.append(String.format(timestampFormat,  columnName, columnName, columnName));
+                        }
+                        else
+                        {
+                            fieldBuilder.append(String.format(includeFormat, columnName, columnName, columnName));
+                        }
+                    }
+                    else
+                    {
+                        fieldBuilder.append(String.format(fieldFormat, columnName));
+                    }
+                });
 
             fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
             select = fieldBuilder.toString();

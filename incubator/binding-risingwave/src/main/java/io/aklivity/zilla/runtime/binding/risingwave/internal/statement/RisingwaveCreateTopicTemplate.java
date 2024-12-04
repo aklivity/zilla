@@ -25,7 +25,6 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     private final String sqlFormat = """
         CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
     private final String primaryKeyFormat = ", PRIMARY KEY (%s)";
-    private final String fieldFormat = "%s %s, ";
 
     private final StringBuilder fieldBuilder = new StringBuilder();
     private final StringBuilder primaryKeyBuilder = new StringBuilder();
@@ -40,9 +39,18 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 
         fieldBuilder.setLength(0);
 
-        table.columns()
-            .forEach(c -> fieldBuilder.append(
-                String.format(fieldFormat, c.name(), c.type())));
+        table.columns().forEach(c ->
+        {
+            fieldBuilder.append(c.name());
+            fieldBuilder.append(" ");
+            fieldBuilder.append(c.type());
+            if (!c.constraints().isEmpty())
+            {
+                fieldBuilder.append(" ");
+                c.constraints().forEach(fieldBuilder::append);
+            }
+            fieldBuilder.append(", ");
+        });
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
@@ -61,7 +69,7 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
             .stream()
             .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
             .forEach(e -> fieldBuilder.append(
-                String.format(fieldFormat, e.getKey(), e.getValue())));
+                String.format("%s %s, ", e.getKey(), e.getValue())));
 
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
@@ -82,7 +90,7 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 
         fieldBuilder.setLength(0);
 
-        columns.forEach((k, v) -> fieldBuilder.append(String.format(fieldFormat, k,
+        columns.forEach((k, v) -> fieldBuilder.append(String.format("%s %s, ", k,
             RisingwavePgsqlTypeMapping.typeName(v))));
         fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 

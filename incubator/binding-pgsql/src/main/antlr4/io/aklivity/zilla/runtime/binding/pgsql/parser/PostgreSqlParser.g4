@@ -806,7 +806,7 @@ colconstraintelem
     | CHECK OPEN_PAREN a_expr CLOSE_PAREN opt_no_inherit
     | DEFAULT b_expr
     | GENERATED generated_when AS (
-        IDENTITY_P optparenthesizedseqoptlist
+        (IDENTITY_P | NOW) optparenthesizedseqoptlist
         | OPEN_PAREN a_expr CLOSE_PAREN STORED
     )
     | REFERENCES qualified_name opt_column_list key_match key_actions
@@ -836,6 +836,7 @@ tablelikeoption
     | CONSTRAINTS
     | DEFAULTS
     | IDENTITY_P
+    | NOW
     | GENERATED
     | INDEXES
     | STATISTICS

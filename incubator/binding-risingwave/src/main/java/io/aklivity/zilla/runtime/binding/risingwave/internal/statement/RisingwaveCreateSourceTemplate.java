@@ -82,23 +82,32 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
 
         includeBuilder.setLength(0);
         List<TableColumn> includes = tableInfo.columns().stream()
-            .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
+            .filter(column -> column.constraints().stream()
+                .anyMatch(ZILLA_MAPPINGS::containsKey))
             .collect(Collectors.toCollection(ArrayList::new));
 
         if (!includes.isEmpty())
         {
             includeBuilder.append("\n");
-            includes.forEach(c ->
+            includes.forEach(i ->
             {
-                String name = c.name();
-                if (ZILLA_TIMESTAMP.equals(name))
-                {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(name), "%s_timestamp".formatted(name)));
-                }
-                else
-                {
-                    includeBuilder.append(String.format(ZILLA_MAPPINGS.get(name), "%s_header".formatted(name)));
-                }
+                String name = i.name();
+
+                i.constraints().stream()
+                    .filter(ZILLA_MAPPINGS::containsKey)
+                    .findFirst()
+                    .ifPresent(c ->
+                    {
+                        if (ZILLA_TIMESTAMP.equals(c))
+                        {
+                            includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_timestamp".formatted(name)));
+                        }
+                        else
+                        {
+                            includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_header".formatted(name)));
+                        }
+                    });
+
             });
             includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
         }

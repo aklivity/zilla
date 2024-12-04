@@ -33,9 +33,8 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE SOURCE IF NOT EXISTS cities_source (*)\n"
-      "INCLUDE header 'zilla:correlation-id' AS zilla_correlation_id_header\n"
-      "INCLUDE header 'zilla:identity' AS zilla_identity_header\n"
-      "INCLUDE timestamp AS zilla_timestamp_timestamp\n"
+      "INCLUDE header 'zilla:identity' AS owner_id_header\n"
+      "INCLUDE timestamp AS created_at_timestamp\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
@@ -69,9 +68,8 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view"
       " AS SELECT id, name, description,"
-      " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id,"
-      " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity,"
-      " COALESCE(zilla_timestamp, zilla_timestamp_timestamp::varchar) as zilla_timestamp"
+      " COALESCE(owner_id, owner_id_header::varchar) as owner_id,"
+      " COALESCE(created_at, created_at_timestamp::timestamp) as created_at"
       " FROM cities_source;"
       [0x00]
 write flush
@@ -97,7 +95,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write "CREATE TABLE IF NOT EXISTS cities"
       " (id VARCHAR, name VARCHAR, description VARCHAR,"
-      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP,"
+      " owner_id VARCHAR, created_at TIMESTAMP,"
       " PRIMARY KEY (id));"
       [0x00]
 write flush
@@ -200,8 +198,13 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "INSERT INTO zb_catalog.ztables (name, sql) VALUES "
-      "('cities', 'CREATE ZTABLE IF NOT EXISTS cities (id VARCHAR, name VARCHAR, description VARCHAR, zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP, PRIMARY KEY (id));');"
+      "('cities', 'CREATE ZTABLE IF NOT EXISTS cities "
+      "(id VARCHAR, name VARCHAR, description VARCHAR, "
+      "owner_id VARCHAR GENERATED ALWAYS AS IDENTITY, "
+      "created_at TIMESTAMP GENERATED ALWAYS AS NOW, "
+      "PRIMARY KEY (id));');"
       [0x00]
+
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
@@ -250,11 +253,15 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE TOPIC IF NOT EXISTS cities "
-      "(id VARCHAR, name VARCHAR, description VARCHAR,"
-      " zilla_correlation_id VARCHAR, zilla_identity VARCHAR, zilla_timestamp TIMESTAMP,"
-      " PRIMARY KEY (id));"
+write "CREATE TOPIC IF NOT EXISTS cities ("
+      "id VARCHAR, "
+      "name VARCHAR, "
+      "description VARCHAR, "
+      "owner_id VARCHAR GENERATED ALWAYS AS IDENTITY, "
+      "created_at TIMESTAMP GENERATED ALWAYS AS NOW, "
+      "PRIMARY KEY (id));"
       [0x00]
+
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

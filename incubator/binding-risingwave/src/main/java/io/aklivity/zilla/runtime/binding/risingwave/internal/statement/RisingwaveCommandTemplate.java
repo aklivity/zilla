@@ -22,8 +22,8 @@ import org.agrona.collections.Object2ObjectHashMap;
 public abstract class RisingwaveCommandTemplate
 {
     protected static final String ZILLA_CORRELATION_ID = "zilla_correlation_id";
-    protected static final String ZILLA_IDENTITY = "zilla_identity";
-    protected static final String ZILLA_TIMESTAMP = "zilla_timestamp";
+    protected static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
+    protected static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
 
     protected final StringBuilder fieldBuilder = new StringBuilder();
     protected final StringBuilder includeBuilder = new StringBuilder();
