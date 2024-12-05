@@ -28,8 +28,8 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     private final String sqlFormat = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
     private final String fieldFormat = "%s, ";
-    private final String includeFormat = "COALESCE(%s, %s_header::varchar) as %s, ";
-    private final String timestampFormat = "COALESCE(%s, %s_timestamp::timestamp) as %s, ";
+    private final String includeFormat = "COALESCE(%s, %s_header::%s) as %s, ";
+    private final String timestampFormat = "COALESCE(%s, %s_timestamp::%s) as %s, ";
 
     public String generate(
         View view)
@@ -60,6 +60,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
                 .forEach(i ->
                 {
                     String columnName = i.name();
+                    String columnType = i.type().toLowerCase();
 
                     Optional<String> include = i.constraints().stream()
                         .filter(ZILLA_MAPPINGS::containsKey)
@@ -70,11 +71,13 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
                         final String includeName = include.get();
                         if (ZILLA_TIMESTAMP.equals(includeName))
                         {
-                            fieldBuilder.append(String.format(timestampFormat,  columnName, columnName, columnName));
+                            fieldBuilder.append(
+                                String.format(timestampFormat, columnName, columnName, columnType, columnName));
                         }
                         else
                         {
-                            fieldBuilder.append(String.format(includeFormat, columnName, columnName, columnName));
+                            fieldBuilder.append(
+                                String.format(includeFormat, columnName, columnName, columnType, columnName));
                         }
                     }
                     else
