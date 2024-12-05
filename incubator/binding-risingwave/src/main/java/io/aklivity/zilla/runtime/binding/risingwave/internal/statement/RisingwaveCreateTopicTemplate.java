@@ -67,7 +67,7 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
         stream.columns()
             .entrySet()
             .stream()
-            .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
+            .filter(e -> !ZILLA_MAPPINGS_OLD.containsKey(e.getKey()))
             .forEach(e -> fieldBuilder.append(
                 String.format("%s %s, ", e.getKey(), e.getValue())));
 

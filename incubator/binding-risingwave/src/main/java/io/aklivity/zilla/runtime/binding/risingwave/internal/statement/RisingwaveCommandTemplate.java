@@ -21,7 +21,11 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 public abstract class RisingwaveCommandTemplate
 {
-    protected static final String ZILLA_CORRELATION_ID = "zilla_correlation_id";
+    //TODO: Remove after implementing zstream
+    protected static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
+    protected static final String ZILLA_IDENTITY_OLD = "zilla_identity";
+    protected static final String ZILLA_TIMESTAMP_OLD = "zilla_timestamp";
+
     protected static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
     protected static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
 
@@ -31,16 +35,15 @@ public abstract class RisingwaveCommandTemplate
     protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {
-        ZILLA_MAPPINGS.put(ZILLA_CORRELATION_ID, "INCLUDE header 'zilla:correlation-id' AS %s\n");
         ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s\n");
         ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s\n");
     }
 
-    protected static final Map<String, String> ZILLA_INCLUDE_TYPE_MAPPINGS = new Object2ObjectHashMap<>();
+    protected static final Map<String, String> ZILLA_MAPPINGS_OLD = new Object2ObjectHashMap<>();
     static
     {
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_CORRELATION_ID, "VARCHAR");
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_IDENTITY, "VARCHAR");
-        ZILLA_INCLUDE_TYPE_MAPPINGS.put(ZILLA_TIMESTAMP, "TIMESTAMP");
+        ZILLA_MAPPINGS_OLD.put(ZILLA_CORRELATION_ID_OLD, "INCLUDE header 'zilla:correlation-id' AS %s\n");
+        ZILLA_MAPPINGS_OLD.put(ZILLA_IDENTITY_OLD, "INCLUDE header 'zilla:identity' AS %s\n");
+        ZILLA_MAPPINGS_OLD.put(ZILLA_TIMESTAMP_OLD, "INCLUDE timestamp AS %s\n");
     }
 }
