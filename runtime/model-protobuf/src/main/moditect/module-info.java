@@ -15,8 +15,8 @@
 module io.aklivity.zilla.runtime.model.protobuf
 {
     requires org.antlr.antlr4.runtime;
-    requires protobuf.java;
     requires io.aklivity.zilla.runtime.engine;
+    requires java.logging;
 
     exports io.aklivity.zilla.runtime.model.protobuf.config;
 
