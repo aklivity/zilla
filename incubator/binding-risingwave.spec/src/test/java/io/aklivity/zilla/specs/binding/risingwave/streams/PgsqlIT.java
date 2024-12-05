@@ -145,9 +145,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.ztable.with.primary.key.and.includes/client",
-        "${app}/create.ztable.with.primary.key.and.includes/server" })
-    public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+        "${app}/create.ztable.with.generated.as/client",
+        "${app}/create.ztable.with.generated.as/server" })
+    public void shouldCreateTableWithGeneratedAs() throws Exception
     {
         k3po.finish();
     }

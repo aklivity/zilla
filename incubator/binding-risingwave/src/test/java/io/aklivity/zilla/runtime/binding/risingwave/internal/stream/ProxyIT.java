@@ -195,9 +195,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.ztable.with.primary.key.and.includes/client",
-        "${effective}/create.ztable.with.primary.key.and.includes/server" })
-    public void shouldCreateZtableWithPrimaryKeyAndIncludes() throws Exception
+        "${pgsql}/create.ztable.with.generated.as/client",
+        "${effective}/create.ztable.with.generated.as/server" })
+    public void shouldCreateTableWithGeneratedAs() throws Exception
     {
         k3po.finish();
     }

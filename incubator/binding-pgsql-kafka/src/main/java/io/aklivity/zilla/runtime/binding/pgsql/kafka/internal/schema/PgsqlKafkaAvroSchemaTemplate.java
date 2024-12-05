@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -25,12 +26,24 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
+import org.agrona.collections.Object2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
 public abstract class PgsqlKafkaAvroSchemaTemplate
 {
     protected static final String DATABASE_PLACEHOLDER = "{database}";
+
+    protected static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
+    protected static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
+
+    protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
+    static
+    {
+        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "ZILLA_IDENTITY");
+        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "ZILLA_TIMESTAMP");
+    }
 
     protected Jsonb jsonbFormatted = JsonbBuilder.create(new JsonbConfig().withFormatting(true));
     protected Jsonb jsonb = JsonbBuilder.create();
