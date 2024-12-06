@@ -104,7 +104,7 @@ public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
             }
             else
             {
-                constraints.add(tokens.getText(constraint.colconstraintelem()));
+                constraints.add(tokens.getText(constraint.colconstraintelem()).toUpperCase());
             }
         }
         columns.add(new TableColumn(columnName, dataType, constraints));

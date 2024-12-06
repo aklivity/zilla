@@ -47,7 +47,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterCreateztstmt(
         PostgreSqlParser.CreateztstmtContext ctx)
     {
-        command = "CREATE %s".formatted(ctx.optztable_type().getText());
+        command = "CREATE %s".formatted(ctx.optztable_type().getText().toUpperCase());
     }
 
     @Override
@@ -87,7 +87,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.ShowstmtContext ctx)
     {
         String type = ctx.show_object_type_name().getText();
-        command = "SHOW %s".formatted(type);
+        command = "SHOW %s".formatted(type.toUpperCase());
     }
 
     @Override
