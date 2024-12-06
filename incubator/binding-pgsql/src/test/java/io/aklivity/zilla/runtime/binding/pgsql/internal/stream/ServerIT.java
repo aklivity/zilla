@@ -137,4 +137,15 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/create.view.with.notice/client",
+        "${app}/create.view.with.notice/server"
+    })
+    public void shouldCreateViewWithNotice() throws Exception
+    {
+        k3po.finish();
+    }
 }

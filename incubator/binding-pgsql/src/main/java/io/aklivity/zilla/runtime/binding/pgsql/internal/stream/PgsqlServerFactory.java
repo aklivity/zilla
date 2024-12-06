@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlComple
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlErrorFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlNoticeFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlParameterFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlReadyFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlStatus;
@@ -72,6 +73,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_DATA_ROW = 'D';
     private static final Byte MESSAGE_TYPE_COMPLETION = 'C';
     private static final Byte MESSAGE_TYPE_ERROR = 'E';
+    private static final Byte MESSAGE_TYPE_NOTICE = 'N';
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATE = 'X';
     private static final Byte MESSAGE_TYPE_PARAMETER_STATUS = 'S';
@@ -911,6 +913,9 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             case PgsqlFlushExFW.KIND_ERROR:
                 doEncodeError(traceId, authorization, pgsqlFlushEx.error());
                 break;
+            case PgsqlFlushExFW.KIND_NOTICE:
+                doEncodeNotice(traceId, authorization, pgsqlFlushEx.notice());
+                break;
             case PgsqlFlushExFW.KIND_READY:
                 doEncodeReady(traceId, authorization, pgsqlFlushEx.ready());
                 break;
@@ -1208,6 +1213,32 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(errorOffset, error.code().value(), 0, codeLength);
             errorOffset += codeLength;
             messageBuffer.putBytes(errorOffset, error.message().value(), 0, messageLength);
+            errorOffset += messageLength;
+
+            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, errorOffset);
+        }
+
+        private void doEncodeNotice(
+            long traceId,
+            long authorization,
+            PgsqlNoticeFlushExFW notice)
+        {
+            int errorOffset = 0;
+            final int severityLength = notice.severity().value().capacity();
+            final int codeLength = notice.code().value().capacity();
+            final int messageLength = notice.message().value().capacity();
+
+            PgsqlMessageFW messageCompleted = messageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
+                .type(MESSAGE_TYPE_NOTICE)
+                .length(Integer.BYTES + severityLength + codeLength + messageLength)
+                .build();
+            errorOffset += messageCompleted.limit();
+
+            messageBuffer.putBytes(errorOffset, notice.severity().value(), 0, severityLength);
+            errorOffset += severityLength;
+            messageBuffer.putBytes(errorOffset, notice.code().value(), 0, codeLength);
+            errorOffset += codeLength;
+            messageBuffer.putBytes(errorOffset, notice.message().value(), 0, messageLength);
             errorOffset += messageLength;
 
             server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, errorOffset);

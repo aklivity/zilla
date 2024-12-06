@@ -1001,7 +1001,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 onAppReadyFlush(traceId, authorization, pgsqlFlushEx);
                 break;
             default:
-                assert false;
                 break;
             }
         }
