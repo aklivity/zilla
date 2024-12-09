@@ -548,7 +548,8 @@ public final class ZpmInstall extends ZpmCommand
                                 assert servicePath.getNameCount() == 1;
                                 String serviceName = servicePath.toString();
                                 String serviceImpl = new String(input.readAllBytes(), UTF_8);
-                                services.computeIfAbsent(serviceName, s -> new ArrayList<>()).add(serviceImpl);
+                                services.computeIfAbsent(serviceName, s -> new ArrayList<>())
+                                    .addAll(Arrays.asList(serviceImpl.split("\\R")));
                             }
                             else if (entryNames.add(entryName))
                             {
