@@ -28,8 +28,11 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
 {
-    private final List<TableColumn> columns = new ArrayList<>();
-    private final Set<String> primaryKeys = new ObjectHashSet<>();
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
+
+    private final List<TableColumn> columns;
+    private final Set<String> primaryKeys;
     private final TokenStream tokens;
 
     private String schema;
@@ -38,6 +41,8 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
     public SqlCreateTableTopicListener(
         TokenStream tokens)
     {
+        this.primaryKeys = new ObjectHashSet<>();
+        this.columns = new ArrayList<>();
         this.tokens = tokens;
     }
 
@@ -61,8 +66,8 @@ public class SqlCreateTableTopicListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Qualified_nameContext ctx)
     {
         String text = ctx.getText();
-        String[] split = text.split("\\.");
-        schema = split.length > 1 ? split[0] : "public";
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
     }
 

@@ -22,6 +22,9 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
 {
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
+
     private final TokenStream tokens;
 
     private String schema;
@@ -53,8 +56,8 @@ public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.CreatezviewstmtContext ctx)
     {
         String text = ctx.create_mv_target().qualified_name().getText();
-        String[] split = text.split("\\.");
-        schema = split.length > 1 ? split[0] : "public";
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
     }
 

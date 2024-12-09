@@ -43,7 +43,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseWithPrimaryKeySql()
+    public void shouldCreateTableWithPrimaryKey()
     {
         String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
@@ -53,7 +53,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldCreateTableParseWithPrimaryKeysSql()
+    public void shouldCreateTableWithPrimaryKeyAsAggregate()
     {
         String sql = """
             CREATE TABLE example_table (
@@ -72,7 +72,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableName()
+    public void shouldCreateTableName()
     {
         String sql = "CREATE TABLE test (id INT);";
         Table table = parser.parseCreateTable(sql);
@@ -81,7 +81,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableNameWithDoublePrecisionTypeField()
+    public void shouldCreateTableNameWithDoublePrecisionTypeField()
     {
         String sql = "CREATE TABLE test (id DOUBLE PRECISION);";
         Table table = parser.parseCreateTable(sql);
@@ -90,7 +90,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableColumns()
+    public void shouldCreateTableColumns()
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
@@ -98,27 +98,6 @@ public class PgsqlParserTest
         assertEquals(2, table.columns().size());
         assertEquals("INT", table.columns().get(0).type());
         assertEquals("VARCHAR(100)", table.columns().get(1).type());
-    }
-
-    @Test
-    public void shouldParseCreatreTablePrimaryKey()
-    {
-        String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
-        Table table = parser.parseCreateTable(sql);
-
-        assertEquals(1, table.primaryKeys().size());
-        assertTrue(table.primaryKeys().contains("id"));
-    }
-
-    @Test
-    public void shouldParseCreateTableCompositePrimaryKey()
-    {
-        String sql = "CREATE TABLE test (id INT, name VARCHAR(100), PRIMARY KEY (id, name));";
-        Table table = parser.parseCreateTable(sql);
-
-        assertEquals(2, table.primaryKeys().size());
-        assertTrue(table.primaryKeys().contains("id"));
-        assertTrue(table.primaryKeys().contains("name"));
     }
 
     @Test
@@ -141,7 +120,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateZView()
+    public void shouldCreateZview()
     {
         String sql = "CREATE ZVIEW test_view AS SELECT * FROM test_table;";
         View view = parser.parseCreateZView(sql);
@@ -176,7 +155,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseDropSingleTable()
+    public void shouldDropSingleTable()
     {
         String sql = "DROP TABLE test_table;";
         List<Drop> drops = parser.parseDrop(sql);
@@ -200,7 +179,7 @@ public class PgsqlParserTest
     }
 
     @Test(expected = ParseCancellationException.class)
-    public void shouldHandleEmptyDropStatement()
+    public void shouldDropTable()
     {
         String sql = "DROP TABLE;";
         List<Drop> drops = parser.parseDrop(sql);
@@ -209,7 +188,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseDropView()
+    public void shouldDropView()
     {
         String sql = "DROP VIEW test_view;";
         List<Drop> drops = parser.parseDrop(sql);
@@ -220,7 +199,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseDropZview()
+    public void shouldDropZview()
     {
         String sql = "DROP ZVIEW test_materialized_view;";
         List<Drop> drops = parser.parseDrop(sql);
@@ -230,7 +209,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateStream()
+    public void shouldCreateStream()
     {
         String sql = "CREATE STREAM test_stream (id INT, name VARCHAR(100));";
         Stream stream = parser.parseCreateStream(sql);
@@ -242,7 +221,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateStreamIfNotExists()
+    public void shouldCreateStreamIfNotExists()
     {
         String sql = "CREATE STREAM IF NOT EXISTS test_stream (id INT, name VARCHAR(100));";
         Stream stream = parser.parseCreateStream(sql);
@@ -261,7 +240,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateFunction()
+    public void shouldCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql;";
         Function function = parser.parseCreateFunction(sql);
@@ -272,7 +251,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateFunctionWithLanguage()
+    public void shouldCreateFunctionWithLanguage()
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS TABLE (x INT) LANGUAGE python AS 'test_function';";
         Function function = parser.parseCreateFunction(sql);
@@ -284,7 +263,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateFunctionWithStructReturnType()
+    public void shouldCreateFunctionWithStructReturnType()
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS struct<key varchar, value varchar>" +
             " LANGUAGE python AS 'test_function';";
@@ -304,7 +283,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableWithUniqueConstraint()
+    public void shouldCreateTableWithUniqueConstraint()
     {
         String sql = "CREATE TABLE test (id INT UNIQUE, name VARCHAR(100));";
         Table table = parser.parseCreateTable(sql);
@@ -316,7 +295,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableWithForeignKey()
+    public void shouldCreateTableWithForeignKey()
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CONSTRAINT fk_name FOREIGN KEY (name)" +
             " REFERENCES other_table(name));";
@@ -347,7 +326,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableWithDefaultValues()
+    public void shouldCreateTableWithDefaultValues()
     {
         String sql = "CREATE TABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
         Table table = parser.parseCreateTable(sql);
@@ -359,7 +338,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableWithNotNullConstraint()
+    public void shouldCreateTableWithNotNullConstraint()
     {
         String sql = "CREATE TABLE test (id INT NOT NULL, name VARCHAR(100) NOT NULL);";
         Table table = parser.parseCreateTable(sql);
@@ -371,7 +350,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCreateTableWithMultipleConstraints()
+    public void shouldCreateTableWithMultipleConstraints()
     {
         String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100) UNIQUE, age INT CHECK (age > 0));";
         Table table = parser.parseCreateTable(sql);
@@ -384,7 +363,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterTableAddColumn()
+    public void shouldAlterTableAddColumn()
     {
         String sql = "ALTER TABLE test_table ADD COLUMN new_column INT;";
         Alter alter = parser.parseAlterTable(sql);
@@ -397,7 +376,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterTopicAddColumn()
+    public void shouldAlterTopicAddColumn()
     {
         String sql = "ALTER TOPIC test_table ADD COLUMN new_column INT;";
         Alter alter = parser.parseAlterTable(sql);
@@ -410,7 +389,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterTableDropColumn()
+    public void shouldAlterTableDropColumn()
     {
         String sql = "ALTER TABLE test_table DROP COLUMN old_column;";
         Alter alter = parser.parseAlterTable(sql);
@@ -422,7 +401,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterTableModifyColumn()
+    public void shouldAlterTableModifyColumn()
     {
         String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
         Alter alter = parser.parseAlterTable(sql);
@@ -441,7 +420,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCommandForAlterTable()
+    public void shouldDetectAlterCommand()
     {
         String sql = "ALTER TABLE test_table ALTER COLUMN existing_column TYPE VARCHAR(100);";
         String expectedCommand = "ALTER TABLE";
@@ -452,7 +431,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseCommandForCreateTopic()
+    public void shouldDetectCreateTopicCommand()
     {
         String sql = "CREATE TOPIC test (id INT UNIQUE, name VARCHAR(100));";
         String expectedCommand = "CREATE TOPIC";
@@ -463,7 +442,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterStreamAddColumn()
+    public void shouldDetectAlterStreamAddColumn()
     {
         String sql = "ALTER STREAM test_stream ADD COLUMN new_column INT;";
         Alter alter = parser.parseAlterStream(sql);
@@ -476,7 +455,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterStreamDropColumn()
+    public void shouldAlterStreamDropColumn()
     {
         String sql = "ALTER STREAM test_stream DROP COLUMN old_column;";
         Alter alter = parser.parseAlterStream(sql);
@@ -495,7 +474,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseAlterStreamModifyColumn()
+    public void shouldAlterStreamModifyColumn()
     {
         String sql = "ALTER STREAM test_stream ALTER COLUMN existing_column TYPE VARCHAR(100);";
         Alter alter = parser.parseAlterStream(sql);
@@ -508,7 +487,7 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldParseShowZviews()
+    public void shouldShowZviews()
     {
         String sql = "SHOW ZVIEWS;";
         String type = parser.parseShow(sql);

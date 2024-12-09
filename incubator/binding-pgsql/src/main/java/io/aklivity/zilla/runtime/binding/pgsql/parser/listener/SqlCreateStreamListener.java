@@ -25,7 +25,10 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
 
 public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
 {
-    private final Map<String, String> columns = new LinkedHashMap<>();
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
+
+    private final Map<String, String> columns;
     private final TokenStream tokens;
 
     private String schema;
@@ -34,6 +37,7 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     public SqlCreateStreamListener(
         TokenStream tokens)
     {
+        this.columns = new LinkedHashMap<>();
         this.tokens = tokens;
     }
 
@@ -55,8 +59,8 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Qualified_nameContext ctx)
     {
         String text = ctx.getText();
-        String[] split = text.split("\\.");
-        schema = split.length > 1 ? split[0] : "public";
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
     }
 
