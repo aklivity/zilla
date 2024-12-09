@@ -73,7 +73,7 @@ public final class RisingwaveBindingConfig
     public final RisingwaveDropSinkTemplate dropSink;
     public final RisingwaveInsertIntoCatalogTemplate catalogInsert;
     public final RisingwaveDeleteFromCatalogTemplate catalogDelete;
-    public final RisingwaveGrantToSourceTemplate grantSource;
+    public final RisingwaveGrantToSourceTemplate grantResource;
     public final RisingwaveShowTypeTemplate showType;
 
     public RisingwaveBindingConfig(
@@ -118,7 +118,7 @@ public final class RisingwaveBindingConfig
         this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
         this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate(INTERNAL_SCHEMA);
         this.catalogDelete = new RisingwaveDeleteFromCatalogTemplate(INTERNAL_SCHEMA);
-        this.grantSource = new RisingwaveGrantToSourceTemplate();
+        this.grantResource = new RisingwaveGrantToSourceTemplate();
         this.showType = new RisingwaveShowTypeTemplate();
     }
 
