@@ -522,7 +522,7 @@ public final class ZpmInstall extends ZpmCommand
             Path excludedPackage = Paths.get("org", "eclipse", "yasson", "internal", "components");
             String excludedClass = "BeanManagerInstanceCreator";
             Set<String> entryNames = new HashSet<>();
-            Map<String, String> services = new HashMap<>();
+            Map<String, List<String>> services = new HashMap<>();
             for (Path path : delegate.paths)
             {
                 try (JarFile artifactJar = new JarFile(path.toFile()))
@@ -548,8 +548,7 @@ public final class ZpmInstall extends ZpmCommand
                                 assert servicePath.getNameCount() == 1;
                                 String serviceName = servicePath.toString();
                                 String serviceImpl = new String(input.readAllBytes(), UTF_8);
-                                String existing = services.getOrDefault(serviceName, "");
-                                services.put(serviceName, existing.concat("\n").concat(serviceImpl));
+                                services.computeIfAbsent(serviceName, s -> new ArrayList<>()).add(serviceImpl);
                             }
                             else if (entryNames.add(entryName))
                             {
@@ -562,11 +561,11 @@ public final class ZpmInstall extends ZpmCommand
                 }
             }
 
-            for (Map.Entry<String, String> service : services.entrySet())
+            for (Map.Entry<String, List<String>> service : services.entrySet())
             {
                 String serviceName = service.getKey();
                 Path servicePath = servicesPath.resolve(serviceName);
-                String serviceImpl = service.getValue();
+                String serviceImpl = String.join("\n", service.getValue());
 
                 JarEntry newEntry = new JarEntry(servicePath.toString());
                 newEntry.setTime(318240000000L);
