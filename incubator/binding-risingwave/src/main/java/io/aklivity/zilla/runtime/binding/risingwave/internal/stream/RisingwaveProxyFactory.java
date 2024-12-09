@@ -375,6 +375,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             state = RisingwaveState.openingInitial(state);
 
             systemClientsByRouteId.values().forEach(c -> c.doAppBegin(traceId, authorization, affinity));
+            userClient.doAppBegin(traceId, authorization, affinity);
 
             doAppWindow(traceId, authorization);
 

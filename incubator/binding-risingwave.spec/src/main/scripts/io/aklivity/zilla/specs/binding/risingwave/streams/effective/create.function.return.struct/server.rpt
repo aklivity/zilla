@@ -82,7 +82,7 @@ accepted
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
                               .parameter("user", "app")
-                              .parameter("database", "zillabase")
+                              .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
                               .build()}
