@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.106...HEAD)
+
+**Merged pull requests:**
+
+- Bump org.apache.avro:avro from 1.11.3 to 1.11.4 [\#1284](https://github.com/aklivity/zilla/pull/1284) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.google.protobuf:protobuf-java from 3.24.4 to 3.25.5 in /runtime/model-protobuf [\#1257](https://github.com/aklivity/zilla/pull/1257) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.106](https://github.com/aklivity/zilla/tree/0.9.106) (2024-12-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.105...0.9.106)
