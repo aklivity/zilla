@@ -153,6 +153,12 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
+        final Consumer<Throwable> reporter = this.reporter != null
+            ? this.reporter
+            : config.verbose()
+                ? e -> e.printStackTrace(System.err)
+                : e -> System.err.println(e.getMessage());
+
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
                 catalogs, models, eventFormatterFactory, reporter, errorHandler, affinities, readonly);
     }
