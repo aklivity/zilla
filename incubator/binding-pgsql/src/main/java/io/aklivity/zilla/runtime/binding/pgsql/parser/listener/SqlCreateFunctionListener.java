@@ -26,9 +26,11 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
 
 public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 {
-    private final List<FunctionArgument> arguments = new ArrayList<>();
-    private final List<FunctionArgument> tables = new ArrayList<>();
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
 
+    private final List<FunctionArgument> tables;
+    private final List<FunctionArgument> arguments;
     private final TokenStream tokens;
 
     private String schema;
@@ -40,6 +42,8 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     public SqlCreateFunctionListener(
         TokenStream tokens)
     {
+        this.tables = new ArrayList<>();
+        this.arguments = new ArrayList<>();
         this.tokens = tokens;
     }
 
@@ -66,8 +70,8 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.CreatefunctionstmtContext ctx)
     {
         String text = ctx.func_name().getText();
-        String[] split = text.split("\\.");
-        schema = split.length > 1 ? split[0] : "public";
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
     }
 

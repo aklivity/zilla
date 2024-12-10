@@ -23,8 +23,15 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 
 public class SqlDropListener extends PostgreSqlParserBaseListener
 {
-    private final List<Drop> drops = new ArrayList<>();
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
 
+    private final List<Drop> drops;
+
+    public SqlDropListener()
+    {
+        this.drops = new ArrayList<>();
+    }
     public List<Drop> drops()
     {
         return drops;
@@ -44,8 +51,8 @@ public class SqlDropListener extends PostgreSqlParserBaseListener
         ctx.any_name_list().any_name().forEach(n ->
         {
             String text = n.getText();
-            String[] split = text.split("\\.");
-            String schema = split.length > 1 ? split[0] : "public";
+            String[] split = text.split(SCHEMA_PATTERN);
+            String schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
             String name = split.length > 1 ? split[1] : text;
             drops.add(new Drop(schema, name));
         });

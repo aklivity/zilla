@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 import java.util.Map;
 import java.util.Optional;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 
 public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 {
@@ -53,10 +53,10 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
 
     public String generateOutgress(
         Map<String, String> columns,
-        View view)
+        CreateZview createZview)
     {
-        String topicSchema = view.schema();
-        String viewName = view.name();
+        String topicSchema = createZview.schema();
+        String viewName = createZview.name();
 
         Optional<Map.Entry<String, String>> primaryKeyMatch = columns.entrySet().stream()
             .filter(e -> "id".equalsIgnoreCase(e.getKey()))
@@ -77,19 +77,19 @@ public class RisingwaveCreateSinkTemplate extends RisingwaveCommandTemplate
     }
 
     public String generateOutgress(
-        Table tableInfo)
+        CreateTable createTableInfo)
     {
-        String topicSchema = tableInfo.schema();
-        String table = tableInfo.name();
+        String topicSchema = createTableInfo.schema();
+        String table = createTableInfo.name();
 
         return String.format(sqlKafkaFormat, schema, table, table, bootstrapServer, topicSchema, table,
-            primaryKeyFormat.formatted(tableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
+            primaryKeyFormat.formatted(createTableInfo.primaryKeys().stream().findFirst().get()), schemaRegistry);
     }
 
     public String generateInto(
-        Table tableInfo)
+        CreateTable createTableInfo)
     {
-        String table = tableInfo.name();
+        String table = createTableInfo.name();
 
         return String.format(sqlFormat, schema, table, table, table);
     }

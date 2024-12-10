@@ -27,15 +27,19 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
 public class SqlAlterZtableTopicListener extends PostgreSqlParserBaseListener
 {
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
+
+    private final List<AlterExpression> alterExpressions;
     private final TokenStream tokens;
 
     private String schema;
     private String name;
-    private final List<AlterExpression> alterExpressions = new ArrayList<>();
 
     public SqlAlterZtableTopicListener(
         TokenStream tokens)
     {
+        this.alterExpressions = new ArrayList<>();
         this.tokens = tokens;
     }
 
@@ -58,8 +62,8 @@ public class SqlAlterZtableTopicListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Qualified_nameContext ctx)
     {
         String text = ctx.getText();
-        String[] split = text.split("\\.");
-        schema = split.length > 1 ? split[0] : "public";
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
     }
 

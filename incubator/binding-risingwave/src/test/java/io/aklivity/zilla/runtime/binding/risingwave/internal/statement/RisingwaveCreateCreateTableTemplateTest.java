@@ -24,10 +24,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
-public class RisingwaveCreateTableTemplateTest
+public class RisingwaveCreateCreateTableTemplateTest
 {
     private static RisingwaveCreateTableTemplate template;
 
@@ -44,7 +44,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("id", "INT", List.of()));
         columns.add(new TableColumn("name", "STRING", List.of()));
 
-        Table table = new Table(
+        CreateTable createTable = new CreateTable(
             "public",
             "test_table",
             columns,
@@ -52,7 +52,7 @@ public class RisingwaveCreateTableTemplateTest
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -64,7 +64,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("id", "INT", List.of()));
         columns.add(new TableColumn("name", "STRING", List.of()));
 
-        Table table = new Table(
+        CreateTable createTable = new CreateTable(
             "public",
             "test_table",
             columns,
@@ -72,7 +72,7 @@ public class RisingwaveCreateTableTemplateTest
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING);\u0000""";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -85,7 +85,7 @@ public class RisingwaveCreateTableTemplateTest
         columns.add(new TableColumn("id", "INT", List.of()));
         columns.add(new TableColumn("name", "STRING", List.of()));
 
-        Table table = new Table(
+        CreateTable createTable = new CreateTable(
             "public",
             "test_table",
             columns,
@@ -93,7 +93,7 @@ public class RisingwaveCreateTableTemplateTest
         String expectedSQL = """
             CREATE TABLE IF NOT EXISTS test_table (id INT, name STRING, PRIMARY KEY (id));\u0000""";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
