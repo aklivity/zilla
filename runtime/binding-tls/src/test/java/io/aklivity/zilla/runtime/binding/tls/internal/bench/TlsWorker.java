@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
 import java.util.zip.CRC32C;
@@ -192,6 +193,12 @@ public class TlsWorker implements EngineContext
 
     @Override
     public EventFormatter supplyEventFormatter()
+    {
+        return null;
+    }
+
+    @Override
+    public Consumer<Throwable> supplyReporter()
     {
         return null;
     }

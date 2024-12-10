@@ -142,18 +142,19 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        final Consumer<Throwable> report = exceptions
+        final Consumer<Throwable> reporter = exceptions
             ? e -> e.printStackTrace(System.err)
             : e -> System.err.println(e.getMessage());
 
         final ErrorHandler onError = ex ->
         {
-            report.accept(ex);
+            reporter.accept(ex);
             stop.countDown();
         };
 
         try (Engine engine = Engine.builder()
             .config(config)
+            .reporter(reporter)
             .errorHandler(onError)
             .build())
         {
