@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
-import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
 import static java.io.OutputStream.nullOutputStream;
 import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -30,7 +29,6 @@ import static java.util.Comparator.reverseOrder;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.sonatype.plexus.components.sec.dispatcher.DefaultSecDispatcher.SYSTEM_PROPERTY_SEC_LOCATION;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +41,7 @@ import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -75,11 +74,20 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
-import org.apache.ivy.util.DefaultMessageLogger;
-import org.apache.ivy.util.Message;
-import org.apache.ivy.util.MessageLogger;
-import org.apache.ivy.util.url.CredentialsStore;
-import org.sonatype.plexus.components.cipher.PlexusCipherException;
+import org.apache.maven.settings.Server;
+import org.apache.maven.settings.Settings;
+import org.apache.maven.settings.building.DefaultSettingsBuilder;
+import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
+import org.apache.maven.settings.building.SettingsBuildingResult;
+import org.apache.maven.settings.io.DefaultSettingsReader;
+import org.apache.maven.settings.io.DefaultSettingsWriter;
+import org.apache.maven.settings.io.SettingsReader;
+import org.apache.maven.settings.io.SettingsWriter;
+import org.apache.maven.settings.validation.DefaultSettingsValidator;
+import org.apache.maven.settings.validation.SettingsValidator;
+import org.codehaus.plexus.logging.console.ConsoleLogger;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.util.repository.AuthenticationBuilder;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -89,10 +97,6 @@ import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifact;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifactId;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmCache;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmModule;
-import io.aklivity.zilla.manager.internal.settings.ZpmCredentials;
-import io.aklivity.zilla.manager.internal.settings.ZpmSecrets;
-import io.aklivity.zilla.manager.internal.settings.ZpmSecurity;
-import io.aklivity.zilla.manager.internal.settings.ZpmSettings;
 
 @Command(
     name = "install",
@@ -106,33 +110,36 @@ public final class ZpmInstall extends ZpmCommand
 
     private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
 
-    @Option(name = { "--debug" },
-            description = "Link jdk.jdwp.agent module")
+    @Option(name = { "--verbose" },
+        description = "Enable verbose logging")
+    public Boolean verbose = false;
+
+    @Option(name = {"--debug"},
+        description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
 
-    @Option(name = { "--instrument" },
-            description = "Link java.instrument module",
-            hidden = true)
+    @Option(name = {"--instrument"},
+        description = "Link java.instrument module",
+        hidden = true)
     public Boolean instrument = false;
 
-    @Option(name = { "--exclude-local-repository" },
-            description = "Exclude the local Maven repository")
+    @Option(name = {"--exclude-local-repository"},
+        description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
 
-    @Option(name = { "--exclude-remote-repositories" },
-            description = "Exclude remote Maven repositories")
+    @Option(name = {"--exclude-remote-repositories"},
+        description = "Exclude remote Maven repositories")
     public boolean excludeRemoteRepos;
 
-    @Option(name = { "--ignore-missing-dependencies" },
-            hidden = true)
+    @Option(name = {"--ignore-missing-dependencies"},
+        hidden = true)
     public boolean ignoreMissingDependencies;
 
     @Override
     public void invoke()
     {
-        int level = silent ? Message.MSG_WARN : Message.MSG_INFO;
-        MessageLogger logger = new DefaultMessageLogger(level);
-        Message.setDefaultLogger(logger);
+        int level = silent ? ConsoleLogger.LEVEL_WARN : verbose ? ConsoleLogger.LEVEL_DEBUG : ConsoleLogger.LEVEL_INFO;
+        ConsoleLogger logger = new ConsoleLogger(level, "ZpmInstall");
 
         try
         {
@@ -148,12 +155,13 @@ public final class ZpmInstall extends ZpmCommand
             config = overrideConfigIfLocked(config, zpmFile, lockFile);
 
             logger.info("resolving dependencies");
-            readSettings(settingsDir);
             createDirectories(cacheDir);
             List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
+
+            final String home = System.getProperty("user.home");
             if (!excludeLocalRepo)
             {
-                String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
+                String localRepo = String.format("file://%s/.m2/repository", home);
                 repositories.add(0, new ZpmRepository(localRepo));
             }
 
@@ -162,21 +170,39 @@ public final class ZpmInstall extends ZpmCommand
                 repositories.removeIf(r -> !r.location.startsWith("file:"));
             }
 
-            ZpmCache cache = new ZpmCache(repositories, cacheDir);
+            File settingsFile = new File(String.format("/%s/.m2/settings.xml", home));
+
+            SettingsReader settingsReader = new DefaultSettingsReader();
+            SettingsWriter settingsWriter = new DefaultSettingsWriter();
+            SettingsValidator settingsValidator = new DefaultSettingsValidator();
+
+            DefaultSettingsBuilder settingsBuilder = new DefaultSettingsBuilder(
+                settingsReader, settingsWriter, settingsValidator);
+            DefaultSettingsBuildingRequest request = new DefaultSettingsBuildingRequest();
+            request.setGlobalSettingsFile(settingsFile);
+            request.setUserSettingsFile(settingsFile);
+
+            SettingsBuildingResult result = settingsBuilder.build(request);
+            Settings settings = result.getEffectiveSettings();
+
+            List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
+
+            ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
+
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
-                    .map(a -> a.id)
-                    .collect(
-                        toMap(
-                            id -> ZpmDependency.of(id.group, id.artifact, null),
-                            id -> ZpmDependency.of(id.group, id.artifact, id.version)));
+                .map(a -> a.id)
+                .collect(toMap(
+                    id -> ZpmDependency.of(id.group, id.artifact, null),
+                    id -> ZpmDependency.of(id.group, id.artifact, id.version),
+                    (first, second) -> second));
 
             ZpmConfiguration resolved = new ZpmConfiguration();
             resolved.repositories = config.repositories;
             resolved.imports = null;
             resolved.dependencies = config.dependencies.stream()
-                    .map(d -> ofNullable(resolvables.get(d)).orElse(d))
-                    .collect(toList());
+                .map(d -> ofNullable(resolvables.get(d)).orElse(d))
+                .collect(toList());
 
             if (!resolved.equals(config))
             {
@@ -212,65 +238,33 @@ public final class ZpmInstall extends ZpmCommand
             logger.error(String.format("Error: %s", ex.getMessage()));
             throw new RuntimeException(ex);
         }
-        finally
-        {
-            if (!silent)
-            {
-                logger.sumupProblems();
-            }
-        }
     }
 
-    private void readSettings(
-        Path settingsDir) throws IOException, PlexusCipherException
+    private List<RemoteRepository> asRemoteRepositories(
+        Settings settings,
+        List<ZpmRepository> repositories) throws URISyntaxException
     {
-        Path settingsFile = settingsDir.resolve("settings.json");
+        final List<RemoteRepository> remoteRepositories = new ArrayList<>();
 
-        ZpmSettings settings = new ZpmSettings();
-        settings.credentials = emptyList();
-
-        Jsonb builder = JsonbBuilder.newBuilder()
-                .withConfig(new JsonbConfig().withFormatting(true))
-                .build();
-
-        if (Files.exists(settingsFile))
+        for (ZpmRepository repository : repositories)
         {
-            try (InputStream in = newInputStream(settingsFile))
+            final String host = new URI(repository.location).getHost();
+            final RemoteRepository.Builder repoBuilder =
+                new RemoteRepository.Builder(host, "default", repository.location)
+                    .setRepositoryManager(true)
+                    .setId(host);
+
+            final Server server = settings.getServer(host);
+            if (server != null)
             {
-                settings = builder.fromJson(in, ZpmSettings.class);
+                AuthenticationBuilder authenticationBuilder = new AuthenticationBuilder()
+                    .addUsername(server.getUsername())
+                    .addPassword(server.getPassword());
+                repoBuilder.setAuthentication(authenticationBuilder.build());
             }
+            remoteRepositories.add(repoBuilder.build());
         }
-
-        if (settings.credentials.size() > 0)
-        {
-            Path securityFile = settingsDir.resolve("security.json");
-
-            ZpmSecurity security = new ZpmSecurity();
-
-            if (Files.exists(securityFile))
-            {
-                try (InputStream in = newInputStream(securityFile))
-                {
-                    security = builder.fromJson(in, ZpmSecurity.class);
-                }
-            }
-
-            security.secret = decryptSecret(security.secret, SYSTEM_PROPERTY_SEC_LOCATION);
-
-            for (ZpmCredentials credentials : settings.credentials)
-            {
-                String realm = defaultRealmIfNecessary(credentials);
-                String host = credentials.host;
-                String username = credentials.username;
-                String password = ZpmSecrets.decryptSecret(credentials.password, security.secret);
-
-                CredentialsStore.INSTANCE.addCredentials(
-                    realm,
-                    host,
-                    username,
-                    password);
-            }
-        }
+        return remoteRepositories;
     }
 
     private ZpmConfiguration readOrDefaultConfig(
@@ -282,8 +276,8 @@ public final class ZpmInstall extends ZpmCommand
         config.dependencies = emptyList();
 
         Jsonb builder = JsonbBuilder.newBuilder()
-                .withConfig(new JsonbConfig().withFormatting(true))
-                .build();
+            .withConfig(new JsonbConfig().withFormatting(true))
+            .build();
 
         if (Files.exists(zpmFile))
         {
@@ -305,8 +299,8 @@ public final class ZpmInstall extends ZpmCommand
             getLastModifiedTime(lockFile).compareTo(getLastModifiedTime(zpmFile)) >= 0)
         {
             Jsonb builder = JsonbBuilder.newBuilder()
-                    .withConfig(new JsonbConfig().withFormatting(true))
-                    .build();
+                .withConfig(new JsonbConfig().withFormatting(true))
+                .build();
 
             try (InputStream in = newInputStream(lockFile))
             {
@@ -321,8 +315,8 @@ public final class ZpmInstall extends ZpmCommand
         Path lockFile) throws IOException
     {
         Jsonb builder = JsonbBuilder.newBuilder()
-                .withConfig(new JsonbConfig().withFormatting(true))
-                .build();
+            .withConfig(new JsonbConfig().withFormatting(true))
+            .build();
 
         createDirectories(lockDir);
         try (OutputStream out = newOutputStream(lockFile))
@@ -335,11 +329,18 @@ public final class ZpmInstall extends ZpmCommand
         Collection<ZpmArtifact> artifacts)
     {
         Path[] artifactPaths = artifacts.stream().map(a -> a.path).toArray(Path[]::new);
-        Set<ModuleReference> references = ModuleFinder.of(artifactPaths).findAll();
+        Set<ModuleReference> references = new HashSet<>();
+
+        for (Path path : artifactPaths)
+        {
+            ModuleFinder finder = ModuleFinder.of(path);
+            references.addAll(finder.findAll());
+        }
+
         Map<URI, ModuleDescriptor> descriptors = references
-                .stream()
-                .filter(r -> r.location().isPresent())
-                .collect(Collectors.toMap(r -> r.location().get(), r -> r.descriptor()));
+            .stream()
+            .filter(r -> r.location().isPresent())
+            .collect(Collectors.toMap(r -> r.location().get(), r -> r.descriptor()));
 
         Collection<ZpmModule> modules = new LinkedHashSet<>();
         for (ZpmArtifact artifact : artifacts)
@@ -354,10 +355,10 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void migrateUnnamed(
-        Collection <ZpmModule> modules,
+        Collection<ZpmModule> modules,
         ZpmModule delegate)
     {
-        for (Iterator<ZpmModule> iterator = modules.iterator(); iterator.hasNext();)
+        for (Iterator<ZpmModule> iterator = modules.iterator(); iterator.hasNext(); )
         {
             ZpmModule module = iterator.next();
             if (module.name == null)
@@ -371,7 +372,7 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void delegateAutomatic(
-        Collection <ZpmModule> modules,
+        Collection<ZpmModule> modules,
         ZpmModule delegate)
     {
         Map<ZpmArtifactId, ZpmModule> modulesMap = new LinkedHashMap<>();
@@ -408,7 +409,7 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void generateSystemOnlyAutomatic(
-        MessageLogger logger,
+        ConsoleLogger logger,
         Collection<ZpmModule> modules) throws IOException
     {
         Map<ZpmModule, Path> promotions = new IdentityHashMap<>();
@@ -456,9 +457,9 @@ public final class ZpmInstall extends ZpmCommand
                     args.add(generatedModuleInfo.toString());
 
                     javac.run(
-                            nullOutput,
-                            nullOutput,
-                            args.toArray(String[]::new));
+                        nullOutput,
+                        nullOutput,
+                        args.toArray(String[]::new));
 
                     Path compiledModuleInfo = generatedModuleDir.resolve(MODULE_INFO_CLASS_FILENAME);
                     assert Files.exists(compiledModuleInfo);
@@ -505,7 +506,7 @@ public final class ZpmInstall extends ZpmCommand
     }
 
     private void generateDelegate(
-        MessageLogger logger,
+        ConsoleLogger logger,
         ZpmModule delegate) throws IOException
     {
         Path generatedModulesDir = generatedDir.resolve("modules");
@@ -522,7 +523,7 @@ public final class ZpmInstall extends ZpmCommand
             Path excludedPackage = Paths.get("org", "eclipse", "yasson", "internal", "components");
             String excludedClass = "BeanManagerInstanceCreator";
             Set<String> entryNames = new HashSet<>();
-            Map<String, String> services = new HashMap<>();
+            Map<String, List<String>> services = new HashMap<>();
             for (Path path : delegate.paths)
             {
                 try (JarFile artifactJar = new JarFile(path.toFile()))
@@ -535,7 +536,7 @@ public final class ZpmInstall extends ZpmCommand
                             entryPath.equals(manifestPath) ||
                             entryPath.endsWith(packageInfoName) ||
                             (entryPath.startsWith(excludedPackage)) &&
-                             entryPath.getFileName().toString().startsWith(excludedClass))
+                                entryPath.getFileName().toString().startsWith(excludedClass))
                         {
                             continue;
                         }
@@ -549,8 +550,8 @@ public final class ZpmInstall extends ZpmCommand
                                 assert servicePath.getNameCount() == 1;
                                 String serviceName = servicePath.toString();
                                 String serviceImpl = new String(input.readAllBytes(), UTF_8);
-                                String existing = services.getOrDefault(serviceName, "");
-                                services.put(serviceName, existing.concat(serviceImpl));
+                                services.computeIfAbsent(serviceName, s -> new ArrayList<>())
+                                    .addAll(Arrays.asList(serviceImpl.split("\\R")));
                             }
                             else if (entryNames.add(entryName))
                             {
@@ -563,11 +564,11 @@ public final class ZpmInstall extends ZpmCommand
                 }
             }
 
-            for (Map.Entry<String, String> service : services.entrySet())
+            for (Map.Entry<String, List<String>> service : services.entrySet())
             {
                 String serviceName = service.getKey();
                 Path servicePath = servicesPath.resolve(serviceName);
-                String serviceImpl = service.getValue();
+                String serviceImpl = String.join("\n", service.getValue());
 
                 JarEntry newEntry = new JarEntry(servicePath.toString());
                 newEntry.setTime(318240000000L);
@@ -613,9 +614,9 @@ public final class ZpmInstall extends ZpmCommand
         if (!uses.isEmpty())
         {
             Files.writeString(generatedModuleInfo,
-                    moduleInfoContents.replace(
-                            "}",
-                            String.join("\n", uses) + "\n}"));
+                moduleInfoContents.replace(
+                    "}",
+                    String.join("\n", uses) + "\n}"));
         }
 
         expandJar(generatedDelegateDir, generatedDelegatePath);
@@ -634,9 +635,9 @@ public final class ZpmInstall extends ZpmCommand
         args.add(generatedModuleInfo.toString());
 
         javac.run(
-                System.out,
-                System.err,
-                args.toArray(String[]::new));
+            System.out,
+            System.err,
+            args.toArray(String[]::new));
 
         Path compiledModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_CLASS_FILENAME);
         assert Files.exists(compiledModuleInfo);
@@ -660,9 +661,9 @@ public final class ZpmInstall extends ZpmCommand
 
                 Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
                 Files.write(generatedModuleInfo, Arrays.asList(
-                        String.format("open module %s {", module.name),
-                        String.format("    requires transitive %s;", ZpmModule.DELEGATE_NAME),
-                        "}"));
+                    String.format("open module %s {", module.name),
+                    String.format("    requires transitive %s;", ZpmModule.DELEGATE_NAME),
+                    "}"));
 
                 ToolProvider javac = ToolProvider.findFirst("javac").get();
 
@@ -681,9 +682,9 @@ public final class ZpmInstall extends ZpmCommand
                 args.add(generatedModuleInfo.toString());
 
                 javac.run(
-                        System.out,
-                        System.err,
-                        args.toArray(String[]::new));
+                    System.out,
+                    System.err,
+                    args.toArray(String[]::new));
 
                 Path modulePath = modulePath(module);
                 try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(modulePath)))
@@ -747,17 +748,17 @@ public final class ZpmInstall extends ZpmCommand
     {
         Path zillaPath = launcherDir.resolve("zilla");
         Files.write(zillaPath, Arrays.asList(
-                "#!/bin/sh",
-                "if [ -n \"$ZILLA_INCUBATOR_ENABLED\" ]; then",
-                "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.incubator.enabled=$ZILLA_INCUBATOR_ENABLED\"",
-                "fi",
-                "ZILLA_DIRECTORY=\"${0%/*}\"",
-                "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
-                String.format(String.join(" ", Arrays.asList(
+            "#!/bin/sh",
+            "if [ -n \"$ZILLA_INCUBATOR_ENABLED\" ]; then",
+            "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.incubator.enabled=$ZILLA_INCUBATOR_ENABLED\"",
+            "fi",
+            "ZILLA_DIRECTORY=\"${0%/*}\"",
+            "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
+            String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "$JAVA_OPTIONS",
                     "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
-                    imageDir)));
+                imageDir)));
         zillaPath.toFile().setExecutable(true);
     }
 
@@ -847,17 +848,10 @@ public final class ZpmInstall extends ZpmCommand
         if (Files.exists(dir))
         {
             Files.walk(dir)
-                 .sorted(reverseOrder())
-                 .map(Path::toFile)
-                 .forEach(File::delete);
+                .sorted(reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
         }
-    }
-
-    private String defaultRealmIfNecessary(
-        ZpmCredentials credentials)
-    {
-        return ofNullable(credentials.realm)
-            .orElse(DEFAULT_REALMS.get(credentials.host));
     }
 
     private static boolean atLeastVersion(
@@ -867,9 +861,9 @@ public final class ZpmInstall extends ZpmCommand
         StringWriter out = new StringWriter();
         StringWriter err = new StringWriter();
         tool.run(
-                new PrintWriter(out),
-                new PrintWriter(err),
-                "--version");
+            new PrintWriter(out),
+            new PrintWriter(err),
+            "--version");
 
         Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
         return matcher.find() && parseInt(matcher.group("major")) >= major;

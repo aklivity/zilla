@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.junit.Test;
 
@@ -31,7 +30,7 @@ import io.aklivity.zilla.manager.internal.ZpmCli;
 public class ZpmInstallTest
 {
     @Test
-    public void shouldInstallEngine() throws IOException
+    public void shouldInstallEngine()
     {
         String[] args =
         {
@@ -51,9 +50,9 @@ public class ZpmInstallTest
         assertThat(install, instanceOf(ZpmInstall.class));
         assertThat(new File("src/conf/install/zpm.json"), anExistingFile());
         assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/binding-tcp/jars/binding-tcp-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/binding-tls/jars/binding-tls-0.9.5.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/org.agrona/agrona/jars/agrona-1.6.0.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io/aklivity/zilla/engine/0.9.5/engine-0.9.5.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tcp/0.9.5/binding-tcp-0.9.5.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tls/0.9.5/binding-tls-0.9.5.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/org/agrona/agrona/1.6.0/agrona-1.6.0.jar"), anExistingFile());
     }
 }
