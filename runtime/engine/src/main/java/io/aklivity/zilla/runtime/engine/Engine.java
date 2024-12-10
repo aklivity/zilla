@@ -98,6 +98,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Catalog> catalogs,
         Collection<Model> models,
         EventFormatterFactory eventFormatterFactory,
+        Consumer<Throwable> reporter,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -156,7 +157,7 @@ public final class Engine implements Collector, AutoCloseable
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
+                new EngineWorker(config, tasks, labels, reporter, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
                     eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
