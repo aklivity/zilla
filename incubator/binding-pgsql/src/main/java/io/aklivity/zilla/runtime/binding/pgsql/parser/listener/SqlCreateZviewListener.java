@@ -18,7 +18,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 
 public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
 {
@@ -37,9 +37,9 @@ public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public View view()
+    public CreateZview view()
     {
-        return new View(schema, name, select);
+        return new CreateZview(schema, name, select);
     }
 
     @Override

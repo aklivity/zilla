@@ -26,7 +26,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 
 public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -39,11 +39,11 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     }
 
     public String generate(
-        Table table)
+        CreateTable createTable)
     {
-        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, table.schema());
+        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, createTable.schema());
 
-        List<AvroField> fields = table.columns().stream()
+        List<AvroField> fields = createTable.columns().stream()
             .map(column ->
             {
                 String columnName = column.name();
@@ -58,7 +58,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
             })
             .collect(Collectors.toList());
 
-        AvroSchema schema = new AvroSchema("record", table.name(), newNamespace, fields);
+        AvroSchema schema = new AvroSchema("record", createTable.name(), newNamespace, fields);
         AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
         return jsonbFormatted.toJson(payload);

@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
@@ -53,13 +53,13 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
     }
 
     public String generateStreamSource(
-        Stream stream)
+        CreateStream createStream)
     {
-        String schema = stream.schema();
-        String table = stream.name();
+        String schema = createStream.schema();
+        String table = createStream.name();
 
         includeBuilder.setLength(0);
-        Map<String, String> includes = stream.columns().entrySet().stream()
+        Map<String, String> includes = createStream.columns().entrySet().stream()
             .filter(e -> ZILLA_MAPPINGS.containsKey(e.getKey()))
             .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
 
@@ -74,14 +74,14 @@ public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate
     }
 
     public String generateTableSource(
-        Table tableInfo)
+        CreateTable createTableInfo)
     {
-        String schema = tableInfo.schema();
-        String table = tableInfo.name();
+        String schema = createTableInfo.schema();
+        String table = createTableInfo.name();
         String sourceName = "%s_source".formatted(table);
 
         includeBuilder.setLength(0);
-        List<TableColumn> includes = tableInfo.columns().stream()
+        List<TableColumn> includes = createTableInfo.columns().stream()
             .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
             .collect(Collectors.toCollection(ArrayList::new));
 

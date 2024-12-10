@@ -24,7 +24,6 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -33,18 +32,17 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
@@ -1561,38 +1559,38 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Table table = parser.parseCreateTable(statement);
+            final CreateTable createTable = parser.parseCreateTable(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(table);
+                newStatement = binding.createTopic.generate(createTable);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateTableSource(table);
+                newStatement = binding.createSource.generateTableSource(createTable);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.createView.generate(table);
+                newStatement = binding.createView.generate(createTable);
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createTable.generate(table);
+                newStatement = binding.createTable.generate(createTable);
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.grantResource.generate("TABLE", table.schema(), table.name(), server.user);
+                newStatement = binding.grantResource.generate("TABLE", createTable.schema(), createTable.name(), server.user);
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.createSink.generateInto(table);
+                newStatement = binding.createSink.generateInto(createTable);
             }
             else if (server.commandsProcessed == 6)
             {
-                newStatement = binding.createSink.generateOutgress(table);
+                newStatement = binding.createSink.generateOutgress(createTable);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1622,18 +1620,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final Stream stream = parser.parseCreateStream(statement);
+            final CreateStream createStream = parser.parseCreateStream(statement);
 
             String newStatement = "";
             int progress = 0;
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createTopic.generate(stream);
+                newStatement = binding.createTopic.generate(createStream);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.createSource.generateStreamSource(stream);
+                newStatement = binding.createSource.generateStreamSource(createStream);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());
@@ -1664,7 +1662,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         else
         {
             final RisingwaveBindingConfig binding = server.binding;
-            final View view = parser.parseCreateZView(statement);
+            final CreateZview createZview = parser.parseCreateZView(statement);
             PgsqlFlushCommand typeCommand = ignoreFlushCommand;
             PgsqlDataCommand dataCommand = proxyDataCommand;
 
@@ -1673,30 +1671,30 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             if (server.commandsProcessed == 0)
             {
-                newStatement = binding.createView.generate(view);
+                newStatement = binding.createView.generate(createZview);
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.grantResource.generate("MATERIALIZED VIEW", view.schema(), view.name(), server.user);
+                newStatement = binding.grantResource.generate("MATERIALIZED VIEW", createZview.schema(), createZview.name(), server.user);
             }
             else if (server.commandsProcessed == 2)
             {
-                newStatement = binding.describeView.generate(view);
+                newStatement = binding.describeView.generate(createZview);
                 typeCommand = typeFlushCommand;
                 dataCommand = rowDataCommand;
                 server.columns.clear();
             }
             else if (server.commandsProcessed == 3)
             {
-                newStatement = binding.createTopic.generate(view, server.columns);
+                newStatement = binding.createTopic.generate(createZview, server.columns);
             }
             else if (server.commandsProcessed == 4)
             {
-                newStatement = binding.createSink.generateOutgress(server.columns, view);
+                newStatement = binding.createSink.generateOutgress(server.columns, createZview);
             }
             else if (server.commandsProcessed == 5)
             {
-                newStatement = binding.catalogInsert.generate(ZVIEW_TABLE_NAME, view.name(), statement);
+                newStatement = binding.catalogInsert.generate(ZVIEW_TABLE_NAME, createZview.name(), statement);
             }
 
             statementBuffer.putBytes(progress, newStatement.getBytes());

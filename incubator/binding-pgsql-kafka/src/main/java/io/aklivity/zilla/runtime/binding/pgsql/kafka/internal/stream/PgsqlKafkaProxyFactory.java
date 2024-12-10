@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Windo
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -1336,7 +1336,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         }
         else if (server.commandsProcessed == 0)
         {
-            final Table createTopic = parser.parseCreateTable(statement);
+            final CreateTable createTopic = parser.parseCreateTable(statement);
             final String schema = createTopic.schema();
             final String topic = createTopic.name();
 

@@ -25,12 +25,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 
 public class PgsqlParserTest
 {
@@ -46,10 +46,10 @@ public class PgsqlParserTest
     public void shouldCreateTableWithPrimaryKey()
     {
         String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100));";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertTrue(table.primaryKeys().contains("id"));
+        assertNotNull(createTable);
+        assertTrue(createTable.primaryKeys().contains("id"));
     }
 
     @Test
@@ -62,82 +62,82 @@ public class PgsqlParserTest
                 age INT,
                 PRIMARY KEY (id, name)
             );""";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.primaryKeys().size());
-        assertEquals(3, table.columns().size());
-        assertTrue(table.primaryKeys().contains("id"));
-        assertTrue(table.primaryKeys().contains("name"));
+        assertNotNull(createTable);
+        assertEquals(2, createTable.primaryKeys().size());
+        assertEquals(3, createTable.columns().size());
+        assertTrue(createTable.primaryKeys().contains("id"));
+        assertTrue(createTable.primaryKeys().contains("name"));
     }
 
     @Test
     public void shouldCreateTableName()
     {
         String sql = "CREATE TABLE test (id INT);";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertEquals("test", table.name());
+        assertEquals("test", createTable.name());
     }
 
     @Test
     public void shouldCreateTableNameWithDoublePrecisionTypeField()
     {
         String sql = "CREATE TABLE test (id DOUBLE PRECISION);";
-        Table table = parser.parseCreateTable(sql);
-        assertEquals("test", table.name());
-        assertEquals("DOUBLE PRECISION", table.columns().get(0).type());
+        CreateTable createTable = parser.parseCreateTable(sql);
+        assertEquals("test", createTable.name());
+        assertEquals("DOUBLE PRECISION", createTable.columns().get(0).type());
     }
 
     @Test
     public void shouldCreateTableColumns()
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100));";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertEquals(2, table.columns().size());
-        assertEquals("INT", table.columns().get(0).type());
-        assertEquals("VARCHAR(100)", table.columns().get(1).type());
+        assertEquals(2, createTable.columns().size());
+        assertEquals("INT", createTable.columns().get(0).type());
+        assertEquals("VARCHAR(100)", createTable.columns().get(1).type());
     }
 
     @Test
     public void shouldHandleEmptyCreateTable()
     {
         String sql = "CREATE TABLE test ();";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertEquals(0, table.columns().size());
-        assertEquals(0, table.primaryKeys().size());
+        assertEquals(0, createTable.columns().size());
+        assertEquals(0, createTable.primaryKeys().size());
     }
 
     @Test
     public void shouldHandleEmptySql()
     {
         String sql = "";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
+        assertNotNull(createTable);
     }
 
     @Test
     public void shouldCreateZview()
     {
         String sql = "CREATE ZVIEW test_view AS SELECT * FROM test_table;";
-        View view = parser.parseCreateZView(sql);
+        CreateZview createZview = parser.parseCreateZView(sql);
 
-        assertNotNull(view);
-        assertEquals("test_view", view.name());
-        assertEquals("SELECT * FROM test_table", view.select());
+        assertNotNull(createZview);
+        assertEquals("test_view", createZview.name());
+        assertEquals("SELECT * FROM test_table", createZview.select());
     }
 
     @Test(expected = ParseCancellationException.class)
     public void shouldHandleEmptyCreateZView()
     {
         String sql = "CREATE ZVIEW test_view AS ;";
-        View view = parser.parseCreateZView(sql);
+        CreateZview createZview = parser.parseCreateZView(sql);
 
-        assertNotNull(view);
-        assertEquals("test_view", view.name());
+        assertNotNull(createZview);
+        assertEquals("test_view", createZview.name());
     }
 
     @Test(expected = ParseCancellationException.class)
@@ -212,24 +212,24 @@ public class PgsqlParserTest
     public void shouldCreateStream()
     {
         String sql = "CREATE STREAM test_stream (id INT, name VARCHAR(100));";
-        Stream stream = parser.parseCreateStream(sql);
-        assertNotNull(stream);
-        assertEquals("test_stream", stream.name());
-        assertEquals(2, stream.columns().size());
-        assertEquals("INT", stream.columns().get("id"));
-        assertEquals("VARCHAR(100)", stream.columns().get("name"));
+        CreateStream createStream = parser.parseCreateStream(sql);
+        assertNotNull(createStream);
+        assertEquals("test_stream", createStream.name());
+        assertEquals(2, createStream.columns().size());
+        assertEquals("INT", createStream.columns().get("id"));
+        assertEquals("VARCHAR(100)", createStream.columns().get("name"));
     }
 
     @Test
     public void shouldCreateStreamIfNotExists()
     {
         String sql = "CREATE STREAM IF NOT EXISTS test_stream (id INT, name VARCHAR(100));";
-        Stream stream = parser.parseCreateStream(sql);
-        assertNotNull(stream);
-        assertEquals("test_stream", stream.name());
-        assertEquals(2, stream.columns().size());
-        assertEquals("INT", stream.columns().get("id"));
-        assertEquals("VARCHAR(100)", stream.columns().get("name"));
+        CreateStream createStream = parser.parseCreateStream(sql);
+        assertNotNull(createStream);
+        assertEquals("test_stream", createStream.name());
+        assertEquals(2, createStream.columns().size());
+        assertEquals("INT", createStream.columns().get("id"));
+        assertEquals("VARCHAR(100)", createStream.columns().get("name"));
     }
 
     @Test(expected = ParseCancellationException.class)
@@ -286,12 +286,12 @@ public class PgsqlParserTest
     public void shouldCreateTableWithUniqueConstraint()
     {
         String sql = "CREATE TABLE test (id INT UNIQUE, name VARCHAR(100));";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("id", table.columns().get(0).name());
-        assertEquals("name", table.columns().get(1).name());
+        assertNotNull(createTable);
+        assertEquals(2, createTable.columns().size());
+        assertEquals("id", createTable.columns().get(0).name());
+        assertEquals("name", createTable.columns().get(1).name());
     }
 
     @Test
@@ -299,23 +299,23 @@ public class PgsqlParserTest
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CONSTRAINT fk_name FOREIGN KEY (name)" +
             " REFERENCES other_table(name));";
-        Table table = parser.parseCreateTable(sql);
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("id", table.columns().get(0).name());
-        assertEquals("name", table.columns().get(1).name());
+        CreateTable createTable = parser.parseCreateTable(sql);
+        assertNotNull(createTable);
+        assertEquals(2, createTable.columns().size());
+        assertEquals("id", createTable.columns().get(0).name());
+        assertEquals("name", createTable.columns().get(1).name());
     }
 
     @Test
     public void shouldParseCreateTableWithCheckConstraint()
     {
         String sql = "CREATE TABLE test (id INT, name VARCHAR(100), CHECK (id > 0));";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("id", table.columns().get(0).name());
-        assertEquals("name", table.columns().get(1).name());
+        assertNotNull(createTable);
+        assertEquals(2, createTable.columns().size());
+        assertEquals("id", createTable.columns().get(0).name());
+        assertEquals("name", createTable.columns().get(1).name());
     }
 
     @Test
@@ -329,37 +329,37 @@ public class PgsqlParserTest
     public void shouldCreateTableWithDefaultValues()
     {
         String sql = "CREATE TABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("INT", table.columns().get(0).type());
-        assertEquals("VARCHAR(100)", table.columns().get(1).type());
+        assertNotNull(createTable);
+        assertEquals(2, createTable.columns().size());
+        assertEquals("INT", createTable.columns().get(0).type());
+        assertEquals("VARCHAR(100)", createTable.columns().get(1).type());
     }
 
     @Test
     public void shouldCreateTableWithNotNullConstraint()
     {
         String sql = "CREATE TABLE test (id INT NOT NULL, name VARCHAR(100) NOT NULL);";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(2, table.columns().size());
-        assertEquals("id", table.columns().get(0).name());
-        assertEquals("name", table.columns().get(1).name());
+        assertNotNull(createTable);
+        assertEquals(2, createTable.columns().size());
+        assertEquals("id", createTable.columns().get(0).name());
+        assertEquals("name", createTable.columns().get(1).name());
     }
 
     @Test
     public void shouldCreateTableWithMultipleConstraints()
     {
         String sql = "CREATE TABLE test (id INT PRIMARY KEY, name VARCHAR(100) UNIQUE, age INT CHECK (age > 0));";
-        Table table = parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
 
-        assertNotNull(table);
-        assertEquals(3, table.columns().size());
-        assertTrue(table.primaryKeys().contains("id"));
-        assertEquals("name", table.columns().get(1).name());
-        assertEquals("age", table.columns().get(2).name());
+        assertNotNull(createTable);
+        assertEquals(3, createTable.columns().size());
+        assertTrue(createTable.primaryKeys().contains("id"));
+        assertEquals("name", createTable.columns().get(1).name());
+        assertEquals("age", createTable.columns().get(2).name());
     }
 
     @Test

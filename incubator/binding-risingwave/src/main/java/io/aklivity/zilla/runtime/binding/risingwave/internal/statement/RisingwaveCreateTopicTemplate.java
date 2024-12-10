@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.statement;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 
 public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
 {
@@ -31,16 +31,16 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     private final StringBuilder primaryKeyBuilder = new StringBuilder();
 
     public String generate(
-        Table table)
+        CreateTable createTable)
     {
-        String topic = table.name();
-        String primaryKey = !table.primaryKeys().isEmpty()
-            ? String.format(primaryKeyFormat, table.primaryKeys().stream().findFirst().get())
+        String topic = createTable.name();
+        String primaryKey = !createTable.primaryKeys().isEmpty()
+            ? String.format(primaryKeyFormat, createTable.primaryKeys().stream().findFirst().get())
             : "";
 
         fieldBuilder.setLength(0);
 
-        table.columns()
+        createTable.columns()
             .forEach(c -> fieldBuilder.append(
                 String.format(fieldFormat, c.name(), c.type())));
 
@@ -50,13 +50,13 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        Stream stream)
+        CreateStream createStream)
     {
-        String topic = stream.name();
+        String topic = createStream.name();
 
         fieldBuilder.setLength(0);
 
-        stream.columns()
+        createStream.columns()
             .entrySet()
             .stream()
             .filter(e -> !ZILLA_MAPPINGS.containsKey(e.getKey()))
@@ -69,10 +69,10 @@ public class RisingwaveCreateTopicTemplate extends RisingwaveCommandTemplate
     }
 
     public String generate(
-        View view,
+        CreateZview createZview,
         Map<String, String> columns)
     {
-        String topic = view.name();
+        String topic = createZview.name();
 
         primaryKeyBuilder.setLength(0);
         columns.keySet().forEach(k -> primaryKeyBuilder.append(k).append(", "));

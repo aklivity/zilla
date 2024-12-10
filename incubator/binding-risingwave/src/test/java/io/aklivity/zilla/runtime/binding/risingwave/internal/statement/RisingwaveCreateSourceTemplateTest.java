@@ -25,8 +25,8 @@ import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Stream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplateTest
@@ -42,7 +42,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithValidStreamInfo()
     {
-        Stream stream = new Stream("public", "test_stream", Map.of("id", "INT", "name", "STRING"));
+        CreateStream createStream = new CreateStream("public", "test_stream", Map.of("id", "INT", "name", "STRING"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_stream (*)
             WITH (
@@ -55,7 +55,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource(stream);
+        String actualSQL = template.generateStreamSource(createStream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -69,7 +69,7 @@ public class RisingwaveCreateSourceTemplateTest
         columns.add(new TableColumn("zilla_identity", "VARCHAR", List.of()));
         columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
-        Table table = new Table(
+        CreateTable createTable = new CreateTable(
             "public", "test_table", columns, Set.of("id"));
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS test_table_source (*)
@@ -86,7 +86,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource(table);
+        String actualSQL = template.generateTableSource(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -94,7 +94,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateStreamSourceWithEmptyColumnsReturnsSQLWithoutIncludes()
     {
-        Stream stream = new Stream("public", "empty_stream", Map.of());
+        CreateStream createStream = new CreateStream("public", "empty_stream", Map.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_stream (*)
             WITH (
@@ -107,7 +107,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateStreamSource(stream);
+        String actualSQL = template.generateStreamSource(createStream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -135,9 +135,9 @@ public class RisingwaveCreateSourceTemplateTest
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = 'http://localhost:8081'
             );\u0000""";
-        Stream stream = new Stream("public", "include_stream", columns);
+        CreateStream createStream = new CreateStream("public", "include_stream", columns);
 
-        String actualSQL = template.generateStreamSource(stream);
+        String actualSQL = template.generateStreamSource(createStream);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -145,7 +145,7 @@ public class RisingwaveCreateSourceTemplateTest
     @Test
     public void shouldGenerateTableSourceWithEmptyColumnsAndWithoutIncludes()
     {
-        Table table = new Table("public", "empty_table", List.of(), Set.of());
+        CreateTable createTable = new CreateTable("public", "empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE SOURCE IF NOT EXISTS empty_table_source (*)
             WITH (
@@ -158,7 +158,7 @@ public class RisingwaveCreateSourceTemplateTest
                schema.registry = 'http://localhost:8081'
             );\u0000""";
 
-        String actualSQL = template.generateTableSource(table);
+        String actualSQL = template.generateTableSource(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
