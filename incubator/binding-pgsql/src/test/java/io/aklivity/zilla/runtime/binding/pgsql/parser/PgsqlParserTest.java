@@ -25,12 +25,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 
 public class PgsqlParserTest
 {

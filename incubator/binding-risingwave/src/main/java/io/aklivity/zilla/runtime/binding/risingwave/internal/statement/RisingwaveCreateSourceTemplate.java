@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 
 public class RisingwaveCreateSourceTemplate extends RisingwaveCommandTemplate

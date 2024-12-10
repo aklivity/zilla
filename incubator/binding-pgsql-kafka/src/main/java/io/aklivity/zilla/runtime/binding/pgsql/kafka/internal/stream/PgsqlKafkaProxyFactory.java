@@ -55,8 +55,8 @@ import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.Signa
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

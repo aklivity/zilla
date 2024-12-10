@@ -37,12 +37,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
@@ -1675,7 +1675,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
             else if (server.commandsProcessed == 1)
             {
-                newStatement = binding.grantResource.generate("MATERIALIZED VIEW", createZview.schema(), createZview.name(), server.user);
+                newStatement = binding.grantResource.generate(
+                    "MATERIALIZED VIEW", createZview.schema(), createZview.name(), server.user);
             }
             else if (server.commandsProcessed == 2)
             {
