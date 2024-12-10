@@ -14,10 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.Map;
-
-public record Stream(
+public record CreateZview(
+    String schema,
     String name,
-    Map<String, String> columns)
+    String select)
 {
 }

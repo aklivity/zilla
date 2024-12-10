@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 import java.util.List;
 
 public record Alter(
+    String schema,
     String name,
     List<AlterExpression> expressions)
 {

@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -40,7 +40,7 @@ read  "CREATE SOURCE IF NOT EXISTS cities_source (*)\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='dev.cities',\n"
+      "   topic='public.cities',\n"
       "   scan.startup.mode='latest',\n"
       "   scan.startup.timestamp.millis='140000000'\n"
       ") FORMAT PLAIN ENCODE AVRO (\n"
@@ -112,7 +112,29 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SINK cities_view_sink INTO cities FROM cities_view;"
+read "GRANT ALL PRIVILEGES ON TABLE public.cities TO app;"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("GRANT_PRIVILEGES")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM cities_view;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -134,12 +156,12 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE SINK cities_sink\n"
+read  "CREATE SINK zb_catalog.cities_sink\n"
       "FROM cities\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
-      "   topic='dev.cities',\n"
+      "   topic='public.cities',\n"
       "   primary_key='id'\n"
       ") FORMAT UPSERT ENCODE AVRO (\n"
       "   schema.registry='http://localhost:8081'\n"
@@ -160,6 +182,18 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+accepted
+
+read zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "app")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
+
 accept "zilla://streams/app2"
     option zilla:window 8192
     option zilla:transmission "duplex"
@@ -168,7 +202,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")

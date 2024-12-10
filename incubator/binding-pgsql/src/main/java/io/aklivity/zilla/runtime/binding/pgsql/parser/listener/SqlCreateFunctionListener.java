@@ -26,11 +26,14 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
 
 public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
 {
-    private final List<FunctionArgument> arguments = new ArrayList<>();
-    private final List<FunctionArgument> tables = new ArrayList<>();
+    private static final String PUBLIC_SCHEMA_NAME = "public";
+    private static final String SCHEMA_PATTERN = "\\.";
 
+    private final List<FunctionArgument> tables;
+    private final List<FunctionArgument> arguments;
     private final TokenStream tokens;
 
+    private String schema;
     private String name;
     private String returnType;
     private String asFunction;
@@ -39,18 +42,21 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     public SqlCreateFunctionListener(
         TokenStream tokens)
     {
+        this.tables = new ArrayList<>();
+        this.arguments = new ArrayList<>();
         this.tokens = tokens;
     }
 
     public Function function()
     {
-        return new Function(name, arguments, returnType, tables, asFunction, language);
+        return new Function(schema, name, arguments, returnType, tables, asFunction, language);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         returnType = null;
         asFunction = null;
@@ -63,7 +69,10 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
     public void enterCreatefunctionstmt(
         PostgreSqlParser.CreatefunctionstmtContext ctx)
     {
-        name = ctx.func_name().getText();
+        String text = ctx.func_name().getText();
+        String[] split = text.split(SCHEMA_PATTERN);
+        schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
+        name = split.length > 1 ? split[1] : text;
     }
 
     @Override
