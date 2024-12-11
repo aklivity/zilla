@@ -284,6 +284,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int parserSlotOffset;
 
         private int state;
+        private MacroProgressState macroState;
 
         private int commandsProcessed = COMMAND_PROCESSED_NONE;
         private int queryProgressOffset;
@@ -304,6 +305,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.initialMax = decodeMax;
             this.binding = bindings.get(routedId);
             this.parameters = parameters;
+            this.macroState = MacroProgressState.START;
 
             this.columns = new Object2ObjectHashMap<>();
             this.columnTypes = new ArrayList<>();
@@ -1261,6 +1263,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 doAppData(traceId, authorization, flags, buffer, offset, lengthMax, queryEx);
 
                 messageOffset += lengthMax;
+
+                server.macroState = MacroProgressState.IN_PROGRESS;
             }
             else
             {
@@ -1543,6 +1547,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .build();
 
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+    }
+
+    private void decodeCreateZtableCommandTest(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        serve
     }
 
     private void decodeCreateZtableCommand(
@@ -2310,5 +2323,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             int offset,
             int limit,
             OctetsFW extension);
+    }
+
+    private enum RisingwaveMacroState
+    {
+        START,
+        PROCESSING,
+        PROCESSED,
+        ERROR,
+        END
     }
 }
