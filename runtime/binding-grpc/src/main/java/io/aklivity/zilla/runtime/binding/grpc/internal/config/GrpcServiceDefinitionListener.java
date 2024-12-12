@@ -52,8 +52,11 @@ public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
         {
             Protobuf3Parser.RpcContext rpc = element.rpc();
 
-            String method = rpc.rpcName().getText();
-            methods.add(new GrpcMethodConfig(method));
+            if (rpc != null)
+            {
+                String method = rpc.rpcName().getText();
+                methods.add(new GrpcMethodConfig(method));
+            }
         });
         final GrpcServiceConfig service = new GrpcServiceConfig(serviceName, methods);
         services.add(service);

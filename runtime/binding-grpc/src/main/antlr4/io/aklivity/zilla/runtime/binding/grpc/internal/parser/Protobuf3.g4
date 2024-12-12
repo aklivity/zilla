@@ -46,12 +46,26 @@ packageStatement
 // Option
 
 optionStatement
-  : OPTION optionName EQ constant SEMI
+  : OPTION optionName EQ optionValue SEMI
   ;
 
 optionName
   : fullIdent
   | LP fullIdent RP ( DOT fullIdent )?
+  ;
+
+optionValue
+  : constant                            // Simple constant value
+  | LC optionFields? RC         // Nested block with fields
+  ;
+
+optionFields
+  : optionField ( optionField )*        // One or more fields
+  ;
+
+optionField
+  : optionName COLON optionValue        // Key-value pair
+  | optionName LC optionFields? RC // Nested block
   ;
 
 // Normal Field
