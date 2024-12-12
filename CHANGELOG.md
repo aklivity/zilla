@@ -2,7 +2,18 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.106...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...HEAD)
+
+**Merged pull requests:**
+
+- Bump alpine from 3.20.3 to 3.21.0 in /cloud/docker-image/src/main/docker [\#1346](https://github.com/aklivity/zilla/pull/1346) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 1.8.0 to 2.1.0 [\#1325](https://github.com/aklivity/zilla/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 3 to 4 [\#1219](https://github.com/aklivity/zilla/pull/1219) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20240530 to jammy-20240808 in /cloud/docker-image/src/main/docker [\#1205](https://github.com/aklivity/zilla/pull/1205) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.107](https://github.com/aklivity/zilla/tree/0.9.107) (2024-12-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.106...0.9.107)
 
 **Merged pull requests:**
 
