@@ -55,17 +55,17 @@ optionName
   ;
 
 optionValue
-  : constant                            // Simple constant value
-  | LC optionFields? RC         // Nested block with fields
+  : constant
+  | LC optionFields? RC
   ;
 
 optionFields
-  : optionField ( optionField )*        // One or more fields
+  : optionField ( optionField )*
   ;
 
 optionField
-  : optionName COLON optionValue        // Key-value pair
-  | optionName LC optionFields? RC // Nested block
+  : optionName COLON optionValue
+  | optionName LC optionFields? RC
   ;
 
 // Normal Field
