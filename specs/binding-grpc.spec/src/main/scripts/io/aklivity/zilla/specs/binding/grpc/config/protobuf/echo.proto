@@ -30,7 +30,7 @@ service EchoService
   rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
 
   rpc ComplexMethod (EchoMessage) returns (EchoMessage) {
-    option (google.api.http) = {
+    option (com.example.http) = {
       delete : "/some/url"
       additional_bindings {
         delete: "/another/url"
