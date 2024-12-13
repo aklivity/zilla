@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -40,7 +40,7 @@ read "CREATE SOURCE IF NOT EXISTS cities (*)\n"
      "WITH (\n"
      "   connector='kafka',\n"
      "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='dev.cities',\n"
+     "   topic='public.cities',\n"
      "   scan.startup.mode='latest',\n"
      "   scan.startup.timestamp.millis='140000000'\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
@@ -63,6 +63,18 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
+
+accepted
+
+read zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "app")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
 
 read zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
@@ -94,7 +106,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "root")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")

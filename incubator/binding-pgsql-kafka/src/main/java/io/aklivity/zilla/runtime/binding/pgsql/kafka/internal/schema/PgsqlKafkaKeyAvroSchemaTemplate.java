@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 
 public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplate
 {
@@ -31,15 +31,15 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
     public String generate(
         String database,
-        Table table)
+        CreateTable command)
     {
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
 
-        List<AvroField> fields = table.columns().stream()
+        List<AvroField> fields = command.columns().stream()
             .map(column -> new AvroField(column.name(), mapSqlTypeToAvroType(column.type())))
             .collect(Collectors.toList());
 
-        AvroSchema schema = new AvroSchema("record", table.name(), newNamespace, fields);
+        AvroSchema schema = new AvroSchema("record", command.name(), newNamespace, fields);
         AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
         return jsonbFormatted.toJson(payload);

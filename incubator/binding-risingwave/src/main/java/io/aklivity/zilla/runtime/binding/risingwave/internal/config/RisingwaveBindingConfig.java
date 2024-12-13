@@ -32,12 +32,16 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.Risingwav
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDeleteFromCatalogTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropMaterializedViewTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSinkTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSourceTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTableTemplate;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveGrantToSourceTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveInsertIntoCatalogTemplate;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveShowTypeTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -45,6 +49,9 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
 {
+    private static final String INTERNAL_SCHEMA = "zb_catalog";
+    private static final String PUBLIC_SCHEMA = "public";
+
     public final long id;
     public final String name;
     public final RisingwaveOptionsConfig options;
@@ -64,6 +71,10 @@ public final class RisingwaveBindingConfig
     public final RisingwaveDropTopicTemplate dropTopic;
     public final RisingwaveDropMaterializedViewTemplate dropMaterializedView;
     public final RisingwaveDropSinkTemplate dropSink;
+    public final RisingwaveInsertIntoCatalogTemplate catalogInsert;
+    public final RisingwaveDeleteFromCatalogTemplate catalogDelete;
+    public final RisingwaveGrantToSourceTemplate grantResource;
+    public final RisingwaveShowTypeTemplate showType;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -93,7 +104,7 @@ public final class RisingwaveBindingConfig
         this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
             location, config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkTemplate(bootstrapServer, location);
+        this.createSink = new RisingwaveCreateSinkTemplate(INTERNAL_SCHEMA, bootstrapServer, location);
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.alterTable = new RisingwaveAlterTableTemplate();
@@ -103,8 +114,12 @@ public final class RisingwaveBindingConfig
         this.dropTable = new RisingwaveDropTableTemplate();
         this.dropSource = new RisingwaveDropSourceTemplate();
         this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
-        this.dropSink = new RisingwaveDropSinkTemplate();
+        this.dropSink = new RisingwaveDropSinkTemplate(INTERNAL_SCHEMA);
         this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
+        this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate(INTERNAL_SCHEMA);
+        this.catalogDelete = new RisingwaveDeleteFromCatalogTemplate(INTERNAL_SCHEMA);
+        this.grantResource = new RisingwaveGrantToSourceTemplate();
+        this.showType = new RisingwaveShowTypeTemplate();
     }
 
     public RisingwaveRouteConfig resolve(
