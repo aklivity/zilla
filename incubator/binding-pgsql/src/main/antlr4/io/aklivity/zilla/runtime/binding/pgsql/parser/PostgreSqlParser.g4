@@ -95,6 +95,7 @@ stmt
     | createfunctionstmt
     | creategroupstmt
     | creatematviewstmt
+    | createzviewstmt
     | createopclassstmt
     | createopfamilystmt
     | createpublicationstmt
@@ -120,6 +121,8 @@ stmt
     | definestmt
     | deletestmt
     | discardstmt
+    | showstmt
+    | describestmt
     | dostmt
     | dropcaststmt
     | dropopclassstmt
@@ -409,6 +412,7 @@ altertablestmt
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
     | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
+    | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     ;
 
 alter_stream_cmds
@@ -984,6 +988,10 @@ opt_with_data
 
 creatematviewstmt
     : CREATE optnolog MATERIALIZED VIEW (IF_P NOT EXISTS)? create_mv_target AS selectstmt opt_with_data
+    ;
+
+createzviewstmt
+    : CREATE optnolog ZVIEW (IF_P NOT EXISTS)? create_mv_target AS selectstmt opt_with_data
     ;
 
 create_mv_target
@@ -1607,6 +1615,22 @@ reassignownedstmt
     : REASSIGN OWNED BY role_list TO rolespec
     ;
 
+describestmt
+    : DESCRIBE any_name
+    ;
+
+showstmt
+    : SHOW show_object_type_name
+    ;
+
+show_object_type_name
+    : TABLES
+    | VIEWS
+    | MATERIALIZED VIEWS
+    | TOPICS
+    | ZVIEWS
+    ;
+
 dropstmt
     : DROP object_type_any_name IF_P EXISTS any_name_list opt_drop_behavior
     | DROP object_type_any_name any_name_list opt_drop_behavior
@@ -1629,6 +1653,7 @@ object_type_any_name
     | MATERIALIZED VIEW
     | TOPIC
     | STREAM
+    | ZVIEW
     | INDEX
     | FOREIGN TABLE
     | COLLATION

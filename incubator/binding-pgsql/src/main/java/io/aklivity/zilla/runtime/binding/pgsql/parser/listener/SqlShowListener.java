@@ -14,49 +14,29 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
-import org.antlr.v4.runtime.TokenStream;
-
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
-public class SqlCreateMaterializedViewListener extends PostgreSqlParserBaseListener
+public class SqlShowListener extends PostgreSqlParserBaseListener
 {
-    private final TokenStream tokens;
+    private String type;
 
-    private String name;
-    private String select;
-
-    public SqlCreateMaterializedViewListener(
-        TokenStream tokens)
+    public String type()
     {
-        this.tokens = tokens;
-    }
-
-    public View view()
-    {
-        return new View(name, select);
+        return type;
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
-        name = null;
-        select = null;
+        this.type = null;
     }
 
     @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
+    public void enterShowstmt(
+        PostgreSqlParser.ShowstmtContext ctx)
     {
-        name = ctx.create_mv_target().qualified_name().getText();
-    }
-
-    @Override
-    public void enterSelectstmt(
-        PostgreSqlParser.SelectstmtContext ctx)
-    {
-        select = tokens.getText(ctx);
+        this.type = ctx.show_object_type_name().getText();
     }
 }

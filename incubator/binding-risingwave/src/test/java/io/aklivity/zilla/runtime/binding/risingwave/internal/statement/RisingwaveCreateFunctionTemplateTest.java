@@ -41,6 +41,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithValidFunctionInfo()
     {
         Function function = new Function(
+            "public",
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -63,6 +64,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithTableReturnType()
     {
         Function functionInfo = new Function(
+            "public",
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -86,6 +88,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithTableAsReturnType()
     {
         Function functionInfo = new Function(
+            "public",
             "test_function",
             List.of(new FunctionArgument("arg1", "INT")),
             "INT",
@@ -109,6 +112,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithMultipleArguments()
     {
         Function function = new Function(
+            "public",
             "test_function",
             List.of(new FunctionArgument("arg1", "INT"), new FunctionArgument("arg2", "STRING")),
             "STRING",
@@ -132,6 +136,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithUnnamedArguments()
     {
         Function function = new Function(
+            "public",
             "test_function",
             List.of(new FunctionArgument(null, "INT"), new FunctionArgument(null, "STRING")),
             "STRING",
@@ -155,6 +160,7 @@ public class RisingwaveCreateFunctionTemplateTest
     public void shouldGenerateFunctionWithEmptyArguments()
     {
         Function function = new Function(
+            "public",
             "test_function",
             List.of(),
             "VOID",

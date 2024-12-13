@@ -114,10 +114,10 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.materialized.view/client",
-        "${effective}/create.materialized.view/server"
+        "${pgsql}/create.zview/client",
+        "${effective}/create.zview/server"
     })
-    public void shouldCreateMaterializedView() throws Exception
+    public void shouldCreateZview() throws Exception
     {
         k3po.finish();
     }
@@ -235,9 +235,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/drop.materialized.view/client",
-        "${effective}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
+        "${pgsql}/drop.zview/client",
+        "${effective}/drop.zview/server" })
+    public void shouldDropZview() throws Exception
     {
         k3po.finish();
     }
@@ -278,6 +278,16 @@ public class ProxyIT
         "${pgsql}/alter.stream.modify.column.rejected/client",
         "${effective}/client.stream.established/server" })
     public void shouldNotAlterStreamModifyColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.zviews/client",
+        "${effective}/show.zviews/server" })
+    public void shouldShowZviews() throws Exception
     {
         k3po.finish();
     }

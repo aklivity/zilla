@@ -14,8 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-public record View(
+import java.util.List;
+import java.util.Set;
+
+public record CreateTable(
+    String schema,
     String name,
-    String select)
+    List<TableColumn> columns,
+    Set<String> primaryKeys)
 {
 }

@@ -23,22 +23,22 @@ import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
-public class RisingwaveCreateMaterializedViewTemplateTest
+public class RisingwaveCreateMaterializedCreateZviewTemplateTest
 {
     private final RisingwaveCreateMaterializedViewTemplate template = new RisingwaveCreateMaterializedViewTemplate();
 
     @Test
     public void shouldGenerateMaterializedViewWithValidViewInfo()
     {
-        View view = new View("test_view", "SELECT * FROM test_table");
+        CreateZview createZview = new CreateZview("public", "test_view", "SELECT * FROM test_table");
         String expectedSQL = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS test_view AS SELECT * FROM test_table;\u0000""";
 
-        String actualSQL = template.generate(view);
+        String actualSQL = template.generate(createZview);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -47,7 +47,8 @@ public class RisingwaveCreateMaterializedViewTemplateTest
     @Test
     public void shouldGenerateMaterializedViewWithValidTableInfo()
     {
-        Table table = new Table(
+        CreateTable createTable = new CreateTable(
+            "public",
             "test_table",
                   List.of(new TableColumn("id", "INT", List.of()),
                           new TableColumn("name", "STRING", List.of())),
@@ -55,7 +56,7 @@ public class RisingwaveCreateMaterializedViewTemplateTest
         String expectedSQL = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS test_table_view AS SELECT id, name FROM test_table_source;\u0000""";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -63,11 +64,11 @@ public class RisingwaveCreateMaterializedViewTemplateTest
     @Test
     public void shouldGenerateMaterializedViewWithEmptyColumns()
     {
-        Table table = new Table("empty_table", List.of(), Set.of());
+        CreateTable createTable = new CreateTable("public", "empty_table", List.of(), Set.of());
         String expectedSQL = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS empty_table_view AS SELECT * FROM empty_table_source;\u0000""";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }
@@ -81,14 +82,14 @@ public class RisingwaveCreateMaterializedViewTemplateTest
         columns.add(new TableColumn("zilla_identity", "VARCHAR", List.of()));
         columns.add(new TableColumn("zilla_timestamp", "TIMESTAMP", List.of()));
 
-        Table table = new Table("test_table", columns, Set.of("id"));
+        CreateTable createTable = new CreateTable("public", "test_table", columns, Set.of("id"));
         String expectedSQL = "CREATE MATERIALIZED VIEW IF NOT EXISTS test_table_view AS SELECT id," +
             " COALESCE(zilla_correlation_id, zilla_correlation_id_header::varchar) as zilla_correlation_id," +
             " COALESCE(zilla_identity, zilla_identity_header::varchar) as zilla_identity," +
             " COALESCE(zilla_timestamp, zilla_timestamp_timestamp::varchar) as zilla_timestamp" +
             " FROM test_table_source;\u0000";
 
-        String actualSQL = template.generate(table);
+        String actualSQL = template.generate(createTable);
 
         assertEquals(expectedSQL, actualSQL);
     }

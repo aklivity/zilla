@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Table;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.View;
 
 public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandTemplate
 {
@@ -31,22 +31,22 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
     private final String timestampFormat = "COALESCE(%s, %s_timestamp::varchar) as %s, ";
 
     public String generate(
-        View view)
+        CreateZview createZview)
     {
-        String name = view.name();
-        String select = view.select();
+        String name = createZview.name();
+        String select = createZview.select();
 
         return String.format(sqlFormat, name, select);
     }
 
     public String generate(
-        Table table)
+        CreateTable createTable)
     {
-        String name = table.name();
+        String name = createTable.name();
 
         String select = "*";
 
-        List<TableColumn> includes = table.columns().stream()
+        List<TableColumn> includes = createTable.columns().stream()
             .filter(c -> ZILLA_MAPPINGS.containsKey(c.name()))
             .collect(Collectors.toCollection(ArrayList::new));
 
@@ -54,7 +54,7 @@ public class RisingwaveCreateMaterializedViewTemplate extends RisingwaveCommandT
         {
             fieldBuilder.setLength(0);
 
-            table.columns()
+            createTable.columns()
                 .stream()
                 .filter(c -> !ZILLA_MAPPINGS.containsKey(c.name()))
                 .forEach(c -> fieldBuilder.append(String.format(fieldFormat, c.name())));

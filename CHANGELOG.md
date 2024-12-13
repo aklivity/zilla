@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.109...HEAD)
+
+**Merged pull requests:**
+
+- Support ZVIEW command [\#1329](https://github.com/aklivity/zilla/pull/1329) ([akrambek](https://github.com/akrambek))
+
+## [0.9.109](https://github.com/aklivity/zilla/tree/0.9.109) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.108...0.9.109)
+
 ## [0.9.108](https://github.com/aklivity/zilla/tree/0.9.108) (2024-12-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...0.9.108)

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.109</version>
+    <version>0.9.110</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -411,6 +411,9 @@
                     <platform>linux/amd64</platform>
                     <platform>linux/arm64</platform>
                   </platforms>
+                  <attestations>
+                    <provenance>false</provenance>
+                  </attestations>
                 </buildx>
                 <assemblies>
                   <assembly>
@@ -462,6 +465,9 @@
                       <platforms>
                         <platform>linux/amd64</platform>
                       </platforms>
+                      <attestations>
+                        <provenance>false</provenance>
+                      </attestations>
                     </buildx>
                     <assemblies>
                       <assembly>

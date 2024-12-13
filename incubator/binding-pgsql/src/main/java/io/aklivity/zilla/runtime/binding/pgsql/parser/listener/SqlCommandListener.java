@@ -76,10 +76,22 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatematviewstmt(
-        PostgreSqlParser.CreatematviewstmtContext ctx)
+    public void enterCreatezviewstmt(
+        PostgreSqlParser.CreatezviewstmtContext ctx)
     {
-        command = "CREATE MATERIALIZED VIEW";
+        command = "CREATE ZVIEW";
+    }
+
+    @Override
+    public void enterShowstmt(
+        PostgreSqlParser.ShowstmtContext ctx)
+    {
+        String type = ctx.show_object_type_name().getText();
+
+        if ("ZVIEWS".equals(type))
+        {
+            command = "SHOW ZVIEWS";
+        }
     }
 
     @Override

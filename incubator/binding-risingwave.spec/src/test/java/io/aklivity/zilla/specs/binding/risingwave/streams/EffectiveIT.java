@@ -58,10 +58,10 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.materialized.view/client",
-        "${app}/create.materialized.view/server"
+        "${app}/create.zview/client",
+        "${app}/create.zview/server"
     })
-    public void shouldCreateMaterializedView() throws Exception
+    public void shouldCreateZview() throws Exception
     {
         k3po.finish();
     }
@@ -211,9 +211,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/drop.materialized.view/client",
-        "${app}/drop.materialized.view/server" })
-    public void shouldDropMaterializedView() throws Exception
+        "${app}/drop.zview/client",
+        "${app}/drop.zview/server" })
+    public void shouldDropZview() throws Exception
     {
         k3po.finish();
     }
@@ -232,6 +232,15 @@ public class EffectiveIT
         "${app}/alter.stream.add.column/client",
         "${app}/alter.stream.add.column/server" })
     public void shouldAlterStreamAddColumn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/show.zviews/client",
+        "${app}/show.zviews/server" })
+    public void shouldShowZviews() throws Exception
     {
         k3po.finish();
     }
