@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [0.9.108](https://github.com/aklivity/zilla/tree/0.9.108) (2024-12-12)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...0.9.108)
 
 **Merged pull requests:**
 
