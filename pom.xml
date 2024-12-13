@@ -680,6 +680,7 @@
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
         <docker.latest.tag>latest</docker.latest.tag>
+        <docker.buildx.attestations.provenance>false</docker.buildx.attestations.provenance>
       </properties>
 
       <build>
