@@ -411,6 +411,9 @@
                     <platform>linux/amd64</platform>
                     <platform>linux/arm64</platform>
                   </platforms>
+                  <attestations>
+                    <provenance>false</provenance>
+                  </attestations>
                 </buildx>
                 <assemblies>
                   <assembly>
@@ -462,6 +465,9 @@
                       <platforms>
                         <platform>linux/amd64</platform>
                       </platforms>
+                      <attestations>
+                        <provenance>false</provenance>
+                      </attestations>
                     </buildx>
                     <assemblies>
                       <assembly>

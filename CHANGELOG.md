@@ -1,5 +1,81 @@
 # Changelog
 
+## [0.9.108](https://github.com/aklivity/zilla/tree/0.9.108) (2024-12-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...0.9.108)
+
+**Merged pull requests:**
+
+- Bump alpine from 3.20.3 to 3.21.0 in /cloud/docker-image/src/main/docker [\#1346](https://github.com/aklivity/zilla/pull/1346) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 1.8.0 to 2.1.0 [\#1325](https://github.com/aklivity/zilla/pull/1325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 3 to 4 [\#1219](https://github.com/aklivity/zilla/pull/1219) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20240530 to jammy-20240808 in /cloud/docker-image/src/main/docker [\#1205](https://github.com/aklivity/zilla/pull/1205) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.107](https://github.com/aklivity/zilla/tree/0.9.107) (2024-12-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.106...0.9.107)
+
+**Merged pull requests:**
+
+- Bump org.apache.avro:avro from 1.11.3 to 1.11.4 [\#1284](https://github.com/aklivity/zilla/pull/1284) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.google.protobuf:protobuf-java from 3.24.4 to 3.25.5 in /runtime/model-protobuf [\#1257](https://github.com/aklivity/zilla/pull/1257) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.106](https://github.com/aklivity/zilla/tree/0.9.106) (2024-12-04)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.105...0.9.106)
+
+**Merged pull requests:**
+
+- Exclude package-info.class from delegate module to avoid empty packages [\#1343](https://github.com/aklivity/zilla/pull/1343) ([jfallows](https://github.com/jfallows))
+
+## [0.9.105](https://github.com/aklivity/zilla/tree/0.9.105) (2024-12-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.104...0.9.105)
+
+**Merged pull requests:**
+
+- Json deserialization of nullable fields [\#1342](https://github.com/aklivity/zilla/pull/1342) ([akrambek](https://github.com/akrambek))
+
+## [0.9.104](https://github.com/aklivity/zilla/tree/0.9.104) (2024-12-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.103...0.9.104)
+
+**Fixed bugs:**
+
+- `affinity mask must specify at least one bit` crash preventing Zilla from starting on Windows 11 + Docker Compose [\#1338](https://github.com/aklivity/zilla/issues/1338)
+
+**Merged pull requests:**
+
+- Json serialization of nullable fields [\#1341](https://github.com/aklivity/zilla/pull/1341) ([akrambek](https://github.com/akrambek))
+
+## [0.9.103](https://github.com/aklivity/zilla/tree/0.9.103) (2024-11-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.102...0.9.103)
+
+**Fixed bugs:**
+
+- Mqtt selecting incorrect publish stream [\#1327](https://github.com/aklivity/zilla/issues/1327)
+
+**Merged pull requests:**
+
+- resolve nested `$ref` in schema [\#1337](https://github.com/aklivity/zilla/pull/1337) ([ankitk-me](https://github.com/ankitk-me))
+- Enhance test vault and test exporter [\#1333](https://github.com/aklivity/zilla/pull/1333) ([jfallows](https://github.com/jfallows))
+- validate `begin` frame type for `ws` client [\#1332](https://github.com/aklivity/zilla/pull/1332) ([ankitk-me](https://github.com/ankitk-me))
+- Support `directory` syntax & functionality [\#1323](https://github.com/aklivity/zilla/pull/1323) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.102](https://github.com/aklivity/zilla/tree/0.9.102) (2024-11-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.101...0.9.102)
+
+**Implemented enhancements:**
+
+- Support `risingwave` `pgsql` message transformations [\#1208](https://github.com/aklivity/zilla/issues/1208)
+
+**Merged pull requests:**
+
+- Fix MQTT binding selecting incorrect publish stream [\#1328](https://github.com/aklivity/zilla/pull/1328) ([bmaidics](https://github.com/bmaidics))
+- Support ALTER STREAM and ALTER TABLE transformation [\#1320](https://github.com/aklivity/zilla/pull/1320) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.101](https://github.com/aklivity/zilla/tree/0.9.101) (2024-11-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.100...0.9.101)

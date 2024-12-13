@@ -39,11 +39,11 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
     }
 
     public String generate(
-        CreateTable createTable)
+        CreateTable command)
     {
-        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, createTable.schema());
+        final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, command.schema());
 
-        List<AvroField> fields = createTable.columns().stream()
+        List<AvroField> fields = command.columns().stream()
             .map(column ->
             {
                 String columnName = column.name();
@@ -65,7 +65,7 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
             })
             .collect(Collectors.toList());
 
-        AvroSchema schema = new AvroSchema("record", createTable.name(), newNamespace, fields);
+        AvroSchema schema = new AvroSchema("record", command.name(), newNamespace, fields);
         AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
         return jsonbFormatted.toJson(payload);

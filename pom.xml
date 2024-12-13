@@ -147,7 +147,7 @@
       <dependency>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
-        <version>1.11.3</version>
+        <version>1.11.4</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -331,6 +331,7 @@
           <configuration>
             <includeTestSourceDirectory>true</includeTestSourceDirectory>
             <excludes>**/generated-*/**/*</excludes>
+            <excludes>**/org/apache/avro/**/*</excludes>
           </configuration>
           <executions>
             <execution>

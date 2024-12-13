@@ -1645,6 +1645,7 @@ show_object_type_name
     | VIEWS
     | MATERIALIZED VIEWS
     | TOPICS
+    | HEAD
     | ZTABLES
     | ZVIEWS
     ;
@@ -1672,6 +1673,7 @@ object_type_any_name
     | TOPIC
     | STREAM
     | ZVIEW
+    | HEAD
     | ZTABLE
     | INDEX
     | FOREIGN TABLE

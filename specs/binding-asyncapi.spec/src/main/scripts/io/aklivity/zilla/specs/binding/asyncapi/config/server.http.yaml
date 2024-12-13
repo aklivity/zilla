@@ -83,6 +83,9 @@ catalogs:
             petsCorrelationId:
               location: '$message.header#/CorrelId'
           schemas:
+            name:
+              type: string
+              description: Pet name.
             petPayload:
               type: object
               properties:
@@ -91,8 +94,7 @@ catalogs:
                   minimum: 0
                   description: Pet id.
                 name:
-                  type: string
-                  description: Pet name.
+                  $ref: '#/components/schemas/name'
                 tag:
                   type: string
                   description: Tag.

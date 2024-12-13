@@ -31,15 +31,15 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
 
     public String generate(
         String database,
-        CreateTable createTable)
+        CreateTable command)
     {
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
 
-        List<AvroField> fields = createTable.columns().stream()
+        List<AvroField> fields = command.columns().stream()
             .map(column -> new AvroField(column.name(), mapSqlTypeToAvroType(column.type()), null))
             .collect(Collectors.toList());
 
-        AvroSchema schema = new AvroSchema("record", createTable.name(), newNamespace, fields);
+        AvroSchema schema = new AvroSchema("record", command.name(), newNamespace, fields);
         AvroPayload payload = new AvroPayload("AVRO", jsonb.toJson(schema));
 
         return jsonbFormatted.toJson(payload);

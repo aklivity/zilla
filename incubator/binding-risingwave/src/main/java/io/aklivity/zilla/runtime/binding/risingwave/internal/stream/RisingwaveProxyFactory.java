@@ -855,6 +855,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.originId = originId;
             this.routedId = routedId;
             this.user = user;
+
         }
 
         private void onAppMessage(

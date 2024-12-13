@@ -72,6 +72,7 @@ read  [0x00 0x02]                                                 # Field Count
       " SELECT id, city FROM weather GROUP BY city;"
       [0x00]
 
+
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()

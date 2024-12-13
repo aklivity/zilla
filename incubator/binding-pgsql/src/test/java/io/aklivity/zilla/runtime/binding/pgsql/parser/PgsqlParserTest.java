@@ -64,6 +64,7 @@ public class PgsqlParserTest
                 created_at TIMESTAMP GENERATED ALWAYS AS NOW,
                 PRIMARY KEY (id, name)
             );""";
+
         CreateTable table = parser.parseCreateTable(sql);
 
         assertNotNull(table);
@@ -191,6 +192,7 @@ public class PgsqlParserTest
     public void shouldDropSingleZtable()
     {
         String sql = "DROP ZTABLE test_table;";
+
         List<Drop> drops = parser.parseDrop(sql);
 
         assertEquals(1, drops.size());
