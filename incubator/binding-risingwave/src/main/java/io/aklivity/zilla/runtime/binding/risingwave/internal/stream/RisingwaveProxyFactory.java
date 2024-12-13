@@ -24,6 +24,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -47,6 +48,9 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroState;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -284,8 +288,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int parserSlotOffset;
 
         private int state;
-        private MacroProgressState macroState;
 
+        private RisingwaveMacroState macroState;
         private int commandsProcessed = COMMAND_PROCESSED_NONE;
         private int queryProgressOffset;
 
@@ -305,7 +309,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.initialMax = decodeMax;
             this.binding = bindings.get(routedId);
             this.parameters = parameters;
-            this.macroState = MacroProgressState.START;
 
             this.columns = new Object2ObjectHashMap<>();
             this.columnTypes = new ArrayList<>();
@@ -841,9 +844,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private int state;
         private int messageOffset;
 
-        private PgsqlFlushCommand typeCommand;
-        private PgsqlDataCommand dataCommand;
-        private PgsqlFlushCommand completionCommand;
 
         private PgsqlClient(
             PgsqlServer server,
@@ -855,10 +855,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             this.originId = originId;
             this.routedId = routedId;
             this.user = user;
-
-            this.dataCommand = proxyDataCommand;
-            this.typeCommand = proxyFlushCommand;
-            this.completionCommand = ignoreFlushCommand;
         }
 
         private void onAppMessage(
@@ -1062,7 +1058,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             PgsqlFlushExFW pgsqlFlushEx)
         {
-            typeCommand.handle(server, traceId, authorization, pgsqlFlushEx);
+            server.macroState.onType(traceId, authorization, pgsqlFlushEx);
         }
 
         private void onAppCompletionFlush(
@@ -1071,7 +1067,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             PgsqlFlushExFW pgsqlFlushEx)
         {
             messageOffset = 0;
-            completionCommand.handle(server, traceId, authorization, pgsqlFlushEx);
+            server.macroState.onCompletion(traceId, authorization, pgsqlFlushEx);
         }
 
         private void onAppErrorFlush(
@@ -1082,6 +1078,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             messageOffset = 0;
             server.doAppFlush(traceId, authorization, flushEx);
             server.commandsProcessed = COMMAND_PROCESSED_ERRORED;
+            server.macroState.onError(traceId, authorization, flushEx);
         }
 
         private void onAppReadyFlush(
@@ -1089,8 +1086,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             PgsqlFlushExFW pgsqlFlushEx)
         {
-            dataCommand = proxyDataCommand;
-            server.onQueryReady(traceId, authorization, pgsqlFlushEx);
+            server.macroState = server.macroState.onReady(traceId, authorization, pgsqlFlushEx);
         }
 
         private void doAppBegin(
@@ -1264,7 +1260,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 messageOffset += lengthMax;
 
-                server.macroState = MacroProgressState.IN_PROGRESS;
             }
             else
             {
@@ -1549,15 +1544,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private void decodeCreateZtableCommandTest(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        String statement)
-    {
-        serve
-    }
-
     private void decodeCreateZtableCommand(
         PgsqlServer server,
         long traceId,
@@ -1619,7 +1605,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             final PgsqlClient client = server.systemClientsByRouteId.get(route.id);
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
-            client.typeCommand = ignoreFlushCommand;
         }
     }
 
@@ -1662,6 +1647,60 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
             client.typeCommand = ignoreFlushCommand;
         }
+    }
+
+    private void decodeCreateZviewCommandTest(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        final RisingwaveBindingConfig binding = server.binding;
+        final CreateZview command = parser.parseCreateZView(statement);
+
+        RisingwaveMacroHandler handler = new RisingwaveMacroHandler()
+        {
+            @Override
+            public void doExecute(
+                String query)
+            {
+                int progress = 0;
+                statementBuffer.putBytes(progress, query.getBytes());
+                progress += query.length();
+
+                final RisingwaveRouteConfig route =
+                    server.binding.resolve(authorization, statementBuffer, 0, progress);
+
+                final PgsqlClient client = server.systemClientsByRouteId.get(route.id);
+                client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            }
+
+            @Override
+            public void doRow()
+            {
+            }
+
+            @Override
+            public void doCompletion()
+            {
+            }
+
+            @Override
+            public void doReady(
+                long traceId,
+                long authorization)
+            {
+                server.onCommandCompleted(traceId, authorization, statement.length(),
+                    RisingwaveCompletionCommand.CREATE_ZVIEW_COMMAND);
+            }
+        };
+
+        if (server.macroState != null)
+        {
+            RisingwaveCreateZviewMacro machine = new RisingwaveCreateZviewMacro(command, handler);
+            server.macroState = machine.start();
+        }
+
     }
 
     private void decodeCreateZviewCommand(
@@ -2323,14 +2362,5 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             int offset,
             int limit,
             OctetsFW extension);
-    }
-
-    private enum RisingwaveMacroState
-    {
-        START,
-        PROCESSING,
-        PROCESSED,
-        ERROR,
-        END
     }
 }
