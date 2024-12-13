@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.109...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.110...HEAD)
+
+**Implemented enhancements:**
+
+- Replace Ivy APIs for embedded Maven during `zpmw` install [\#1173](https://github.com/aklivity/zilla/issues/1173)
+
+**Merged pull requests:**
+
+- Replace Ivy APIs with embedded Maven during zpmw install [\#1334](https://github.com/aklivity/zilla/pull/1334) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.110](https://github.com/aklivity/zilla/tree/0.9.110) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.109...0.9.110)
 
 **Merged pull requests:**
 

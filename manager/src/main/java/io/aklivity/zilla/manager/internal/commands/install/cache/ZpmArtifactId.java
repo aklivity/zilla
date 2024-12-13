@@ -39,6 +39,13 @@ public final class ZpmArtifactId
         return Objects.hash(group, artifact, version);
     }
 
+    public boolean equalsGroupAndArtifact(
+        ZpmArtifactId that)
+    {
+        return Objects.equals(this.group, that.group) &&
+            Objects.equals(this.artifact, that.artifact);
+    }
+
     @Override
     public boolean equals(
         Object obj)
