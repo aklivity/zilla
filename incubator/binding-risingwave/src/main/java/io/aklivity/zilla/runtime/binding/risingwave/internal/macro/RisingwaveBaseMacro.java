@@ -1,11 +1,17 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.nio.ByteOrder;
 import java.util.Map;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
+
 public abstract class RisingwaveBaseMacro
 {
+    protected static final int FLAGS_INIT = 0x02;
+
     protected static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
     protected static final String ZILLA_IDENTITY_OLD = "zilla_identity";
     protected static final String ZILLA_TIMESTAMP_OLD = "zilla_timestamp";
@@ -26,12 +32,5 @@ public abstract class RisingwaveBaseMacro
         ZILLA_MAPPINGS_OLD.put(ZILLA_CORRELATION_ID_OLD, "INCLUDE header 'zilla:correlation-id' AS %s\n");
         ZILLA_MAPPINGS_OLD.put(ZILLA_IDENTITY_OLD, "INCLUDE header 'zilla:identity' AS %s\n");
         ZILLA_MAPPINGS_OLD.put(ZILLA_TIMESTAMP_OLD, "INCLUDE timestamp AS %s\n");
-    }
-
-    @FunctionalInterface
-    protected interface RisingwaveTemplate
-    {
-        String generate(
-            Object model);
     }
 }

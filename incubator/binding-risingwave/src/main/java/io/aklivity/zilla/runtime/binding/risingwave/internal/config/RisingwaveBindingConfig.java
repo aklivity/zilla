@@ -49,8 +49,8 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
 {
-    private static final String INTERNAL_SCHEMA = "zb_catalog";
-    private static final String PUBLIC_SCHEMA = "public";
+    public static final String INTERNAL_SCHEMA = "zb_catalog";
+    public static final String PUBLIC_SCHEMA = "public";
 
     public final long id;
     public final String name;
@@ -75,6 +75,8 @@ public final class RisingwaveBindingConfig
     public final RisingwaveDeleteFromCatalogTemplate catalogDelete;
     public final RisingwaveGrantToSourceTemplate grantResource;
     public final RisingwaveShowTypeTemplate showType;
+    public final String bootstrapServer;
+    public final String schemaRegistry;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -88,7 +90,7 @@ public final class RisingwaveBindingConfig
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
         String bootstrapServer = null;
-        String location = null;
+        String schemaRegistry = null;
         RisingwaveUdfConfig udf = null;
 
         if (options.kafka != null)
@@ -98,13 +100,16 @@ public final class RisingwaveBindingConfig
 
             final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
             bootstrapServer = options.kafka.properties.bootstrapServer;
-            location = catalogHandler.location();
+            schemaRegistry = catalogHandler.location();
         }
+
+        this.bootstrapServer = bootstrapServer;
+        this.schemaRegistry = schemaRegistry;
 
         this.createTable = new RisingwaveCreateTableTemplate();
         this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
-            location, config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkTemplate(INTERNAL_SCHEMA, bootstrapServer, location);
+            schemaRegistry, config.kafkaScanStartupTimestampMillis());
+        this.createSink = new RisingwaveCreateSinkTemplate(INTERNAL_SCHEMA, bootstrapServer, schemaRegistry);
         this.createTopic = new RisingwaveCreateTopicTemplate();
         this.createView = new RisingwaveCreateMaterializedViewTemplate();
         this.alterTable = new RisingwaveAlterTableTemplate();

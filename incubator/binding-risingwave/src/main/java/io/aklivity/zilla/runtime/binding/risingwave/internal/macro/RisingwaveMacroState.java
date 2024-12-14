@@ -1,20 +1,41 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public interface RisingwaveMacroState
 {
-    RisingwaveMacroState onRow();
+    default RisingwaveMacroState onRow(
+        long traceId,
+            long authorization,
+            long routedId,
+            int flags,
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            OctetsFW extension)
+    {
+        return this;
+    }
 
-    RisingwaveMacroState onType(
+    default RisingwaveMacroState onType(
         long traceId,
         long authorization,
-        PgsqlFlushExFW flushEx);
+        PgsqlFlushExFW flushEx)
+    {
+        return this;
+    }
 
-    RisingwaveMacroState onCompletion(
+    default RisingwaveMacroState onCompletion(
         long traceId,
         long authorization,
-        PgsqlFlushExFW flushEx);
+        PgsqlFlushExFW flushEx)
+    {
+        return this;
+    }
+
 
     RisingwaveMacroState onReady(
         long traceId,
