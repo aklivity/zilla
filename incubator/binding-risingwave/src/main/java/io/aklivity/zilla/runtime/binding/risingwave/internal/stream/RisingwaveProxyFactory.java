@@ -47,6 +47,8 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateStreamMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroState;
@@ -89,11 +91,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private static final String ZILLABASE_USER = "zillabase\u0000";
     private static final String DEFAULT_USER = "default\u0000";
-    private static final String ZVIEW_NAME = "zviews";
-    private static final String ZTABLE_NAME = "ztables";
 
-    private static final int COMMAND_PROCESSED_ERRORED = -1;
-    private static final int COMMAND_PROCESSED_NONE = 0;
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -1588,62 +1586,20 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 8 ||
-            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
-        {
-            final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_ZTABLE_COMMAND);
-        }
-        else
-        {
-            final RisingwaveBindingConfig binding = server.binding;
-            final CreateTable createTable = parser.parseCreateTable(statement);
+        final CreateTable command = parser.parseCreateTable(statement);
 
-            String newStatement = "";
-            int progress = 0;
+        RisingwaveBindingConfig binding = server.binding;
 
-            if (server.commandsProcessed == 0)
-            {
-                newStatement = binding.createTopic.generate(createTable);
-            }
-            else if (server.commandsProcessed == 1)
-            {
-                newStatement = binding.createSource.generateTableSource(createTable);
-            }
-            else if (server.commandsProcessed == 2)
-            {
-                newStatement = binding.createView.generate(createTable);
-            }
-            else if (server.commandsProcessed == 3)
-            {
-                newStatement = binding.createTable.generate(createTable);
-            }
-            else if (server.commandsProcessed == 4)
-            {
-                newStatement = binding.grantResource.generate("TABLE", createTable.schema(), createTable.name(), server.user);
-            }
-            else if (server.commandsProcessed == 5)
-            {
-                newStatement = binding.createSink.generateInto(createTable);
-            }
-            else if (server.commandsProcessed == 6)
-            {
-                newStatement = binding.createSink.generateOutgress(createTable);
-            }
-            else if (server.commandsProcessed == 7)
-            {
-                newStatement = binding.catalogInsert.generate(ZTABLE_NAME, createTable.name(), statement);
-            }
-
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-
-            final RisingwaveRouteConfig route =
-                server.binding.resolve(authorization, statementBuffer, 0, progress);
-
-            final PgsqlClient client = server.systemClientsByRouteId.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
-        }
+        RisingwaveCreateZtableMacro machine = new RisingwaveCreateZtableMacro(
+            binding.bootstrapServer,
+            binding.schemaRegistry,
+            config.kafkaScanStartupTimestampMillis(),
+            RisingwaveBindingConfig.INTERNAL_SCHEMA,
+            server.user,
+            statement,
+            command,
+            server.macroHandler);
+        server.macroState = machine.start(traceId, authorization);
     }
 
     private void decodeCreateStreamCommand(
@@ -1652,39 +1608,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        if (server.commandsProcessed == 2 ||
-            server.commandsProcessed == COMMAND_PROCESSED_ERRORED)
-        {
-            final int length = statement.length();
-            server.onCommandCompleted(traceId, authorization, length, RisingwaveCompletionCommand.CREATE_STREAM_COMMAND);
-        }
-        else
-        {
-            final RisingwaveBindingConfig binding = server.binding;
-            final CreateStream createStream = parser.parseCreateStream(statement);
+        final CreateStream command = parser.parseCreateStream(statement);
 
-            String newStatement = "";
-            int progress = 0;
+        RisingwaveBindingConfig binding = server.binding;
 
-            if (server.commandsProcessed == 0)
-            {
-                newStatement = binding.createTopic.generate(createStream);
-            }
-            else if (server.commandsProcessed == 1)
-            {
-                newStatement = binding.createSource.generateStreamSource(createStream);
-            }
-
-            statementBuffer.putBytes(progress, newStatement.getBytes());
-            progress += newStatement.length();
-
-            final RisingwaveRouteConfig route =
-                server.binding.resolve(authorization, statementBuffer, 0, progress);
-
-            final PgsqlClient client = server.systemClientsByRouteId.get(route.id);
-            client.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
-            client.typeCommand = ignoreFlushCommand;
-        }
+        RisingwaveCreateStreamMacro machine = new RisingwaveCreateStreamMacro(
+            binding.bootstrapServer,
+            binding.schemaRegistry,
+            RisingwaveBindingConfig.INTERNAL_SCHEMA,
+            server.user,
+            statement,
+            command,
+            server.macroHandler);
+        server.macroState = machine.start(traceId, authorization);
     }
 
     private void decodeCreateZviewCommand(
@@ -2117,53 +2053,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             .build();
 
         server.doAppFlush(traceId, authorization, descriptionEx);
-    }
-
-    private void rowDataCommand(
-        PgsqlServer server,
-        PgsqlClient client,
-        long traceId,
-        long authorization,
-        long routedId,
-        int flags,
-        DirectBuffer buffer,
-        int offset,
-        int limit,
-        OctetsFW extension)
-    {
-        int progress = offset;
-
-        final List<String> columnDescriptions = server.columnDescriptions;
-
-        if ((flags & FLAGS_INIT) != 0x00)
-        {
-            columnDescriptions.clear();
-            progress += Short.BYTES;
-        }
-
-        column:
-        while (progress < limit)
-        {
-            String32FW column = columnRO.tryWrap(buffer, progress, limit);
-
-            if (column == null)
-            {
-                break column;
-            }
-
-            columnDescriptions.add(column.asString());
-
-            progress = column.limit();
-        }
-
-        int nameIndex = server.columnTypes.indexOf("Name");
-        int typeIndex = server.columnTypes.indexOf("Type");
-        int isHiddenIndex = server.columnTypes.indexOf("Is Hidden");
-
-        if ("false".equals(columnDescriptions.get(isHiddenIndex)))
-        {
-            server.columns.put(columnDescriptions.get(nameIndex), columnDescriptions.get(typeIndex));
-        }
     }
 
     private void showColumnDataCommand(

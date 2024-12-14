@@ -10,8 +10,6 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public abstract class RisingwaveBaseMacro
 {
-    protected static final int FLAGS_INIT = 0x02;
-
     protected static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
     protected static final String ZILLA_IDENTITY_OLD = "zilla_identity";
     protected static final String ZILLA_TIMESTAMP_OLD = "zilla_timestamp";

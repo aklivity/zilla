@@ -16,9 +16,11 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
+public class RisingwaveCreateZviewMacro
 {
-    private static final String RESOURCE = "MATERIALIZED VIEW";
+    protected static final int FLAGS_INIT = 0x02;
+
+    private static final String MATERIALIZED_VIEW_NAME = "MATERIALIZED VIEW";
     private static final String ZVIEW_NAME = "zviews";
 
     private final String32FW columnRO = new String32FW(ByteOrder.BIG_ENDIAN);
@@ -115,7 +117,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, RESOURCE, command.schema(), command.name(), user);
+            String sqlQuery = String.format(sqlFormat, MATERIALIZED_VIEW_NAME, command.schema(), command.name(), user);
 
             handler.doExecute(traceId, authorization, sqlQuery);
         }
@@ -143,7 +145,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
         }
     }
 
-    protected class DescribeMaterializedViewState implements RisingwaveMacroState
+    private class DescribeMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             DESCRIBE %s.%s;\u0000""";
@@ -244,7 +246,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
         }
     }
 
-    protected class CreateTopicState implements RisingwaveMacroState
+    private class CreateTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
@@ -300,7 +302,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
         }
     }
 
-    protected class CreateSinkState implements RisingwaveMacroState
+    private class CreateSinkState implements RisingwaveMacroState
     {
         private final String sqlKafkaFormat = """
             CREATE SINK %s.%s_sink
@@ -371,6 +373,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
     {
         private final String sqlFormat = """
             INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
+
         private void doExecute(
             long traceId,
             long authorization)
@@ -378,7 +381,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveBaseMacro
             String name = command.name();
             String schema = command.schema();
 
-            String newSql = sql.replace("ZVIEW", "MATERIALIZED VIEW")
+            String newSql = sql.replace(ZVIEW_NAME, MATERIALIZED_VIEW_NAME)
                 .replace("\u0000", "");
             String sqlQuery = String.format(sqlFormat, systemSchema, schema, name, newSql);
 
