@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
@@ -22,7 +36,7 @@ public class RisingwaveAlterStreamMacro
         this.fieldBuilder = new StringBuilder();
     }
 
-     public RisingwaveMacroState start(
+    public RisingwaveMacroState start(
         long traceId,
         long authorization)
     {
@@ -32,7 +46,7 @@ public class RisingwaveAlterStreamMacro
         return state;
     }
 
-    private class AlterTopicState implements RisingwaveMacroState
+    private final class AlterTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             ALTER TOPIC %s %s;\u0000""";
@@ -55,7 +69,7 @@ public class RisingwaveAlterStreamMacro
             handler.doExecute(traceId, authorization, sqlQuery);
         }
 
-         @Override
+        @Override
         public RisingwaveMacroState onCompletion(
             long traceId,
             long authorization,

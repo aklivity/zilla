@@ -26,6 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.avro.AvroTypeException;
+import org.apache.avro.Schema;
+import org.apache.avro.io.parsing.JsonGrammarGenerator;
+import org.apache.avro.io.parsing.Parser;
+import org.apache.avro.io.parsing.Symbol;
+import org.apache.avro.util.Utf8;
+
 import com.fasterxml.jackson.core.Base64Variant;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonLocation;
@@ -34,13 +41,6 @@ import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.Version;
-
-import org.apache.avro.AvroTypeException;
-import org.apache.avro.Schema;
-import org.apache.avro.io.parsing.JsonGrammarGenerator;
-import org.apache.avro.io.parsing.Parser;
-import org.apache.avro.io.parsing.Symbol;
-import org.apache.avro.util.Utf8;
 
 /** A {@link Decoder} for Avro's JSON data encoding.
  * </p>

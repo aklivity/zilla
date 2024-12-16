@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.util.ArrayList;
@@ -62,7 +76,7 @@ public class RisingwaveCreateZtableMacro
         this.scanStartupMil = scanStartupMil;
     }
 
-     public RisingwaveMacroState start(
+    public RisingwaveMacroState start(
         long traceId,
         long authorization)
     {
@@ -72,7 +86,7 @@ public class RisingwaveCreateZtableMacro
         return state;
     }
 
-    private class CreateTopicState implements RisingwaveMacroState
+    private final class CreateTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
@@ -134,7 +148,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class CreateSourceState implements RisingwaveMacroState
+    private final class CreateSourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE SOURCE IF NOT EXISTS %s (*)%s
@@ -217,7 +231,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class CreateMaterializedViewState implements RisingwaveMacroState
+    private final class CreateMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
@@ -276,7 +290,8 @@ public class RisingwaveCreateZtableMacro
                 select = fieldBuilder.toString();
             }
 
-            String sqlQuery = String.format(sqlFormat, "%s_view".formatted(name), "SELECT %s FROM %s_source".formatted(select, name));
+            String sqlQuery = String.format(sqlFormat, "%s_view".formatted(name),
+                "SELECT %s FROM %s_source".formatted(select, name));
 
             handler.doExecute(traceId, authorization, sqlQuery);
         }
@@ -304,7 +319,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class CreateTableState implements RisingwaveMacroState
+    private final class CreateTableState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TABLE IF NOT EXISTS %s (%s%s);\u0000""";
@@ -355,7 +370,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class GrantResourceState implements RisingwaveMacroState
+    private final class GrantResourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
@@ -431,7 +446,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class CreateSinkState implements RisingwaveMacroState
+    private final class CreateSinkState implements RisingwaveMacroState
     {
         private final String sqlKafkaFormat = """
             CREATE SINK %s.%s_sink
@@ -486,7 +501,7 @@ public class RisingwaveCreateZtableMacro
             return this;
         }
 
-        private class InsertIntoCatalogState implements RisingwaveMacroState
+        private final class InsertIntoCatalogState implements RisingwaveMacroState
         {
             private final String sqlFormat = """
                 INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";

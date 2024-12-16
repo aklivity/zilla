@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.nio.ByteOrder;
@@ -67,7 +81,7 @@ public class RisingwaveCreateZviewMacro
         return state;
     }
 
-    private class CreateMaterializedViewState implements RisingwaveMacroState
+    private final class CreateMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
@@ -107,7 +121,7 @@ public class RisingwaveCreateZviewMacro
         }
     }
 
-    private class GrantResourceState implements RisingwaveMacroState
+    private final class GrantResourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
@@ -144,7 +158,7 @@ public class RisingwaveCreateZviewMacro
         }
     }
 
-    private class DescribeMaterializedViewState implements RisingwaveMacroState
+    private final class DescribeMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             DESCRIBE %s.%s;\u0000""";
@@ -158,7 +172,7 @@ public class RisingwaveCreateZviewMacro
             handler.doExecute(traceId, authorization, sqlQuery);
         }
 
-         @Override
+        @Override
         public RisingwaveMacroState onType(
             long traceId,
             long authorization,
@@ -177,10 +191,10 @@ public class RisingwaveCreateZviewMacro
         }
 
         @Override
-        public RisingwaveMacroState onRow(
+        public <T> RisingwaveMacroState onRow(
+            T client,
             long traceId,
             long authorization,
-            long routedId,
             int flags,
             DirectBuffer buffer,
             int offset,
@@ -245,7 +259,7 @@ public class RisingwaveCreateZviewMacro
         }
     }
 
-    private class CreateTopicState implements RisingwaveMacroState
+    private final class CreateTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
@@ -301,7 +315,7 @@ public class RisingwaveCreateZviewMacro
         }
     }
 
-    private class CreateSinkState implements RisingwaveMacroState
+    private final class CreateSinkState implements RisingwaveMacroState
     {
         private final String sqlKafkaFormat = """
             CREATE SINK %s.%s_sink
@@ -368,7 +382,7 @@ public class RisingwaveCreateZviewMacro
         }
     }
 
-    private class InsertIntoCatalogState implements RisingwaveMacroState
+    private final class InsertIntoCatalogState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
@@ -417,5 +431,4 @@ public class RisingwaveCreateZviewMacro
             return this;
         }
     }
-
 }

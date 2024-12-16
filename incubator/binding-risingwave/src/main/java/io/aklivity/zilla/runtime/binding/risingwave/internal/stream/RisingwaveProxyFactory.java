@@ -805,19 +805,19 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 String name)
             {
                 PgsqlFlushExFW descriptionEx = flushExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(pgsqlTypeId)
-                .type(t -> t
-                    .columns(c -> c
-                        .item(s -> s
-                            .name("%s\u0000".formatted(name))
-                            .tableOid(0)
-                            .index((short) 0)
-                            .typeOid(701)
-                            .length((short) name.length())
-                            .modifier(-1)
-                            .format(f -> f.set(PgsqlFormat.TEXT))
-                        )))
-                .build();
+                    .typeId(pgsqlTypeId)
+                    .type(t -> t
+                        .columns(c -> c
+                            .item(s -> s
+                                .name("%s\u0000".formatted(name))
+                                .tableOid(0)
+                                .index((short) 0)
+                                .typeOid(701)
+                                .length((short) name.length())
+                                .modifier(-1)
+                                .format(f -> f.set(PgsqlFormat.TEXT))
+                            )))
+                    .build();
 
                 doAppFlush(traceId, authorization, descriptionEx);
             }
