@@ -1,11 +1,11 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 

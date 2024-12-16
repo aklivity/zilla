@@ -1,0 +1,198 @@
+package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
+
+import java.util.List;
+import java.util.Map;
+
+import org.agrona.collections.Object2ObjectHashMap;
+
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
+import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
+
+public class RisingwaveCreateFunctionMacro
+{
+    private static final String FUNCTION_NAME = "FUNCTION";
+
+    private final String javaServer;
+    private final String pythonServer;
+
+    private final String systemSchema;
+    private final String user;
+    private final String sql;
+    private final Function command;
+    private final RisingwaveMacroHandler handler;
+    private final StringBuilder fieldBuilder;
+
+    public RisingwaveCreateFunctionMacro(
+        List<RisingwaveUdfConfig> udfs,
+        String systemSchema,
+        String user,
+        String sql,
+        Function command,
+        RisingwaveMacroHandler handler)
+    {
+        String javaServer = null;
+        String pythonServer = null;
+
+        if (udfs != null && !udfs.isEmpty())
+        {
+            for (RisingwaveUdfConfig udf : udfs)
+            {
+                if (udf.language.equalsIgnoreCase("java"))
+                {
+                    javaServer = udf.server;
+                }
+                else if (udf.language.equalsIgnoreCase("python"))
+                {
+                    pythonServer = udf.server;
+                }
+            }
+        }
+
+        this.javaServer = javaServer;
+        this.pythonServer = pythonServer;
+        this.systemSchema = systemSchema;
+        this.user = user;
+        this.sql = sql;
+        this.command = command;
+        this.handler = handler;
+        this.fieldBuilder = new StringBuilder();
+    }
+
+
+    public RisingwaveMacroState start(
+        long traceId,
+        long authorization)
+    {
+        CreateFunctionState state = new CreateFunctionState();
+        state.doExecute(traceId, authorization);
+
+        return state;
+    }
+
+    private class CreateFunctionState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            CREATE FUNCTION %s(%s)
+            RETURNS %s
+            AS %s
+            LANGUAGE %s
+            USING LINK '%s';\u0000""";
+
+        private void doExecute(
+            long traceId,
+            long authorization)
+        {
+            String functionName = command.name();
+            String asFunction = command.asFunction();
+            List<FunctionArgument> arguments = command.arguments();
+            List<FunctionArgument> tables = command.tables();
+
+            fieldBuilder.setLength(0);
+
+            arguments
+                .forEach(arg -> fieldBuilder.append(
+                    arg.name() != null
+                        ? "%s %s, ".formatted(arg.name(), arg.type())
+                        : "%s, ".formatted(arg.type())));
+
+            if (!arguments.isEmpty())
+            {
+                fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+            }
+            String funcArguments = fieldBuilder.toString();
+
+            String language = command.language() != null ? command.language() : "java";
+            String server = "python".equalsIgnoreCase(language) ? pythonServer : javaServer;
+
+            String returnType = command.returnType();
+            if (!tables.isEmpty())
+            {
+                fieldBuilder.setLength(0);
+                fieldBuilder.append("TABLE (");
+                tables.forEach(arg -> fieldBuilder.append(
+                    arg.name() != null
+                        ? "%s %s, ".formatted(arg.name(), arg.type())
+                        : "%s, ".formatted(arg.type())));
+                fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+                fieldBuilder.append(")");
+
+                returnType = fieldBuilder.toString();
+            }
+
+            String sqlQuery = sqlFormat.formatted(functionName, funcArguments, returnType, asFunction, language, server);
+
+            handler.doExecute(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            GrantResourceState state = new GrantResourceState();
+            state.doExecute(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doError(traceId, authorization, flushEx);
+            return this;
+        }
+    }
+
+    private class GrantResourceState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
+
+        private void doExecute(
+            long traceId,
+            long authorization)
+        {
+            String sqlQuery = String.format(sqlFormat, FUNCTION_NAME, command.schema(), command.name(), user);
+
+            handler.doExecute(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onCompletion(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.CREATE_FUNCTION_COMMAND);
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doReady(traceId, authorization, sql.length());
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doError(traceId, authorization, flushEx);
+            return this;
+        }
+    }
+}
