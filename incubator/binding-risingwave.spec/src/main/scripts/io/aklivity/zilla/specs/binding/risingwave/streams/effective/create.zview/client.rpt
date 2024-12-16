@@ -79,7 +79,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DESCRIBE distinct_cities;"
+write "DESCRIBE public.distinct_cities;"
       [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()
@@ -204,7 +204,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "INSERT INTO zb_catalog.zviews (name, sql) VALUES "
-      "('distinct_cities', 'CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;');"
+      "('distinct_cities', 'CREATE ZVIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;');"
      [0x00]
 write flush
 

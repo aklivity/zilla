@@ -392,11 +392,10 @@ public class RisingwaveCreateZviewMacro
             long authorization)
         {
             String name = command.name();
-            String schema = command.schema();
 
             String newSql = sql.replace(ZVIEW_NAME, MATERIALIZED_VIEW_NAME)
                 .replace("\u0000", "");
-            String sqlQuery = String.format(sqlFormat, systemSchema, schema, name, newSql);
+            String sqlQuery = String.format(sqlFormat, systemSchema, ZVIEW_NAME, name, newSql);
 
             handler.doExecute(traceId, authorization, sqlQuery);
         }

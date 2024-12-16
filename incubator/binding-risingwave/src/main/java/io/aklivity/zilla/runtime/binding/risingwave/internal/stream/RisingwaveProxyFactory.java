@@ -546,6 +546,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             queryProgressOffset += progress;
             if (queryLength == queryProgressOffset)
             {
+                macroState = null;
                 queryProgressOffset = 0;
                 queries.removeInt();
                 doQueryReady(traceId, authorization);
@@ -860,6 +861,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 long authorization,
                 PgsqlFlushExFW flushEx)
             {
+                macroState = null;
                 doAppFlush(traceId, authorization, flushEx);
             }
 
@@ -1323,11 +1325,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 doAppData(traceId, authorization, flags, buffer, offset, lengthMax, queryEx);
 
                 messageOffset += lengthMax;
-
-            }
-            else
-            {
-                doAppBegin(traceId, authorization, server.affinity);
             }
         }
     }
@@ -1614,20 +1611,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        final CreateTable command = parser.parseCreateTable(statement);
+        if (server.macroState == null)
+        {
+            final CreateTable command = parser.parseCreateTable(statement);
 
-        RisingwaveBindingConfig binding = server.binding;
-
-        RisingwaveCreateZtableMacro machine = new RisingwaveCreateZtableMacro(
-            binding.bootstrapServer,
-            binding.schemaRegistry,
-            config.kafkaScanStartupTimestampMillis(),
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            server.user,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveBindingConfig binding = server.binding;
+            RisingwaveCreateZtableMacro machine = new RisingwaveCreateZtableMacro(
+                binding.bootstrapServer,
+                binding.schemaRegistry,
+                config.kafkaScanStartupTimestampMillis(),
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeCreateStreamCommand(
@@ -1636,19 +1635,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        final CreateStream command = parser.parseCreateStream(statement);
+        if (server.macroState == null)
+        {
+            final CreateStream command = parser.parseCreateStream(statement);
 
-        RisingwaveBindingConfig binding = server.binding;
+            RisingwaveBindingConfig binding = server.binding;
 
-        RisingwaveCreateStreamMacro machine = new RisingwaveCreateStreamMacro(
-            binding.bootstrapServer,
-            binding.schemaRegistry,
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            server.user,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveCreateStreamMacro machine = new RisingwaveCreateStreamMacro(
+                binding.bootstrapServer,
+                binding.schemaRegistry,
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeCreateZviewCommand(
@@ -1657,19 +1659,22 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        final CreateZview command = parser.parseCreateZView(statement);
+        if (server.macroState == null)
+        {
+            final CreateZview command = parser.parseCreateZView(statement);
 
-        RisingwaveBindingConfig binding = server.binding;
+            RisingwaveBindingConfig binding = server.binding;
 
-        RisingwaveCreateZviewMacro machine = new RisingwaveCreateZviewMacro(
-            binding.bootstrapServer,
-            binding.schemaRegistry,
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            server.user,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveCreateZviewMacro machine = new RisingwaveCreateZviewMacro(
+                binding.bootstrapServer,
+                binding.schemaRegistry,
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeCreateFunctionCommand(
@@ -1678,18 +1683,21 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        final Function command = parser.parseCreateFunction(statement);
+        if (server.macroState == null)
+        {
+            final Function command = parser.parseCreateFunction(statement);
 
-        RisingwaveBindingConfig binding = server.binding;
+            RisingwaveBindingConfig binding = server.binding;
 
-        RisingwaveCreateFunctionMacro machine = new RisingwaveCreateFunctionMacro(
-            binding.options.udfs,
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            server.user,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveCreateFunctionMacro machine = new RisingwaveCreateFunctionMacro(
+                binding.options.udfs,
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeAlterZtableCommand(
@@ -1708,7 +1716,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_ZTABLE_COMMAND,
                 statement, "ALTER ZTABLE only supports ADD");
         }
-        else
+        else  if (server.macroState == null)
         {
             RisingwaveAlterZtableMacro machine = new RisingwaveAlterZtableMacro(
                 statement,
@@ -1734,7 +1742,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_STREAM_COMMAND,
                 statement, "ALTER STREAM only supports ADD");
         }
-        else
+        else if (server.macroState == null)
         {
             RisingwaveAlterStreamMacro machine = new RisingwaveAlterStreamMacro(
                 statement,
@@ -1767,14 +1775,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        // TODO: Enhance multiple streams
-        final Drop command = parser.parseDrop(statement).get(0);
+        if (server.macroState == null)
+        {
+            // TODO: Enhance multiple streams
+            final Drop command = parser.parseDrop(statement).get(0);
 
-        RisingwaveDropStreamMacro machine = new RisingwaveDropStreamMacro(
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveDropStreamMacro machine = new RisingwaveDropStreamMacro(
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeDropStreamCommand(
@@ -1783,15 +1794,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        // TODO: Enhance multiple streams
-        final Drop command = parser.parseDrop(statement).get(0);
+        if (server.macroState == null)
+        {
+            // TODO: Enhance multiple streams
+            final Drop command = parser.parseDrop(statement).get(0);
 
-        RisingwaveDropZtableMacro machine = new RisingwaveDropZtableMacro(
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveDropZtableMacro machine = new RisingwaveDropZtableMacro(
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeDropZviewCommand(
@@ -1800,15 +1814,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        // TODO: Enhance multiple streams
-        final Drop command = parser.parseDrop(statement).get(0);
+        if (server.macroState == null)
+        {
+            // TODO: Enhance multiple streams
+            final Drop command = parser.parseDrop(statement).get(0);
 
-        RisingwaveDropZviewMacro machine = new RisingwaveDropZviewMacro(
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveDropZviewMacro machine = new RisingwaveDropZviewMacro(
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeShowCommand(
@@ -1817,13 +1834,16 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        final String command = parser.parseShow(statement);
+        if (server.macroState == null)
+        {
+            final String command = parser.parseShow(statement);
 
-        RisingwaveShowCommandMacro machine = new RisingwaveShowCommandMacro(
-            statement,
-            command,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+            RisingwaveShowCommandMacro machine = new RisingwaveShowCommandMacro(
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     private void decodeUnknownCommand(
@@ -1832,12 +1852,15 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         long authorization,
         String statement)
     {
-        RisingwaveUnknownMacro machine = new RisingwaveUnknownMacro(
-            RisingwaveBindingConfig.INTERNAL_SCHEMA,
-            server.user,
-            statement,
-            server.macroHandler);
-        server.macroState = machine.start(traceId, authorization);
+        if (server.macroState == null)
+        {
+            RisingwaveUnknownMacro machine = new RisingwaveUnknownMacro(
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                server.macroHandler);
+            server.macroState = machine.start(traceId, authorization);
+        }
     }
 
     public List<String> splitStatements(
