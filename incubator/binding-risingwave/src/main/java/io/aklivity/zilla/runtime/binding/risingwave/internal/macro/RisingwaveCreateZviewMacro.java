@@ -10,7 +10,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwavePgsqlTypeMapping;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;

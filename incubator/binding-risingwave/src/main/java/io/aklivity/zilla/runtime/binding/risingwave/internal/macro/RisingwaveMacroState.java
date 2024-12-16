@@ -7,15 +7,15 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public interface RisingwaveMacroState
 {
-    default RisingwaveMacroState onRow(
+    default <T> RisingwaveMacroState onRow(
+        T client,
         long traceId,
-            long authorization,
-            long routedId,
-            int flags,
-            DirectBuffer buffer,
-            int offset,
-            int limit,
-            OctetsFW extension)
+        long authorization,
+        int flags,
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        OctetsFW extension)
     {
         return this;
     }
