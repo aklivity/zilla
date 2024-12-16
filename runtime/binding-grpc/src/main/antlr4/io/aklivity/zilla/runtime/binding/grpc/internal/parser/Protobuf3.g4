@@ -65,7 +65,7 @@ optionFields
 
 optionField
   : optionName COLON optionValue
-  | optionName LC optionFields? RC
+  | optionName LC COLON? optionFields? RC
   ;
 
 // Normal Field
