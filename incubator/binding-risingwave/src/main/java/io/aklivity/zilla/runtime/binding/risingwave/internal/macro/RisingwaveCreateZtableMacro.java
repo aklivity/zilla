@@ -407,7 +407,7 @@ public class RisingwaveCreateZtableMacro
         }
     }
 
-    private class CreateSinkIntoState implements RisingwaveMacroState
+    private final class CreateSinkIntoState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE SINK %s.%s_view_sink INTO %s FROM %s_view;\u0000""";

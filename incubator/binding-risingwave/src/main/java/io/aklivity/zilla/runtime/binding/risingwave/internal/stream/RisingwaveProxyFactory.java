@@ -1644,6 +1644,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             RisingwaveCreateStreamMacro machine = new RisingwaveCreateStreamMacro(
                 binding.bootstrapServer,
                 binding.schemaRegistry,
+                config.kafkaScanStartupTimestampMillis(),
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 server.user,
                 statement,
