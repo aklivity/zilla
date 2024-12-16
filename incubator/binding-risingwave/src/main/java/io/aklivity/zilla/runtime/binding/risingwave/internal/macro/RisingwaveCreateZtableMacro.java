@@ -511,11 +511,10 @@ public class RisingwaveCreateZtableMacro
                 long authorization)
             {
                 String name = command.name();
-                String schema = command.schema();
 
                 String newSql = sql.replace(ZTABLE_NAME, TABLE_NAME)
                     .replace("\u0000", "");
-                String sqlQuery = String.format(sqlFormat, systemSchema, schema, name, newSql);
+                String sqlQuery = String.format(sqlFormat, systemSchema, ZTABLE_NAME, name, newSql);
 
                 handler.doExecute(traceId, authorization, sqlQuery);
             }
