@@ -753,7 +753,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     .ifPresent(statement ->
                     {
                         String command = parser.parseCommand(statement);
-                        final PgsqlTransform transform = clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
+                        final PgsqlTransform transform = command == null
+                            ? clientTransforms.get(RisingwaveCommandType.UNKNOWN_COMMAND)
+                            : clientTransforms.get(RisingwaveCommandType.valueOf(command.getBytes()));
                         transform.transform(this, traceId, authorizationId, statement);
                     });
             }

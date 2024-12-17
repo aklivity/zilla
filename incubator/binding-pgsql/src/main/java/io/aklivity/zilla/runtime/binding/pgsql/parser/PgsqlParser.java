@@ -141,15 +141,21 @@ public final class PgsqlParser
         String sql,
         PostgreSqlParserBaseListener listener)
     {
-        sql = sql.replace("\u0000", "");
+        try
+        {
+            sql = sql.replace("\u0000", "");
 
-        CharStream input = CharStreams.fromString(sql);
-        lexer.reset();
-        lexer.setInputStream(input);
+            CharStream input = CharStreams.fromString(sql);
+            lexer.reset();
+            lexer.setInputStream(input);
 
-        tokens.setTokenSource(lexer);
-        parser.setTokenStream(tokens);
+            tokens.setTokenSource(lexer);
+            parser.setTokenStream(tokens);
 
-        walker.walk(listener, parser.root());
+            walker.walk(listener, parser.root());
+        }
+        catch (Exception ignore)
+        {
+        }
     }
 }
