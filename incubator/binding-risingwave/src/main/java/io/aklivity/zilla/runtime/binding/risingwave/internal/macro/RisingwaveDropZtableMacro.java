@@ -42,7 +42,7 @@ public class RisingwaveDropZtableMacro
         long authorization)
     {
         DropTopicState state = new DropTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP TOPIC %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -67,7 +68,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DropSinkState state = new DropSinkState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -88,7 +89,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP SINK %s.%s_sink;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -103,7 +105,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DropTableSinkState state = new DropTableSinkState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -124,7 +126,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP SINK %s.%s_view_sink;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -139,7 +142,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DropTableState state = new DropTableState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -160,7 +163,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP TABLE %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -175,7 +179,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DeleteFromCatalogState state = new DeleteFromCatalogState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -196,7 +200,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DELETE FROM %s.ztables WHERE name = '%s';\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -211,7 +216,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DropMaterializedViewState state = new DropMaterializedViewState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -232,7 +237,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP MATERIALIZED VIEW %s_view;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -247,7 +253,7 @@ public class RisingwaveDropZtableMacro
             PgsqlFlushExFW flushEx)
         {
             DropSourceState state = new DropSourceState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -268,7 +274,8 @@ public class RisingwaveDropZtableMacro
         private final String sqlFormat = """
             DROP SOURCE %s_source;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

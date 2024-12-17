@@ -1359,6 +1359,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 messageOffset += lengthMax;
             }
+            else
+            {
+                doAppBegin(traceId, authorization, server.affinity);
+            }
         }
     }
 
@@ -1658,8 +1662,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeCreateStreamCommand(

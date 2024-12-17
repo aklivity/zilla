@@ -72,13 +72,12 @@ public class RisingwaveCreateStreamMacro
         this.schemaRegistry = schemaRegistry;
     }
 
-
     public RisingwaveMacroState start(
         long traceId,
         long authorization)
     {
         CreateTopicState state = new CreateTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -88,7 +87,8 @@ public class RisingwaveCreateStreamMacro
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -117,7 +117,7 @@ public class RisingwaveCreateStreamMacro
             PgsqlFlushExFW flushEx)
         {
             CreateSourceState state = new CreateSourceState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -147,7 +147,8 @@ public class RisingwaveCreateStreamMacro
                schema.registry = '%s'
             );\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

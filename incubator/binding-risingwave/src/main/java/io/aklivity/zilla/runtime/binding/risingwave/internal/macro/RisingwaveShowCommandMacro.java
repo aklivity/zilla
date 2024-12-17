@@ -42,7 +42,7 @@ public class RisingwaveShowCommandMacro
         long authorization)
     {
         ShowCommandState state = new ShowCommandState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveShowCommandMacro
         private final String sqlFormat = """
             SELECT * FROM zb_catalog.%s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

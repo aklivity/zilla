@@ -42,7 +42,7 @@ public class RisingwaveDropStreamMacro
         long authorization)
     {
         DropTopicState state = new DropTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveDropStreamMacro
         private final String sqlFormat = """
             DROP TOPIC %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -67,7 +68,7 @@ public class RisingwaveDropStreamMacro
             PgsqlFlushExFW flushEx)
         {
             DropSourceState state = new DropSourceState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -88,7 +89,8 @@ public class RisingwaveDropStreamMacro
         private final String sqlFormat = """
             DROP SOURCE %s.%s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

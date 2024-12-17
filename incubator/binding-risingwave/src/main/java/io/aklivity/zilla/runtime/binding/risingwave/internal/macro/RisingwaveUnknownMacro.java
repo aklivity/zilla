@@ -38,14 +38,15 @@ public class RisingwaveUnknownMacro
         long authorization)
     {
         UnknownState state = new UnknownState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
 
     private final class UnknownState implements RisingwaveMacroState
     {
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

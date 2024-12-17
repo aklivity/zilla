@@ -78,7 +78,7 @@ public class RisingwaveCreateFunctionMacro
         long authorization)
     {
         CreateFunctionState state = new CreateFunctionState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -92,7 +92,8 @@ public class RisingwaveCreateFunctionMacro
             LANGUAGE %s
             USING LINK '%s';\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -145,7 +146,7 @@ public class RisingwaveCreateFunctionMacro
             PgsqlFlushExFW flushEx)
         {
             GrantResourceState state = new GrantResourceState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -166,7 +167,8 @@ public class RisingwaveCreateFunctionMacro
         private final String sqlFormat = """
             GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

@@ -41,7 +41,7 @@ public class RisingwaveAlterStreamMacro
         long authorization)
     {
         AlterTopicState state = new AlterTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveAlterStreamMacro
             ALTER TOPIC %s %s;\u0000""";
         private final String fieldFormat = "%s COLUMN %s %s, ";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

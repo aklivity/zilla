@@ -21,6 +21,10 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public interface RisingwaveMacroState
 {
+    void onStarted(
+        long traceId,
+        long authorization);
+
     default <T> RisingwaveMacroState onRow(
         T client,
         long traceId,

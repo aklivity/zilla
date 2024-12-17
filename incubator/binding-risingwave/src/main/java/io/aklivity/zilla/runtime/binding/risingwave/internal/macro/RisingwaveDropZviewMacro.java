@@ -42,7 +42,7 @@ public class RisingwaveDropZviewMacro
         long authorization)
     {
         DropTopicState state = new DropTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveDropZviewMacro
         private final String sqlFormat = """
             DROP TOPIC %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -67,7 +68,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             DropSinkState state = new DropSinkState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -88,7 +89,8 @@ public class RisingwaveDropZviewMacro
         private final String sqlFormat = """
             DROP SINK %s.%s_sink;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -103,7 +105,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             DeleteFromCatalogState state = new DeleteFromCatalogState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -124,7 +126,8 @@ public class RisingwaveDropZviewMacro
         private final String sqlFormat = """
             DELETE FROM %s.zviews WHERE name = '%s';\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -139,7 +142,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             DropMaterializedViewState state = new DropMaterializedViewState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -160,7 +163,8 @@ public class RisingwaveDropZviewMacro
         private final String sqlFormat = """
             DROP MATERIALIZED VIEW %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

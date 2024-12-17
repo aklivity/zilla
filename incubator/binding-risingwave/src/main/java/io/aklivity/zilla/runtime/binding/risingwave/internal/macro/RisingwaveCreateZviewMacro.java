@@ -76,7 +76,7 @@ public class RisingwaveCreateZviewMacro
         long authorization)
     {
         CreateMaterializedViewState state = new CreateMaterializedViewState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -86,7 +86,8 @@ public class RisingwaveCreateZviewMacro
         private final String sqlFormat = """
             CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -105,7 +106,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             GrantResourceState state = new GrantResourceState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -126,7 +127,8 @@ public class RisingwaveCreateZviewMacro
         private final String sqlFormat = """
             GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -142,7 +144,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             DescribeMaterializedViewState state = new DescribeMaterializedViewState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -163,7 +165,8 @@ public class RisingwaveCreateZviewMacro
         private final String sqlFormat = """
             DESCRIBE %s.%s;\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -243,7 +246,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             CreateTopicState state = new CreateTopicState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -269,7 +272,8 @@ public class RisingwaveCreateZviewMacro
         private final StringBuilder primaryKeyBuilder = new StringBuilder();
 
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -299,7 +303,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             CreateSinkState state = new CreateSinkState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -332,7 +336,8 @@ public class RisingwaveCreateZviewMacro
         private final StringBuilder primaryKeyBuilder = new StringBuilder();
 
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -366,7 +371,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             InsertIntoCatalogState state = new InsertIntoCatalogState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -387,7 +392,8 @@ public class RisingwaveCreateZviewMacro
         private final String sqlFormat = """
             INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {

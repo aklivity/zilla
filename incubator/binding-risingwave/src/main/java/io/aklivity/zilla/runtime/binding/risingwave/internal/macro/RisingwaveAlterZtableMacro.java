@@ -41,7 +41,7 @@ public class RisingwaveAlterZtableMacro
         long authorization)
     {
         AlterTopicState state = new AlterTopicState();
-        state.doExecute(traceId, authorization);
+        state.onStarted(traceId, authorization);
 
         return state;
     }
@@ -52,7 +52,8 @@ public class RisingwaveAlterZtableMacro
             ALTER TOPIC %s %s;\u0000""";
         private final String fieldFormat = "%s COLUMN %s %s, ";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
@@ -76,7 +77,7 @@ public class RisingwaveAlterZtableMacro
             PgsqlFlushExFW flushEx)
         {
             AlterTableState state = new AlterTableState();
-            state.doExecute(traceId, authorization);
+            state.onStarted(traceId, authorization);
 
             return state;
         }
@@ -98,7 +99,8 @@ public class RisingwaveAlterZtableMacro
             ALTER TABLE %s %s;\u0000""";
         private final String fieldFormat = "%s COLUMN %s %s, ";
 
-        private void doExecute(
+        @Override
+        public void onStarted(
             long traceId,
             long authorization)
         {
