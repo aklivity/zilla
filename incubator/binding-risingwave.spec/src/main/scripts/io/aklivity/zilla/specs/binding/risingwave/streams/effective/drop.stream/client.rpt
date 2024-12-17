@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP SOURCE weather;"
+write "DROP SOURCE zb_catalog.weather;"
       [0x00]
 write flush
 

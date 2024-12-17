@@ -20,15 +20,18 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public class RisingwaveDropStreamMacro
 {
+    private final String systemSchema;
     private final String sql;
     private final Drop command;
     private final RisingwaveMacroHandler handler;
 
     public RisingwaveDropStreamMacro(
+        String systemSchema,
         String sql,
         Drop command,
         RisingwaveMacroHandler handler)
     {
+        this.systemSchema = systemSchema;
         this.sql = sql;
         this.command = command;
         this.handler = handler;
@@ -83,13 +86,13 @@ public class RisingwaveDropStreamMacro
     private final class DropSourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP SOURCE %s;\u0000""";
+            DROP SOURCE %s.%s;\u0000""";
 
         private void doExecute(
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.name());
+            String sqlQuery = String.format(sqlFormat, systemSchema, command.name());
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 

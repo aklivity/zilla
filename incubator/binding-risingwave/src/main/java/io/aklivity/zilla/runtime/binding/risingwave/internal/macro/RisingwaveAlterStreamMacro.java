@@ -75,7 +75,7 @@ public class RisingwaveAlterStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.ALTER_ZTABLE_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.ALTER_STREAM_COMMAND);
             return this;
         }
 

@@ -164,7 +164,7 @@ public class RisingwaveDropZtableMacro
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, systemSchema, command.name());
+            String sqlQuery = String.format(sqlFormat, command.name());
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 

@@ -846,7 +846,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 int offset,
                 int limit)
             {
-                String32FW column = columnRO.tryWrap(buffer, offset, limit);
+                int progress = offset;
+
+                if ((flags & FLAGS_INIT) != 0x00)
+                {
+                    progress += Short.BYTES;
+                }
+
+                String32FW column = columnRO.tryWrap(buffer, progress, limit);
 
                 if (column != null)
                 {
@@ -1790,8 +1797,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.doCommandError(traceId, authorization, SEVERITY_ERROR, CODE_XX000,
                 "Unable to execute command because %s\u0000".formatted(reason));
 
-        server.macroHandler.doCompletion(traceId, authorization, command);
-
         final int length = statement.length();
         server.onCommandReady(traceId, authorization, length);
     }
@@ -1807,7 +1812,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             // TODO: Enhance multiple streams
             final Drop command = parser.parseDrop(statement).get(0);
 
-            RisingwaveDropStreamMacro machine = new RisingwaveDropStreamMacro(
+            RisingwaveDropZtableMacro machine = new RisingwaveDropZtableMacro(
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 statement,
                 command,
                 server.macroHandler);
@@ -1826,7 +1832,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             // TODO: Enhance multiple streams
             final Drop command = parser.parseDrop(statement).get(0);
 
-            RisingwaveDropZtableMacro machine = new RisingwaveDropZtableMacro(
+            RisingwaveDropStreamMacro machine = new RisingwaveDropStreamMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 statement,
                 command,

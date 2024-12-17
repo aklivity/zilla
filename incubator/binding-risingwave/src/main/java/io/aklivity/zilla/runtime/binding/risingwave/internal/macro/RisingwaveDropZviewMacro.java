@@ -158,7 +158,7 @@ public class RisingwaveDropZviewMacro
     private final class DropMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP MATERIALIZED VIEW %s_view;\u0000""";
+            DROP MATERIALIZED VIEW %s;\u0000""";
 
         private void doExecute(
             long traceId,
@@ -174,7 +174,7 @@ public class RisingwaveDropZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_ZTABLE_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_ZVIEW_COMMAND);
             return this;
         }
 
