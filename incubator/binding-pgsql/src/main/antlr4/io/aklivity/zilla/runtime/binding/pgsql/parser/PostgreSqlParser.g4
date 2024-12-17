@@ -1649,6 +1649,7 @@ show_object_type_name
     | HEAD
     | ZTABLES
     | ZVIEWS
+    | ZFUNCTIONS
     ;
 
 dropstmt

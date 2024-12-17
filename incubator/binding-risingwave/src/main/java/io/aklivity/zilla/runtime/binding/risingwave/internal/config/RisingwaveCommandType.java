@@ -23,6 +23,7 @@ public enum RisingwaveCommandType
     CREATE_STREAM_COMMAND("CREATE STREAM".getBytes()),
     CREATE_ZVIEW_COMMAND("CREATE ZVIEW".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE FUNCTION".getBytes()),
+    CREATE_ZFUNCTION_COMMAND("CREATE ZFUNCTION".getBytes()),
     ALTER_ZTABLE_COMMAND("ALTER ZTABLE".getBytes()),
     ALTER_STREAM_COMMAND("ALTER STREAM".getBytes()),
     ALTER_TOPIC_COMMAND("ALTER TOPIC".getBytes()),
@@ -32,6 +33,7 @@ public enum RisingwaveCommandType
     DROP_ZVIEW_COMMAND("DROP ZVIEW".getBytes()),
     SHOW_ZTABLES_COMMAND("SHOW ZTABLES".getBytes()),
     SHOW_ZVIEWS_COMMAND("SHOW ZVIEWS".getBytes()),
+    SHOW_ZFUNCTIONS_COMMAND("SHOW ZFUNCTIONS".getBytes()),
     UNKNOWN_COMMAND("UNKNOWN".getBytes());
 
     private final byte[] value;

@@ -103,6 +103,13 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
+    public void enterCreatezfunctionstmt(
+        PostgreSqlParser.CreatezfunctionstmtContext ctx)
+    {
+        command = "CREATE ZFUNCTION";
+    }
+
+    @Override
     public void enterDropstmt(
         PostgreSqlParser.DropstmtContext ctx)
     {

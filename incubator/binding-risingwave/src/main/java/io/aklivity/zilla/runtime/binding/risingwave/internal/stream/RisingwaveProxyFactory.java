@@ -37,11 +37,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlt
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateFunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateStreamMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZfunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropStreamMacro;
@@ -158,13 +160,14 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZVIEW_COMMAND, this::decodeCreateZviewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_ZFUNCTION_COMMAND, this::decodeCreateZfunctionCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_ZTABLE_COMMAND, this::decodeAlterZtableCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_STREAM_COMMAND, this::decodeAlterStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_STREAM_COMMAND, this::decodeDropStreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowCommand);
-        clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowCommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_ZFUNCTIONS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -1737,6 +1740,28 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             RisingwaveCreateFunctionMacro machine = new RisingwaveCreateFunctionMacro(
                 binding.options.udfs,
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                server.user,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start();
+        }
+
+        server.macroState.onStarted(traceId, authorization);
+    }
+
+    private void decodeCreateZfunctionCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.macroState == null)
+        {
+            final CreateZfunction command = parser.parseCreateZfunction(statement);
+
+            RisingwaveCreateZfunctionMacro machine = new RisingwaveCreateZfunctionMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 server.user,
                 statement,
