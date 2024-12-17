@@ -58,7 +58,7 @@ public class RisingwaveShowCommandMacro
         {
             String sqlQuery = String.format(sqlFormat, command.toLowerCase());
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -112,7 +112,7 @@ public class RisingwaveShowCommandMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

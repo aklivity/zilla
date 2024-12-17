@@ -54,7 +54,7 @@ public class RisingwaveDropStreamMacro
             long authorization)
         {
             String sqlQuery = String.format(sqlFormat, command.name());
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -75,7 +75,7 @@ public class RisingwaveDropStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -90,7 +90,7 @@ public class RisingwaveDropStreamMacro
             long authorization)
         {
             String sqlQuery = String.format(sqlFormat, command.name());
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -119,7 +119,7 @@ public class RisingwaveDropStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

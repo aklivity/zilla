@@ -66,7 +66,7 @@ public class RisingwaveAlterZtableMacro
             fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
             String sqlQuery = String.format(sqlFormat, topic, fieldBuilder);
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -87,7 +87,7 @@ public class RisingwaveAlterZtableMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -112,7 +112,7 @@ public class RisingwaveAlterZtableMacro
             fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
             String sqlQuery = String.format(sqlFormat, topic, fieldBuilder);
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -141,7 +141,7 @@ public class RisingwaveAlterZtableMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

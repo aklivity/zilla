@@ -135,7 +135,7 @@ public class RisingwaveCreateFunctionMacro
 
             String sqlQuery = sqlFormat.formatted(functionName, funcArguments, returnType, asFunction, language, server);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -156,7 +156,7 @@ public class RisingwaveCreateFunctionMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -172,7 +172,7 @@ public class RisingwaveCreateFunctionMacro
         {
             String sqlQuery = String.format(sqlFormat, FUNCTION_NAME, command.schema(), command.name(), user);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -201,7 +201,7 @@ public class RisingwaveCreateFunctionMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

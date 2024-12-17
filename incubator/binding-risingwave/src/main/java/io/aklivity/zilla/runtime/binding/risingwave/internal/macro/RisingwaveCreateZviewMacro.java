@@ -95,7 +95,7 @@ public class RisingwaveCreateZviewMacro
 
             String sqlQuery = String.format(sqlFormat, name, select);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -116,7 +116,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -132,7 +132,7 @@ public class RisingwaveCreateZviewMacro
         {
             String sqlQuery = String.format(sqlFormat, MATERIALIZED_VIEW_NAME, command.schema(), command.name(), user);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -153,7 +153,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -169,7 +169,7 @@ public class RisingwaveCreateZviewMacro
         {
             String sqlQuery = String.format(sqlFormat, command.schema(), command.name());
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -254,7 +254,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -289,7 +289,7 @@ public class RisingwaveCreateZviewMacro
 
             String sqlQuery = String.format(sqlFormat, topic, fieldBuilder, primaryKey);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -310,7 +310,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -356,7 +356,7 @@ public class RisingwaveCreateZviewMacro
             String sqlQuery = String.format(sqlKafkaFormat, systemSchema, viewName, viewName, bootstrapServer,
                 topicSchema, viewName, primaryKey, schemaRegistry);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -377,7 +377,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -397,7 +397,7 @@ public class RisingwaveCreateZviewMacro
                 .replace("\u0000", "");
             String sqlQuery = String.format(sqlFormat, systemSchema, ZVIEW_NAME, name, newSql);
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -426,7 +426,7 @@ public class RisingwaveCreateZviewMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

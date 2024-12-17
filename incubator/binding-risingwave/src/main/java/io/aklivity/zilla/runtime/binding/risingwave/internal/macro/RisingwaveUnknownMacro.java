@@ -14,23 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public class RisingwaveUnknownMacro
 {
-    private final String systemSchema;
-    private final String user;
     private final String sql;
     private final RisingwaveMacroHandler handler;
 
     public RisingwaveUnknownMacro(
-        String systemSchema,
-        String user,
         String sql,
         RisingwaveMacroHandler handler)
     {
-        this.systemSchema = systemSchema;
-        this.user = user;
         this.sql = sql;
         this.handler = handler;
     }
@@ -52,7 +49,32 @@ public class RisingwaveUnknownMacro
             long traceId,
             long authorization)
         {
-            handler.doExecute(traceId, authorization, sql);
+            handler.doExecuteUserClient(traceId, authorization, sql);
+        }
+
+        @Override
+        public <T> RisingwaveMacroState onRow(
+            T client,
+            long traceId,
+            long authorization,
+            int flags,
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            OctetsFW extension)
+        {
+            handler.doDataProxy(client, traceId, authorization, flags, buffer, offset, length, extension);
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onType(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+            return this;
         }
 
         @Override
@@ -61,6 +83,7 @@ public class RisingwaveUnknownMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
 
@@ -80,7 +103,7 @@ public class RisingwaveUnknownMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

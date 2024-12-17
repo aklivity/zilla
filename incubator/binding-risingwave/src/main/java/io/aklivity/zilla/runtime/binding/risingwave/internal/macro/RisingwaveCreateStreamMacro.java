@@ -107,7 +107,7 @@ public class RisingwaveCreateStreamMacro
 
             String sqlQuery = String.format(sqlFormat, topic, fieldBuilder, "");
 
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -128,7 +128,7 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }
@@ -168,7 +168,7 @@ public class RisingwaveCreateStreamMacro
 
             String sqlQuery = String.format(sqlFormat, table, includeBuilder, bootstrapServer, schema,
                 table, scanStartupMil, schemaRegistry);
-            handler.doExecute(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
         @Override
@@ -197,7 +197,7 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doError(traceId, authorization, flushEx);
+            handler.doFlushProxy(traceId, authorization, flushEx);
             return this;
         }
     }

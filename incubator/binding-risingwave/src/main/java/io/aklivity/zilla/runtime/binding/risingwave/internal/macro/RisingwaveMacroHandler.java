@@ -17,11 +17,17 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public interface RisingwaveMacroHandler
 {
-    void doExecute(
+    void doExecuteUserClient(
+        long traceId,
+        long authorization,
+        String query);
+
+    void doExecuteSystemClient(
         long traceId,
         long authorization,
         String query);
@@ -45,13 +51,23 @@ public interface RisingwaveMacroHandler
         long authorization,
         RisingwaveCompletionCommand command);
 
-    void doError(
-        long traceId,
-        long authorization,
-        PgsqlFlushExFW flushEx);
-
     void doReady(
         long traceId,
         long authorization,
         int progress);
+
+    void doFlushProxy(
+        long traceId,
+        long authorization,
+        PgsqlFlushExFW flushEx);
+
+    <T> void doDataProxy(
+        T client,
+        long traceId,
+        long authorization,
+        int flags,
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        OctetsFW extension);
 }

@@ -410,7 +410,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
 
                 final PgsqlDataExFW pgsqlDataEx = dataEx != null && dataEx.typeId() == pgsqlTypeId ?
-                        extension.get(pgsqlDataExRO::tryWrap) : null;
+                    extension.get(pgsqlDataExRO::tryWrap) : null;
 
                 if (pgsqlDataEx != null &&
                     pgsqlDataEx.kind() == PgsqlDataExFW.KIND_QUERY)
@@ -493,7 +493,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             assert acknowledge >= replyAck;
             assert maximum + acknowledge >= replyMax + replyAck;
 
-            int credit = (int)(acknowledge - replyAck) + (maximum - replyMax);
+            int credit = (int) (acknowledge - replyAck) + (maximum - replyMax);
 
             replyBudgetId = budgetId;
             replyAck = acknowledge;
@@ -519,7 +519,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                     client.doAppWindow(authorization, traceId);
 
-                    credit = Math.max(credit - (int)(client.replyAck - streamAckSnapshot), 0);
+                    credit = Math.max(credit - (int) (client.replyAck - streamAckSnapshot), 0);
 
                     if (client.replyAck != client.replySeq)
                     {
@@ -689,7 +689,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             int reserved = (int) replySeq;
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                    authorization, replyBudgetId, reserved, extension);
+                authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
         }
@@ -702,7 +702,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             int reserved = (int) replySeq;
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                    authorization, replyBudgetId, reserved, extension);
+                authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
         }
@@ -719,7 +719,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
                     .typeId(pgsqlTypeId)
-                    .completion(c -> c.tag(extBuffer, 0,  command.value().length + 1))
+                    .completion(c -> c.tag(extBuffer, 0, command.value().length + 1))
                     .build().sizeof());
 
                 doAppFlush(traceId, authorization, completionEx);
@@ -731,9 +731,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization)
         {
             Consumer<OctetsFW.Builder> readyEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
-                    .typeId(pgsqlTypeId)
-                    .ready(r -> r.status(s -> s.set(PgsqlStatus.IDLE)))
-                    .build().sizeof());
+                .typeId(pgsqlTypeId)
+                .ready(r -> r.status(s -> s.set(PgsqlStatus.IDLE)))
+                .build().sizeof());
 
             doAppFlush(traceId, authorization, readyEx);
         }
@@ -783,7 +783,20 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private final class RisingwaveMacroDefaultHandler implements RisingwaveMacroHandler
         {
             @Override
-            public void doExecute(
+            public void doExecuteUserClient(
+                long traceId,
+                long authorization,
+                String query)
+            {
+                int progress = 0;
+                statementBuffer.putBytes(progress, query.getBytes());
+                progress += query.length();
+
+                userClient.doPgsqlQuery(traceId, authorization, statementBuffer, 0, progress);
+            }
+
+            @Override
+            public void doExecuteSystemClient(
                 long traceId,
                 long authorization,
                 String query)
@@ -856,15 +869,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
 
             @Override
-            public void doError(
-                long traceId,
-                long authorization,
-                PgsqlFlushExFW flushEx)
-            {
-                doAppFlush(traceId, authorization, flushEx);
-            }
-
-            @Override
             public void doCompletion(
                 long traceId,
                 long authorization,
@@ -881,7 +885,30 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 onCommandReady(traceId, authorization, progress);
             }
-        };
+
+            @Override
+            public void doFlushProxy(
+                long traceId,
+                long authorization,
+                PgsqlFlushExFW flushEx)
+            {
+                doAppFlush(traceId, authorization, flushEx);
+            }
+
+            @Override
+            public <T> void doDataProxy(
+                T client,
+                long traceId,
+                long authorization,
+                int flags,
+                DirectBuffer buffer,
+                int offset,
+                int length,
+                OctetsFW extension)
+            {
+                doAppData(client, traceId, authorization, flags, buffer, offset, length, extension);
+            }
+        }
     }
 
     private final class PgsqlClient
@@ -1855,8 +1882,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         if (server.macroState == null)
         {
             RisingwaveUnknownMacro machine = new RisingwaveUnknownMacro(
-                RisingwaveBindingConfig.INTERNAL_SCHEMA,
-                server.user,
                 statement,
                 server.macroHandler);
             server.macroState = machine.start(traceId, authorization);
