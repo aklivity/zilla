@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -164,28 +165,32 @@ public class PgsqlParserTest
         assertEquals("SELECT * FROM test_table", createZview.select());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleEmptyCreateZView()
     {
         String sql = "CREATE ZVIEW test_view AS ;";
         CreateZview createZview = parser.parseCreateZView(sql);
 
         assertNotNull(createZview);
-        assertEquals("test_view", createZview.name());
+        assertNull(createZview.name());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidCreateZView()
     {
         String sql = "CREATE ZVIEW test_view";
-        parser.parseCreateZView(sql);
+        CreateZview createZview = parser.parseCreateZView(sql);
+
+        assertNull(createZview.name());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidZCreateZtable()
     {
         String sql = "CREATE ZTABLE test";
-        parser.parseCreateTable(sql);
+        CreateTable createTable = parser.parseCreateTable(sql);
+
+        assertNull(createTable.name());
     }
 
     @Test
@@ -213,7 +218,7 @@ public class PgsqlParserTest
         assertEquals("table2", drops.get(1).name());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldDropZtable()
     {
         String sql = "DROP ZTABLE;";
@@ -267,11 +272,13 @@ public class PgsqlParserTest
         assertEquals("VARCHAR(100)", createStream.columns().get("name"));
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidCreateStream()
     {
         String sql = "CREATE STREAM test_stream";
-        parser.parseCreateStream(sql);
+        CreateStream createStream = parser.parseCreateStream(sql);
+
+        assertNull(createStream.name());
     }
 
     @Test
@@ -310,11 +317,13 @@ public class PgsqlParserTest
         assertEquals("python", function.language());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function()";
-        parser.parseCreateFunction(sql);
+        Function function = parser.parseCreateFunction(sql);
+
+        assertNull(function.name());
     }
 
     @Test
@@ -435,11 +444,13 @@ public class PgsqlParserTest
         assertEquals("existing_column", alter.expressions().get(0).columnName());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidAlterZtable()
     {
         String sql = "ALTER ZTABLE";
-        parser.parseAlterTable(sql);
+        Alter alter = parser.parseAlterTable(sql);
+
+        assertNull(alter.name());
     }
 
     @Test
@@ -489,11 +500,13 @@ public class PgsqlParserTest
         assertEquals("old_column", alter.expressions().get(0).columnName());
     }
 
-    @Test(expected = ParseCancellationException.class)
+    @Test
     public void shouldHandleInvalidAlterStream()
     {
         String sql = "ALTER STREAM";
-        parser.parseAlterStream(sql);
+        Alter alter = parser.parseAlterStream(sql);
+
+        assertNull(alter.name());
     }
 
     @Test
