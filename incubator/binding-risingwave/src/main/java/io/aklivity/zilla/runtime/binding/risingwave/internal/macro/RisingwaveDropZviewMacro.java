@@ -37,14 +37,9 @@ public class RisingwaveDropZviewMacro
         this.handler = handler;
     }
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        DropTopicState state = new DropTopicState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new DropTopicState();
     }
 
     private final class DropTopicState implements RisingwaveMacroState

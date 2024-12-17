@@ -36,14 +36,9 @@ public class RisingwaveAlterZtableMacro
         this.fieldBuilder = new StringBuilder();
     }
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        AlterTopicState state = new AlterTopicState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new AlterTopicState();
     }
 
     private final class AlterTopicState implements RisingwaveMacroState

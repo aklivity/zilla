@@ -1689,8 +1689,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeCreateZviewCommand(
@@ -1713,8 +1715,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeCreateFunctionCommand(
@@ -1736,8 +1740,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeAlterZtableCommand(
@@ -1756,13 +1762,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_ZTABLE_COMMAND,
                 statement, "ALTER ZTABLE only supports ADD");
         }
-        else  if (server.macroState == null)
+        else
         {
-            RisingwaveAlterZtableMacro machine = new RisingwaveAlterZtableMacro(
-                statement,
-                command,
-                server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            if (server.macroState == null)
+            {
+                RisingwaveAlterZtableMacro machine = new RisingwaveAlterZtableMacro(
+                    statement,
+                    command,
+                    server.macroHandler);
+                server.macroState = machine.start();
+            }
+
+            server.macroState.onStarted(traceId, authorization);
         }
     }
 
@@ -1782,13 +1793,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             decodeUnsupportedCommand(server, traceId, authorization, RisingwaveCompletionCommand.ALTER_STREAM_COMMAND,
                 statement, "ALTER STREAM only supports ADD");
         }
-        else if (server.macroState == null)
+        else
         {
-            RisingwaveAlterStreamMacro machine = new RisingwaveAlterStreamMacro(
-                statement,
-                command,
-                server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            if (server.macroState == null)
+            {
+                RisingwaveAlterStreamMacro machine = new RisingwaveAlterStreamMacro(
+                    statement,
+                    command,
+                    server.macroHandler);
+                server.macroState = machine.start();
+            }
+
+            server.macroState.onStarted(traceId, authorization);
         }
     }
 
@@ -1823,8 +1839,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeDropStreamCommand(
@@ -1843,8 +1861,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeDropZviewCommand(
@@ -1863,8 +1883,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeShowCommand(
@@ -1881,8 +1903,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     private void decodeUnknownCommand(
@@ -1896,8 +1920,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             RisingwaveUnknownMacro machine = new RisingwaveUnknownMacro(
                 statement,
                 server.macroHandler);
-            server.macroState = machine.start(traceId, authorization);
+            server.macroState = machine.start();
         }
+
+        server.macroState.onStarted(traceId, authorization);
     }
 
     public List<String> splitStatements(

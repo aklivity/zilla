@@ -71,14 +71,9 @@ public class RisingwaveCreateZviewMacro
         this.columns = new Object2ObjectHashMap<>();
     }
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        CreateMaterializedViewState state = new CreateMaterializedViewState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new CreateMaterializedViewState();
     }
 
     private final class CreateMaterializedViewState implements RisingwaveMacroState
@@ -401,6 +396,7 @@ public class RisingwaveCreateZviewMacro
 
             String newSql = sql.replace(ZVIEW_NAME, MATERIALIZED_VIEW_NAME)
                 .replace("\u0000", "");
+            newSql = newSql.replaceAll("'", "''");
             String sqlQuery = String.format(sqlFormat, systemSchema, ZVIEW_NAME, name, newSql);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);

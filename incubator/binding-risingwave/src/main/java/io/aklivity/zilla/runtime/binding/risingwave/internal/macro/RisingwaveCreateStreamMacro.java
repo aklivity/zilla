@@ -72,14 +72,9 @@ public class RisingwaveCreateStreamMacro
         this.schemaRegistry = schemaRegistry;
     }
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        CreateTopicState state = new CreateTopicState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new CreateTopicState();
     }
 
     private final class CreateTopicState implements RisingwaveMacroState

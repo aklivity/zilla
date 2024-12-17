@@ -73,14 +73,9 @@ public class RisingwaveCreateFunctionMacro
     }
 
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        CreateFunctionState state = new CreateFunctionState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new CreateFunctionState();
     }
 
     private final class CreateFunctionState implements RisingwaveMacroState

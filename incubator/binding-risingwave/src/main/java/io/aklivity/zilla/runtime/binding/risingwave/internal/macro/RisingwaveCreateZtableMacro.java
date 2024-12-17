@@ -515,6 +515,7 @@ public class RisingwaveCreateZtableMacro
 
                 String newSql = sql.replace(ZTABLE_NAME, TABLE_NAME)
                     .replace("\u0000", "");
+                newSql = newSql.replaceAll("'", "''");
                 String sqlQuery = String.format(sqlFormat, systemSchema, ZTABLE_NAME, name, newSql);
 
                 handler.doExecuteSystemClient(traceId, authorization, sqlQuery);

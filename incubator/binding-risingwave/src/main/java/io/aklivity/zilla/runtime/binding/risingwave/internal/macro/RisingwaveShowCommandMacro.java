@@ -37,14 +37,9 @@ public class RisingwaveShowCommandMacro
     }
 
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        ShowCommandState state = new ShowCommandState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new ShowCommandState();
     }
 
     private final class ShowCommandState implements RisingwaveMacroState

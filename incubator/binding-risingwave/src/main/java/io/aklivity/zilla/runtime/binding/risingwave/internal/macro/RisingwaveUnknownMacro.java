@@ -33,14 +33,9 @@ public class RisingwaveUnknownMacro
     }
 
 
-    public RisingwaveMacroState start(
-        long traceId,
-        long authorization)
+    public RisingwaveMacroState start()
     {
-        UnknownState state = new UnknownState();
-        state.onStarted(traceId, authorization);
-
-        return state;
+        return new UnknownState();
     }
 
     private final class UnknownState implements RisingwaveMacroState
