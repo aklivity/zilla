@@ -93,6 +93,7 @@ stmt
     | createforeignserverstmt
     | createforeigntablestmt
     | createfunctionstmt
+    | createzfunctionstmt
     | creategroupstmt
     | creatematviewstmt
     | createzviewstmt
@@ -2008,6 +2009,12 @@ opt_nulls_order
     : NULLS_P FIRST_P
     | NULLS_P LAST_P
     |
+    ;
+
+createzfunctionstmt
+    : CREATE opt_or_replace ZFUNCTION func_name func_args_with_defaults (
+        RETURNS (func_return | TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN)
+    )? createfunc_opt_list
     ;
 
 createfunctionstmt

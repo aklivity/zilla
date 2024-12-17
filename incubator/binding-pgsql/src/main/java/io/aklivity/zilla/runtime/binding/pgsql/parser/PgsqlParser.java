@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZtableTop
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZfunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
@@ -51,6 +52,7 @@ public final class PgsqlParser
     private final SqlAlterZtableTopicListener alterTableListener;
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
+    private final SqlCreateZfunctionListener createZfunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
     private final SqlShowListener showListener;
     private final SqlDropListener dropListener;
@@ -68,6 +70,7 @@ public final class PgsqlParser
         this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
+        this.createZfunctionListener = new SqlCreateZfunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
         this.showListener = new SqlShowListener();
@@ -114,6 +117,13 @@ public final class PgsqlParser
     {
         parser(sql, createFunctionListener);
         return createFunctionListener.function();
+    }
+
+    public Function parseCreateZfunction(
+        String sql)
+    {
+        parser(sql, createZfunctionListener);
+        return createZfunctionListener.function();
     }
 
     public CreateZview parseCreateZView(
