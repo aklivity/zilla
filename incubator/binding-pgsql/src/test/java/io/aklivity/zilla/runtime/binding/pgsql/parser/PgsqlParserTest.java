@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
-import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.junit.Before;
 import org.junit.Test;
 
