@@ -21,7 +21,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
 
 public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
@@ -47,9 +47,9 @@ public class SqlCreateFunctionListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public Function function()
+    public CreateFunction function()
     {
-        return new Function(schema, name, arguments, returnType, tables, asFunction, language);
+        return new CreateFunction(schema, name, arguments, returnType, tables, asFunction, language);
     }
 
     @Override

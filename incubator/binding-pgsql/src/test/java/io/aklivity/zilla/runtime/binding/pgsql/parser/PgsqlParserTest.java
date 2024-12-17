@@ -27,9 +27,10 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
 public class PgsqlParserTest
@@ -284,7 +285,7 @@ public class PgsqlParserTest
     public void shouldCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql;";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNotNull(function);
         assertEquals("test_function", function.name());
@@ -295,7 +296,7 @@ public class PgsqlParserTest
     public void shouldCreateFunctionWithLanguage()
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS TABLE (x INT) LANGUAGE python AS 'test_function';";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNotNull(function);
         assertEquals("test_function", function.name());
@@ -308,7 +309,7 @@ public class PgsqlParserTest
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS struct<key varchar, value varchar>" +
             " LANGUAGE python AS 'test_function';";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNotNull(function);
         assertEquals("test_function", function.name());
@@ -320,7 +321,7 @@ public class PgsqlParserTest
     public void shouldHandleInvalidCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function()";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNull(function.name());
     }
@@ -569,7 +570,32 @@ public class PgsqlParserTest
                 FROM balance as b WHERE b.user_id = user_id;
                 $$
             """;
-        Function function = parser.parseCreateZfunction(sql);
+        CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
+
+        assertEquals("send_payment_handler", function.name());
+        assertEquals(5, function.arguments().size());
+        assertEquals("type", function.arguments().get(0).name());
+        assertEquals("VARCHAR", function.arguments().get(0).type());
+        assertEquals("user_id", function.arguments().get(1).name());
+        assertEquals("VARCHAR", function.arguments().get(1).type());
+        assertEquals("random", function.arguments().get(2).name());
+        assertEquals("VARCHAR", function.arguments().get(2).type());
+        assertEquals("amount", function.arguments().get(3).name());
+        assertEquals("DOUBLE PRECISION", function.arguments().get(3).type());
+        assertEquals("notes", function.arguments().get(4).name());
+        assertEquals("VARCHAR", function.arguments().get(4).type());
+
+        assertEquals(5, function.returnTypes().size());
+        assertEquals("type", function.returnTypes().get(0).name());
+        assertEquals("VARCHAR", function.returnTypes().get(0).type());
+        assertEquals("user_id", function.returnTypes().get(1).name());
+        assertEquals("VARCHAR", function.returnTypes().get(1).type());
+        assertEquals("request_id", function.returnTypes().get(2).name());
+        assertEquals("VARCHAR", function.returnTypes().get(2).type());
+        assertEquals("amount", function.returnTypes().get(3).name());
+        assertEquals("DOUBLE PRECISION", function.returnTypes().get(3).type());
+        assertEquals("notes", function.returnTypes().get(4).name());
+        assertEquals("VARCHAR", function.returnTypes().get(4).type());
     }
 }

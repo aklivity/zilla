@@ -16,12 +16,11 @@ package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
 import java.util.List;
 
-public record Function(
+public record CreateZfunction(
     String schema,
     String name,
     List<FunctionArgument> arguments,
-    String returnType,
-    List<FunctionArgument> tables,
+    List<FunctionArgument> returnTypes,
     String asFunction,
     String language)
 {

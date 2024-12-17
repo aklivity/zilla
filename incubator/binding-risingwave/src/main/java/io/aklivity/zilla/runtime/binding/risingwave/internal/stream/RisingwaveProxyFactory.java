@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
@@ -1731,7 +1731,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         if (server.macroState == null)
         {
-            final Function command = parser.parseCreateFunction(statement);
+            final CreateFunction command = parser.parseCreateFunction(statement);
 
             RisingwaveBindingConfig binding = server.binding;
 

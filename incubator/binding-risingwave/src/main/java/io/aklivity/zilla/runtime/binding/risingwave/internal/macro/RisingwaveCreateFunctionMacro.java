@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
@@ -32,7 +32,7 @@ public class RisingwaveCreateFunctionMacro
     private final String systemSchema;
     private final String user;
     private final String sql;
-    private final Function command;
+    private final CreateFunction command;
     private final RisingwaveMacroHandler handler;
     private final StringBuilder fieldBuilder;
 
@@ -41,7 +41,7 @@ public class RisingwaveCreateFunctionMacro
         String systemSchema,
         String user,
         String sql,
-        Function command,
+        CreateFunction command,
         RisingwaveMacroHandler handler)
     {
         String javaServer = null;

@@ -35,9 +35,10 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 
 public final class PgsqlParser
 {
@@ -112,18 +113,18 @@ public final class PgsqlParser
         return createStreamListener.stream();
     }
 
-    public Function parseCreateFunction(
+    public CreateFunction parseCreateFunction(
         String sql)
     {
         parser(sql, createFunctionListener);
         return createFunctionListener.function();
     }
 
-    public Function parseCreateZfunction(
+    public CreateZfunction parseCreateZfunction(
         String sql)
     {
         parser(sql, createZfunctionListener);
-        return createZfunctionListener.function();
+        return createZfunctionListener.zfunction();
     }
 
     public CreateZview parseCreateZView(

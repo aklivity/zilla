@@ -21,7 +21,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
 
 public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
@@ -29,27 +29,26 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     private static final String PUBLIC_SCHEMA_NAME = "public";
     private static final String SCHEMA_PATTERN = "\\.";
 
-    private final List<FunctionArgument> tables;
+    private final List<FunctionArgument> returnTypes;
     private final List<FunctionArgument> arguments;
     private final TokenStream tokens;
 
     private String schema;
     private String name;
-    private String returnType;
     private String asFunction;
     private String language;
 
     public SqlCreateZfunctionListener(
         TokenStream tokens)
     {
-        this.tables = new ArrayList<>();
+        this.returnTypes = new ArrayList<>();
         this.arguments = new ArrayList<>();
         this.tokens = tokens;
     }
 
-    public Function function()
+    public CreateZfunction zfunction()
     {
-        return new Function(schema, name, arguments, returnType, tables, asFunction, language);
+        return new CreateZfunction(schema, name, arguments, returnTypes, asFunction, language);
     }
 
     @Override
@@ -58,16 +57,15 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     {
         schema = null;
         name = null;
-        returnType = null;
         asFunction = null;
         language = null;
         arguments.clear();
-        tables.clear();
+        returnTypes.clear();
     }
 
     @Override
-    public void enterCreatefunctionstmt(
-        PostgreSqlParser.CreatefunctionstmtContext ctx)
+    public void enterCreatezfunctionstmt(
+        PostgreSqlParser.CreatezfunctionstmtContext ctx)
     {
         String text = ctx.func_name().getText();
         String[] split = text.split(SCHEMA_PATTERN);
@@ -89,15 +87,8 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Table_func_columnContext ctx)
     {
         String argName = ctx.param_name() != null ? ctx.param_name().getText() : null;
-        String argType = ctx.func_type().getText();
-        tables.add(new FunctionArgument(argName, argType));
-    }
-
-    @Override
-    public void enterFunc_type(
-        PostgreSqlParser.Func_typeContext ctx)
-    {
-        returnType = tokens.getText(ctx.typename());
+        String argType = tokens.getText(ctx.func_type());
+        returnTypes.add(new FunctionArgument(argName, argType));
     }
 
     @Override
