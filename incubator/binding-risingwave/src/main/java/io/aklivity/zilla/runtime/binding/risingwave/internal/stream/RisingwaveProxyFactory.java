@@ -97,7 +97,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String SEVERITY_WARNING = "WARNING\u0000";
     private static final String CODE_XX000 = "XX000\u0000";
 
-    private static final String ZILLABASE_USER = "zillabase\u0000";
+    private static final String POSTGRES_USER = "postgres\u0000";
     private static final String DEFAULT_USER = "default\u0000";
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
@@ -308,7 +308,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             binding.routes.forEach(r ->
                 systemClientsByRouteId.put(r.id,
-                    new PgsqlClient(this, routedId, r.id, ZILLABASE_USER)));
+                    new PgsqlClient(this, routedId, r.id, POSTGRES_USER)));
 
             userClient = new PgsqlClient(this, routedId, systemId, DEFAULT_USER);
 
@@ -1207,7 +1207,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     .typeId(pgsqlTypeId)
                     .parameters(p -> server.parameters.forEach((k, v) ->
                     {
-                        if (k.contains("user") && user.equals(ZILLABASE_USER))
+                        if (k.contains("user") && user.equals(POSTGRES_USER))
                         {
                             p.item(i -> i.name(k).value(user));
                         }
