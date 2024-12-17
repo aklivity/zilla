@@ -192,7 +192,7 @@ public class RisingwaveCreateFunctionMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doReady(traceId, authorization, sql.length());
-            return this;
+            return null;
         }
 
         @Override

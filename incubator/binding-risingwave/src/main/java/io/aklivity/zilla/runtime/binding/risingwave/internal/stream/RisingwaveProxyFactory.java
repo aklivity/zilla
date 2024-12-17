@@ -531,7 +531,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
         }
 
-        private void onCommandCompleted(
+        private void onCommandReady(
             long traceId,
             long authorization,
             int progress)
@@ -539,18 +539,18 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
 
             parserSlotOffset -= progress;
-
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
 
             final int queryLength = queries.peekInt();
             queryProgressOffset += progress;
             if (queryLength == queryProgressOffset)
             {
-                macroState = null;
                 queryProgressOffset = 0;
                 queries.removeInt();
                 doQueryReady(traceId, authorization);
             }
+
+            macroState = null;
 
             if (parserSlotOffset == 0)
             {
@@ -861,7 +861,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 long authorization,
                 PgsqlFlushExFW flushEx)
             {
-                macroState = null;
                 doAppFlush(traceId, authorization, flushEx);
             }
 
@@ -880,7 +879,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 long authorization,
                 int progress)
             {
-                onCommandCompleted(traceId, authorization, progress);
+                onCommandReady(traceId, authorization, progress);
             }
         };
     }
@@ -1767,7 +1766,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.macroHandler.doCompletion(traceId, authorization, command);
 
         final int length = statement.length();
-        server.onCommandCompleted(traceId, authorization, length);
+        server.onCommandReady(traceId, authorization, length);
     }
 
     private void decodeDropZtableCommand(
