@@ -50,7 +50,6 @@ public interface RisingwaveMacroState
         return this;
     }
 
-
     RisingwaveMacroState onReady(
         long traceId,
         long authorization,
