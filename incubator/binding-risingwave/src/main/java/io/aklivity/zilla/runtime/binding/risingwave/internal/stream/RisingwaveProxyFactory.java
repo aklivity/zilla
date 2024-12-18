@@ -1182,7 +1182,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             PgsqlFlushExFW flushEx)
         {
             messageOffset = 0;
-            server.macroState.onError(traceId, authorization, flushEx);
+            server.macroState = server.macroState.onError(traceId, authorization, flushEx);
         }
 
         private void onAppReadyFlush(

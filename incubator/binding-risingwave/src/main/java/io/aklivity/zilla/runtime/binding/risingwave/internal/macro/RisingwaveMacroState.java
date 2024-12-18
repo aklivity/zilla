@@ -21,9 +21,11 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public interface RisingwaveMacroState
 {
-    void onStarted(
+    default void onStarted(
         long traceId,
-        long authorization);
+        long authorization)
+    {
+    }
 
     default <T> RisingwaveMacroState onRow(
         T client,
@@ -59,8 +61,11 @@ public interface RisingwaveMacroState
         long authorization,
         PgsqlFlushExFW flushEx);
 
-    RisingwaveMacroState onError(
+    default RisingwaveMacroState onError(
         long traceId,
         long authorization,
-        PgsqlFlushExFW flushEx);
+        PgsqlFlushExFW flushEx)
+    {
+        return this;
+    }
 }

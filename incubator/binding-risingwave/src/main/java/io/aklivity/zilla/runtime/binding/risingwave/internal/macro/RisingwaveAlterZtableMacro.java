@@ -18,21 +18,19 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveAlterZtableMacro
+public class RisingwaveAlterZtableMacro extends RisingwaveMacroBase
 {
     private final StringBuilder fieldBuilder;
-    private final String sql;
     private final Alter command;
-    private final RisingwaveMacroHandler handler;
 
     public RisingwaveAlterZtableMacro(
         String sql,
         Alter command,
         RisingwaveMacroHandler handler)
     {
-        this.sql = sql;
+        super(sql, handler);
+
         this.command = command;
-        this.handler = handler;
         this.fieldBuilder = new StringBuilder();
     }
 
@@ -84,7 +82,8 @@ public class RisingwaveAlterZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+
+            return errorState();
         }
     }
 
@@ -142,5 +141,4 @@ public class RisingwaveAlterZtableMacro
             return this;
         }
     }
-
 }

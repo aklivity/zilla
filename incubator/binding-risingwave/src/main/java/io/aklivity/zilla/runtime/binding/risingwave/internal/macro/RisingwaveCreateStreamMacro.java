@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateStreamMacro
+public class RisingwaveCreateStreamMacro extends RisingwaveMacroBase
 {
     //TODO: Remove after implementing zstream
     private static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
@@ -47,9 +47,7 @@ public class RisingwaveCreateStreamMacro
     private final long scanStartupMil;
     private final String systemSchema;
     private final String user;
-    private final String sql;
     private final CreateZstream command;
-    private final RisingwaveMacroHandler handler;
 
     public RisingwaveCreateStreamMacro(
         String bootstrapServer,
@@ -61,12 +59,12 @@ public class RisingwaveCreateStreamMacro
         CreateZstream command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.scanStartupMil = scanStartupMil;
         this.systemSchema = systemSchema;
         this.user = user;
-        this.sql = sql;
         this.command = command;
-        this.handler = handler;
 
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
@@ -92,11 +90,10 @@ public class RisingwaveCreateStreamMacro
             fieldBuilder.setLength(0);
 
             command.columns()
-                .entrySet()
                 .stream()
-                .filter(e -> !ZILLA_MAPPINGS_OLD.containsKey(e.getKey()))
+                .filter(e -> !ZILLA_MAPPINGS_OLD.containsKey(e.name()))
                 .forEach(e -> fieldBuilder.append(
-                    String.format("%s %s, ", e.getKey(), e.getValue())));
+                    String.format("%s %s, ", e.name(), e.type())));
 
             fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
 
@@ -124,7 +121,8 @@ public class RisingwaveCreateStreamMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+
+            return errorState();
         }
     }
 
@@ -151,9 +149,10 @@ public class RisingwaveCreateStreamMacro
             String table = command.name();
 
             includeBuilder.setLength(0);
-            Map<String, String> includes = command.columns().entrySet().stream()
-                .filter(e -> ZILLA_MAPPINGS_OLD.containsKey(e.getKey()))
-                .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+            Map<String, String> includes = command.columns().stream()
+                .filter(e -> ZILLA_MAPPINGS_OLD.containsKey(e.name()))
+                .collect(LinkedHashMap::new,
+                    (m, e) -> m.put(e.name(), e.type()), Map::putAll);
 
             if (!includes.isEmpty())
             {
@@ -164,6 +163,44 @@ public class RisingwaveCreateStreamMacro
 
             String sqlQuery = String.format(sqlFormat, table, includeBuilder, bootstrapServer, schema,
                 table, scanStartupMil, schemaRegistry);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            GrantResourceState state = new GrantResourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+            return errorState();
+        }
+    }
+
+    private final class GrantResourceState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            GRANT ALL PRIVILEGES ON SOURCE %s.%s TO %s;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String sqlQuery = String.format(sqlFormat, command.schema(), command.name(), user);
+
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
