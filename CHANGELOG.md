@@ -1,5 +1,44 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.111...HEAD)
+
+**Fixed bugs:**
+
+- Docs search bar doesn't work [\#1351](https://github.com/aklivity/zilla/issues/1351)
+- InputMismatchException is thrown for `grpc` binding with googleapis/devtools/build proto [\#1230](https://github.com/aklivity/zilla/issues/1230)
+
+**Merged pull requests:**
+
+- Ztable support and convert transformation logic to state machine  [\#1352](https://github.com/aklivity/zilla/pull/1352) ([akrambek](https://github.com/akrambek))
+- Improve gRPC parser to allow complex types in optionValue [\#1350](https://github.com/aklivity/zilla/pull/1350) ([bmaidics](https://github.com/bmaidics))
+- Bump org.apache.avro:avro from 1.11.3 to 1.12.0 [\#1290](https://github.com/aklivity/zilla/pull/1290) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.111](https://github.com/aklivity/zilla/tree/0.9.111) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.110...0.9.111)
+
+**Implemented enhancements:**
+
+- Replace Ivy APIs for embedded Maven during `zpmw` install [\#1173](https://github.com/aklivity/zilla/issues/1173)
+
+**Merged pull requests:**
+
+- Replace Ivy APIs with embedded Maven during zpmw install [\#1334](https://github.com/aklivity/zilla/pull/1334) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.110](https://github.com/aklivity/zilla/tree/0.9.110) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.109...0.9.110)
+
+**Merged pull requests:**
+
+- Support ZVIEW command [\#1329](https://github.com/aklivity/zilla/pull/1329) ([akrambek](https://github.com/akrambek))
+
+## [0.9.109](https://github.com/aklivity/zilla/tree/0.9.109) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.108...0.9.109)
+
 ## [0.9.108](https://github.com/aklivity/zilla/tree/0.9.108) (2024-12-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.107...0.9.108)
