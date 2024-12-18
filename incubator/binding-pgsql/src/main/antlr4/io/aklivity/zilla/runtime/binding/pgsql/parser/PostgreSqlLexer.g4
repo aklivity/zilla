@@ -58,6 +58,9 @@ STAR: '*';
 
 EQUAL: '=';
 
+OPEN_CURLY : '{';
+CLOSE_CURLY : '}';
+
 DOT: '.';
 //NamedArgument	: ':=';
 
@@ -295,7 +298,7 @@ TOPIC: 'TOPIC';
 
 TOPICS: 'TOPICS';
 
-STREAM: 'STREAM';
+ZSTREAM: 'ZSTREAM';
 
 ZVIEW: 'ZVIEW';
 
@@ -550,6 +553,10 @@ FUNCTIONS: 'FUNCTIONS';
 
 ZFUNCTION: 'ZFUNCTION';
 
+ZFUNCTIONS: 'ZFUNCTIONS';
+
+COMMAND_FUNCTIONS: 'command_functions';
+
 GLOBAL: 'GLOBAL';
 
 GRANTED: 'GRANTED';
@@ -563,6 +570,8 @@ HOLD: 'HOLD';
 HOUR_P: 'HOUR';
 
 IDENTITY_P: 'IDENTITY';
+
+DISPATCH_P: 'DISPATCH';
 
 IF_P: 'IF';
 

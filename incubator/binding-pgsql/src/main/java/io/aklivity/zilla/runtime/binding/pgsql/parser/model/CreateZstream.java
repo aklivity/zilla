@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
+import java.util.List;
 import java.util.Map;
 
-public record CreateStream(
+public record CreateZstream(
     String schema,
     String name,
-    Map<String, String> columns)
+    List<ZstreamColumn> columns,
+    Map<String, String> commandHandlers)
 {
 }

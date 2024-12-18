@@ -19,7 +19,7 @@ import java.util.Map;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
@@ -48,7 +48,7 @@ public class RisingwaveCreateStreamMacro
     private final String systemSchema;
     private final String user;
     private final String sql;
-    private final CreateStream command;
+    private final CreateZstream command;
     private final RisingwaveMacroHandler handler;
 
     public RisingwaveCreateStreamMacro(
@@ -58,7 +58,7 @@ public class RisingwaveCreateStreamMacro
         String systemSchema,
         String user,
         String sql,
-        CreateStream command,
+        CreateZstream command,
         RisingwaveMacroHandler handler)
     {
         this.scanStartupMil = scanStartupMil;

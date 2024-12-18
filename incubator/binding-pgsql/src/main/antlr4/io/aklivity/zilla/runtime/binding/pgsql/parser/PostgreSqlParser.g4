@@ -107,7 +107,7 @@ stmt
     | createseqstmt
     | createstmt
     | createztstmt
-    | createstreamstmt
+    | createzstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
     | createtablespacestmt
@@ -415,15 +415,15 @@ altertablestmt
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
-    | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
+    | ALTER ZSTREAM (IF_P EXISTS)? relation_expr alter_zstream_cmds
     | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     ;
 
-alter_stream_cmds
-    : alter_stream_cmd (COMMA alter_stream_cmd)*
+alter_zstream_cmds
+    : alter_zstream_cmd (COMMA alter_zstream_cmd)*
     ;
 
-alter_stream_cmd
+alter_zstream_cmd
     : ADD_P columnDef
     | ADD_P IF_P NOT EXISTS columnDef
     | ADD_P COLUMN columnDef
@@ -694,25 +694,57 @@ copy_generic_opt_arg_list_item
     : opt_boolean_or_string
     ;
 
-createstreamstmt
-    : CREATE STREAM (IF_P NOT EXISTS)? stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
+createzstreamstmt
+    : CREATE ZSTREAM (IF_P NOT EXISTS)? zstream_name OPEN_PAREN zstream_columns CLOSE_PAREN opt_with_zstream
     ;
 
-stream_name
+zstream_name
     : qualified_name
     ;
 
-stream_columns
-    : stream_column (COMMA stream_column)*
+// Updated stream_columns to include GENERATED ALWAYS AS with various options
+zstream_columns
+    : zstream_column (COMMA zstream_column)*
     ;
 
-stream_column
-    : colid typename
+zstream_column
+    : colid typename opt_generated_always
     ;
 
-opt_with_stream
-    : WITH reloptions
-    |
+opt_generated_always
+    : | GENERATED ALWAYS AS generation_type
+    ;
+
+generation_type
+    : IDENTITY_P
+    | DISPATCH_P
+    | TIMESTAMP
+    ;
+
+opt_with_zstream
+    : WITH OPEN_PAREN zreloptions CLOSE_PAREN
+    | // Empty option if WITH is not used
+    ;
+
+zreloptions
+    : zreloption_elem (COMMA reloption_elem)*
+    ;
+
+zreloption_elem
+    : collabel EQUAL def_arg
+    | COMMAND_FUNCTIONS EQUAL OPEN_CURLY command_function_mappings CLOSE_CURLY
+    ;
+
+command_function_mappings
+    : command_function_mapping (COMMA command_function_mapping)*
+    ;
+
+command_function_mapping
+    : sconst EQUAL function_name
+    ;
+
+function_name
+    : sconst
     ;
 
 createztstmt
@@ -1646,7 +1678,6 @@ show_object_type_name
     | VIEWS
     | MATERIALIZED VIEWS
     | TOPICS
-    | HEAD
     | ZTABLES
     | ZVIEWS
     | ZFUNCTIONS
@@ -1673,9 +1704,8 @@ object_type_any_name
     | VIEW
     | MATERIALIZED VIEW
     | TOPIC
-    | STREAM
+    | ZSTREAM
     | ZVIEW
-    | HEAD
     | ZTABLE
     | INDEX
     | FOREIGN TABLE

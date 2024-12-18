@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.AlterExpression;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
 
-public class SqlAlterStreamTopicListener extends PostgreSqlParserBaseListener
+public class SqlAlterZstreamTopicListener extends PostgreSqlParserBaseListener
 {
     private static final String PUBLIC_SCHEMA_NAME = "public";
     private static final String SCHEMA_PATTERN = "\\.";
@@ -36,7 +36,7 @@ public class SqlAlterStreamTopicListener extends PostgreSqlParserBaseListener
     private String schema;
     private String name;
 
-    public SqlAlterStreamTopicListener(
+    public SqlAlterZstreamTopicListener(
         TokenStream tokens)
     {
         this.alterExpressions = new ArrayList<>();
@@ -68,10 +68,10 @@ public class SqlAlterStreamTopicListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterAlter_stream_cmds(
-        PostgreSqlParser.Alter_stream_cmdsContext ctx)
+    public void enterAlter_zstream_cmds(
+        PostgreSqlParser.Alter_zstream_cmdsContext ctx)
     {
-        for (PostgreSqlParser.Alter_stream_cmdContext alterStreamCmdCtx : ctx.alter_stream_cmd())
+        for (PostgreSqlParser.Alter_zstream_cmdContext alterStreamCmdCtx : ctx.alter_zstream_cmd())
         {
             if (alterStreamCmdCtx.ADD_P() != null)
             {

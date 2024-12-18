@@ -14,44 +14,51 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ZstreamColumn;
 
-public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
+public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
 {
     private static final String PUBLIC_SCHEMA_NAME = "public";
     private static final String SCHEMA_PATTERN = "\\.";
 
-    private final Map<String, String> columns;
+    private final List<ZstreamColumn> columns;
+    private final Map<String, String> commandHandlers;
     private final TokenStream tokens;
 
     private String schema;
     private String name;
 
-    public SqlCreateStreamListener(
+    public SqlCreateZstreamListener(
         TokenStream tokens)
     {
-        this.columns = new LinkedHashMap<>();
+        this.columns = new ArrayList<>();
+        this.commandHandlers = new LinkedHashMap<>();
         this.tokens = tokens;
     }
 
-    public CreateStream stream()
+    public CreateZstream stream()
     {
-        return new CreateStream(schema, name, columns);
+        return new CreateZstream(schema, name, columns, commandHandlers);
     }
 
     @Override
     public void enterRoot(
         PostgreSqlParser.RootContext ctx)
     {
+        schema = null;
         name = null;
         columns.clear();
+        commandHandlers.clear();
     }
 
     @Override
@@ -65,17 +72,38 @@ public class SqlCreateStreamListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatestreamstmt(
-        PostgreSqlParser.CreatestreamstmtContext ctx)
+    public void enterZstream_columns(
+        PostgreSqlParser.Zstream_columnsContext ctx)
     {
-        if (ctx.stream_columns() != null)
+        ctx.zstream_column().forEach(c ->
         {
-            for (PostgreSqlParser.Stream_columnContext streamElement : ctx.stream_columns().stream_column())
+            String name = c.colid().getText();
+            String type = tokens.getText(c.typename());
+            String generatedAlways = tokens.getText(c.opt_generated_always());
+
+            columns.add(new ZstreamColumn(name, type, generatedAlways));
+        });
+    }
+
+    @Override
+    public void enterCommand_function_mappings(
+        PostgreSqlParser.Command_function_mappingsContext ctx)
+    {
+        ctx.command_function_mapping().forEach(c ->
+        {
+            String dispatch = c.sconst().getText();
+            if (dispatch != null && dispatch.length() > 1)
             {
-                String columnName = streamElement.colid().getText();
-                String dataType = tokens.getText(streamElement.typename());
-                columns.put(columnName, dataType);
+                dispatch = dispatch.substring(1, dispatch.length() - 1);
             }
-        }
+            String handler = c.function_name().getText();
+
+            if (handler != null && handler.length() > 1)
+            {
+                handler = handler.substring(1, handler.length() - 1);
+            }
+
+            commandHandlers.put(dispatch, handler);
+        });
     }
 }
