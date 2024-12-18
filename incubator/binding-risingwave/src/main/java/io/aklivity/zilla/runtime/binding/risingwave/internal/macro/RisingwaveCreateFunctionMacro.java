@@ -24,8 +24,6 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public class RisingwaveCreateFunctionMacro
 {
-    private static final String FUNCTION_NAME = "FUNCTION";
-
     private final String javaServer;
     private final String pythonServer;
 
@@ -130,44 +128,6 @@ public class RisingwaveCreateFunctionMacro
             }
 
             String sqlQuery = sqlFormat.formatted(functionName, funcArguments, returnType, asFunction, language, server);
-
-            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-        }
-
-        @Override
-        public RisingwaveMacroState onReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            GrantResourceState state = new GrantResourceState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
-
-        @Override
-        public RisingwaveMacroState onError(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
-        }
-    }
-
-    private final class GrantResourceState implements RisingwaveMacroState
-    {
-        private final String sqlFormat = """
-            GRANT ALL PRIVILEGES ON %s %s.%s TO %s;\u0000""";
-
-        @Override
-        public void onStarted(
-            long traceId,
-            long authorization)
-        {
-            String sqlQuery = String.format(sqlFormat, FUNCTION_NAME, command.schema(), command.name(), user);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
