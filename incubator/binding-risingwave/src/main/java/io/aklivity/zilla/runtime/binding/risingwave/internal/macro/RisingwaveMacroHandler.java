@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
@@ -35,9 +37,9 @@ public interface RisingwaveMacroHandler
     void doDescription(
         long traceId,
         long authorization,
-        String name);
+        List<String> columns);
 
-    <T> void doRow(
+    <T> void doColumn(
         T client,
         long traceId,
         long authorization,

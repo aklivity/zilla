@@ -22,13 +22,15 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCo
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveShowCommandMacro
+public class RisingwaveShowZfunctionCommandMacro
 {
     private final String sql;
     private final String command;
     private final RisingwaveMacroHandler handler;
 
-    public RisingwaveShowCommandMacro(
+    private final List<String> columns = List.of("Name", "Arguments", "Return Type", "Language", "Link");
+
+    public RisingwaveShowZfunctionCommandMacro(
         String sql,
         String command,
         RisingwaveMacroHandler handler)
@@ -38,7 +40,6 @@ public class RisingwaveShowCommandMacro
         this.handler = handler;
     }
 
-
     public RisingwaveMacroState start()
     {
         return new ShowCommandState();
@@ -47,7 +48,7 @@ public class RisingwaveShowCommandMacro
     private final class ShowCommandState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            SELECT * FROM zb_catalog.%s;\u0000""";
+            SELECT * FROM zb_catalog.zfunctions;\u0000""";
 
         @Override
         public void onStarted(
@@ -80,7 +81,7 @@ public class RisingwaveShowCommandMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doDescription(traceId, authorization, List.of("Name"));
+            handler.doDescription(traceId, authorization, columns);
             return this;
         }
 

@@ -38,9 +38,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
@@ -821,20 +821,21 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             public void doDescription(
                 long traceId,
                 long authorization,
-                String name)
+                List<String> columns)
             {
                 PgsqlFlushExFW descriptionEx = flushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(pgsqlTypeId)
                     .type(t -> t
                         .columns(c -> c
-                            .item(s -> s
-                                .name("%s\u0000".formatted(name))
-                                .tableOid(0)
-                                .index((short) 0)
-                                .typeOid(701)
-                                .length((short) name.length())
-                                .modifier(-1)
-                                .format(f -> f.set(PgsqlFormat.TEXT))
+                            .item(s -> columns.forEach(
+                                cm ->  s
+                                    .name("%s\u0000".formatted(cm))
+                                    .tableOid(0)
+                                    .index((short) 0)
+                                    .typeOid(701)
+                                    .length((short) cm.length())
+                                    .modifier(-1)
+                                    .format(f -> f.set(PgsqlFormat.TEXT)))
                             )))
                     .build();
 
@@ -842,7 +843,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             }
 
             @Override
-            public <T> void doRow(
+            public <T> void doColumn(
                 T client,
                 long traceId,
                 long authorization,
