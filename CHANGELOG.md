@@ -2,7 +2,22 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.110...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.111...HEAD)
+
+**Fixed bugs:**
+
+- Docs search bar doesn't work [\#1351](https://github.com/aklivity/zilla/issues/1351)
+- InputMismatchException is thrown for `grpc` binding with googleapis/devtools/build proto [\#1230](https://github.com/aklivity/zilla/issues/1230)
+
+**Merged pull requests:**
+
+- Ztable support and convert transformation logic to state machine  [\#1352](https://github.com/aklivity/zilla/pull/1352) ([akrambek](https://github.com/akrambek))
+- Improve gRPC parser to allow complex types in optionValue [\#1350](https://github.com/aklivity/zilla/pull/1350) ([bmaidics](https://github.com/bmaidics))
+- Bump org.apache.avro:avro from 1.11.3 to 1.12.0 [\#1290](https://github.com/aklivity/zilla/pull/1290) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.111](https://github.com/aklivity/zilla/tree/0.9.111) (2024-12-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.110...0.9.111)
 
 **Implemented enhancements:**
 

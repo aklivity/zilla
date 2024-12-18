@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
+import java.util.Objects;
 import java.util.Set;
-
-import org.agrona.collections.ObjectHashSet;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
@@ -46,15 +46,14 @@ public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
         Protobuf3Parser.ServiceDefContext ctx)
     {
         String serviceName = String.format("%s.%s", package_, ctx.serviceName().getText());
-        final ObjectHashSet<GrpcMethodConfig> methods = new ObjectHashSet<>();
 
-        ctx.serviceElement().forEach(element ->
-        {
-            Protobuf3Parser.RpcContext rpc = element.rpc();
+        final Set<GrpcMethodConfig> methods = ctx.serviceElement().stream()
+            .map(Protobuf3Parser.ServiceElementContext::rpc)
+            .filter(Objects::nonNull)
+            .map(r -> r.rpcName().getText())
+            .map(GrpcMethodConfig::new)
+            .collect(Collectors.toUnmodifiableSet());
 
-            String method = rpc.rpcName().getText();
-            methods.add(new GrpcMethodConfig(method));
-        });
         final GrpcServiceConfig service = new GrpcServiceConfig(serviceName, methods);
         services.add(service);
     }

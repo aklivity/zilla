@@ -49,12 +49,19 @@ public class PgsqlKafkaValueAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTempl
                 String columnName = column.name();
                 String sqlType = column.type();
                 Object avroType = mapSqlTypeToAvroType(sqlType);
+                List<String> constraints = column.constraints();
 
-                boolean isNullable = !column.constraints().contains("NOT NULL");
+                boolean isNullable = !constraints.contains("NOT NULL");
+
+                String zillaType = ZILLA_MAPPINGS.entrySet().stream()
+                        .filter(e -> constraints.contains(e.getKey()))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(null);
 
                 return isNullable
-                    ? new AvroField(columnName, new Object[]{"null", avroType})
-                    : new AvroField(columnName, avroType);
+                    ? new AvroField(columnName, new Object[]{"null", avroType}, zillaType)
+                    : new AvroField(columnName, avroType, zillaType);
             })
             .collect(Collectors.toList());
 

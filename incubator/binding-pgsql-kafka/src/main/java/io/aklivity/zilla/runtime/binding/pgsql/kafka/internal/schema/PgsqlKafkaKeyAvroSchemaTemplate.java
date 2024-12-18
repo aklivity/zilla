@@ -36,7 +36,7 @@ public class PgsqlKafkaKeyAvroSchemaTemplate extends PgsqlKafkaAvroSchemaTemplat
         final String newNamespace = namespace.replace(DATABASE_PLACEHOLDER, database);
 
         List<AvroField> fields = command.columns().stream()
-            .map(column -> new AvroField(column.name(), mapSqlTypeToAvroType(column.type())))
+            .map(column -> new AvroField(column.name(), mapSqlTypeToAvroType(column.type()), null))
             .collect(Collectors.toList());
 
         AvroSchema schema = new AvroSchema("record", command.name(), newNamespace, fields);

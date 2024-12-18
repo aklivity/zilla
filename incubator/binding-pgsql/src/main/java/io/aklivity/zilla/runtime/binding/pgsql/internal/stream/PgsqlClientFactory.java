@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlDataEx
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlErrorFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlFormat;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlNoticeFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlQueryDataExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
@@ -63,7 +64,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-
 
 public final class PgsqlClientFactory implements PgsqlStreamFactory
 {
@@ -77,6 +77,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_READY = 'Z';
     private static final Byte MESSAGE_TYPE_TERMINATION = 'X';
     private static final Byte MESSAGE_TYPE_ERROR = 'E';
+    private static final Byte MESSAGE_TYPE_NOTICE = 'N';
 
     private static final int AUTHENTICATION_SUCCESS_CODE = 0;
     private static final int END_OF_FIELD = 0x00;
@@ -116,6 +117,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
     private final PgsqlErrorFlushExFW.Builder flushErrorExRW = new PgsqlErrorFlushExFW.Builder();
+    private final PgsqlNoticeFlushExFW.Builder flushNoticeExRW = new PgsqlNoticeFlushExFW.Builder();
     private final Array32FW.Builder<PgsqlColumnInfoFW.Builder, PgsqlColumnInfoFW> columnsRW =
         new Array32FW.Builder<>(new PgsqlColumnInfoFW.Builder(), new PgsqlColumnInfoFW());
 
@@ -150,6 +152,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final PgsqlClientDecoder decodePgsqlReady = this::decodePgsqlMessageReady;
     private final PgsqlClientDecoder decodePgsqlTermination = this::decodePgsqlMessageTerminator;
     private final PgsqlClientDecoder decodePgsqlPayload = this::decodePgsqlMessagePayload;
+    private final PgsqlClientDecoder decodePgsqlNotice = this::decodePgsqlMessageNotice;
     private final PgsqlClientDecoder decodePgsqlError = this::decodePgsqlMessageError;
     private final PgsqlClientDecoder decodePgsqlIgnoreOne = this::decodePgsqlIgnoreOne;
     private final PgsqlClientDecoder decodePgsqlIgnoreAll = this::decodePgsqlIgnoreAll;
@@ -166,6 +169,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         decodersByType.put(MESSAGE_TYPE_COMPLETION, decodePgsqlCompletion);
         decodersByType.put(MESSAGE_TYPE_READY, decodePgsqlReady);
         decodersByType.put(MESSAGE_TYPE_TERMINATION, decodePgsqlTermination);
+        decodersByType.put(MESSAGE_TYPE_NOTICE, decodePgsqlNotice);
         decodersByType.put(MESSAGE_TYPE_ERROR, decodePgsqlError);
         this.decodersByType = decodersByType;
     }
@@ -737,6 +741,39 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
                 .typeId(pgsqlTypeId)
                 .error(c -> c.set(error.build()))
+                .build().sizeof());
+
+            stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, completionEx);
+        }
+
+        private void onDecodeMessageNotice(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            int progressOffset = offset;
+
+            PgsqlNoticeFlushExFW.Builder notice = flushNoticeExRW.wrap(extBuffer, 0, extBuffer.capacity());
+
+            final int severityLength = getLengthOfString(buffer, progressOffset);
+            notice.severity(buffer, progressOffset, severityLength);
+            progressOffset += severityLength;
+
+            final int codeLength = getLengthOfString(buffer, progressOffset);
+            notice.code(buffer, progressOffset, codeLength);
+            progressOffset += codeLength;
+
+            final int messageLength = getLengthOfString(buffer, progressOffset);
+            notice.message(buffer, progressOffset, messageLength);
+            progressOffset += messageLength;
+
+            assert offset + length == progressOffset;
+
+            Consumer<OctetsFW.Builder> completionEx = e -> e.set((b, o, l) -> flushExRW.wrap(b, o, l)
+                .typeId(pgsqlTypeId)
+                .notice(c -> c.set(notice.build()))
                 .build().sizeof());
 
             stream.doApplicationFlush(traceId, authorization, decodeSlotReserved, completionEx);
@@ -1597,6 +1634,35 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             int length = pgsqlError.length() - Integer.BYTES;
             client.onDecodeMessageError(traceId, authorization, buffer, progressOffset, length);
+
+            progressOffset += length;
+
+            client.decoder = decodePgsqlMessage;
+        }
+
+        return progressOffset;
+    }
+
+    private int decodePgsqlMessageNotice(
+        PgsqlClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progressOffset = offset;
+
+        final PgsqlMessageFW pgsqlNotice = messageRO.tryWrap(buffer, offset, limit);
+
+        if (pgsqlNotice != null &&
+            limit - offset >= pgsqlNotice.length() + Integer.BYTES)
+        {
+            progressOffset = pgsqlNotice.limit();
+
+            int length = pgsqlNotice.length() - Integer.BYTES;
+            client.onDecodeMessageNotice(traceId, authorization, buffer, progressOffset, length);
 
             progressOffset += length;
 

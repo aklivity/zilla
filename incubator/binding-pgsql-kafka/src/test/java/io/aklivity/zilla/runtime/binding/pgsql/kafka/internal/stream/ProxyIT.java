@@ -60,6 +60,17 @@ public class ProxyIT
     }
 
     @Test
+    @Configuration("proxy.generated.as.yaml")
+    @Specification({
+        "${pgsql}/create.topic.with.generated.as/client",
+        "${kafka}/create.topic/server"
+    })
+    public void shouldCreateTopicWithGeneratedAs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.alter.yaml")
     @Specification({
         "${pgsql}/alter.topic.add.column/client"

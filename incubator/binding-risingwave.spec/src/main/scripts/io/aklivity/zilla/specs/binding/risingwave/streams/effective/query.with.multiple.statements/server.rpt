@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase")
+                              .parameter("user", "postgres")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -112,7 +112,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "GRANT ALL PRIVILEGES ON TABLE public.cities TO app;"
+read "GRANT ALL PRIVILEGES ON TABLE public.cities TO zillabase;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -182,11 +182,34 @@ write advise zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "INSERT INTO zb_catalog.ztables (name, sql) VALUES "
+     "('cities', 'CREATE ZTABLE IF NOT EXISTS cities (id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));');"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("INSERT 0 2")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
 accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "app")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -224,7 +247,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase")
+                              .parameter("user", "postgres")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")

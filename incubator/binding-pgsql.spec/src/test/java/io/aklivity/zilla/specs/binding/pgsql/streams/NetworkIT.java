@@ -48,6 +48,16 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/create.view.with.notice/client",
+        "${net}/create.view.with.notice/server"
+    })
+    public void shouldCreateViewWithNotice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/select.table/client",
         "${net}/select.table/server" })
     public void shouldSelectTable() throws Exception

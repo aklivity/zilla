@@ -61,6 +61,17 @@ public class ClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/create.view.with.notice/client",
+        "${net}/create.view.with.notice/server"
+    })
+    public void shouldCreateViewWithNotice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/termination.request/client",
         "${net}/termination.request/server" })
     public void shouldHandleTerminationRequest() throws Exception

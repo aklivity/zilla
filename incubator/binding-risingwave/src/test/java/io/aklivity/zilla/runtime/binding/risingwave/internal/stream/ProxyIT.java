@@ -52,9 +52,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.table.with.primary.key/client",
-        "${effective}/create.table.with.primary.key/server" })
-    public void shouldCreateTableWithPrimaryKey() throws Exception
+        "${pgsql}/create.ztable.with.primary.key/client",
+        "${effective}/create.ztable.with.primary.key/server" })
+    public void shouldCreateZtableWithPrimaryKey() throws Exception
     {
         k3po.finish();
     }
@@ -195,9 +195,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.table.with.primary.key.and.includes/client",
-        "${effective}/create.table.with.primary.key.and.includes/server" })
-    public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+        "${pgsql}/create.ztable.with.generated.as/client",
+        "${effective}/create.ztable.with.generated.as/server" })
+    public void shouldCreateTableWithGeneratedAs() throws Exception
     {
         k3po.finish();
     }
@@ -225,9 +225,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/drop.table/client",
-        "${effective}/drop.table/server" })
-    public void shouldDropTable() throws Exception
+        "${pgsql}/drop.ztable/client",
+        "${effective}/drop.ztable/server" })
+    public void shouldDropZtable() throws Exception
     {
         k3po.finish();
     }
@@ -245,9 +245,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/alter.table.add.column/client",
-        "${effective}/alter.table.add.column/server" })
-    public void shouldAlterTableAddColumn() throws Exception
+        "${pgsql}/alter.ztable.add.column/client",
+        "${effective}/alter.ztable.add.column/server" })
+    public void shouldAlterZtableAddColumn() throws Exception
     {
         k3po.finish();
     }
@@ -265,9 +265,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/alter.table.modify.column.rejected/client",
+        "${pgsql}/alter.ztable.modify.column.rejected/client",
         "${effective}/client.stream.established/server" })
-    public void shouldNotAlterTableModifyColumn() throws Exception
+    public void shouldNotAlterZtableModifyColumn() throws Exception
     {
         k3po.finish();
     }
@@ -288,6 +288,16 @@ public class ProxyIT
         "${pgsql}/show.zviews/client",
         "${effective}/show.zviews/server" })
     public void shouldShowZviews() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.ztables/client",
+        "${effective}/show.ztables/server" })
+    public void shouldShowZtables() throws Exception
     {
         k3po.finish();
     }

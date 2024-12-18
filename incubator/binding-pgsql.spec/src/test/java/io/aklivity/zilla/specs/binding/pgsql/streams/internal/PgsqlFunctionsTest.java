@@ -35,6 +35,7 @@ import io.aklivity.zilla.specs.binding.pgsql.PgsqlFunctions;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlDataExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlNoticeFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlStatus;
 
 
@@ -173,6 +174,28 @@ public class PgsqlFunctionsTest
         assertEquals("ERROR\u0000", flushEx.error().severity().asString());
         assertEquals("XX000\u0000", flushEx.error().code().asString());
         assertEquals("Failed to run the query.\u0000", flushEx.error().message().asString());
+    }
+
+    @Test
+    public void shouldEncodePgsqlFlushNoticeExtension()
+    {
+        final byte[] build = flushEx()
+                              .typeId(0x01)
+                              .notice()
+                                .severity("NOTICE")
+                                .code("0000")
+                                .message("Failed to run the query.")
+                                .build()
+                              .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
+        PgsqlNoticeFlushExFW notice = flushEx.notice();
+
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals("SNOTICE\u0000", notice.severity().asString());
+        assertEquals("C0000\u0000", notice.code().asString());
+        assertEquals("MFailed to run the query.\u0000", notice.message().asString());
     }
 
     @Test

@@ -23,11 +23,11 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTopicListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateTableTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
@@ -47,8 +47,8 @@ public final class PgsqlParser
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
     private final SqlCreateStreamListener createStreamListener;
-    private final SqlCreateTableTopicListener createTableListener;
-    private final SqlAlterTableTopicListener alterTableListener;
+    private final SqlCreateZtableTopicListener createTableListener;
+    private final SqlAlterZtableTopicListener alterTableListener;
     private final SqlAlterStreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
@@ -63,8 +63,8 @@ public final class PgsqlParser
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
         this.commandListener = new SqlCommandListener(tokens);
-        this.createTableListener = new SqlCreateTableTopicListener(tokens);
-        this.alterTableListener = new SqlAlterTableTopicListener(tokens);
+        this.createTableListener = new SqlCreateZtableTopicListener(tokens);
+        this.alterTableListener = new SqlAlterZtableTopicListener(tokens);
         this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
         this.createStreamListener = new SqlCreateStreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
@@ -141,15 +141,21 @@ public final class PgsqlParser
         String sql,
         PostgreSqlParserBaseListener listener)
     {
-        sql = sql.replace("\u0000", "");
+        try
+        {
+            sql = sql.replace("\u0000", "");
 
-        CharStream input = CharStreams.fromString(sql);
-        lexer.reset();
-        lexer.setInputStream(input);
+            CharStream input = CharStreams.fromString(sql);
+            lexer.reset();
+            lexer.setInputStream(input);
 
-        tokens.setTokenSource(lexer);
-        parser.setTokenStream(tokens);
+            tokens.setTokenSource(lexer);
+            parser.setTokenStream(tokens);
 
-        walker.walk(listener, parser.root());
+            walker.walk(listener, parser.root());
+        }
+        catch (Exception ignore)
+        {
+        }
     }
 }
