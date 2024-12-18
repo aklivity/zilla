@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateZviewMacro
+public class RisingwaveCreateZviewMacro extends RisingwaveMacroBase
 {
     protected static final int FLAGS_INIT = 0x02;
 
@@ -45,9 +45,7 @@ public class RisingwaveCreateZviewMacro
     private final String schemaRegistry;
     private final String systemSchema;
     private final String user;
-    private final String sql;
     private final CreateZview command;
-    private final RisingwaveMacroHandler handler;
 
     public RisingwaveCreateZviewMacro(
         String bootstrapServer,
@@ -58,13 +56,13 @@ public class RisingwaveCreateZviewMacro
         CreateZview command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
         this.systemSchema = systemSchema;
         this.user = user;
-        this.sql = sql;
         this.command = command;
-        this.handler = handler;
 
         this.columnTypes = new ArrayList<>();
         this.columnDescriptions = new ArrayList<>();
@@ -113,7 +111,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -151,7 +149,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -253,7 +251,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -310,7 +308,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -326,10 +324,6 @@ public class RisingwaveCreateZviewMacro
             ) FORMAT UPSERT ENCODE AVRO (
                schema.registry='%s'
             ) KEY ENCODE TEXT;\u0000""";
-
-        private final StringBuilder fieldBuilder = new StringBuilder();
-        private final StringBuilder primaryKeyBuilder = new StringBuilder();
-
 
         @Override
         public void onStarted(
@@ -378,7 +372,7 @@ public class RisingwaveCreateZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 

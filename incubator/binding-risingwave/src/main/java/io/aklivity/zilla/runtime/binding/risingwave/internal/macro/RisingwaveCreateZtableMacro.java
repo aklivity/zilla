@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateZtableMacro
+public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
 {
     private static final String ZTABLE_NAME = "ztables";
     private static final String TABLE_NAME = "tables";
@@ -49,9 +49,7 @@ public class RisingwaveCreateZtableMacro
     private final StringBuilder includeBuilder;
     private final String systemSchema;
     private final String user;
-    private final String sql;
     private final CreateTable command;
-    private final RisingwaveMacroHandler handler;
 
     public RisingwaveCreateZtableMacro(
         String bootstrapServer,
@@ -63,11 +61,11 @@ public class RisingwaveCreateZtableMacro
         CreateTable command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.systemSchema = systemSchema;
         this.user = user;
-        this.sql = sql;
         this.command = command;
-        this.handler = handler;
         this.fieldBuilder = new StringBuilder();
         this.includeBuilder = new StringBuilder();
 
@@ -140,7 +138,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -224,7 +222,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -312,7 +310,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -364,7 +362,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -402,7 +400,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -441,7 +439,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -498,7 +496,7 @@ public class RisingwaveCreateZtableMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
 
         private final class InsertIntoCatalogState implements RisingwaveMacroState
@@ -552,5 +550,4 @@ public class RisingwaveCreateZtableMacro
             }
         }
     }
-
 }

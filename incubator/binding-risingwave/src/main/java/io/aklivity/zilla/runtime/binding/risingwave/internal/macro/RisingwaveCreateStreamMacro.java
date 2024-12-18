@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateStreamMacro
+public class RisingwaveCreateStreamMacro extends RisingwaveMacroBase
 {
     //TODO: Remove after implementing zstream
     private static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
@@ -47,10 +47,7 @@ public class RisingwaveCreateStreamMacro
     private final long scanStartupMil;
     private final String systemSchema;
     private final String user;
-    private final String sql;
     private final CreateStream command;
-    private final RisingwaveMacroHandler handler;
-    private final RisingwaveOnReadyHandler terminateState = this::terminateState;
 
     public RisingwaveCreateStreamMacro(
         String bootstrapServer,
@@ -62,12 +59,12 @@ public class RisingwaveCreateStreamMacro
         CreateStream command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.scanStartupMil = scanStartupMil;
         this.systemSchema = systemSchema;
         this.user = user;
-        this.sql = sql;
         this.command = command;
-        this.handler = handler;
 
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
@@ -78,31 +75,10 @@ public class RisingwaveCreateStreamMacro
         return new CreateTopicState();
     }
 
-    private RisingwaveMacroState terminateState(
-        long traceId,
-        long authorization)
-    {
-        handler.doReady(traceId, authorization, sql.length());
-
-        return null;
-    }
-
     private final class CreateTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
-
-        private RisingwaveOnReadyHandler onReadyHandler = this::transition;
-
-        private RisingwaveMacroState transition(
-            long traceId,
-            long authorization)
-        {
-            CreateSourceState state = new CreateSourceState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
 
         @Override
         public void onStarted(
@@ -133,7 +109,10 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            return onReadyHandler.onReady(traceId, authorization);
+            CreateSourceState state = new CreateSourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
         }
 
         @Override
@@ -143,9 +122,8 @@ public class RisingwaveCreateStreamMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            onReadyHandler = terminateState;
 
-            return this;
+            return errorState();
         }
     }
 
@@ -162,18 +140,6 @@ public class RisingwaveCreateStreamMacro
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = '%s'
             );\u0000""";
-
-        private RisingwaveOnReadyHandler onReadyHandler = this::transition;
-
-        private RisingwaveMacroState transition(
-            long traceId,
-            long authorization)
-        {
-            GrantResourceState state = new GrantResourceState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
 
         @Override
         public void onStarted(
@@ -206,7 +172,10 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            return onReadyHandler.onReady(traceId, authorization);
+            GrantResourceState state = new GrantResourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
         }
 
         @Override
@@ -216,8 +185,7 @@ public class RisingwaveCreateStreamMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            onReadyHandler = terminateState;
-            return this;
+            return errorState();
         }
     }
 

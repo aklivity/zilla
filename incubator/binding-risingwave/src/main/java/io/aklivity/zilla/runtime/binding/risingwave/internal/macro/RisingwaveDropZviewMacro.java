@@ -18,12 +18,10 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveDropZviewMacro
+public class RisingwaveDropZviewMacro extends RisingwaveMacroBase
 {
     private final String systemSchema;
-    private final String sql;
     private final Drop command;
-    private final RisingwaveMacroHandler handler;
 
     public RisingwaveDropZviewMacro(
         String systemSchema,
@@ -31,10 +29,10 @@ public class RisingwaveDropZviewMacro
         Drop command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.systemSchema = systemSchema;
-        this.sql = sql;
         this.command = command;
-        this.handler = handler;
     }
 
     public RisingwaveMacroState start()
@@ -75,7 +73,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -112,7 +110,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 
@@ -149,7 +147,7 @@ public class RisingwaveDropZviewMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
-            return this;
+            return errorState();
         }
     }
 

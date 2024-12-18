@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateFunctionMacro
+public class RisingwaveCreateFunctionMacro extends RisingwaveMacroBase
 {
     private final String javaServer;
     private final String pythonServer;
@@ -31,7 +31,6 @@ public class RisingwaveCreateFunctionMacro
     private final String user;
     private final String sql;
     private final Function command;
-    private final RisingwaveMacroHandler handler;
     private final StringBuilder fieldBuilder;
 
     public RisingwaveCreateFunctionMacro(
@@ -42,6 +41,8 @@ public class RisingwaveCreateFunctionMacro
         Function command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         String javaServer = null;
         String pythonServer = null;
 
@@ -66,7 +67,6 @@ public class RisingwaveCreateFunctionMacro
         this.user = user;
         this.sql = sql;
         this.command = command;
-        this.handler = handler;
         this.fieldBuilder = new StringBuilder();
     }
 
