@@ -167,7 +167,6 @@ public final class PgsqlParser
         }
         catch (Exception ignore)
         {
-            ignore.printStackTrace();
         }
     }
 }
