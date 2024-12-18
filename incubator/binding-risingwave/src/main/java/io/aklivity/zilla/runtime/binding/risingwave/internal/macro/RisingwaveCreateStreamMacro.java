@@ -142,6 +142,8 @@ public class RisingwaveCreateStreamMacro
                schema.registry = '%s'
             );\u0000""";
 
+        private boolean errored;
+
         @Override
         public void onStarted(
             long traceId,
@@ -164,6 +166,54 @@ public class RisingwaveCreateStreamMacro
 
             String sqlQuery = String.format(sqlFormat, table, includeBuilder, bootstrapServer, schema,
                 table, scanStartupMil, schemaRegistry);
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            GrantResourceState state = null;
+            if (!errored)
+            {
+                state = new GrantResourceState();
+                state.onStarted(traceId, authorization);
+            }
+            else
+            {
+                handler.doReady(traceId, authorization, sql.length());
+            }
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            // TODO: Handle error across all macro states
+            errored = true;
+            handler.doFlushProxy(traceId, authorization, flushEx);
+            return this;
+        }
+    }
+
+    private final class GrantResourceState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            GRANT ALL PRIVILEGES ON SOURCE %s.%s TO %s;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String sqlQuery = String.format(sqlFormat, command.schema(), command.name(), user);
+
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
