@@ -33,6 +33,7 @@ scope pgsql
             ROW (68),
             TYPE (84),
             COMPLETION (67),
+            NOTICE (78),
             ERROR (69),
             CANCEL_REQUEST (255),
             READY (90)
@@ -60,6 +61,7 @@ scope pgsql
             case 84: pgsql::stream::PgsqlTypeFlushEx type;
             case 67: pgsql::stream::PgsqlCompletedFlushEx completion;
             case 69: pgsql::stream::PgsqlErrorFlushEx error;
+            case 78: pgsql::stream::PgsqlNoticeFlushEx notice;
             case 90: pgsql::stream::PgsqlReadyFlushEx ready;
         }
 
@@ -97,6 +99,13 @@ scope pgsql
         }
 
         struct PgsqlErrorFlushEx
+        {
+            string16 severity;
+            string16 code;
+            string16 message;
+        }
+
+        struct PgsqlNoticeFlushEx
         {
             string16 severity;
             string16 code;

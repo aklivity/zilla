@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 
 public record AvroField(
     String name,
-    Object type)
+    Object type,
+    Object zillaType)
 {
 }

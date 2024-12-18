@@ -26,14 +26,6 @@ package org.apache.avro.io;
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
-import org.apache.avro.AvroTypeException;
-import org.apache.avro.Schema;
-import org.apache.avro.io.parsing.Symbol;
-
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +34,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.List;
+
+import org.apache.avro.AvroTypeException;
+import org.apache.avro.Schema;
+import org.apache.avro.io.parsing.Symbol;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 
 public final class CanonicalJsonDecoder extends JsonDecoder
 {
@@ -112,8 +111,8 @@ public final class CanonicalJsonDecoder extends JsonDecoder
             {
                 label = CanonicalJsonEncoder.getNullableSingle(a);
             }
-            else if (currentToken == JsonToken.START_OBJECT
-                && lin.nextToken() == JsonToken.FIELD_NAME)
+            else if (currentToken == JsonToken.START_OBJECT &&
+                lin.nextToken() == JsonToken.FIELD_NAME)
             {
                 label = lin.getText();
                 lin.nextToken();

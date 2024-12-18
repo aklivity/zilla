@@ -44,19 +44,19 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatestmt(
-        PostgreSqlParser.CreatestmtContext ctx)
+    public void enterCreateztstmt(
+        PostgreSqlParser.CreateztstmtContext ctx)
     {
-        command = "CREATE %s".formatted(ctx.opttable_type().getText());
+        command = "CREATE %s".formatted(ctx.optztable_type().getText().toUpperCase());
     }
 
     @Override
     public void enterAltertablestmt(
         PostgreSqlParser.AltertablestmtContext ctx)
     {
-        if (ctx.ALTER() != null && ctx.TABLE() != null)
+        if (ctx.ALTER() != null && ctx.ZTABLE() != null)
         {
-            command = "ALTER TABLE";
+            command = "ALTER ZTABLE";
         }
         else if (ctx.ALTER() != null && ctx.TOPIC() != null)
         {
@@ -87,11 +87,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.ShowstmtContext ctx)
     {
         String type = ctx.show_object_type_name().getText();
-
-        if ("ZVIEWS".equals(type))
-        {
-            command = "SHOW ZVIEWS";
-        }
+        command = "SHOW %s".formatted(type.toUpperCase());
     }
 
     @Override

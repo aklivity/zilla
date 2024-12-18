@@ -38,10 +38,10 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.table.with.primary.key/client",
-        "${app}/create.table.with.primary.key/server"
+        "${app}/create.ztable.with.primary.key/client",
+        "${app}/create.ztable.with.primary.key/server"
     })
-    public void shouldCreateTableWithPrimaryKey() throws Exception
+    public void shouldCreateZtableWithPrimaryKey() throws Exception
     {
         k3po.finish();
     }
@@ -145,9 +145,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.table.with.primary.key.and.includes/client",
-        "${app}/create.table.with.primary.key.and.includes/server" })
-    public void shouldCreateTableWithPrimaryKeyAndIncludes() throws Exception
+        "${app}/create.ztable.with.generated.as/client",
+        "${app}/create.ztable.with.generated.as/server" })
+    public void shouldCreateTableWithGeneratedAs() throws Exception
     {
         k3po.finish();
     }
@@ -191,9 +191,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/drop.table/client",
-        "${app}/drop.table/server" })
-    public void shouldDropTable() throws Exception
+        "${app}/drop.ztable/client",
+        "${app}/drop.ztable/server" })
+    public void shouldDropZtable() throws Exception
     {
         k3po.finish();
     }
@@ -218,8 +218,8 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/alter.table.add.column/client",
-        "${app}/alter.table.add.column/server" })
+        "${app}/alter.ztable.add.column/client",
+        "${app}/alter.ztable.add.column/server" })
     public void shouldAlterTableAddColumn() throws Exception
     {
         k3po.finish();
@@ -236,9 +236,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/alter.table.modify.column.rejected/client",
-        "${app}/alter.table.modify.column.rejected/server" })
-    public void shouldNotAlterTableModifyColumn() throws Exception
+        "${app}/alter.ztable.modify.column.rejected/client",
+        "${app}/alter.ztable.modify.column.rejected/server" })
+    public void shouldNotAlterZtableModifyColumn() throws Exception
     {
         k3po.finish();
     }

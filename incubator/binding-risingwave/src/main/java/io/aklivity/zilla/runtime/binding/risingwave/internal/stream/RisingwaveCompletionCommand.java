@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
 public enum RisingwaveCompletionCommand
 {
     UNKNOWN_COMMAND("UNKNOWN".getBytes()),
-    CREATE_TABLE_COMMAND("CREATE_TABLE".getBytes()),
+    CREATE_ZTABLE_COMMAND("CREATE_ZTABLE".getBytes()),
     CREATE_ZVIEW_COMMAND("CREATE_ZVIEW".getBytes()),
     CREATE_STREAM_COMMAND("CREATE_STREAM".getBytes()),
     CREATE_FUNCTION_COMMAND("CREATE_FUNCTION".getBytes()),
-    ALTER_TABLE_COMMAND("ALTER_TABLE".getBytes()),
+    ALTER_ZTABLE_COMMAND("ALTER_ZTABLE".getBytes()),
     ALTER_STREAM_COMMAND("ALTER_STREAM".getBytes()),
-    DROP_TABLE_COMMAND("DROP_TABLE".getBytes()),
+    DROP_ZTABLE_COMMAND("DROP_ZTABLE".getBytes()),
     DROP_STREAM_COMMAND("DROP_STREAM".getBytes()),
     DROP_ZVIEW_COMMAND("DROP_ZVIEW".getBytes()),
     SHOW_COMMAND("SHOW_COMMAND".getBytes());

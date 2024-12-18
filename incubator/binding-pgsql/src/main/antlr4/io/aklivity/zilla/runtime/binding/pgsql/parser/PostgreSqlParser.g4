@@ -105,6 +105,7 @@ stmt
     | createschemastmt
     | createseqstmt
     | createstmt
+    | createztstmt
     | createstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
@@ -267,6 +268,7 @@ optschemaeltlist
 schema_stmt
     : createstmt
     | indexstmt
+    | createztstmt
     | createseqstmt
     | createtrigstmt
     | grantstmt
@@ -402,6 +404,7 @@ discardstmt
 altertablestmt
     : ALTER TABLE (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
     | ALTER TABLE ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
+    | ALTER ZTABLE (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
     | ALTER TOPIC (IF_P EXISTS)? relation_expr (alter_table_cmds | partition_cmd)
     | ALTER TOPIC ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER INDEX (IF_P EXISTS)? qualified_name (alter_table_cmds | index_partition_cmd)
@@ -711,6 +714,20 @@ opt_with_stream
     |
     ;
 
+createztstmt
+    : CREATE optztable_type (IF_P NOT EXISTS)? qualified_name (
+        OPEN_PAREN opttableelementlist CLOSE_PAREN optinherit optpartitionspec table_access_method_clause optwith oncommitoption opttablespace
+        | OF any_name opttypedtableelementlist optpartitionspec table_access_method_clause optwith oncommitoption opttablespace
+        | PARTITION OF qualified_name opttypedtableelementlist partitionboundspec optpartitionspec table_access_method_clause optwith oncommitoption
+            opttablespace
+    )
+    ;
+
+optztable_type
+    : ZTABLE
+    | TOPIC
+    ;
+
 createstmt
     : CREATE opttemp opttable_type (IF_P NOT EXISTS)? qualified_name (
         OPEN_PAREN opttableelementlist CLOSE_PAREN optinherit optpartitionspec table_access_method_clause optwith oncommitoption opttablespace
@@ -722,7 +739,6 @@ createstmt
 
 opttable_type
     : TABLE
-    | TOPIC
     ;
 
 opttemp
@@ -790,7 +806,7 @@ colconstraintelem
     | CHECK OPEN_PAREN a_expr CLOSE_PAREN opt_no_inherit
     | DEFAULT b_expr
     | GENERATED generated_when AS (
-        IDENTITY_P optparenthesizedseqoptlist
+        (IDENTITY_P | NOW) optparenthesizedseqoptlist
         | OPEN_PAREN a_expr CLOSE_PAREN STORED
     )
     | REFERENCES qualified_name opt_column_list key_match key_actions
@@ -820,6 +836,7 @@ tablelikeoption
     | CONSTRAINTS
     | DEFAULTS
     | IDENTITY_P
+    | NOW
     | GENERATED
     | INDEXES
     | STATISTICS
@@ -1628,6 +1645,8 @@ show_object_type_name
     | VIEWS
     | MATERIALIZED VIEWS
     | TOPICS
+    | HEAD
+    | ZTABLES
     | ZVIEWS
     ;
 
@@ -1654,6 +1673,8 @@ object_type_any_name
     | TOPIC
     | STREAM
     | ZVIEW
+    | HEAD
+    | ZTABLE
     | INDEX
     | FOREIGN TABLE
     | COLLATION

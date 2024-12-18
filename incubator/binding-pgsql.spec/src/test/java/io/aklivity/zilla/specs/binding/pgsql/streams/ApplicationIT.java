@@ -48,6 +48,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/create.view.with.notice/client",
+        "${app}/create.view.with.notice/server"
+    })
+    public void shouldCreateViewWithNotice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/select.table/client",
         "${app}/select.table/server" })
     public void shouldSelectTable() throws Exception

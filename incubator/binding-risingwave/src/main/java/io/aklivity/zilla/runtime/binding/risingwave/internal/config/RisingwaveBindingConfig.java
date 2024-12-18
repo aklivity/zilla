@@ -24,24 +24,6 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveAlterTableTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveAlterTopicTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateFunctionTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateMaterializedViewTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSinkTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateSourceTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTableTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveCreateTopicTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDeleteFromCatalogTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDescribeTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropMaterializedViewTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSinkTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropSourceTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTableTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveDropTopicTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveGrantToSourceTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveInsertIntoCatalogTemplate;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.statement.RisingwaveShowTypeTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -49,32 +31,16 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class RisingwaveBindingConfig
 {
-    private static final String INTERNAL_SCHEMA = "zb_catalog";
-    private static final String PUBLIC_SCHEMA = "public";
+    public static final String INTERNAL_SCHEMA = "zb_catalog";
+    public static final String PUBLIC_SCHEMA = "public";
 
     public final long id;
     public final String name;
     public final RisingwaveOptionsConfig options;
     public final KindConfig kind;
     public final List<RisingwaveRouteConfig> routes;
-    public final RisingwaveCreateTopicTemplate createTopic;
-    public final RisingwaveCreateMaterializedViewTemplate createView;
-    public final RisingwaveDescribeTemplate describeView;
-    public final RisingwaveCreateTableTemplate createTable;
-    public final RisingwaveCreateSourceTemplate createSource;
-    public final RisingwaveCreateSinkTemplate createSink;
-    public final RisingwaveCreateFunctionTemplate createFunction;
-    public final RisingwaveAlterTableTemplate alterTable;
-    public final RisingwaveAlterTopicTemplate alterTopic;
-    public final RisingwaveDropTableTemplate dropTable;
-    public final RisingwaveDropSourceTemplate dropSource;
-    public final RisingwaveDropTopicTemplate dropTopic;
-    public final RisingwaveDropMaterializedViewTemplate dropMaterializedView;
-    public final RisingwaveDropSinkTemplate dropSink;
-    public final RisingwaveInsertIntoCatalogTemplate catalogInsert;
-    public final RisingwaveDeleteFromCatalogTemplate catalogDelete;
-    public final RisingwaveGrantToSourceTemplate grantResource;
-    public final RisingwaveShowTypeTemplate showType;
+    public final String bootstrapServer;
+    public final String schemaRegistry;
 
     public RisingwaveBindingConfig(
         RisingwaveConfiguration config,
@@ -88,7 +54,7 @@ public final class RisingwaveBindingConfig
         this.routes = binding.routes.stream().map(RisingwaveRouteConfig::new).collect(toList());
 
         String bootstrapServer = null;
-        String location = null;
+        String schemaRegistry = null;
         RisingwaveUdfConfig udf = null;
 
         if (options.kafka != null)
@@ -98,28 +64,11 @@ public final class RisingwaveBindingConfig
 
             final CatalogHandler catalogHandler = supplyCatalog.apply(cataloged.id);
             bootstrapServer = options.kafka.properties.bootstrapServer;
-            location = catalogHandler.location();
+            schemaRegistry = catalogHandler.location();
         }
 
-        this.createTable = new RisingwaveCreateTableTemplate();
-        this.createSource = new RisingwaveCreateSourceTemplate(bootstrapServer,
-            location, config.kafkaScanStartupTimestampMillis());
-        this.createSink = new RisingwaveCreateSinkTemplate(INTERNAL_SCHEMA, bootstrapServer, location);
-        this.createTopic = new RisingwaveCreateTopicTemplate();
-        this.createView = new RisingwaveCreateMaterializedViewTemplate();
-        this.alterTable = new RisingwaveAlterTableTemplate();
-        this.alterTopic = new RisingwaveAlterTopicTemplate();
-        this.describeView = new RisingwaveDescribeTemplate();
-        this.dropTopic = new RisingwaveDropTopicTemplate();
-        this.dropTable = new RisingwaveDropTableTemplate();
-        this.dropSource = new RisingwaveDropSourceTemplate();
-        this.dropMaterializedView = new RisingwaveDropMaterializedViewTemplate();
-        this.dropSink = new RisingwaveDropSinkTemplate(INTERNAL_SCHEMA);
-        this.createFunction = new RisingwaveCreateFunctionTemplate(options.udfs);
-        this.catalogInsert = new RisingwaveInsertIntoCatalogTemplate(INTERNAL_SCHEMA);
-        this.catalogDelete = new RisingwaveDeleteFromCatalogTemplate(INTERNAL_SCHEMA);
-        this.grantResource = new RisingwaveGrantToSourceTemplate();
-        this.showType = new RisingwaveShowTypeTemplate();
+        this.bootstrapServer = bootstrapServer;
+        this.schemaRegistry = schemaRegistry;
     }
 
     public RisingwaveRouteConfig resolve(

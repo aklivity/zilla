@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase")
+                              .parameter("user", "postgres")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -72,6 +72,8 @@ write [0x00 0x02]                                                 # Field Count
       [0x00 0x00 0x00 0x65]                                       # Length
       "CREATE MATERIALIZED VIEW IF NOT EXISTS distinct_cities AS" # Data
       " SELECT id, city FROM weather GROUP BY city;"
+      [0x00]
+
 write flush
 
 
@@ -93,7 +95,7 @@ accepted
 
 read zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "app")
+                              .parameter("user", "zillabase")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
