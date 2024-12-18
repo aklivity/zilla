@@ -50,6 +50,7 @@ public class RisingwaveCreateStreamMacro
     private final String sql;
     private final CreateStream command;
     private final RisingwaveMacroHandler handler;
+    private final RisingwaveOnReadyHandler terminateState = this::terminateState;
 
     public RisingwaveCreateStreamMacro(
         String bootstrapServer,
@@ -77,10 +78,31 @@ public class RisingwaveCreateStreamMacro
         return new CreateTopicState();
     }
 
+    private RisingwaveMacroState terminateState(
+        long traceId,
+        long authorization)
+    {
+        handler.doReady(traceId, authorization, sql.length());
+
+        return null;
+    }
+
     private final class CreateTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
             CREATE TOPIC IF NOT EXISTS %s (%s%s);\u0000""";
+
+        private RisingwaveOnReadyHandler onReadyHandler = this::transition;
+
+        private RisingwaveMacroState transition(
+            long traceId,
+            long authorization)
+        {
+            CreateSourceState state = new CreateSourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
 
         @Override
         public void onStarted(
@@ -111,10 +133,7 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            CreateSourceState state = new CreateSourceState();
-            state.onStarted(traceId, authorization);
-
-            return state;
+            return onReadyHandler.onReady(traceId, authorization);
         }
 
         @Override
@@ -124,6 +143,8 @@ public class RisingwaveCreateStreamMacro
             PgsqlFlushExFW flushEx)
         {
             handler.doFlushProxy(traceId, authorization, flushEx);
+            onReadyHandler = terminateState;
+
             return this;
         }
     }
@@ -142,7 +163,17 @@ public class RisingwaveCreateStreamMacro
                schema.registry = '%s'
             );\u0000""";
 
-        private boolean errored;
+        private RisingwaveOnReadyHandler onReadyHandler = this::transition;
+
+        private RisingwaveMacroState transition(
+            long traceId,
+            long authorization)
+        {
+            GrantResourceState state = new GrantResourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
 
         @Override
         public void onStarted(
@@ -175,18 +206,7 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            GrantResourceState state = null;
-            if (!errored)
-            {
-                state = new GrantResourceState();
-                state.onStarted(traceId, authorization);
-            }
-            else
-            {
-                handler.doReady(traceId, authorization, sql.length());
-            }
-
-            return state;
+            return onReadyHandler.onReady(traceId, authorization);
         }
 
         @Override
@@ -195,9 +215,8 @@ public class RisingwaveCreateStreamMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            // TODO: Handle error across all macro states
-            errored = true;
             handler.doFlushProxy(traceId, authorization, flushEx);
+            onReadyHandler = terminateState;
             return this;
         }
     }
