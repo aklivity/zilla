@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.agrona.ErrorHandler;
 
@@ -42,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 public class EngineBuilder
 {
     private Configuration config;
+    private Consumer<Throwable> reporter;
     private ErrorHandler errorHandler;
     private Collection<EngineAffinity> affinities;
     private boolean readonly;
@@ -64,6 +66,13 @@ public class EngineBuilder
         long mask)
     {
         affinities.add(new EngineAffinity(namespace, binding, mask));
+        return this;
+    }
+
+    public EngineBuilder reporter(
+        Consumer<Throwable> reporter)
+    {
+        this.reporter = reporter;
         return this;
     }
 
@@ -144,7 +153,13 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
+        final Consumer<Throwable> reporter = this.reporter != null
+            ? this.reporter
+            : config.verbose()
+                ? e -> e.printStackTrace(System.err)
+                : e -> System.err.println(e.getMessage());
+
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, models, eventFormatterFactory, errorHandler, affinities, readonly);
+                catalogs, models, eventFormatterFactory, reporter, errorHandler, affinities, readonly);
     }
 }
