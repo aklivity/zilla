@@ -14,13 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.nio.ByteOrder;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
@@ -72,7 +76,94 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 
     public RisingwaveMacroState start()
     {
-        return new CreateTopicState();
+        return new SelectZfunctionsCommandState();
+    }
+
+    private final class SelectZfunctionsCommandState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            SELECT * FROM zb_catalog.zfunctions; WHERE name IN (%s);\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String handlers = command.commandHandlers().keySet().stream()
+                .map(value -> "'" + value + "'")
+                .collect(Collectors.joining(", "));
+            String sqlQuery = String.format(sqlFormat, handlers);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public <T> RisingwaveMacroState onRow(
+            T client,
+            long traceId,
+            long authorization,
+            int flags,
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            OctetsFW extension)
+        {
+            int progress = offset;
+
+            short fields = buffer.getShort(progress, ByteOrder.BIG_ENDIAN);
+            progress += Short.BYTES;
+
+            assert fields == 2;
+
+            int nameLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
+            progress += Integer.BYTES + nameLength;
+
+            int sqlLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
+            progress += Integer.BYTES;
+
+            String statement = buffer.getStringWithoutLengthAscii(progress, sqlLength);
+
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onType(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onCompletion(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.SHOW_COMMAND);
+            return this;
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doReady(traceId, authorization, sql.length());
+            return null;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+            return this;
+        }
     }
 
     private final class CreateTopicState implements RisingwaveMacroState
