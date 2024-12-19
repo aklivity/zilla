@@ -702,49 +702,48 @@ zstream_name
     : qualified_name
     ;
 
-// Updated stream_columns to include GENERATED ALWAYS AS with various options
 zstream_columns
+    : standard_columns zstream_generated_columns
+    ;
+
+standard_columns
     : zstream_column (COMMA zstream_column)*
     ;
 
-zstream_column
-    : colid typename opt_generated_always
+zstream_generated_columns
+    : colid typename GENERATED ALWAYS AS generation_type
+      colid typename GENERATED ALWAYS AS generation_type
     ;
 
-opt_generated_always
-    : | GENERATED ALWAYS AS generation_type
+zstream_column
+    : colid typename
     ;
 
 generation_type
     : IDENTITY_P
-    | DISPATCH_P
     | TIMESTAMP
     ;
 
 opt_with_zstream
     : WITH OPEN_PAREN zreloptions CLOSE_PAREN
-    | // Empty option if WITH is not used
+    | /* Empty */
     ;
 
 zreloptions
-    : zreloption_elem (COMMA reloption_elem)*
+    : zreloption_elem (COMMA zreloption_elem)*
     ;
 
 zreloption_elem
     : collabel EQUAL def_arg
-    | COMMAND_FUNCTIONS EQUAL OPEN_CURLY command_function_mappings CLOSE_CURLY
+    | collabel EQUAL OPEN_PAREN handler_mappings CLOSE_PAREN
     ;
 
-command_function_mappings
-    : command_function_mapping (COMMA command_function_mapping)*
+handler_mappings
+    : handler_mapping (COMMA handler_mapping)*
     ;
 
-command_function_mapping
-    : sconst EQUAL function_name
-    ;
-
-function_name
-    : sconst
+handler_mapping
+    : sconst TO sconst
     ;
 
 createztstmt

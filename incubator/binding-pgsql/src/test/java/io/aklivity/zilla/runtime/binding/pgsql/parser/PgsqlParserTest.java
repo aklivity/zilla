@@ -571,7 +571,7 @@ public class PgsqlParserTest
     {
         String sql = """
             CREATE ZSTREAM app_events(
-                type VARCHAR GENERATED ALWAYS AS DISPATCH,
+                event VARCHAR,
                 user_id VARCHAR,
                 request_id VARCHAR,
                 amount DOUBLE PRECISION,
@@ -580,12 +580,16 @@ public class PgsqlParserTest
                 created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP
             )
             WITH (
-              command_functions = {
-                'SendPayment' = 'send_payment_handler',
-                'RequestPayment' = 'request_payment_handler',
-                'RejectPayment' = 'reject_payment_handler'
+              commands = {
+                dispatch_on = 'command',
+                handlers = {
+                  'SendPayment' = 'send_payment_handler',
+                  'RequestPayment' = 'request_payment_handler',
+                  'RejectPayment' = 'reject_payment_handler'
+                }
               }
-            );""";
+            );
+            """;
 
         CreateZstream createStream = parser.parseCreateStream(sql);
 
@@ -604,6 +608,8 @@ public class PgsqlParserTest
         assertEquals("VARCHAR", createStream.columns().get(5).type());
         assertEquals("created_at", createStream.columns().get(6).name());
         assertEquals("TIMESTAMP", createStream.columns().get(6).type());
+
+        assertEquals("commands", createStream.dispatchOn());
 
         assertEquals(3, createStream.commandHandlers().size());
         assertEquals("send_payment_handler", createStream.commandHandlers().get("SendPayment"));

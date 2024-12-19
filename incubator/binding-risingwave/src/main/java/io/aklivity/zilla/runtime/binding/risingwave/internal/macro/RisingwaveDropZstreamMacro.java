@@ -18,12 +18,12 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveDropStreamMacro extends RisingwaveMacroBase
+public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
 {
     private final String systemSchema;
     private final Drop command;
 
-    public RisingwaveDropStreamMacro(
+    public RisingwaveDropZstreamMacro(
         String systemSchema,
         String sql,
         Drop command,

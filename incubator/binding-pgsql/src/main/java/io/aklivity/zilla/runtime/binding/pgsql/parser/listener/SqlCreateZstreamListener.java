@@ -37,6 +37,7 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
 
     private String schema;
     private String name;
+    private String dispatchOn;
 
     public SqlCreateZstreamListener(
         TokenStream tokens)
@@ -48,7 +49,7 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
 
     public CreateZstream stream()
     {
-        return new CreateZstream(schema, name, columns, commandHandlers);
+        return new CreateZstream(schema, name, columns, dispatchOn, commandHandlers);
     }
 
     @Override
@@ -57,6 +58,7 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
     {
         schema = null;
         name = null;
+        dispatchOn = null;
         columns.clear();
         commandHandlers.clear();
     }
@@ -69,6 +71,13 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
         String[] split = text.split(SCHEMA_PATTERN);
         schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
+    }
+
+    @Override
+    public void enterZreloption_elem(
+        PostgreSqlParser.Zreloption_elemContext ctx)
+    {
+        dispatchOn = ctx.collabel().getText();
     }
 
     @Override

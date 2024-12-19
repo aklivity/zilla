@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveZcreateStreamMacro extends RisingwaveMacroBase
+public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 {
     //TODO: Remove after implementing zstream
     private static final String ZILLA_CORRELATION_ID_OLD = "zilla_correlation_id";
@@ -49,7 +49,7 @@ public class RisingwaveZcreateStreamMacro extends RisingwaveMacroBase
     private final String user;
     private final CreateZstream command;
 
-    public RisingwaveZcreateStreamMacro(
+    public RisingwaveCreateZstreamMacro(
         String bootstrapServer,
         String schemaRegistry,
         long scanStartupMil,

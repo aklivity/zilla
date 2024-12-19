@@ -18,12 +18,12 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveAlterStreamMacro extends RisingwaveMacroBase
+public class RisingwaveAlterZstreamMacro extends RisingwaveMacroBase
 {
     private final StringBuilder fieldBuilder;
     private final Alter command;
 
-    public RisingwaveAlterStreamMacro(
+    public RisingwaveAlterZstreamMacro(
         String sql,
         Alter command,
         RisingwaveMacroHandler handler)

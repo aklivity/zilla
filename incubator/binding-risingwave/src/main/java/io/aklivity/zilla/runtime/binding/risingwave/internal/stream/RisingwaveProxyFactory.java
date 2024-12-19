@@ -49,13 +49,14 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfigura
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveBindingConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRouteConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterStreamMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterZstreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateFunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZfunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZstreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropStreamMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZstreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZviewMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
@@ -63,7 +64,6 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMac
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowCommandMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowZfunctionCommandMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveUnknownMacro;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveZcreateStreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
@@ -162,7 +162,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_ZTABLE_COMMAND, this::decodeCreateZtableCommand);
-        clientTransforms.put(RisingwaveCommandType.CREATE_STREAM_COMMAND, this::decodeCreateStreamCommand);
+        clientTransforms.put(RisingwaveCommandType.CREATE_ZSTREAM_COMMAND, this::decodeCreateZstreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZVIEW_COMMAND, this::decodeCreateZviewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZFUNCTION_COMMAND, this::decodeCreateZfunctionCommand);
@@ -1712,7 +1712,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.macroState.onStarted(traceId, authorization);
     }
 
-    private void decodeCreateStreamCommand(
+    private void decodeCreateZstreamCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1724,7 +1724,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             RisingwaveBindingConfig binding = server.binding;
 
-            RisingwaveZcreateStreamMacro machine = new RisingwaveZcreateStreamMacro(
+            RisingwaveCreateZstreamMacro machine = new RisingwaveCreateZstreamMacro(
                 binding.bootstrapServer,
                 binding.schemaRegistry,
                 config.kafkaScanStartupTimestampMillis(),
@@ -1863,7 +1863,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             if (server.macroState == null)
             {
-                RisingwaveAlterStreamMacro machine = new RisingwaveAlterStreamMacro(
+                RisingwaveAlterZstreamMacro machine = new RisingwaveAlterZstreamMacro(
                     statement,
                     command,
                     server.macroHandler);
@@ -1922,7 +1922,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             // TODO: Enhance multiple streams
             final Drop command = parser.parseDrop(statement).get(0);
 
-            RisingwaveDropStreamMacro machine = new RisingwaveDropStreamMacro(
+            RisingwaveDropZstreamMacro machine = new RisingwaveDropZstreamMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 statement,
                 command,

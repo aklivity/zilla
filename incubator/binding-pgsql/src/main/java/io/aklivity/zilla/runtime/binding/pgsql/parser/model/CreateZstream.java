@@ -21,6 +21,7 @@ public record CreateZstream(
     String schema,
     String name,
     List<ZstreamColumn> columns,
+    String dispatchOn,
     Map<String, String> commandHandlers)
 {
 }
