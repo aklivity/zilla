@@ -570,7 +570,7 @@ public class PgsqlParserTest
     public void shouldCreateZstream()
     {
         String sql = """
-            CREATE ZSTREAM app_events(
+            CREATE ZSTREAM app_events (
                 event VARCHAR,
                 user_id VARCHAR,
                 request_id VARCHAR,
@@ -580,21 +580,19 @@ public class PgsqlParserTest
                 created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP
             )
             WITH (
-              commands = {
-                dispatch_on = 'command',
-                handlers = {
-                  'SendPayment' = 'send_payment_handler',
-                  'RequestPayment' = 'request_payment_handler',
-                  'RejectPayment' = 'reject_payment_handler'
-                }
-              }
+                DISPATCH_ON = 'command',
+                HANDLERS = (
+                    'SendPayment' TO 'send_payment_handler',
+                    'RequestPayment' TO 'request_payment_handler',
+                    'RejectPayment' TO 'reject_payment_handler'
+                )
             );
             """;
 
         CreateZstream createStream = parser.parseCreateStream(sql);
 
         assertEquals("app_events", createStream.name());
-        assertEquals("type", createStream.columns().get(0).name());
+        assertEquals("event", createStream.columns().get(0).name());
         assertEquals("VARCHAR", createStream.columns().get(0).type());
         assertEquals("user_id", createStream.columns().get(1).name());
         assertEquals("VARCHAR", createStream.columns().get(1).type());
@@ -609,7 +607,7 @@ public class PgsqlParserTest
         assertEquals("created_at", createStream.columns().get(6).name());
         assertEquals("TIMESTAMP", createStream.columns().get(6).type());
 
-        assertEquals("commands", createStream.dispatchOn());
+        assertEquals("command", createStream.dispatchOn());
 
         assertEquals(3, createStream.commandHandlers().size());
         assertEquals("send_payment_handler", createStream.commandHandlers().get("SendPayment"));

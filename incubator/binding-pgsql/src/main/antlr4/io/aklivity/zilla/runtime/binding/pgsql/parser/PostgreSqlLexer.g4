@@ -58,8 +58,9 @@ STAR: '*';
 
 EQUAL: '=';
 
-OPEN_CURLY : '{';
-CLOSE_CURLY : '}';
+DISPATCH_ON: 'DISPATCH_ON';
+
+HANDLERS: 'HANDLERS';
 
 DOT: '.';
 //NamedArgument	: ':=';

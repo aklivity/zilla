@@ -74,13 +74,6 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterZreloption_elem(
-        PostgreSqlParser.Zreloption_elemContext ctx)
-    {
-        dispatchOn = ctx.collabel().getText();
-    }
-
-    @Override
     public void enterZstream_columns(
         PostgreSqlParser.Zstream_columnsContext ctx)
     {
@@ -88,31 +81,37 @@ public class SqlCreateZstreamListener extends PostgreSqlParserBaseListener
         {
             String name = c.colid().getText();
             String type = tokens.getText(c.typename());
-            String generatedAlways = tokens.getText(c.opt_generated_always());
+            String generatedAlways = tokens.getText(c.opt_generated_clause());
 
             columns.add(new ZstreamColumn(name, type, generatedAlways));
         });
     }
 
     @Override
-    public void enterCommand_function_mappings(
-        PostgreSqlParser.Command_function_mappingsContext ctx)
+    public void enterZreloptions(
+        PostgreSqlParser.ZreloptionsContext ctx)
     {
-        ctx.command_function_mapping().forEach(c ->
+        ctx.zreloption_elem().forEach(o ->
         {
-            String dispatch = c.sconst().getText();
-            if (dispatch != null && dispatch.length() > 1)
+            if (o.sconst() != null)
             {
-                dispatch = dispatch.substring(1, dispatch.length() - 1);
-            }
-            String handler = c.function_name().getText();
-
-            if (handler != null && handler.length() > 1)
-            {
-                handler = handler.substring(1, handler.length() - 1);
+                String quotedText = o.sconst().getText();
+                dispatchOn = quotedText.substring(1, quotedText.length() - 1);
             }
 
-            commandHandlers.put(dispatch, handler);
+            if (o.handler_mappings() != null)
+            {
+                o.handler_mappings().handler_mapping().forEach(m ->
+                {
+                    // TODO: Improve getting fields value without substring
+                    String name = m.sconst().getText();
+                    name = name.substring(1, name.length() - 1);
+                    String handler = m.function_name().getText();
+                    handler = handler.substring(1, handler.length() - 1);
+                    commandHandlers.put(name, handler);
+                });
+            }
         });
     }
+
 }

@@ -703,20 +703,16 @@ zstream_name
     ;
 
 zstream_columns
-    : standard_columns zstream_generated_columns
-    ;
-
-standard_columns
     : zstream_column (COMMA zstream_column)*
     ;
 
-zstream_generated_columns
-    : colid typename GENERATED ALWAYS AS generation_type
-      colid typename GENERATED ALWAYS AS generation_type
+zstream_column
+    : colid typename opt_generated_clause
     ;
 
-zstream_column
-    : colid typename
+opt_generated_clause
+    : GENERATED ALWAYS AS generation_type
+    | /* Empty */
     ;
 
 generation_type
@@ -726,7 +722,6 @@ generation_type
 
 opt_with_zstream
     : WITH OPEN_PAREN zreloptions CLOSE_PAREN
-    | /* Empty */
     ;
 
 zreloptions
@@ -734,8 +729,8 @@ zreloptions
     ;
 
 zreloption_elem
-    : collabel EQUAL def_arg
-    | collabel EQUAL OPEN_PAREN handler_mappings CLOSE_PAREN
+    : DISPATCH_ON EQUAL sconst
+    | HANDLERS EQUAL OPEN_PAREN handler_mappings CLOSE_PAREN
     ;
 
 handler_mappings
@@ -743,7 +738,11 @@ handler_mappings
     ;
 
 handler_mapping
-    : sconst TO sconst
+    : sconst TO function_name
+    ;
+
+function_name
+    : sconst
     ;
 
 createztstmt
