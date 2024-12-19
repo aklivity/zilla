@@ -14,74 +14,53 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
-import java.util.List;
-
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveShowCommandMacro
+public class RisingwaveAlterZstreamMacro extends RisingwaveMacroBase
 {
-    private final String sql;
-    private final String command;
-    private final RisingwaveMacroHandler handler;
+    private final StringBuilder fieldBuilder;
+    private final Alter command;
 
-    public RisingwaveShowCommandMacro(
+    public RisingwaveAlterZstreamMacro(
         String sql,
-        String command,
+        Alter command,
         RisingwaveMacroHandler handler)
     {
-        this.sql = sql;
-        this.command = command;
-        this.handler = handler;
-    }
+        super(sql, handler);
 
+        this.command = command;
+        this.fieldBuilder = new StringBuilder();
+    }
 
     public RisingwaveMacroState start()
     {
-        return new ShowCommandState();
+        return new AlterTopicState();
     }
 
-    private final class ShowCommandState implements RisingwaveMacroState
+    private final class AlterTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            SELECT * FROM zb_catalog.%s;\u0000""";
+            ALTER TOPIC %s %s;\u0000""";
+        private final String fieldFormat = "%s COLUMN %s %s, ";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.toLowerCase());
+            String topic = command.name();
+            fieldBuilder.setLength(0);
 
+            command.expressions()
+                .forEach(c -> fieldBuilder.append(
+                    String.format(fieldFormat, c.operation().name(), c.columnName(), c.columnType())));
+
+            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+
+            String sqlQuery = String.format(sqlFormat, topic, fieldBuilder);
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-        }
-
-        @Override
-        public <T> RisingwaveMacroState onRow(
-            T client,
-            long traceId,
-            long authorization,
-            int flags,
-            DirectBuffer buffer,
-            int offset,
-            int limit,
-            OctetsFW extension)
-        {
-            handler.doColumn(client, traceId, authorization, flags, buffer, offset, limit);
-            return this;
-        }
-
-        @Override
-        public RisingwaveMacroState onType(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doDescription(traceId, authorization, List.of("Name"));
-            return this;
         }
 
         @Override
@@ -90,7 +69,7 @@ public class RisingwaveShowCommandMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.SHOW_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.ALTER_STREAM_COMMAND);
             return this;
         }
 
@@ -114,4 +93,5 @@ public class RisingwaveShowCommandMacro
             return this;
         }
     }
+
 }

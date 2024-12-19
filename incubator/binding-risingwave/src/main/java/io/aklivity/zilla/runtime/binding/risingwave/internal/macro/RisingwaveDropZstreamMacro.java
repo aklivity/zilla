@@ -14,52 +14,80 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveAlterStreamMacro extends RisingwaveMacroBase
+public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
 {
-    private final StringBuilder fieldBuilder;
-    private final Alter command;
+    private final String systemSchema;
+    private final Drop command;
 
-    public RisingwaveAlterStreamMacro(
+    public RisingwaveDropZstreamMacro(
+        String systemSchema,
         String sql,
-        Alter command,
+        Drop command,
         RisingwaveMacroHandler handler)
     {
         super(sql, handler);
 
+        this.systemSchema = systemSchema;
         this.command = command;
-        this.fieldBuilder = new StringBuilder();
     }
 
     public RisingwaveMacroState start()
     {
-        return new AlterTopicState();
+        return new DropTopicState();
     }
 
-    private final class AlterTopicState implements RisingwaveMacroState
+    private final class DropTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            ALTER TOPIC %s %s;\u0000""";
-        private final String fieldFormat = "%s COLUMN %s %s, ";
+            DROP TOPIC %s;\u0000""";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            String topic = command.name();
-            fieldBuilder.setLength(0);
+            String sqlQuery = String.format(sqlFormat, command.name());
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
 
-            command.expressions()
-                .forEach(c -> fieldBuilder.append(
-                    String.format(fieldFormat, c.operation().name(), c.columnName(), c.columnType())));
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            DropSourceState state = new DropSourceState();
+            state.onStarted(traceId, authorization);
 
-            fieldBuilder.delete(fieldBuilder.length() - 2, fieldBuilder.length());
+            return state;
+        }
 
-            String sqlQuery = String.format(sqlFormat, topic, fieldBuilder);
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+            return errorState();
+        }
+    }
+
+    private final class DropSourceState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            DROP SOURCE %s.%s;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String sqlQuery = String.format(sqlFormat, systemSchema, command.name());
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
@@ -69,7 +97,7 @@ public class RisingwaveAlterStreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.ALTER_STREAM_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_STREAM_COMMAND);
             return this;
         }
 
@@ -93,5 +121,4 @@ public class RisingwaveAlterStreamMacro extends RisingwaveMacroBase
             return this;
         }
     }
-
 }
