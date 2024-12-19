@@ -253,4 +253,13 @@ public class EffectiveIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/show.zfunctions/client",
+        "${app}/show.zfunctions/server" })
+    public void shouldShowZfunctions() throws Exception
+    {
+        k3po.finish();
+    }
 }

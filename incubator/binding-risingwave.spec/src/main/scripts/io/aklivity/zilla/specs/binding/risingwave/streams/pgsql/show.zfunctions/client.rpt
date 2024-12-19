@@ -48,6 +48,42 @@ read advised zilla:flush ${pgsql:flushEx()
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
+                                .column()
+                                    .name("Arguments")
+                                    .tableOid(0)
+                                    .index(0)
+                                    .typeOid(701)
+                                    .length(9)
+                                    .modifier(-1)
+                                    .format("TEXT")
+                                    .build()
+                                .column()
+                                    .name("Return Type")
+                                    .tableOid(0)
+                                    .index(0)
+                                    .typeOid(701)
+                                    .length(11)
+                                    .modifier(-1)
+                                    .format("TEXT")
+                                    .build()
+                                .column()
+                                    .name("Language")
+                                    .tableOid(0)
+                                    .index(0)
+                                    .typeOid(701)
+                                    .length(8)
+                                    .modifier(-1)
+                                    .format("TEXT")
+                                    .build()
+                                .column()
+                                    .name("Link")
+                                    .tableOid(0)
+                                    .index(0)
+                                    .typeOid(701)
+                                    .length(4)
+                                    .modifier(-1)
+                                    .format("TEXT")
+                                    .build()
                                 .build()
                               .build()}
 
@@ -56,9 +92,18 @@ read zilla:data.ext ${pgsql:dataEx()
                               .row()
                                 .build()
                               .build()}
-read  [0x00 0x01]                                                 # Field Count
-      [0x00 0x00 0x00 0x06]                                       # Length
-      [0x63 0x69 0x74 0x69 0x65 0x73]                             # Data
+read [0x00 0x05]                                                 # Field Count
+     [0x00 0x00 0x00 0x0c]                                       # Length
+     "test_command"                                              # Data
+     [0x00 0x00 0x00 0x47]                                       # Length
+     "user_id VARCHAR, random VARCHAR, "                         # Data
+     "amount DOUBLE PRECISION, notes VARCHAR"
+     [0x00 0x00 0x00 0x59]                                       # Length
+     "type VARCHAR, user_id VARCHAR, request_id VARCHAR, "       # Data
+     "amount DOUBLE PRECISION, notes VARCHAR"
+     [0x00 0x00 0x00 0x03]                                       # Length
+     "SQL"                                                       # Data
+     [0xff 0xff 0xff 0xff]                                       # Length
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))

@@ -54,7 +54,7 @@ write advise zilla:flush ${pgsql:flushEx()
                                     .tableOid(0)
                                     .index(0)
                                     .typeOid(20)
-                                    .length(8)
+                                    .length(3)
                                     .modifier(-1)
                                     .format("TEXT")
                                     .build()
@@ -69,9 +69,8 @@ write zilla:data.ext ${pgsql:dataEx()
 write [0x00 0x02]                                                 # Field Count
       [0x00 0x00 0x00 0x06]                                       # Length
       [0x63 0x69 0x74 0x69 0x65 0x73]                             # Data
-      [0x00 0x00 0x02 0x43]                                       # Length
-      "CREATE ZFUNCTION send_payment_handler(\n"                  # Data
-      " type VARCHAR,\n"
+      [0x00 0x00 0x01 0xda]                                       # Length
+      "CREATE ZFUNCTION test_command(\n"                          # Data
       " user_id VARCHAR,\n"
       " random VARCHAR,\n"
       " amount DOUBLE PRECISION,\n"

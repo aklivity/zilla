@@ -14,29 +14,32 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.nio.ByteOrder;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public class RisingwaveShowZfunctionCommandMacro
 {
+    private final PgsqlParser parser;
     private final String sql;
-    private final String command;
     private final RisingwaveMacroHandler handler;
 
     private final List<String> columns = List.of("Name", "Arguments", "Return Type", "Language", "Link");
 
     public RisingwaveShowZfunctionCommandMacro(
+        PgsqlParser parser,
         String sql,
-        String command,
         RisingwaveMacroHandler handler)
     {
+        this.parser = parser;
         this.sql = sql;
-        this.command = command;
         this.handler = handler;
     }
 
@@ -55,9 +58,7 @@ public class RisingwaveShowZfunctionCommandMacro
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.toLowerCase());
-
-            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+            handler.doExecuteSystemClient(traceId, authorization, sqlFormat);
         }
 
         @Override
@@ -71,7 +72,24 @@ public class RisingwaveShowZfunctionCommandMacro
             int limit,
             OctetsFW extension)
         {
-            handler.doColumn(client, traceId, authorization, flags, buffer, offset, limit);
+            int progress = offset;
+
+            short fields = buffer.getShort(progress, ByteOrder.BIG_ENDIAN);
+            progress += Short.BYTES;
+
+            assert fields == 2;
+
+            int nameLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
+            progress += Integer.BYTES + nameLength;
+
+            int sqlLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
+            progress += Integer.BYTES;
+
+            String statement = buffer.getStringWithoutLengthAscii(progress, sqlLength);
+            CreateZfunction command = parser.parseCreateZfunction(statement);
+
+            handler.doZfunctionRow(client, traceId, authorization, command);
+
             return this;
         }
 

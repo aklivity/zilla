@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -51,7 +52,6 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRo
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterStreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateFunctionMacro;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateStreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZfunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
@@ -61,10 +61,13 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDro
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroState;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowCommandMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowZfunctionCommandMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveUnknownMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveZcreateStreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.types.codec.RisingwaveShowZfunctionsRowFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.DataFW;
@@ -134,6 +137,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private final PgsqlDataExFW.Builder dataExRW = new PgsqlDataExFW.Builder();
     private final PgsqlFlushExFW.Builder flushExRW = new PgsqlFlushExFW.Builder();
 
+    private final RisingwaveShowZfunctionsRowFW.Builder zfunctionsRowRW = new RisingwaveShowZfunctionsRowFW.Builder();
+
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
@@ -167,7 +172,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowCommand);
-        clientTransforms.put(RisingwaveCommandType.SHOW_ZFUNCTIONS_COMMAND, this::decodeShowCommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_ZFUNCTIONS_COMMAND, this::decodeShowZfunctionCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.clientTransforms = clientTransforms;
     }
@@ -826,9 +831,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 PgsqlFlushExFW descriptionEx = flushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(pgsqlTypeId)
                     .type(t -> t
-                        .columns(c -> c
-                            .item(s -> columns.forEach(
-                                cm ->  s
+                        .columns(c ->
+                            columns.forEach(cm -> c
+                                .item(s ->  s
                                     .name("%s\u0000".formatted(cm))
                                     .tableOid(0)
                                     .index((short) 0)
@@ -879,6 +884,39 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     doAppData(client, traceId, authorization, flags,
                         statementBuffer, 0, statementProgress, dataEx);
                 }
+            }
+
+            @Override
+            public <T> void doZfunctionRow(
+                T client,
+                long traceId,
+                long authorization,
+                CreateZfunction command)
+            {
+                PgsqlDataExFW dataEx = dataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(pgsqlTypeId)
+                    .row(q -> q.deferred(0))
+                    .build();
+
+                String name = command.name();
+                String arguments =  command.arguments().stream()
+                    .map(arg -> arg.name() + " " + arg.type())
+                    .collect(Collectors.joining(", "));
+                String returnType = command.returnTypes().stream()
+                    .map(arg -> arg.name() + " " + arg.type())
+                    .collect(Collectors.joining(", "));
+                String language = command.language();
+
+                RisingwaveShowZfunctionsRowFW row = zfunctionsRowRW.wrap(statementBuffer, 0, statementBuffer.capacity())
+                    .fields((short) 5)
+                    .name(name)
+                    .arguments(arguments)
+                    .returnType(returnType)
+                    .language(language)
+                    .build();
+
+                doAppData(client, traceId, authorization, FLAGS_COMP,
+                        statementBuffer, 0, row.limit(), dataEx);
             }
 
             @Override
@@ -1686,7 +1724,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             RisingwaveBindingConfig binding = server.binding;
 
-            RisingwaveCreateStreamMacro machine = new RisingwaveCreateStreamMacro(
+            RisingwaveZcreateStreamMacro machine = new RisingwaveZcreateStreamMacro(
                 binding.bootstrapServer,
                 binding.schemaRegistry,
                 config.kafkaScanStartupTimestampMillis(),
@@ -1930,6 +1968,24 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             RisingwaveShowCommandMacro machine = new RisingwaveShowCommandMacro(
                 statement,
                 command,
+                server.macroHandler);
+            server.macroState = machine.start();
+        }
+
+        server.macroState.onStarted(traceId, authorization);
+    }
+
+    private void decodeShowZfunctionCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.macroState == null)
+        {
+            RisingwaveShowZfunctionCommandMacro machine = new RisingwaveShowZfunctionCommandMacro(
+                parser,
+                statement,
                 server.macroHandler);
             server.macroState = machine.start();
         }
