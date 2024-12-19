@@ -32,8 +32,19 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE STREAM IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
+write "CREATE ZSTREAM app_events (\n"
+      "    event VARCHAR,\n"
+      "    user_id VARCHAR,\n"
+      "    amount DOUBLE PRECISION,\n"
+      "    owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,\n"
+      "    created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP\n"
+      ")\n"
+      "WITH (\n"
+      "    DISPATCH_ON = 'command',\n"
+      "    HANDLERS = (\n"
+      "        'SendPayment' TO 'send_payment_handler',\n"
+      "    )
+      ");"
       [0x00]
 
 write flush
@@ -41,7 +52,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_STREAM")
+                                .tag("CREATE_ZSTREAM")
                                 .build()
                               .build()}
 
@@ -51,4 +62,3 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .status("IDLE")
                                 .build()
                               .build()}
-

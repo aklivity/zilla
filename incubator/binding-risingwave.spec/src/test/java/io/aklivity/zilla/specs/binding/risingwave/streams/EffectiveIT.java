@@ -48,10 +48,10 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.stream/client",
-        "${app}/create.stream/server"
+        "${app}/create.zstream/client",
+        "${app}/create.zstream/server"
     })
-    public void shouldCreateStream() throws Exception
+    public void shouldCreateZstream() throws Exception
     {
         k3po.finish();
     }
