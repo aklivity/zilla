@@ -97,6 +97,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String SEVERITY_WARNING = "WARNING\u0000";
     private static final String CODE_XX000 = "XX000\u0000";
 
+    private static final int STRING_TYPE_OID = 1043;
+
     private static final String POSTGRES_USER = "postgres\u0000";
     private static final String DEFAULT_USER = "default\u0000";
 
@@ -828,7 +830,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                                 .name("%s\u0000".formatted(name))
                                 .tableOid(0)
                                 .index((short) 0)
-                                .typeOid(701)
+                                .typeOid(STRING_TYPE_OID)
                                 .length((short) name.length())
                                 .modifier(-1)
                                 .format(f -> f.set(PgsqlFormat.TEXT))
