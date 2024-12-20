@@ -686,7 +686,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             Flyweight extension)
         {
-            int reserved = (int) replySeq;
+            int reserved = replyPadding;
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                 authorization, replyBudgetId, reserved, extension);
@@ -699,7 +699,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             Consumer<OctetsFW.Builder> extension)
         {
-            int reserved = (int) replySeq;
+            int reserved = replyPadding;
 
             doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                 authorization, replyBudgetId, reserved, extension);
