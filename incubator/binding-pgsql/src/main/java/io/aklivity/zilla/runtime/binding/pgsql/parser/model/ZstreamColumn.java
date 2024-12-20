@@ -14,15 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
-import java.util.List;
-
-public record Function(
-    String schema,
+public record ZstreamColumn(
     String name,
-    List<FunctionArgument> arguments,
-    String returnType,
-    List<FunctionArgument> tables,
-    String asFunction,
-    String language)
+    String type,
+    String generatedAlways)
 {
 }

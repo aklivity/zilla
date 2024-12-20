@@ -12,13 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
-
-import java.util.Map;
-
-public record CreateStream(
-    String schema,
-    String name,
-    Map<String, String> columns)
+scope protocol
 {
+    option byteorder network;
+
+    scope codec
+    {
+        struct RisingwaveShowZfunctionsRow
+        {
+            int16 fields;
+            string32 name;
+            string32 arguments;
+            string32 returnType;
+            string32 language;
+            string32 link = null;
+        }
+    }
 }

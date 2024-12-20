@@ -14,80 +14,56 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveDropStreamMacro extends RisingwaveMacroBase
+public class RisingwaveCreateZfunctionMacro
 {
-    private final String systemSchema;
-    private final Drop command;
+    private static final String ZFUNCTION_NAME = "zfunctions";
 
-    public RisingwaveDropStreamMacro(
+    private final String systemSchema;
+    private final String user;
+    private final String sql;
+    private final CreateZfunction command;
+    private final RisingwaveMacroHandler handler;
+
+    public RisingwaveCreateZfunctionMacro(
         String systemSchema,
+        String user,
         String sql,
-        Drop command,
+        CreateZfunction command,
         RisingwaveMacroHandler handler)
     {
-        super(sql, handler);
-
         this.systemSchema = systemSchema;
+        this.user = user;
+        this.sql = sql;
         this.command = command;
+        this.handler = handler;
     }
 
     public RisingwaveMacroState start()
     {
-        return new DropTopicState();
+        return new InsertIntoCatalogState();
     }
 
-    private final class DropTopicState implements RisingwaveMacroState
+
+    private final class InsertIntoCatalogState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP TOPIC %s;\u0000""";
+            INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.name());
-            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-        }
+            String name = command.name();
 
-        @Override
-        public RisingwaveMacroState onReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            DropSourceState state = new DropSourceState();
-            state.onStarted(traceId, authorization);
+            String newSql = sql.replace("\u0000", "");
+            newSql = newSql.replaceAll("'", "''");
+            String sqlQuery = String.format(sqlFormat, systemSchema, ZFUNCTION_NAME, name, newSql);
 
-            return state;
-        }
-
-        @Override
-        public RisingwaveMacroState onError(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-            return errorState();
-        }
-    }
-
-    private final class DropSourceState implements RisingwaveMacroState
-    {
-        private final String sqlFormat = """
-            DROP SOURCE %s.%s;\u0000""";
-
-        @Override
-        public void onStarted(
-            long traceId,
-            long authorization)
-        {
-            String sqlQuery = String.format(sqlFormat, systemSchema, command.name());
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 
@@ -97,7 +73,7 @@ public class RisingwaveDropStreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_STREAM_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.CREATE_ZFUNCTION_COMMAND);
             return this;
         }
 

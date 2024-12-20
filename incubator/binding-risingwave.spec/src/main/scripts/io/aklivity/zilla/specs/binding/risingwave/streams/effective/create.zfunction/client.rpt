@@ -13,13 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${pgsql:beginEx()
                               .typeId(zilla:id("pgsql"))
-                              .parameter("user", "zillabase")
+                              .parameter("user", "postgres")
                               .parameter("database", "dev")
                               .parameter("application_name", "psql")
                               .parameter("client_encoding", "UTF8")
@@ -32,8 +32,31 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE STREAM IF NOT EXISTS weather "
-      "(city VARCHAR, temperature DOUBLE, date DATE);"
+write "INSERT INTO zb_catalog.zfunctions (name, sql) VALUES ('send_payment_handler', 'CREATE ZFUNCTION send_payment_handler(\n"
+      " type VARCHAR,\n"
+      " user_id VARCHAR,\n"
+      " random VARCHAR,\n"
+      " amount DOUBLE PRECISION,\n"
+      " notes VARCHAR)\n"
+      "RETURNS TABLE(\n"
+      " type VARCHAR,\n"
+      " user_id VARCHAR,\n"
+      " request_id VARCHAR,\n"
+      " amount DOUBLE PRECISION,\n"
+      " notes VARCHAR)\n"
+      "LANGUAGE SQL AS $$\n"
+      " SELECT\n"
+      "     CASE\n"
+      "         WHEN balance >= amount THEN \"PaymentSent\"\n"
+      "         ELSE \"PaymentDeclined\"\n"
+      "     END AS type,\n"
+      "     user_id,\n"
+      "     request_id,\n"
+      "     amount,\n"
+      "     balance,\n"
+      "     notes\n"
+      " FROM balance as b WHERE b.user_id = user_id;\n"
+      "$$');"
       [0x00]
 
 write flush
@@ -41,7 +64,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("CREATE_STREAM")
+                                .tag("INSERT 0 2")
                                 .build()
                               .build()}
 
@@ -52,3 +75,16 @@ read advised zilla:flush ${pgsql:flushEx()
                                 .build()
                               .build()}
 
+connect "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "zillabase")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
