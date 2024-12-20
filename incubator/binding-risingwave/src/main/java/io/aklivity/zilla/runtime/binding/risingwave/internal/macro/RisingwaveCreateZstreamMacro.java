@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
@@ -42,11 +44,12 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         ZILLA_MAPPINGS_OLD.put(ZILLA_TIMESTAMP_OLD, "INCLUDE timestamp AS %s\n");
     }
 
-    protected final StringBuilder fieldBuilder = new StringBuilder();
-    protected final StringBuilder includeBuilder = new StringBuilder();
+    private final StringBuilder fieldBuilder = new StringBuilder();
+    private final StringBuilder includeBuilder = new StringBuilder();
 
     private final String bootstrapServer;
     private final String schemaRegistry;
+    private final PgsqlParser parser;
 
     private final long scanStartupMil;
     private final String systemSchema;
@@ -61,7 +64,8 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         String user,
         String sql,
         CreateZstream command,
-        RisingwaveMacroHandler handler)
+        RisingwaveMacroHandler handler,
+        PgsqlParser parser)
     {
         super(sql, handler);
 
@@ -72,6 +76,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 
         this.bootstrapServer = bootstrapServer;
         this.schemaRegistry = schemaRegistry;
+        this.parser = parser;
     }
 
     public RisingwaveMacroState start()
@@ -122,6 +127,10 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             progress += Integer.BYTES;
 
             String statement = buffer.getStringWithoutLengthAscii(progress, sqlLength);
+
+            CreateZfunction createZfunction = parser.parseCreateZfunction(statement);
+
+            handler.doZfunctionRow(client, traceId, authorization, createZfunction);
 
             return this;
         }
