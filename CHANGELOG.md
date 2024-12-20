@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.113...HEAD)
+
+**Merged pull requests:**
+
+- Update show commands type oid [\#1357](https://github.com/aklivity/zilla/pull/1357) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.113](https://github.com/aklivity/zilla/tree/0.9.113) (2024-12-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.112...0.9.113)
