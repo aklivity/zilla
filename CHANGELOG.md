@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.112...HEAD)
+
+**Merged pull requests:**
+
+- Set correct reserved on flush in risingwave [\#1356](https://github.com/aklivity/zilla/pull/1356) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.112](https://github.com/aklivity/zilla/tree/0.9.112) (2024-12-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.111...0.9.112)
