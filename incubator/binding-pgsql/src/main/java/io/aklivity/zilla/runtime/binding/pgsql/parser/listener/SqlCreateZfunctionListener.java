@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Select;
 
 public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
 {
@@ -33,22 +34,46 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     private final List<FunctionArgument> arguments;
     private final TokenStream tokens;
 
+    private final List<String> columns = new ArrayList<>();
+
+    private String table;
+    private String whereClause;
+    private String groupByClause;
+    private String orderByClause;
+    private String limitClause;
+    private String offsetClause;
+
     private String schema;
     private String name;
-    private String asFunction;
-    private String language;
 
     public SqlCreateZfunctionListener(
         TokenStream tokens)
     {
         this.returnTypes = new ArrayList<>();
         this.arguments = new ArrayList<>();
+
+        this.columns.clear();
+
         this.tokens = tokens;
     }
 
     public CreateZfunction zfunction()
     {
-        return new CreateZfunction(schema, name, arguments, returnTypes, asFunction, language);
+        final Select select = new Select(
+            columns,
+            table,
+            whereClause,
+            groupByClause,
+            orderByClause,
+            limitClause,
+            offsetClause);
+
+        return new CreateZfunction(
+            schema,
+            name,
+            arguments,
+            returnTypes,
+            select);
     }
 
     @Override
@@ -57,10 +82,16 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     {
         schema = null;
         name = null;
-        asFunction = null;
-        language = null;
         arguments.clear();
         returnTypes.clear();
+
+        columns.clear();
+        table = null;
+        whereClause = null;
+        groupByClause = null;
+        orderByClause = null;
+        limitClause = null;
+        offsetClause = null;
     }
 
     @Override
@@ -92,16 +123,54 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterFunc_as(
-        PostgreSqlParser.Func_asContext ctx)
+    public void enterTarget_list(
+        PostgreSqlParser.Target_listContext ctx)
     {
-        asFunction = ctx.getText();
+        ctx.target_el().forEach(c -> columns.add(c.getText()));
     }
 
     @Override
-    public void enterNonreservedword_or_sconst(
-        PostgreSqlParser.Nonreservedword_or_sconstContext ctx)
+    public void enterFrom_clause(
+        PostgreSqlParser.From_clauseContext ctx)
     {
-        language = ctx.getText();
+        if (ctx.from_list() != null)
+        {
+            table = ctx.from_list().getText();
+        }
+    }
+
+    @Override
+    public void enterWhere_clause(
+        PostgreSqlParser.Where_clauseContext ctx)
+    {
+        whereClause = ctx.getText();
+    }
+
+    @Override
+    public void enterGroup_clause(
+        PostgreSqlParser.Group_clauseContext ctx)
+    {
+        groupByClause = ctx.getText();
+    }
+
+    @Override
+    public void enterSort_clause(
+        PostgreSqlParser.Sort_clauseContext ctx)
+    {
+        orderByClause = ctx.getText();
+    }
+
+    @Override
+    public void enterLimit_clause(
+        PostgreSqlParser.Limit_clauseContext ctx)
+    {
+        limitClause = ctx.getText();
+    }
+
+    @Override
+    public void enterOffset_clause(
+        PostgreSqlParser.Offset_clauseContext ctx)
+    {
+        offsetClause = ctx.getText();
     }
 }

@@ -40,6 +40,8 @@ options {
 
 Dollar: '$';
 
+ZFUNCTION_S: '$$';
+
 OPEN_PAREN: '(';
 
 CLOSE_PAREN: ')';

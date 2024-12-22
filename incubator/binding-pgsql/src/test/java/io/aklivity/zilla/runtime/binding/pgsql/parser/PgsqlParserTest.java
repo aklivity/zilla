@@ -511,59 +511,41 @@ public class PgsqlParserTest
     public void shouldParseCreateZfunctionWithTableReturnType()
     {
         String sql = """
-            CREATE ZFUNCTION send_payment_handler(
-                type VARCHAR,
-                user_id VARCHAR,
-                random VARCHAR,
-                amount DOUBLE PRECISION,
-                notes VARCHAR)
-              RETURNS TABLE(
-                type VARCHAR,
-                user_id VARCHAR,
-                request_id VARCHAR,
-                amount DOUBLE PRECISION,
-                notes VARCHAR)
-              LANGUAGE SQL AS $$
-                SELECT
-                    CASE
-                        WHEN balance >= amount THEN "PaymentSent"
-                        ELSE "PaymentDeclined"
-                    END AS type,
-                    user_id,
-                    request_id,
-                    amount,
-                    balance,
-                    notes
-                FROM balance as b WHERE b.user_id = user_id;
-                $$
-            """;
+           CREATE ZFUNCTION send_payment_handler(
+             user_id VARCHAR,
+             amount DOUBLE PRECISION)
+            RETURNS TABLE(
+             event VARCHAR,
+             user_id VARCHAR,
+             amount DOUBLE PRECISION)
+            LANGUAGE SQL AS $$
+             SELECT
+                 CASE
+                     WHEN balance >= args.amount THEN "PaymentSent"
+                     ELSE "PaymentDeclined"
+                 END AS event,
+                 args.user_id,
+                 args.amount
+             FROM balance WHERE user_id = args.user_id;
+            $$
+           """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 
         assertEquals("send_payment_handler", function.name());
-        assertEquals(5, function.arguments().size());
-        assertEquals("type", function.arguments().get(0).name());
+        assertEquals(2, function.arguments().size());
+        assertEquals("user_id", function.arguments().get(0).name());
         assertEquals("VARCHAR", function.arguments().get(0).type());
-        assertEquals("user_id", function.arguments().get(1).name());
-        assertEquals("VARCHAR", function.arguments().get(1).type());
-        assertEquals("random", function.arguments().get(2).name());
-        assertEquals("VARCHAR", function.arguments().get(2).type());
-        assertEquals("amount", function.arguments().get(3).name());
-        assertEquals("DOUBLE PRECISION", function.arguments().get(3).type());
-        assertEquals("notes", function.arguments().get(4).name());
-        assertEquals("VARCHAR", function.arguments().get(4).type());
+        assertEquals("amount", function.arguments().get(1).name());
+        assertEquals("DOUBLE PRECISION", function.arguments().get(1).type());
 
-        assertEquals(5, function.returnTypes().size());
-        assertEquals("type", function.returnTypes().get(0).name());
+        assertEquals(3, function.returnTypes().size());
+        assertEquals("event", function.returnTypes().get(0).name());
         assertEquals("VARCHAR", function.returnTypes().get(0).type());
         assertEquals("user_id", function.returnTypes().get(1).name());
         assertEquals("VARCHAR", function.returnTypes().get(1).type());
-        assertEquals("request_id", function.returnTypes().get(2).name());
-        assertEquals("VARCHAR", function.returnTypes().get(2).type());
-        assertEquals("amount", function.returnTypes().get(3).name());
-        assertEquals("DOUBLE PRECISION", function.returnTypes().get(3).type());
-        assertEquals("notes", function.returnTypes().get(4).name());
-        assertEquals("VARCHAR", function.returnTypes().get(4).type());
+        assertEquals("amount", function.returnTypes().get(2).name());
+        assertEquals("DOUBLE PRECISION", function.returnTypes().get(2).type());
     }
 
     @Test

@@ -1732,7 +1732,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 server.user,
                 statement,
                 command,
-                server.macroHandler);
+                server.macroHandler,
+                parser);
             server.macroState = machine.start();
         }
 

@@ -2043,9 +2043,8 @@ opt_nulls_order
     ;
 
 createzfunctionstmt
-    : CREATE opt_or_replace ZFUNCTION func_name func_args_with_defaults (
-        RETURNS (func_return | TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN)
-    )? createfunc_opt_list
+    : CREATE ZFUNCTION func_name func_args_with_defaults
+      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN LANGUAGE SQL_P AS ZFUNCTION_S selectstmt SEMI ZFUNCTION_S
     ;
 
 createfunctionstmt
