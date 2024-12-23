@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Select;
 
 public class PgsqlParserTest
 {
@@ -546,6 +547,18 @@ public class PgsqlParserTest
         assertEquals("VARCHAR", function.returnTypes().get(1).type());
         assertEquals("amount", function.returnTypes().get(2).name());
         assertEquals("DOUBLE PRECISION", function.returnTypes().get(2).type());
+
+        Select select = function.select();
+        assertNotNull(select);
+        assertEquals(3, select.columns().size());
+        assertEquals("CASE\n" +
+            "          WHEN balance >= args.amount THEN \"PaymentSent\"\n" +
+            "          ELSE \"PaymentDeclined\"\n" +
+            "      END AS event", select.columns().get(0));
+        assertEquals("args.user_id", select.columns().get(1));
+        assertEquals("args.amount", select.columns().get(2));
+        assertEquals("balance", select.from());
+        assertEquals("WHERE user_id = args.user_id", select.whereClause());
     }
 
     @Test

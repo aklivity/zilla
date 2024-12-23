@@ -18,7 +18,7 @@ import java.util.List;
 
 public record Select(
     List<String> columns,
-    String table,
+    String from,
     String whereClause,
     String groupByClause,
     String orderByClause,

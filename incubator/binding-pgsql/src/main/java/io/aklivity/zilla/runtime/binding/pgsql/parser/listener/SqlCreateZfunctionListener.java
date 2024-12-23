@@ -34,9 +34,9 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     private final List<FunctionArgument> arguments;
     private final TokenStream tokens;
 
-    private final List<String> columns = new ArrayList<>();
+    private final List<String> columns;
 
-    private String table;
+    private String from;
     private String whereClause;
     private String groupByClause;
     private String orderByClause;
@@ -51,8 +51,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     {
         this.returnTypes = new ArrayList<>();
         this.arguments = new ArrayList<>();
-
-        this.columns.clear();
+        this.columns = new ArrayList<>();
 
         this.tokens = tokens;
     }
@@ -61,7 +60,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     {
         final Select select = new Select(
             columns,
-            table,
+            from,
             whereClause,
             groupByClause,
             orderByClause,
@@ -86,7 +85,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
         returnTypes.clear();
 
         columns.clear();
-        table = null;
+        from = null;
         whereClause = null;
         groupByClause = null;
         orderByClause = null;
@@ -126,7 +125,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     public void enterTarget_list(
         PostgreSqlParser.Target_listContext ctx)
     {
-        ctx.target_el().forEach(c -> columns.add(c.getText()));
+        ctx.target_el().forEach(c -> columns.add(tokens.getText(c)));
     }
 
     @Override
@@ -135,7 +134,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     {
         if (ctx.from_list() != null)
         {
-            table = ctx.from_list().getText();
+            from = tokens.getText(ctx.from_list());
         }
     }
 
@@ -143,34 +142,34 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     public void enterWhere_clause(
         PostgreSqlParser.Where_clauseContext ctx)
     {
-        whereClause = ctx.getText();
+        whereClause = tokens.getText(ctx);
     }
 
     @Override
     public void enterGroup_clause(
         PostgreSqlParser.Group_clauseContext ctx)
     {
-        groupByClause = ctx.getText();
+        groupByClause = tokens.getText(ctx);
     }
 
     @Override
     public void enterSort_clause(
         PostgreSqlParser.Sort_clauseContext ctx)
     {
-        orderByClause = ctx.getText();
+        orderByClause = tokens.getText(ctx);
     }
 
     @Override
     public void enterLimit_clause(
         PostgreSqlParser.Limit_clauseContext ctx)
     {
-        limitClause = ctx.getText();
+        limitClause = tokens.getText(ctx);
     }
 
     @Override
     public void enterOffset_clause(
         PostgreSqlParser.Offset_clauseContext ctx)
     {
-        offsetClause = ctx.getText();
+        offsetClause = tokens.getText(ctx);
     }
 }
