@@ -67,7 +67,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write [0x00 0x02]                                                 # Field Count
-      [0x00 0x00 0x00 0x06]                                       # Length
+      [0x00 0x00 0x00 0x0a]                                       # Length
       "app_events"                                                # Data
       [0x00 0x00 0x00 0x7c]                                       # Length
       "CREATE ZSTREAM app_events (\n"                             # Data

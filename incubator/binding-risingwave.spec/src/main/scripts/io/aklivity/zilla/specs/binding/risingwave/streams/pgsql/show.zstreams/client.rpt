@@ -57,8 +57,8 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read  [0x00 0x01]                                                 # Field Count
-      [0x00 0x00 0x00 0x06]                                       # Length
-      [0x63 0x69 0x74 0x69 0x65 0x73]                             # Data
+      [0x00 0x00 0x00 0x0a]                                       # Length
+      "app_events"                                                # Data
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
