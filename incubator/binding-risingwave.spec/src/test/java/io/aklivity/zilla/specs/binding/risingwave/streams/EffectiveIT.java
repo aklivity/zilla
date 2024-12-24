@@ -182,9 +182,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/drop.stream/client",
-        "${app}/drop.stream/server" })
-    public void shouldDropStream() throws Exception
+        "${app}/drop.zstream/client",
+        "${app}/drop.zstream/server" })
+    public void shouldDropZstream() throws Exception
     {
         k3po.finish();
     }

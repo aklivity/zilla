@@ -70,16 +70,6 @@ public class ProxyIT
     }
 
     @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${pgsql}/create.streams/client",
-        "${effective}/create.streams/server" })
-    public void shouldCreateStreams() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.tables.with.newline/client",
@@ -185,16 +175,6 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.stream.with.includes/client",
-        "${effective}/create.stream.with.includes/server" })
-    public void shouldCreateStreamWithIncludes() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
         "${pgsql}/create.ztable.with.generated.as/client",
         "${effective}/create.ztable.with.generated.as/server" })
     public void shouldCreateTableWithGeneratedAs() throws Exception
@@ -215,9 +195,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/drop.stream/client",
-        "${effective}/drop.stream/server" })
-    public void shouldDropStream() throws Exception
+        "${pgsql}/drop.zstream/client",
+        "${effective}/drop.zstream/server" })
+    public void shouldDropZstream() throws Exception
     {
         k3po.finish();
     }
@@ -255,29 +235,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/alter.stream.add.column/client",
-        "${effective}/alter.stream.add.column/server" })
-    public void shouldAlterStreamAddColumn() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
         "${pgsql}/alter.ztable.modify.column.rejected/client",
         "${effective}/client.stream.established/server" })
     public void shouldNotAlterZtableModifyColumn() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${pgsql}/alter.stream.modify.column.rejected/client",
-        "${effective}/client.stream.established/server" })
-    public void shouldNotAlterStreamModifyColumn() throws Exception
     {
         k3po.finish();
     }

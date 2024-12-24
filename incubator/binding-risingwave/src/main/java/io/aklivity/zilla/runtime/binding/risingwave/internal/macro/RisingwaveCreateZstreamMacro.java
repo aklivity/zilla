@@ -43,7 +43,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s");
     }
 
-    private final List<CreateZfunction> functions; // <name, sql>
+    private final List<CreateZfunction> functions;
 
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -164,7 +164,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateSourceTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE TOPIC %s_commands (%s);\u0000""";
+            CREATE TOPIC %s.%s_commands (%s);\u0000""";
 
         @Override
         public void onStarted(
@@ -180,7 +180,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                 .collect(Collectors.joining(", "));
             String fields = "%s VARCHAR, %s".formatted(command.dispatchOn(), arguments);
 
-            String sqlQuery = String.format(sqlFormat, topic, fields);
+            String sqlQuery = String.format(sqlFormat, command.schema(), topic, fields);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -212,7 +212,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateSourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SOURCE %s_commands (*)
+            CREATE SOURCE %s.%s_commands (*)
             INCLUDE header 'zilla:correlation-id' VARCHAR AS correlation_id
             %s
             WITH (
@@ -243,7 +243,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                 })
                 .collect(Collectors.joining("\n"));
 
-            String sqlQuery = String.format(sqlFormat, table, include, bootstrapServer,
+            String sqlQuery = String.format(sqlFormat, systemSchema, table, include, bootstrapServer,
                 schema, table, scanStartupMil, schemaRegistry);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
@@ -275,7 +275,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateHandlerMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE MATERIALIZED VIEW %s AS
+            CREATE MATERIALIZED VIEW %s.%s AS
                 SELECT
                     c.correlation_id,
                     %s
@@ -324,7 +324,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 
                 String where = "c.%s = '%s'".formatted(command.dispatchOn(), commandName);
 
-                String sqlQuery = String.format(sqlFormat, name, columns, from, join, where);
+                String sqlQuery = String.format(sqlFormat, systemSchema, name, columns, from, join, where);
 
                 handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
             }
@@ -361,7 +361,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateStreamMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE MATERIALIZED VIEW %s AS
+            CREATE MATERIALIZED VIEW %s.%s AS
                 %s;\u0000""";
 
         @Override
@@ -373,7 +373,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                 .map("SELECT * FROM %s"::formatted)
                 .collect(Collectors.joining("UNION ALL\n"));
 
-            String sqlQuery = String.format(sqlFormat, command.name(), selects);
+            String sqlQuery = String.format(sqlFormat, command.schema(), command.name(), selects);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -444,7 +444,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateReplyMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE MATERIALIZED VIEW %s_reply_handler AS
+            CREATE MATERIALIZED VIEW %s.%s_reply_handler AS
                 SELECT
                     '200' AS status,
                     correlation_id
@@ -455,11 +455,10 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.name(), command.schema(), command.name());
+            String sqlQuery = String.format(sqlFormat, systemSchema, command.name(), command.schema(), command.name());
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
-
 
         @Override
         public RisingwaveMacroState onReady(
@@ -488,7 +487,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateSinkTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE TOPIC %s_replies_sink (status VARCHAR, correlation_id VARCHAR);\u0000""";
+            CREATE TOPIC %s.%s_replies_sink (status VARCHAR, correlation_id VARCHAR);\u0000""";
 
         @Override
         public void onStarted(
@@ -503,7 +502,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                 .map(arg -> arg.name() + " " + arg.type())
                 .collect(Collectors.joining(", "));
 
-            String sqlQuery = String.format(sqlFormat, topic, arguments);
+            String sqlQuery = String.format(sqlFormat, command.schema(), topic, arguments);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -535,7 +534,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateReplySink implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s_replies_sink AS
+            CREATE SINK %s.%s_replies_sink AS
                 SELECT
                       COALESCE(r.status, '400') AS status,
                       c.correlation_id
@@ -559,7 +558,8 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             String name = command.name();
             String schema = command.schema();
 
-            String sqlQuery = String.format(sqlFormat, name, name, name, schema, name, bootstrapServer, schemaRegistry);
+            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, name,
+                schema, name, bootstrapServer, schemaRegistry);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }

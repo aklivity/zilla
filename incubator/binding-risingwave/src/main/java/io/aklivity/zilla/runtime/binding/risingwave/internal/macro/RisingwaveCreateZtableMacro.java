@@ -182,11 +182,11 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
                         {
                             if (ZILLA_TIMESTAMP.equals(c))
                             {
-                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_timestamp".formatted(name)));
+                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), name));
                             }
                             else
                             {
-                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_header".formatted(name)));
+                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), name));
                             }
                         });
 

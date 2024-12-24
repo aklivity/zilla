@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SOURCE IF NOT EXISTS cities (*)\n"
+write "CREATE SOURCE IF NOT EXISTS cities_source (*)\n"
       "WITH (\n"
       "   connector='kafka',\n"
       "   properties.bootstrap.server='localhost:9092',\n"
@@ -118,7 +118,7 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "CREATE TOPIC IF NOT EXISTS cities "
-      "(id VARCHAR, name VARCHAR, description VARCHAR);"
+      "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY(id));"
       [0x00]
 
 write flush

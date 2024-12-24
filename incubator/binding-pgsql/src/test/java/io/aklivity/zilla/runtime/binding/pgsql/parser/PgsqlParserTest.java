@@ -584,7 +584,7 @@ public class PgsqlParserTest
             );
             """;
 
-        CreateZstream createStream = parser.parseCreateStream(sql);
+        CreateZstream createStream = parser.parseCreateZstream(sql);
 
         assertEquals("app_events", createStream.name());
         assertEquals("event", createStream.columns().get(0).name());

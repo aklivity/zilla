@@ -111,7 +111,7 @@ public final class PgsqlParser
         return alterStreamListener.alter();
     }
 
-    public CreateZstream parseCreateStream(
+    public CreateZstream parseCreateZstream(
         String sql)
     {
         parser(sql, createStreamListener);

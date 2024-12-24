@@ -110,7 +110,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SOURCE app_events_commands (*)\n"
+read "CREATE SOURCE zb_catalog.app_events_commands (*)\n"
      "INCLUDE header 'zilla:correlation-id' VARCHAR AS correlation_id\n"
      "INCLUDE header 'zilla:identity' VARCHAR AS owner_id\n"
      "INCLUDE timestamp AS created_at\n"
@@ -144,7 +144,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW send_payment_handler AS\n"
+read "CREATE MATERIALIZED VIEW zb_catalog.send_payment_handler AS\n"
      "    SELECT\n"
      "        c.correlation_id,\n"
      "        CASE\n"
@@ -175,7 +175,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW app_events AS\n"
+read "CREATE MATERIALIZED VIEW public.app_events AS\n"
      "    SELECT * FROM send_payment_handler;"
      [0x00]
 
@@ -220,7 +220,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE MATERIALIZED VIEW app_events_reply_handler AS\n"
+read "CREATE MATERIALIZED VIEW zb_catalog.app_events_reply_handler AS\n"
      "    SELECT\n"
      "        '200' AS status,\n"
      "        correlation_id\n"
@@ -246,7 +246,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SINK app_events_replies_sink AS\n"
+read "CREATE SINK zb_catalog.app_events_replies_sink AS\n"
      "    SELECT\n"
      "          COALESCE(r.status, '400') AS status,\n"
      "          c.correlation_id\n"
@@ -344,7 +344,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC app_events_commands "
+read "CREATE TOPIC public.app_events_commands "
      "(command VARCHAR, user_id VARCHAR, amount DOUBLE PRECISION);"
      [0x00]
 
@@ -369,7 +369,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC app_events_replies_sink "
+read "CREATE TOPIC public.app_events_replies_sink "
      "(status VARCHAR, correlation_id VARCHAR);"
      [0x00]
 
