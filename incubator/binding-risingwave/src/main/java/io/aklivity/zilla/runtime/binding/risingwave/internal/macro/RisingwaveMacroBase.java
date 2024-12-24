@@ -14,23 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
-import java.util.Map;
-
-import org.agrona.collections.Object2ObjectHashMap;
-
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public abstract class RisingwaveMacroBase
 {
     protected static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
     protected static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
-
-    protected static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
-    static
-    {
-        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s_header\n");
-        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s_timestamp\n");
-    }
 
     protected final RisingwaveMacroHandler handler;
     protected final String sql;

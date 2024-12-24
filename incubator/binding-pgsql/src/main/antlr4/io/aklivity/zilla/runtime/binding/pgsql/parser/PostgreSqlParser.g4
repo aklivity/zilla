@@ -717,7 +717,7 @@ opt_generated_clause
 
 generation_type
     : IDENTITY_P
-    | TIMESTAMP
+    | NOW
     ;
 
 opt_with_zstream

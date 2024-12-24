@@ -16,8 +16,11 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
@@ -28,6 +31,13 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
 {
     private static final String ZTABLE_NAME = "ztables";
     private static final String TABLE_NAME = "tables";
+
+    private static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
+    static
+    {
+        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s_header\n");
+        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s_timestamp\n");
+    }
 
     private final String bootstrapServer;
     private final String schemaRegistry;

@@ -905,14 +905,13 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 String returnType = command.returnTypes().stream()
                     .map(arg -> arg.name() + " " + arg.type())
                     .collect(Collectors.joining(", "));
-                String language = command.language();
 
                 RisingwaveShowZfunctionsRowFW row = zfunctionsRowRW.wrap(statementBuffer, 0, statementBuffer.capacity())
                     .fields((short) 5)
                     .name(name)
                     .arguments(arguments)
                     .returnType(returnType)
-                    .language(language)
+                    .language("SQL")
                     .build();
 
                 doAppData(client, traceId, authorization, FLAGS_COMP,

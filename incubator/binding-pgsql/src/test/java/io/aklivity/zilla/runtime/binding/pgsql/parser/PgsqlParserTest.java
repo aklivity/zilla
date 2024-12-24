@@ -529,7 +529,7 @@ public class PgsqlParserTest
                  args.amount
              FROM balance WHERE user_id = args.user_id;
             $$
-           """;
+            """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 
@@ -572,7 +572,7 @@ public class PgsqlParserTest
                 amount DOUBLE PRECISION,
                 notes VARCHAR,
                 owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,
-                created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP
+                created_at TIMESTAMP GENERATED ALWAYS AS NOW
             )
             WITH (
                 DISPATCH_ON = 'command',

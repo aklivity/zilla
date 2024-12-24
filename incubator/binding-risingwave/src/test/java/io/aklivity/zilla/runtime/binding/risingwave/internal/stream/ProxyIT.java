@@ -62,9 +62,9 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/create.stream/client",
-        "${effective}/create.stream/server" })
-    public void shouldCreateStream() throws Exception
+        "${pgsql}/create.zstream/client",
+        "${effective}/create.zstream/server" })
+    public void shouldCreateZstream() throws Exception
     {
         k3po.finish();
     }

@@ -136,15 +136,6 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.stream.with.includes/client",
-        "${app}/create.stream.with.includes/server" })
-    public void shouldCreateStreamWithIncludes() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/create.ztable.with.generated.as/client",
         "${app}/create.ztable.with.generated.as/server" })
     public void shouldCreateTableWithGeneratedAs() throws Exception
@@ -160,17 +151,6 @@ public class EffectiveIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/create.streams/client",
-        "${app}/create.streams/server" })
-    public void shouldCreateStreams() throws Exception
-    {
-        k3po.finish();
-    }
-
-
 
     @Test
     @Specification({

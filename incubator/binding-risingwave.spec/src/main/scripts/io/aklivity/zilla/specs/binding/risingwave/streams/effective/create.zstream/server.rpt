@@ -34,7 +34,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "SELECT * FROM zb_catalog.zfunctions WHERE sql IN ('send_payment_handler');"
+read "SELECT * FROM zb_catalog.zfunctions WHERE name IN ('send_payment_handler');"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -72,7 +72,7 @@ write [0x00 0x02]                                                 # Field Count
       [0x00 0x00 0x01 0x80]                                       # Length
       "CREATE ZFUNCTION send_payment_handler(\n"                  # Data
       " user_id VARCHAR,\n"
-      " amount DOUBLE PRECISION\n"
+      " amount DOUBLE PRECISION)\n"
       "RETURNS TABLE(\n"
       " event VARCHAR,\n"
       " user_id VARCHAR,\n"
@@ -80,11 +80,11 @@ write [0x00 0x02]                                                 # Field Count
       "LANGUAGE SQL AS $$\n"
       " SELECT\n"
       "     CASE\n"
-      "         WHEN balance >= args.amount THEN \"PaymentSent\"\n"
-      "         ELSE \"PaymentDeclined\"\n"
+      "         WHEN balance >= args.amount THEN 'PaymentSent'\n"
+      "         ELSE 'PaymentDeclined'\n"
       "     END AS event,\n"
       "     args.user_id,\n"
-      "     args.amount,\n"
+      "     args.amount\n"
       " FROM balance WHERE user_id = args.user_id;\n"
       "$$"
       [0x00]
@@ -110,14 +110,14 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SOURCE IF NOT EXISTS app_events_commands (*)\n"
+read "CREATE SOURCE app_events_commands (*)\n"
      "INCLUDE header 'zilla:correlation-id' VARCHAR AS correlation_id\n"
      "INCLUDE header 'zilla:identity' VARCHAR AS owner_id\n"
      "INCLUDE timestamp AS created_at\n"
      "WITH (\n"
      "   connector='kafka',\n"
      "   properties.bootstrap.server='localhost:9092',\n"
-     "   topic='app_events_commands',\n"
+     "   topic='public.app_events_commands',\n"
      "   scan.startup.mode='latest',\n"
      "   scan.startup.timestamp.millis='140000000'\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
@@ -145,18 +145,15 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE MATERIALIZED VIEW send_payment_handler AS\n"
-     "   SELECT\n"
-     "       c.correlation_id,\n"
-     "       CASE\n"
-     "           WHEN b.balance >= c.amount THEN 'PaymentSent'\n"
-     "           ELSE 'PaymentDeclined'\n"
-     "       END AS event,\n"
-     "       c.user_id,\n"
-     "       c.amount\n"
-     "   FROM streampay_events_commands c\n"
-     "   JOIN streampay_balances b\n"
-     "   ON c.user_id = b.user_id\n"
-     "   WHERE c.type = 'SendPayment';
+     "    SELECT\n"
+     "        c.correlation_id,\n"
+     "        CASE\n"
+     "         WHEN balance >= c.amount THEN 'PaymentSent'\n"
+     "         ELSE 'PaymentDeclined'\n"
+     "     END AS event, c.user_id, c.amount\n"
+     "    FROM app_events_commands c\n"
+     "    JOIN balance ON WHERE user_id = c.user_id\n"
+     "    WHERE c.command = 'SendPayment';"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -179,7 +176,7 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE MATERIALIZED VIEW app_events AS\n"
-     "   SELECT * FROM send_payment_handler;"
+     "    SELECT * FROM send_payment_handler;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -225,9 +222,9 @@ read zilla:data.ext ${pgsql:dataEx()
                               .build()}
 read "CREATE MATERIALIZED VIEW app_events_reply_handler AS\n"
      "    SELECT\n"
-     "         '200' AS status,\n"
-     "         correlation_id\n"
-     "    FROM app_events;"
+     "        '200' AS status,\n"
+     "        correlation_id\n"
+     "    FROM public.app_events;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -249,13 +246,13 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE SINK IF NOT EXISTS app_events_replies_sink\n"
-     "AS SELECT\n"
-     "      COALESCE(r.status, '400') AS status,\n"
-     "      c.correlation_id\n"
-     "  FROM streampay_events_commands c\n"
-     "  LEFT JOIN app_events_reply_handler r\n"
-     "  ON c.correlation_id = r.correlation_id\n"
+read "CREATE SINK app_events_replies_sink AS\n"
+     "    SELECT\n"
+     "          COALESCE(r.status, '400') AS status,\n"
+     "          c.correlation_id\n"
+     "      FROM app_events_commands c\n"
+     "      LEFT JOIN app_events_reply_handler r\n"
+     "      ON c.correlation_id = r.correlation_id\n"
      "WITH (\n"
      "    connector = 'kafka',\n"
      "    topic = 'public.app_events_replies',\n"
@@ -263,7 +260,7 @@ read "CREATE SINK IF NOT EXISTS app_events_replies_sink\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
      "  force_append_only='true',\n"
      "  schema.registry = 'http://localhost:8081'\n"
-     ");
+     ");"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -285,20 +282,19 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "INSERT INTO zb_catalog.zstreams (name, sql) VALUES "
-     "('cities', 'CREATE ZSTREAM app_events (\n"
-      "    event VARCHAR,\n"
-      "    user_id VARCHAR,\n"
-      "    amount DOUBLE PRECISION,\n"
-      "    owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,\n"
-      "    created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP\n"
-      ")\n"
-      "WITH (\n"
-      "    DISPATCH_ON = 'command',\n"
-      "    HANDLERS = (\n"
-      "        'SendPayment' TO 'send_payment_handler',\n"
-      "    )
-      ");');"
+read "INSERT INTO zb_catalog.zstreams (name, sql) VALUES ('app_events', 'CREATE ZSTREAM app_events (\n"
+     "    event VARCHAR,\n"
+     "    user_id VARCHAR,\n"
+     "    amount DOUBLE PRECISION,\n"
+     "    owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,\n"
+     "    created_at TIMESTAMP GENERATED ALWAYS AS NOW\n"
+     ")\n"
+     "WITH (\n"
+     "    DISPATCH_ON = ''command'',\n"
+     "    HANDLERS = (\n"
+     "        ''SendPayment'' TO ''send_payment_handler''\n"
+     "    )\n"
+     ");');"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -348,8 +344,8 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC IF NOT EXISTS app_events_commands "
-     "(user_id VARCHAR, amount DOUBLE PRECISION);"
+read "CREATE TOPIC app_events_commands "
+     "(command VARCHAR, user_id VARCHAR, amount DOUBLE PRECISION);"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -373,7 +369,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "CREATE TOPIC IF NOT EXISTS app_events_replies_sink "
+read "CREATE TOPIC app_events_replies_sink "
      "(status VARCHAR, correlation_id VARCHAR);"
      [0x00]
 

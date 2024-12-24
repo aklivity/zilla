@@ -136,15 +136,6 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.stream.with.includes/client",
-        "${app}/create.stream.with.includes/server" })
-    public void shouldCreateStreamWithIncludes() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/create.ztable.with.generated.as/client",
         "${app}/create.ztable.with.generated.as/server" })
     public void shouldCreateTableWithGeneratedAs() throws Exception
@@ -157,15 +148,6 @@ public class PgsqlIT
         "${app}/show.tables.with.newline/client",
         "${app}/show.tables.with.newline/server" })
     public void shouldShowTablesWithNewline() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.streams/client",
-        "${app}/create.streams/server" })
-    public void shouldCreateStreams() throws Exception
     {
         k3po.finish();
     }
@@ -227,27 +209,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/alter.stream.add.column/client",
-        "${app}/alter.stream.add.column/server" })
-    public void shouldAlterStreamAddColumn() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/alter.ztable.modify.column.rejected/client",
         "${app}/alter.ztable.modify.column.rejected/server" })
     public void shouldNotAlterZtableModifyColumn() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/alter.stream.modify.column.rejected/client",
-        "${app}/alter.stream.modify.column.rejected/server" })
-    public void shouldNotAlterStreamModifyColumn() throws Exception
     {
         k3po.finish();
     }

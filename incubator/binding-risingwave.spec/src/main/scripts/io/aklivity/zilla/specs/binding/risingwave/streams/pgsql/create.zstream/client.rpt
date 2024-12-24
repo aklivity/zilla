@@ -37,16 +37,15 @@ write "CREATE ZSTREAM app_events (\n"
       "    user_id VARCHAR,\n"
       "    amount DOUBLE PRECISION,\n"
       "    owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,\n"
-      "    created_at TIMESTAMP GENERATED ALWAYS AS TIMESTAMP\n"
+      "    created_at TIMESTAMP GENERATED ALWAYS AS NOW\n"
       ")\n"
       "WITH (\n"
       "    DISPATCH_ON = 'command',\n"
       "    HANDLERS = (\n"
-      "        'SendPayment' TO 'send_payment_handler',\n"
-      "    )
+      "        'SendPayment' TO 'send_payment_handler'\n"
+      "    )\n"
       ");"
       [0x00]
-
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

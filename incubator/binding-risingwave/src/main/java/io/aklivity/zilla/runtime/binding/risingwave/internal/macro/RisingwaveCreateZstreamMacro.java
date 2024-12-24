@@ -18,24 +18,32 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ZstreamColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Select;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 {
+    private static final String ZSTREAM_NAME = "zstreams";
+
+    private static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
+    static
+    {
+        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' VARCHAR AS %s");
+        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s");
+    }
 
     private final List<CreateZfunction> functions; // <name, sql>
-    private final StringBuilder fieldBuilder;
-    private final StringBuilder includeBuilder;
 
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -47,6 +55,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final CreateZstream command;
 
     private Iterator<CreateZfunction> zfunctionInterator;
+    private CreateZfunction lastZfunction;
 
     public RisingwaveCreateZstreamMacro(
         String bootstrapServer,
@@ -71,8 +80,6 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         this.parser = parser;
 
         this.functions = new ArrayList<>();
-        this.fieldBuilder = new StringBuilder();
-        this.includeBuilder = new StringBuilder();
     }
 
     public RisingwaveMacroState start()
@@ -83,14 +90,14 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class SelectZfunctionsCommandState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            SELECT * FROM zb_catalog.zfunctions; WHERE name IN (%s);\u0000""";
+            SELECT * FROM zb_catalog.zfunctions WHERE name IN (%s);\u0000""";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            String handlers = command.commandHandlers().keySet().stream()
+            String handlers = command.commandHandlers().values().stream()
                 .map(value -> "'" + value + "'")
                 .collect(Collectors.joining(", "));
             String sqlQuery = String.format(sqlFormat, handlers);
@@ -157,7 +164,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateSourceTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE TOPIC IF NOT EXISTS %s_commands (%s);\u0000""";
+            CREATE TOPIC %s_commands (%s);\u0000""";
 
         @Override
         public void onStarted(
@@ -166,15 +173,14 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         {
             String topic = command.name();
 
-            fieldBuilder.setLength(0);
-
-            CreateZfunction zfunction = functions.getFirst();
+            CreateZfunction zfunction = functions.stream().findFirst().get();
 
             String arguments =  zfunction.arguments().stream()
                 .map(arg -> arg.name() + " " + arg.type())
                 .collect(Collectors.joining(", "));
+            String fields = "%s VARCHAR, %s".formatted(command.dispatchOn(), arguments);
 
-            String sqlQuery = String.format(sqlFormat, topic, arguments);
+            String sqlQuery = String.format(sqlFormat, topic, fields);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -206,7 +212,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateSourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SOURCE IF NOT EXISTS %s (*)
+            CREATE SOURCE %s_commands (*)
             INCLUDE header 'zilla:correlation-id' VARCHAR AS correlation_id
             %s
             WITH (
@@ -227,24 +233,17 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             String schema = command.schema();
             String table = command.name();
 
-            includeBuilder.setLength(0);
-
-            command.columns().stream()
+            String include = command.columns().stream()
                 .filter(c -> ZILLA_MAPPINGS.containsKey(c.generatedAlways()))
-                .forEach(c ->
+                .map(c ->
                 {
-                    if (ZILLA_TIMESTAMP.equals(c.generatedAlways()))
-                    {
-                        includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c.generatedAlways()), c.name()));
-                    }
-                    else
-                    {
-                        includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), c.name()));
-                    }
-                    includeBuilder.append("\n");
-                });
+                    String name = c.name();
+                    String generated = c.generatedAlways();
+                    return String.format(ZILLA_MAPPINGS.get(generated), name);
+                })
+                .collect(Collectors.joining("\n"));
 
-            String sqlQuery = String.format(sqlFormat, table, includeBuilder, bootstrapServer,
+            String sqlQuery = String.format(sqlFormat, table, include, bootstrapServer,
                 schema, table, scanStartupMil, schemaRegistry);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
@@ -256,7 +255,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            CreateMaterializedViewState state = new CreateMaterializedViewState();
+            CreateHandlerMaterializedViewState state = new CreateHandlerMaterializedViewState();
             state.onStarted(traceId, authorization);
 
             return state;
@@ -273,22 +272,62 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         }
     }
 
-    private final class CreateMaterializedViewState implements RisingwaveMacroState
+    private final class CreateHandlerMaterializedViewState implements RisingwaveMacroState
     {
+        private final String sqlFormat = """
+            CREATE MATERIALIZED VIEW %s AS
+                SELECT
+                    c.correlation_id,
+                    %s
+                FROM %s_commands c
+                %s
+                WHERE %s;\u0000""";
+
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            if (zfunctionInterator == null)
+            if (lastZfunction == null)
             {
-                zfunctionInterator = functions.iterator();
+                if (zfunctionInterator == null)
+                {
+                    zfunctionInterator = functions.iterator();
+                }
+
+                lastZfunction = zfunctionInterator.next();
+                Select select = lastZfunction.select();
+
+                String columns =  select.columns().stream()
+                    .map(c -> c.replace("args", "c"))
+                    .collect(Collectors.joining(", "));
+
+                String name = lastZfunction.name();
+                String from = command.name();
+
+                String join = "";
+                if (select.from() != null)
+                {
+                    join = "JOIN %s".formatted(select.from());
+
+                    if (select.whereClause() != null)
+                    {
+                        join = String.format("%s ON %s", join, select.whereClause().replace("args", "c"));
+                    }
+                }
+
+                String commandName = command.commandHandlers().entrySet().stream()
+                    .filter(e -> e.getValue().equals(name))
+                    .map(Map.Entry::getKey)
+                    .findFirst()
+                    .get();
+
+                String where = "c.%s = '%s'".formatted(command.dispatchOn(), commandName);
+
+                String sqlQuery = String.format(sqlFormat, name, columns, from, join, where);
+
+                handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
             }
-
-            CreateZfunction zfunction = functions.iterator().next();
-
-
-            handler.doExecuteSystemClient(traceId, authorization, sql);
         }
 
         @Override
@@ -297,19 +336,76 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
+            lastZfunction = null;
+
             RisingwaveMacroState state = zfunctionInterator.hasNext()
-                ? new CreateMaterializedViewState()
-                : new GrantResourceState();
+                ? new CreateHandlerMaterializedViewState()
+                : new CreateStreamMaterializedViewState();
             state.onStarted(traceId, authorization);
 
             return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class CreateStreamMaterializedViewState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            CREATE MATERIALIZED VIEW %s AS
+                %s;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String selects =  command.commandHandlers().values().stream()
+                .map("SELECT * FROM %s"::formatted)
+                .collect(Collectors.joining("UNION ALL\n"));
+
+            String sqlQuery = String.format(sqlFormat, command.name(), selects);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            GrantResourceState state = new GrantResourceState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
         }
     }
 
     private final class GrantResourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            GRANT ALL PRIVILEGES ON SOURCE %s.%s TO %s;\u0000""";
+            GRANT ALL PRIVILEGES ON MATERIALIZED VIEW %s.%s TO %s;\u0000""";
 
         @Override
         public void onStarted(
@@ -322,12 +418,200 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
         }
 
         @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            CreateReplyMaterializedViewState state = new CreateReplyMaterializedViewState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class CreateReplyMaterializedViewState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            CREATE MATERIALIZED VIEW %s_reply_handler AS
+                SELECT
+                    '200' AS status,
+                    correlation_id
+                FROM %s.%s;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String sqlQuery = String.format(sqlFormat, command.name(), command.schema(), command.name());
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            CreateSinkTopicState state = new CreateSinkTopicState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class CreateSinkTopicState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            CREATE TOPIC %s_replies_sink (status VARCHAR, correlation_id VARCHAR);\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String topic = command.name();
+
+            CreateZfunction zfunction = functions.stream().findFirst().get();
+
+            String arguments =  zfunction.arguments().stream()
+                .map(arg -> arg.name() + " " + arg.type())
+                .collect(Collectors.joining(", "));
+
+            String sqlQuery = String.format(sqlFormat, topic, arguments);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            CreateReplySink state = new CreateReplySink();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class CreateReplySink implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            CREATE SINK %s_replies_sink AS
+                SELECT
+                      COALESCE(r.status, '400') AS status,
+                      c.correlation_id
+                  FROM %s_commands c
+                  LEFT JOIN %s_reply_handler r
+                  ON c.correlation_id = r.correlation_id
+            WITH (
+                connector = 'kafka',
+                topic = '%s.%s_replies',
+                properties.bootstrap.server = '%s',
+            ) FORMAT PLAIN ENCODE AVRO (
+              force_append_only='true',
+              schema.registry = '%s'
+            );\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String name = command.name();
+            String schema = command.schema();
+
+            String sqlQuery = String.format(sqlFormat, name, name, name, schema, name, bootstrapServer, schemaRegistry);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            InsertIntoCatalogState state = new InsertIntoCatalogState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            return errorState();
+        }
+    }
+
+    private final class InsertIntoCatalogState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String name = command.name();
+
+            String newSql = sql.replace("\u0000", "");
+            newSql = newSql.replaceAll("'", "''");
+            String sqlQuery = String.format(sqlFormat, systemSchema, ZSTREAM_NAME, name, newSql);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
         public RisingwaveMacroState onCompletion(
             long traceId,
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.CREATE_STREAM_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.CREATE_ZSTREAM_COMMAND);
             return this;
         }
 
