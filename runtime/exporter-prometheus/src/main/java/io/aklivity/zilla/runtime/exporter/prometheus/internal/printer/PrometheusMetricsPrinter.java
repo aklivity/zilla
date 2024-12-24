@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
@@ -86,7 +87,7 @@ public class PrometheusMetricsPrinter
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %f";
         return milliseconds ?
-            String.format(msFormat, extName, description, extName, kind, extName,
+            String.format(Locale.US, msFormat, extName, description, extName, kind, extName,
                 record.namespace(), record.binding(), record.millisecondsValueReader().getAsDouble()) :
             String.format(format, extName, description, extName, kind, extName,
                 record.namespace(), record.binding(), record.valueReader().getAsLong());
