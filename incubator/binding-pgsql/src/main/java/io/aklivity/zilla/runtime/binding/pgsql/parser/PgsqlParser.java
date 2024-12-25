@@ -184,6 +184,7 @@ public final class PgsqlParser
         {
             InputMismatchException e = new InputMismatchException(recognizer);
             Token currentToken = recognizer.getCurrentToken();
+            //Only for debugging
             System.err.println("Mismatched token: " + currentToken.getText());
             throw new ParseCancellationException(e);
         }
