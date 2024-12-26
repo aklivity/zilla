@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DEBUG;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -27,6 +28,7 @@ public class TlsConfiguration extends Configuration
     public static final LongPropertyDef TLS_AWAIT_SYNC_CLOSE_MILLIS;
     public static final BooleanPropertyDef TLS_PROACTIVE_CLIENT_REPLY_BEGIN;
     public static final BooleanPropertyDef TLS_VERBOSE;
+    public static final BooleanPropertyDef TLS_DEBUG;
 
     private static final ConfigurationDef TLS_CONFIG;
 
@@ -39,6 +41,7 @@ public class TlsConfiguration extends Configuration
         TLS_AWAIT_SYNC_CLOSE_MILLIS = config.property("await.sync.close.millis", 3000L);
         TLS_PROACTIVE_CLIENT_REPLY_BEGIN = config.property("proactive.client.reply.begin", false);
         TLS_VERBOSE = config.property("verbose", TlsConfiguration::verboseDefault);
+        TLS_DEBUG = config.property("debug", TlsConfiguration::debugDefault);
         TLS_CONFIG = config;
     }
 
@@ -78,9 +81,20 @@ public class TlsConfiguration extends Configuration
         return TLS_VERBOSE.getAsBoolean(this);
     }
 
+    public boolean debug()
+    {
+        return TLS_DEBUG.getAsBoolean(this);
+    }
+
     private static boolean verboseDefault(
         Configuration config)
     {
         return ENGINE_VERBOSE.getAsBoolean(config);
+    }
+
+    private static boolean debugDefault(
+        Configuration config)
+    {
+        return ENGINE_DEBUG.getAsBoolean(config);
     }
 }

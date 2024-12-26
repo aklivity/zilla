@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.agrona.ErrorHandler;
 
@@ -143,8 +144,15 @@ public class EngineBuilder
         EventFormatterFactory eventFormatterFactory = EventFormatterFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
+        final Consumer<Throwable> reporter = config.errorReporter();
+
+        final ErrorHandler onError = ex ->
+        {
+            reporter.accept(ex);
+            errorHandler.onError(ex);
+        };
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, models, eventFormatterFactory, errorHandler, affinities, readonly);
+                catalogs, models, eventFormatterFactory, onError, affinities, readonly);
     }
 }

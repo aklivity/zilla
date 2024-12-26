@@ -219,6 +219,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Path configPath;
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
+    private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
@@ -451,6 +452,7 @@ public class EngineWorker implements EngineContext, Agent
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
+        this.reporter = config.errorReporter();
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
@@ -572,6 +574,13 @@ public class EngineWorker implements EngineContext, Agent
         traceId++;
         traceId &= mask;
         return traceId;
+    }
+
+    @Override
+    public void report(
+        Throwable ex)
+    {
+        reporter.accept(ex);
     }
 
     @Override
