@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.115](https://github.com/aklivity/zilla/tree/0.9.115) (2024-12-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.114...0.9.115)
+
+**Merged pull requests:**
+
+- enabling error reporting using `supplyReporter` [\#1348](https://github.com/aklivity/zilla/pull/1348) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.114](https://github.com/aklivity/zilla/tree/0.9.114) (2024-12-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.113...0.9.114)
+
+**Merged pull requests:**
+
+- Update show commands type oid [\#1357](https://github.com/aklivity/zilla/pull/1357) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.113](https://github.com/aklivity/zilla/tree/0.9.113) (2024-12-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.112...0.9.113)
