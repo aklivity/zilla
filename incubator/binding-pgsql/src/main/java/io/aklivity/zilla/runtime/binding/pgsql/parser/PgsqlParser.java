@@ -50,10 +50,8 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 public final class PgsqlParser
 {
     private final ParseTreeWalker walker;
-    private final BailErrorStrategy errorStrategy;
     private final PostgreSqlLexer lexer;
     private final CommonTokenStream tokens;
-    private final ParserErrorListener errorListener;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
     private final SqlCreateZstreamListener createStreamListener;
@@ -69,13 +67,15 @@ public final class PgsqlParser
     public PgsqlParser()
     {
         this.walker = new ParseTreeWalker();
-        this.errorStrategy = new BailErrorStrategy();
-        this.errorListener = new ParserErrorListener();
+        BailErrorStrategy errorStrategy = new BailErrorStrategy();
+        ParserErrorListener errorListener = new ParserErrorListener();
         this.lexer = new PostgreSqlLexer(null);
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
         this.parser.removeErrorListeners();
         this.parser.addErrorListener(errorListener);
+        this.parser.setErrorHandler(errorStrategy);
+
         this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateZtableTopicListener(tokens);
         this.alterTableListener = new SqlAlterZtableTopicListener(tokens);
@@ -86,7 +86,6 @@ public final class PgsqlParser
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
         this.showListener = new SqlShowListener();
-        parser.setErrorHandler(errorStrategy);
     }
 
     public String parseCommand(
