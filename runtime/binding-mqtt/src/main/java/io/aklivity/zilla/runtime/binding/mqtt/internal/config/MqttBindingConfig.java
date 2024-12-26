@@ -118,7 +118,7 @@ public final class MqttBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(topic))
+            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(topic, authorization))
             .findFirst()
             .orElse(null);
     }
@@ -128,7 +128,7 @@ public final class MqttBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesPublish(topic))
+            .filter(r -> r.authorized(authorization) && r.matchesPublish(topic, authorization))
             .findFirst()
             .orElse(null);
     }

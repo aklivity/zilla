@@ -22,25 +22,29 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 
 public final class MqttConditionMatcher
 {
     private final List<Matcher> sessionMatchers;
-    private final List<Matcher> subscribeMatchers;
-    private final List<Matcher> publishMatchers;
+    private final List<String> subscribeTopics;
+    private final List<String> publishTopics;
+    private final List<GuardedConfig> guarded;
 
     public MqttConditionMatcher(
-        MqttConditionConfig condition)
+        MqttConditionConfig condition,
+        List<GuardedConfig> guarded)
     {
         this.sessionMatchers =
             condition.sessions != null && !condition.sessions.isEmpty() ?
                 asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList())) : null;
-        this.subscribeMatchers =
+        this.subscribeTopics =
             condition.subscribes != null && !condition.subscribes.isEmpty() ?
-                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
-        this.publishMatchers =
+                condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList()) : null;
+        this.publishTopics =
             condition.publishes != null && !condition.publishes.isEmpty() ?
-                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+                condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList()) : null;
+        this.guarded = guarded;
     }
 
     public boolean matchesSession(
@@ -62,14 +66,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesSubscribe(
-        String topic)
+        String topic,
+        long authorization)
     {
         boolean match = false;
-        if (subscribeMatchers != null)
+        if (subscribeTopics != null)
         {
-            for (Matcher matcher : subscribeMatchers)
+            for (String subscribeTopic : subscribeTopics)
             {
-                match = matcher.reset(topic).matches();
+                match = topicMatches(topic, subscribeTopic, authorization);
                 if (match)
                 {
                     break;
@@ -80,14 +85,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesPublish(
-        String topic)
+        String topic,
+        long authorization)
     {
         boolean match = false;
-        if (publishMatchers != null)
+        if (publishTopics != null)
         {
-            for (Matcher matcher : publishMatchers)
+            for (String publishTopic : publishTopics)
             {
-                match = matcher.reset(topic).matches();
+                match = topicMatches(topic, publishTopic, authorization);
                 if (match)
                 {
                     break;
@@ -95,6 +101,27 @@ public final class MqttConditionMatcher
             }
         }
         return match;
+    }
+
+    private boolean topicMatches(String topic, String pattern, long authorization)
+    {
+        for (GuardedConfig g : guarded)
+        {
+            String identity = g.identity.apply(authorization);
+            if (identity != null)
+            {
+                pattern = pattern.replace(String.format("{guarded[%s].identity}", g.name), identity);
+            }
+        }
+        return topic.matches(pattern
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace(".", "\\.")
+                .replace("$", "\\$")
+                .replace("+", "[^/]*")
+                .replace("#", ".*"));
     }
 
     private static List<Matcher> asWildcardMatcher(
@@ -113,22 +140,6 @@ public final class MqttConditionMatcher
 
         }
 
-        return matchers;
-    }
-
-    private static List<Matcher> asTopicMatcher(
-        List<String> wildcards)
-    {
-        List<Matcher> matchers = new ArrayList<>();
-        for (String wildcard : wildcards)
-        {
-            matchers.add(Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher(""));
-
-        }
         return matchers;
     }
 }
