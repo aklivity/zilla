@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.113...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.114...HEAD)
+
+**Merged pull requests:**
+
+- enabling error reporting using `supplyReporter` [\#1348](https://github.com/aklivity/zilla/pull/1348) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.114](https://github.com/aklivity/zilla/tree/0.9.114) (2024-12-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.113...0.9.114)
 
 **Merged pull requests:**
 

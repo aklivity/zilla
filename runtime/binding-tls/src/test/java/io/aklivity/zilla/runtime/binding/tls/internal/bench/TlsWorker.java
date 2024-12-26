@@ -197,6 +197,12 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public void report(
+        Throwable ex)
+    {
+    }
+
+    @Override
     public void attachComposite(
         NamespaceConfig composite)
     {

@@ -106,7 +106,7 @@ public final class TlsBindingConfig
                         if (keyManagers[i] instanceof X509ExtendedKeyManager)
                         {
                             X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
-                            keyManagers[i] = new TlsClientX509ExtendedKeyManager(keyManager);
+                            keyManagers[i] = new TlsClientX509ExtendedKeyManager(config, keyManager);
                         }
                     }
                 }

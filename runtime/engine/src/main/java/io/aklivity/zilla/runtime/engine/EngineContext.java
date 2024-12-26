@@ -74,6 +74,9 @@ public interface EngineContext
 
     EventFormatter supplyEventFormatter();
 
+    void report(
+        Throwable ex);
+
     void attachComposite(
         NamespaceConfig composite);
 
