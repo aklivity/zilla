@@ -19,8 +19,10 @@ import java.net.Socket;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
@@ -126,7 +128,12 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
             }
             if (debug)
             {
-                System.out.printf("No match found for Subject CN and Key Types");
+                System.out.printf("[binding-tls] No match found for Subject CN [%s], Key Types [%s], Issuers [%s] \n",
+                    subjectCN,
+                    String.join(", ", keyTypes),
+                    issuers != null
+                        ? Arrays.stream(issuers).map(Principal::getName).collect(Collectors.joining(", "))
+                        : null);
             }
         }
 

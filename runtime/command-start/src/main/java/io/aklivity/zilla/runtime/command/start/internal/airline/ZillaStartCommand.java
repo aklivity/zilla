@@ -119,8 +119,15 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
         }
 
-        props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
-        props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
+        if (verbose)
+        {
+            props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
+        }
+
+        if (exceptions)
+        {
+            props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
+        }
 
         EngineConfiguration config = new EngineConfiguration(props);
 
