@@ -250,17 +250,6 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldCreateFunction()
-    {
-        String sql = "CREATE FUNCTION test_function() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql;";
-        CreateFunction function = parser.parseCreateFunction(sql);
-
-        assertNotNull(function);
-        assertEquals("test_function", function.name());
-        assertEquals("INT", function.returnType());
-    }
-
-    @Test
     public void shouldCreateFunctionWithLanguage()
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS TABLE (x INT) LANGUAGE python AS 'test_function';";

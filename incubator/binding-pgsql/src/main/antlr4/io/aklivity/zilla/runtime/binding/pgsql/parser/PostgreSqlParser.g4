@@ -93,7 +93,7 @@ stmt
     | createforeignserverstmt
     | createforeigntablestmt
     | createfunctionstmt
-    |createzfunctionstmt
+    | createzfunctionstmt
     | creategroupstmt
     | creatematviewstmt
     | createzviewstmt
@@ -2043,7 +2043,7 @@ opt_nulls_order
 
 createzfunctionstmt
     : CREATE ZFUNCTION func_name func_args_with_defaults
-      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN LANGUAGE SQL_P AS ZFUNCTION_S selectstmt SEMI ZFUNCTION_S
+      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN LANGUAGE SQL_P AS DOLLAR_DELIMITER selectstmt SEMI DOLLAR_DELIMITER
     ;
 
 createfunctionstmt
@@ -2053,7 +2053,7 @@ createfunctionstmt
     ;
 
 opt_type_parameters
-    : OPEN_ANGLE_BRACKET type_parameters CLOSE_ANGLE_BRACKET
+    : LT type_parameters GT
     |
     ;
 

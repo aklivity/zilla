@@ -40,7 +40,7 @@ options {
 
 Dollar: '$';
 
-ZFUNCTION_S: '$$';
+DOLLAR_DELIMITER: '$$';
 
 OPEN_PAREN: '(';
 
@@ -49,10 +49,6 @@ CLOSE_PAREN: ')';
 OPEN_BRACKET: '[';
 
 CLOSE_BRACKET: ']';
-
-OPEN_ANGLE_BRACKET: '<';
-
-CLOSE_ANGLE_BRACKET: '>';
 
 COMMA: ',';
 
@@ -322,6 +318,8 @@ UNIQUE: 'UNIQUE';
 USER: 'USER';
 
 USING: 'USING';
+
+LINK: 'LINK';
 
 VARIADIC: 'VARIADIC';
 
