@@ -20,11 +20,6 @@ import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.InputMismatchException;
-import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZstreamTopicListener;
@@ -167,26 +162,14 @@ public final class PgsqlParser
 
             tokens.setTokenSource(lexer);
             parser.setTokenStream(tokens);
-            parser.setErrorHandler(new DebuggingErrorStrategy());
+
+            lexer.removeErrorListeners();
+            parser.removeErrorListeners();
 
             walker.walk(listener, parser.root());
         }
         catch (Exception ignore)
         {
-        }
-    }
-
-    private final class DebuggingErrorStrategy extends BailErrorStrategy
-    {
-        @Override
-        public Token recoverInline(Parser recognizer)
-            throws RecognitionException
-        {
-            InputMismatchException e = new InputMismatchException(recognizer);
-            //Only for debugging
-            //Token currentToken = recognizer.getCurrentToken();
-            //System.err.println("Mismatched token: " + currentToken.getText());
-            throw new ParseCancellationException(e);
         }
     }
 }
