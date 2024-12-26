@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Properties;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.agrona.LangUtil;
@@ -72,7 +73,9 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
+    public static final BooleanPropertyDef ENGINE_DEBUG;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_EXCEPTIONS;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
@@ -80,6 +83,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
+    public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -119,14 +123,18 @@ public class EngineConfiguration extends Configuration
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
+        ENGINE_DEBUG = config.property("debug", false);
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
+        ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
         ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
+        ENGINE_ERROR_REPORTER = config.property(ErrorReporter.class, "error.reporter",
+            EngineConfiguration::decodeErrorReporter, EngineConfiguration::defaultErrorReporter);
         ENGINE_CONFIG = config;
     }
 
@@ -281,6 +289,11 @@ public class EngineConfiguration extends Configuration
         return ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS.getAsLong(this);
     }
 
+    public boolean debug()
+    {
+        return ENGINE_DEBUG.getAsBoolean(this);
+    }
+
     public boolean verbose()
     {
         return ENGINE_VERBOSE.getAsBoolean(this);
@@ -319,6 +332,11 @@ public class EngineConfiguration extends Configuration
     public String cacertsStorePass()
     {
         return ENGINE_CACERTS_STORE_PASS.get(this);
+    }
+
+    public Consumer<Throwable> errorReporter()
+    {
+        return ENGINE_ERROR_REPORTER.get(this)::report;
     }
 
     public Function<String, InetAddress[]> hostResolver()
@@ -384,6 +402,13 @@ public class EngineConfiguration extends Configuration
     {
         InetAddress[] resolve(
             String name);
+    }
+
+    @FunctionalInterface
+    private interface ErrorReporter
+    {
+        void report(
+            Throwable ex);
     }
 
     private static String defaultName(
@@ -481,5 +506,48 @@ public class EngineConfiguration extends Configuration
         Configuration config)
     {
         return System.getProperty("javax.net.ssl.trustStore");
+    }
+
+    private static ErrorReporter defaultErrorReporter(
+        Configuration config)
+    {
+        boolean exceptions = ENGINE_VERBOSE_EXCEPTIONS.get(config);
+
+        return exceptions
+            ? e -> e.printStackTrace(System.err)
+            : e -> System.err.println(e.getMessage());
+    }
+
+    private static ErrorReporter decodeErrorReporter(
+        Configuration config,
+        String value)
+    {
+        ErrorReporter reporter = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(Void.class, Throwable.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            reporter = ex ->
+            {
+                try
+                {
+                    method.invoke(ex);
+                }
+                catch (Throwable t)
+                {
+                    LangUtil.rethrowUnchecked(t);
+                }
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return reporter;
     }
 }

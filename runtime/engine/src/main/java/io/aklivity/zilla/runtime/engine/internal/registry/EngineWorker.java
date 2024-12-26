@@ -243,7 +243,6 @@ public class EngineWorker implements EngineContext, Agent
         EngineConfiguration config,
         ExecutorService executor,
         LabelManager labels,
-        Consumer<Throwable> reporter,
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
@@ -453,7 +452,7 @@ public class EngineWorker implements EngineContext, Agent
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
-        this.reporter = reporter;
+        this.reporter = config.errorReporter();
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
@@ -578,9 +577,10 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public Consumer<Throwable> supplyReporter()
+    public void report(
+        Throwable ex)
     {
-        return reporter;
+        reporter.accept(ex);
     }
 
     @Override

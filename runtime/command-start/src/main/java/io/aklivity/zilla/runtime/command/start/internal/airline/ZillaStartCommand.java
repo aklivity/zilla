@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.command.start.internal.airline;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EXCEPTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
 import static java.lang.Runtime.getRuntime;
@@ -31,7 +32,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 
 import org.agrona.ErrorHandler;
 
@@ -119,10 +119,8 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
         }
 
-        if (verbose)
-        {
-            props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
-        }
+        props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
+        props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
 
         EngineConfiguration config = new EngineConfiguration(props);
 
@@ -142,19 +140,13 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        final Consumer<Throwable> reporter = exceptions
-            ? e -> e.printStackTrace(System.err)
-            : e -> System.err.println(e.getMessage());
-
         final ErrorHandler onError = ex ->
         {
-            reporter.accept(ex);
             stop.countDown();
         };
 
         try (Engine engine = Engine.builder()
             .config(config)
-            .reporter(reporter)
             .errorHandler(onError)
             .build())
         {

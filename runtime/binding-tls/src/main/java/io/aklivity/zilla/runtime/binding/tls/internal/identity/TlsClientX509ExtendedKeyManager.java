@@ -28,6 +28,8 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+
 public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManager implements X509KeyManager
 {
     public static final String COMMON_NAME_KEY = "common.name";
@@ -37,10 +39,13 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
     private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
 
     private final X509ExtendedKeyManager delegate;
+    private final boolean debug;
 
     public TlsClientX509ExtendedKeyManager(
+        TlsConfiguration config,
         X509ExtendedKeyManager delegate)
     {
+        this.debug = config.debug();
         this.delegate = delegate;
     }
 
@@ -118,6 +123,10 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                         }
                     }
                 }
+            }
+            if (debug)
+            {
+                System.out.printf("No match found for Subject CN and Key Types");
             }
         }
 

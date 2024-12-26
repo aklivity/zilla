@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -129,9 +128,9 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public Consumer<Throwable> supplyReporter()
+    public void report(
+        Throwable ex)
     {
-        return null;
     }
 
     @Override

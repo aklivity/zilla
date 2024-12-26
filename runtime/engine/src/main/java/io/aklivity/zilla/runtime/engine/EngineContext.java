@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -75,7 +74,8 @@ public interface EngineContext
 
     EventFormatter supplyEventFormatter();
 
-    Consumer<Throwable> supplyReporter();
+    void report(
+        Throwable ex);
 
     void attachComposite(
         NamespaceConfig composite);
