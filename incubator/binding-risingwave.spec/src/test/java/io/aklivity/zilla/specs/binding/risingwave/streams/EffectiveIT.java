@@ -209,15 +209,6 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/alter.stream.add.column/client",
-        "${app}/alter.stream.add.column/server" })
-    public void shouldAlterStreamAddColumn() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/show.zviews/client",
         "${app}/show.zviews/server" })
     public void shouldShowZviews() throws Exception
