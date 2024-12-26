@@ -50,6 +50,10 @@ OPEN_BRACKET: '[';
 
 CLOSE_BRACKET: ']';
 
+OPEN_ANGLE_BRACKET: '<';
+
+CLOSE_ANGLE_BRACKET: '>';
+
 COMMA: ',';
 
 SEMI: ';';

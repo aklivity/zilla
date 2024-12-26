@@ -93,7 +93,7 @@ stmt
     | createforeignserverstmt
     | createforeigntablestmt
     | createfunctionstmt
-    | createzfunctionstmt
+    |createzfunctionstmt
     | creategroupstmt
     | creatematviewstmt
     | createzviewstmt
@@ -2053,7 +2053,7 @@ createfunctionstmt
     ;
 
 opt_type_parameters
-    : '<' type_parameters '>'
+    : OPEN_ANGLE_BRACKET type_parameters CLOSE_ANGLE_BRACKET
     |
     ;
 
@@ -4492,6 +4492,8 @@ unreserved_keyword
     | FORWARD
     | FUNCTION
     | FUNCTIONS
+    | ZFUNCTION
+    | ZFUNCTIONS
     | GENERATED
     | GLOBAL
     | GRANTED
@@ -4654,6 +4656,7 @@ unreserved_keyword
     | SYSID
     | SYSTEM_P
     | TABLES
+    | ZTABLES
     | TABLESPACE
     | TEMP
     | TEMPLATE
@@ -4848,6 +4851,7 @@ from pl_gram.y, line ~2982
     | SOME
     | SYMMETRIC
     | TABLE
+    | ZTABLE
     | THEN
     | TO
     | TRAILING
