@@ -93,6 +93,7 @@ stmt
     | createforeignserverstmt
     | createforeigntablestmt
     | createfunctionstmt
+    | createzfunctionstmt
     | creategroupstmt
     | creatematviewstmt
     | createzviewstmt
@@ -106,7 +107,7 @@ stmt
     | createseqstmt
     | createstmt
     | createztstmt
-    | createstreamstmt
+    | createzstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
     | createtablespacestmt
@@ -414,15 +415,15 @@ altertablestmt
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
-    | ALTER STREAM (IF_P EXISTS)? relation_expr alter_stream_cmds
+    | ALTER ZSTREAM (IF_P EXISTS)? relation_expr alter_zstream_cmds
     | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     ;
 
-alter_stream_cmds
-    : alter_stream_cmd (COMMA alter_stream_cmd)*
+alter_zstream_cmds
+    : alter_zstream_cmd (COMMA alter_zstream_cmd)*
     ;
 
-alter_stream_cmd
+alter_zstream_cmd
     : ADD_P columnDef
     | ADD_P IF_P NOT EXISTS columnDef
     | ADD_P COLUMN columnDef
@@ -693,25 +694,55 @@ copy_generic_opt_arg_list_item
     : opt_boolean_or_string
     ;
 
-createstreamstmt
-    : CREATE STREAM (IF_P NOT EXISTS)? stream_name OPEN_PAREN stream_columns CLOSE_PAREN opt_with_stream
+createzstreamstmt
+    : CREATE ZSTREAM (IF_P NOT EXISTS)? zstream_name OPEN_PAREN zstream_columns CLOSE_PAREN opt_with_zstream
     ;
 
-stream_name
+zstream_name
     : qualified_name
     ;
 
-stream_columns
-    : stream_column (COMMA stream_column)*
+zstream_columns
+    : zstream_column (COMMA zstream_column)*
     ;
 
-stream_column
-    : colid typename
+zstream_column
+    : colid typename opt_generated_clause
     ;
 
-opt_with_stream
-    : WITH reloptions
-    |
+opt_generated_clause
+    : GENERATED ALWAYS AS generation_type
+    | /* Empty */
+    ;
+
+generation_type
+    : IDENTITY_P
+    | NOW
+    ;
+
+opt_with_zstream
+    : WITH OPEN_PAREN zreloptions CLOSE_PAREN
+    ;
+
+zreloptions
+    : zreloption_elem (COMMA zreloption_elem)*
+    ;
+
+zreloption_elem
+    : DISPATCH_ON EQUAL sconst
+    | HANDLERS EQUAL OPEN_PAREN handler_mappings CLOSE_PAREN
+    ;
+
+handler_mappings
+    : handler_mapping (COMMA handler_mapping)*
+    ;
+
+handler_mapping
+    : sconst TO function_name
+    ;
+
+function_name
+    : sconst
     ;
 
 createztstmt
@@ -1645,9 +1676,10 @@ show_object_type_name
     | VIEWS
     | MATERIALIZED VIEWS
     | TOPICS
-    | HEAD
     | ZTABLES
     | ZVIEWS
+    | ZFUNCTIONS
+    | ZSTREAMS
     ;
 
 dropstmt
@@ -1671,9 +1703,8 @@ object_type_any_name
     | VIEW
     | MATERIALIZED VIEW
     | TOPIC
-    | STREAM
+    | ZSTREAM
     | ZVIEW
-    | HEAD
     | ZTABLE
     | INDEX
     | FOREIGN TABLE
@@ -2010,6 +2041,11 @@ opt_nulls_order
     |
     ;
 
+createzfunctionstmt
+    : CREATE ZFUNCTION func_name func_args_with_defaults
+      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN LANGUAGE SQL_P AS DOLLAR_DELIMITER selectstmt SEMI DOLLAR_DELIMITER
+    ;
+
 createfunctionstmt
     : CREATE opt_or_replace (FUNCTION | PROCEDURE) func_name func_args_with_defaults (
         RETURNS (func_return | TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN)
@@ -2017,7 +2053,7 @@ createfunctionstmt
     ;
 
 opt_type_parameters
-    : '<' type_parameters '>'
+    : LT type_parameters GT
     |
     ;
 
@@ -4456,6 +4492,8 @@ unreserved_keyword
     | FORWARD
     | FUNCTION
     | FUNCTIONS
+    | ZFUNCTION
+    | ZFUNCTIONS
     | GENERATED
     | GLOBAL
     | GRANTED
@@ -4618,6 +4656,7 @@ unreserved_keyword
     | SYSID
     | SYSTEM_P
     | TABLES
+    | ZTABLES
     | TABLESPACE
     | TEMP
     | TEMPLATE
@@ -4812,6 +4851,7 @@ from pl_gram.y, line ~2982
     | SOME
     | SYMMETRIC
     | TABLE
+    | ZTABLE
     | THEN
     | TO
     | TRAILING

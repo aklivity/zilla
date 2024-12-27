@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
@@ -68,7 +70,7 @@ public class RisingwaveShowCommandMacro
             int limit,
             OctetsFW extension)
         {
-            handler.doRow(client, traceId, authorization, flags, buffer, offset, limit);
+            handler.doColumn(client, traceId, authorization, flags, buffer, offset, limit);
             return this;
         }
 
@@ -78,7 +80,7 @@ public class RisingwaveShowCommandMacro
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doDescription(traceId, authorization, "Name");
+            handler.doDescription(traceId, authorization, List.of("Name"));
             return this;
         }
 

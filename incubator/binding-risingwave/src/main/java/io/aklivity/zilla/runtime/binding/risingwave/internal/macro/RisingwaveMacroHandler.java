@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
@@ -35,9 +38,9 @@ public interface RisingwaveMacroHandler
     void doDescription(
         long traceId,
         long authorization,
-        String name);
+        List<String> columns);
 
-    <T> void doRow(
+    <T> void doColumn(
         T client,
         long traceId,
         long authorization,
@@ -45,6 +48,12 @@ public interface RisingwaveMacroHandler
         DirectBuffer buffer,
         int offset,
         int limit);
+
+    <T> void doZfunctionRow(
+        T client,
+        long traceId,
+        long authorization,
+        CreateZfunction command);
 
     void doCompletion(
         long traceId,

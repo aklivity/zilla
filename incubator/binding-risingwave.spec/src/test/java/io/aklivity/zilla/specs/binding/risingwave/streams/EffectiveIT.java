@@ -48,10 +48,10 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.stream/client",
-        "${app}/create.stream/server"
+        "${app}/create.zstream/client",
+        "${app}/create.zstream/server"
     })
-    public void shouldCreateStream() throws Exception
+    public void shouldCreateZstream() throws Exception
     {
         k3po.finish();
     }
@@ -136,15 +136,6 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.stream.with.includes/client",
-        "${app}/create.stream.with.includes/server" })
-    public void shouldCreateStreamWithIncludes() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/create.ztable.with.generated.as/client",
         "${app}/create.ztable.with.generated.as/server" })
     public void shouldCreateTableWithGeneratedAs() throws Exception
@@ -160,17 +151,6 @@ public class EffectiveIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/create.streams/client",
-        "${app}/create.streams/server" })
-    public void shouldCreateStreams() throws Exception
-    {
-        k3po.finish();
-    }
-
-
 
     @Test
     @Specification({
@@ -202,9 +182,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/drop.stream/client",
-        "${app}/drop.stream/server" })
-    public void shouldDropStream() throws Exception
+        "${app}/drop.zstream/client",
+        "${app}/drop.zstream/server" })
+    public void shouldDropZstream() throws Exception
     {
         k3po.finish();
     }
@@ -229,18 +209,27 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/alter.stream.add.column/client",
-        "${app}/alter.stream.add.column/server" })
-    public void shouldAlterStreamAddColumn() throws Exception
+        "${app}/show.zviews/client",
+        "${app}/show.zviews/server" })
+    public void shouldShowZviews() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/show.zviews/client",
-        "${app}/show.zviews/server" })
-    public void shouldShowZviews() throws Exception
+        "${app}/create.zfunction/client",
+        "${app}/create.zfunction/server" })
+    public void shouldCreateZfunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/show.zfunctions/client",
+        "${app}/show.zfunctions/server" })
+    public void shouldShowZfunctions() throws Exception
     {
         k3po.finish();
     }
