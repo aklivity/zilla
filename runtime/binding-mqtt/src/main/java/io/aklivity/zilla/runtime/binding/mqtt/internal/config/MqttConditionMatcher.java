@@ -105,23 +105,54 @@ public final class MqttConditionMatcher
 
     private boolean topicMatches(String topic, String pattern, long authorization)
     {
-        for (GuardedConfig g : guarded)
+        int topicIndex = 0;
+        for (int i = 0; i < pattern.length(); ++i)
         {
-            String identity = g.identity.apply(authorization);
-            if (identity != null)
+            char patternChar = pattern.charAt(i);
+            if (patternChar == '#')
             {
-                pattern = pattern.replace(String.format("{guarded[%s].identity}", g.name), identity);
+                return true;
+            }
+            else if (patternChar == '+')
+            {
+                while (topicIndex < topic.length() && topic.charAt(topicIndex) != '/')
+                {
+                    topicIndex++;
+                }
+            }
+            else
+            {
+                if (pattern.startsWith("{guarded[", i))
+                {
+                    int i2 = i + "{guarded[".length();
+                    GuardedConfig guardedMatch = null;
+                    for (GuardedConfig g : guarded)
+                    {
+                        if (pattern.startsWith(g.name, i2))
+                        {
+                            guardedMatch = g;
+                            i2 += g.name.length();
+                            break;
+                        }
+                    }
+                    if (guardedMatch != null && pattern.startsWith("].identity}", i2))
+                    {
+                        String identity = guardedMatch.identity.apply(authorization);
+                        if (identity != null && topic.startsWith(identity, topicIndex))
+                        {
+                            i = i2 + "].identity}".length();
+                            topicIndex += identity.length();
+                            continue;
+                        }
+                    }
+                }
+                if (topicIndex == topic.length() || topic.charAt(topicIndex++) != patternChar)
+                {
+                    return false;
+                }
             }
         }
-        return topic.matches(pattern
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*"));
+        return topicIndex == topic.length();
     }
 
     private static List<Matcher> asWildcardMatcher(
