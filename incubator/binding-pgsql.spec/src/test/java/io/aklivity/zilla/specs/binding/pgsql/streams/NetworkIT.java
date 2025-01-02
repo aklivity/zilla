@@ -85,6 +85,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gss.encrypt.request/client",
+        "${net}/gss.encrypt.request/server" })
+    public void shouldHandleGssEncryptRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.sent.write.abort/client",
         "${net}/client.sent.write.abort/server" })
     public void shouldHandleClientSentWriteAbort() throws Exception
