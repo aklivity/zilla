@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlAuthenticationMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlBackendKeyMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlCancelRequestMessageFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlGssEncryptRequestFW;
+import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlGssEncryptResponseFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlMessageFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlSslRequestFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.codec.PgsqlSslResponseFW;
@@ -79,6 +81,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final Byte MESSAGE_TYPE_PARAMETER_STATUS = 'S';
 
     private static final int SSL_REQUEST_CODE = 80877103;
+    private static final int GSS_ENCRYPT_REQUEST_CODE = 80877104;
     private static final int CANCEL_REQUEST_CODE = 80877102;
     private static final int END_OF_FIELD = 0x00;
 
@@ -122,11 +125,13 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
     private final PgsqlMessageFW messageRO = new PgsqlMessageFW();
     private final PgsqlSslRequestFW sslRequestRO = new PgsqlSslRequestFW();
+    private final PgsqlGssEncryptRequestFW gssRequestRO = new PgsqlGssEncryptRequestFW();
     private final PgsqlStartupMessageFW startupMessageRO = new PgsqlStartupMessageFW();
     private final PgsqlCancelRequestMessageFW cancelReqMessageRO = new PgsqlCancelRequestMessageFW();
 
     private final PgsqlMessageFW.Builder messageRW = new PgsqlMessageFW.Builder();
     private final PgsqlSslResponseFW.Builder sslResponseRW = new PgsqlSslResponseFW.Builder();
+    private final PgsqlGssEncryptResponseFW.Builder gssResponseRW = new PgsqlGssEncryptResponseFW.Builder();
     private final PgsqlAuthenticationMessageFW.Builder authMessageRW = new PgsqlAuthenticationMessageFW.Builder();
     private final PgsqlBackendKeyMessageFW.Builder backendKeyMessageRW = new PgsqlBackendKeyMessageFW.Builder();
 
@@ -146,6 +151,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private final int pgsqlTypeId;
 
     private final PgsqlServerDecoder decodePgsqlInitial = this::decodePgsqlInitial;
+    private final PgsqlServerDecoder decodePgsqlGssRequest = this::decodePgsqlGssEncryptRequest;
     private final PgsqlServerDecoder decodePgsqlSslRequest = this::decodePgsqlSslRequest;
     private final PgsqlServerDecoder decodePgsqlStartupMessage = this::decodePgsqlStartupMessage;
     private final PgsqlServerDecoder decodePgsqlCancelRequest = this::decodePgsqlCancelRequest;
@@ -603,6 +609,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         {
             PgsqlSslResponseFW sslResponse = sslResponseRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
             doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, sslResponse.limit());
+        }
+
+        public void onDecodeGssEncryptRequest(
+            long traceId,
+            long authorization)
+        {
+            PgsqlGssEncryptResponseFW gssResponse = gssResponseRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
+            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, gssResponse.limit());
         }
 
         public void onDecodeCancelRequest(
@@ -1493,10 +1507,16 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         int limit)
     {
         final PgsqlSslRequestFW pgsqlSslRequest = sslRequestRO.tryWrap(buffer, offset, limit);
+        final PgsqlGssEncryptRequestFW pgsqlGssRequest = gssRequestRO.tryWrap(buffer, offset, limit);
         final PgsqlCancelRequestMessageFW cancelRequest = cancelReqMessageRO.tryWrap(buffer, offset, limit);
         final PgsqlStartupMessageFW startupMessage = startupMessageRO.tryWrap(buffer, offset, limit);
 
-        if (pgsqlSslRequest != null &&
+        if (pgsqlGssRequest != null &&
+            pgsqlGssRequest.code() == GSS_ENCRYPT_REQUEST_CODE)
+        {
+            server.decoder = decodePgsqlGssRequest;
+        }
+        else if (pgsqlSslRequest != null &&
             pgsqlSslRequest.code() == SSL_REQUEST_CODE)
         {
             server.decoder = decodePgsqlSslRequest;
@@ -1509,10 +1529,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         else if (startupMessage != null)
         {
             server.decoder = decodePgsqlStartupMessage;
-        }
-        else
-        {
-            server.decoder = decodePgsqlIgnoreAll;
         }
 
         return offset;
@@ -1533,6 +1549,23 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         server.decoder = decodePgsqlStartupMessage;
 
         return sslRequest.limit();
+    }
+
+    private int decodePgsqlGssEncryptRequest(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        PgsqlGssEncryptRequestFW gssRequest = gssRequestRO.wrap(buffer, offset, limit);
+
+        server.onDecodeGssEncryptRequest(traceId, authorization);
+        server.decoder = decodePgsqlInitial;
+
+        return gssRequest.limit();
     }
 
     private int decodePgsqlStartupMessage(

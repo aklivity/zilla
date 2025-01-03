@@ -61,6 +61,16 @@ public class ServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gss.encrypt.request/client",
+        "${app}/gss.encrypt.request/server" })
+    public void shouldHandleGssEncryptRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/cancel.request/client",
         "${app}/cancel.request/server" })
     public void shouldHandleCancelRequest() throws Exception
