@@ -264,6 +264,6 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"],\"topics\":[{\"name\":\"test\",\"value\":\"test\"," +
-            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"$.correlationId\"}}}]}"));
+            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"${message.value.correlationId}\"}}}]}"));
     }
 }

@@ -19,12 +19,15 @@ public class KafkaTopicHeaderType
 {
     public final String name;
     public final String path;
+    public final String externalPath;
 
     public KafkaTopicHeaderType(
         String name,
-        String path)
+        String path,
+        String externalPath)
     {
         this.name = name;
         this.path = path;
+        this.externalPath = externalPath;
     }
 }
