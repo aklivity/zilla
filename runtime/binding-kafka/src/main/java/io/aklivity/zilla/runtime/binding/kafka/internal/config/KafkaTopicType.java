@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static java.util.Collections.emptyList;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,15 +30,20 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaTopicType
 {
+    private static final String TRANSFORM_PATH = "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
+    private static final Pattern TRANSFORM_PATH_PATTERN = Pattern.compile(TRANSFORM_PATH);
+    private static final String TRANSFORM_INTERNAL_PATH = "$.%s";
+
     public static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
 
     public final ConverterHandler keyReader;
     public final ConverterHandler keyWriter;
     public final ConverterHandler valueReader;
     public final ConverterHandler valueWriter;
-    public final KafkaTopicTransformsConfig transforms;
+    public final KafkaTopicTransformsType transforms;
 
     private final Matcher topicMatch;
+    private final Matcher matcher;
 
     private KafkaTopicType()
     {
@@ -45,14 +53,16 @@ public class KafkaTopicType
         this.valueReader = ConverterHandler.NONE;
         this.valueWriter = ConverterHandler.NONE;
         this.transforms = null;
+        this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
     }
 
     public KafkaTopicType(
         EngineContext context,
         KafkaTopicConfig topicConfig)
     {
+        this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
         this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
-        this.transforms = topicConfig.transforms;
+        this.transforms = topicConfig.transforms != null ? transforms(topicConfig.transforms) : null;
         this.keyReader = Optional.ofNullable(topicConfig.key)
             .map(context::supplyReadConverter)
             .map(this::key)
@@ -98,6 +108,26 @@ public class KafkaTopicType
             }
         }
         return handler;
+    }
+
+
+    private KafkaTopicTransformsType transforms(
+        KafkaTopicTransformsConfig transforms)
+    {
+        String transformKey = Optional.ofNullable(transforms.extractKey)
+            .filter(key -> matcher.reset(key).matches())
+            .map(key -> String.format(TRANSFORM_INTERNAL_PATH, matcher.group(2)))
+            .orElse(transforms.extractKey);
+
+        List<KafkaTopicHeaderType> transformHeaders = Optional.ofNullable(transforms.extractHeaders)
+            .orElse(emptyList())
+            .stream()
+            .filter(header -> matcher.reset(header.path).matches())
+            .map(header -> new KafkaTopicHeaderType(header.name,
+                String.format(TRANSFORM_INTERNAL_PATH, matcher.group(2))))
+            .toList();
+
+        return new KafkaTopicTransformsType(transformKey, transformHeaders);
     }
 
     private static Matcher asMatcher(
