@@ -24,7 +24,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfigBuilder;
 
@@ -47,7 +47,7 @@ public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<Kaf
         if (transforms.extractHeaders != null && !transforms.extractHeaders.isEmpty())
         {
             JsonObjectBuilder headers = Json.createObjectBuilder();
-            for (KafkaTopicHeaderType header : transforms.extractHeaders)
+            for (KafkaTopicHeaderConfig header : transforms.extractHeaders)
             {
                 headers.add(header.name, header.path);
             }

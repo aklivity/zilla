@@ -65,7 +65,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
