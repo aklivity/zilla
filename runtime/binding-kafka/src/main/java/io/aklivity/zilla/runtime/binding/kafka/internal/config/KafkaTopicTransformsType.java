@@ -13,31 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.config;
+package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import java.util.List;
-import java.util.function.Function;
 
-public class KafkaTopicTransformsConfig
+public class KafkaTopicTransformsType
 {
     public final String extractKey;
 
-    public final List<KafkaTopicHeaderConfig> extractHeaders;
+    public final List<KafkaTopicHeaderType> extractHeaders;
 
-    public static KafkaTopicTransformsConfigBuilder<KafkaTopicTransformsConfig> builder()
-    {
-        return new KafkaTopicTransformsConfigBuilder<>(KafkaTopicTransformsConfig.class::cast);
-    }
-
-    public static <T> KafkaTopicTransformsConfigBuilder<T> builder(
-        Function<KafkaTopicTransformsConfig, T> mapper)
-    {
-        return new KafkaTopicTransformsConfigBuilder<>(mapper);
-    }
-
-    KafkaTopicTransformsConfig(
+    KafkaTopicTransformsType(
         String extractKey,
-        List<KafkaTopicHeaderConfig> extractHeaders)
+        List<KafkaTopicHeaderType> extractHeaders)
     {
         this.extractKey = extractKey;
         this.extractHeaders = extractHeaders;

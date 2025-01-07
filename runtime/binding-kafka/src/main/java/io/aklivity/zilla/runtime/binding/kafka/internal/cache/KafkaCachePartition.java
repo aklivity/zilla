@@ -65,8 +65,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -126,7 +126,7 @@ public final class KafkaCachePartition
 
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);;
+        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);
     private final String32FW.Builder stringRW = new String32FW.Builder()
         .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -364,7 +364,7 @@ public final class KafkaCachePartition
         ConverterHandler convertKey,
         ConverterHandler convertValue,
         boolean verbose,
-        KafkaTopicTransformsConfig transforms)
+        KafkaTopicTransformsType transforms)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
@@ -391,7 +391,7 @@ public final class KafkaCachePartition
         OctetsFW payload,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
-        KafkaTopicTransformsConfig transforms,
+        KafkaTopicTransformsType transforms,
         boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -573,7 +573,7 @@ public final class KafkaCachePartition
         ConverterHandler convertKey,
         ConverterHandler convertValue,
         boolean verbose,
-        KafkaTopicTransformsConfig transforms)
+        KafkaTopicTransformsType transforms)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;

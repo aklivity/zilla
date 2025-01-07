@@ -243,7 +243,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).name, "correlation-id");
-        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).path, "$.correlationId");
+        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).path, "${message.value.correlationId}");
     }
 
     @Test
@@ -264,6 +264,6 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"],\"topics\":[{\"name\":\"test\",\"value\":\"test\"," +
-            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"$.correlationId\"}}}]}"));
+            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"${message.value.correlationId}\"}}}]}"));
     }
 }

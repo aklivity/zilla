@@ -43,7 +43,6 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
@@ -54,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
@@ -486,7 +486,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final ConverterHandler convertValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
-        private final KafkaTopicTransformsConfig transforms;
+        private final KafkaTopicTransformsType transforms;
 
         private long leaderId;
         private long initialId;
