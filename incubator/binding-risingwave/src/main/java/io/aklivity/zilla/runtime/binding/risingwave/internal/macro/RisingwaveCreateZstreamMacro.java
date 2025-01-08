@@ -279,7 +279,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                 SELECT
                     c.correlation_id,
                     %s
-                FROM %s_commands c
+                FROM %s.%s_commands c
                 %s
                 WHERE %s;\u0000""";
 
@@ -324,7 +324,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 
                 String where = "c.%s = '%s'".formatted(command.dispatchOn(), commandName);
 
-                String sqlQuery = String.format(sqlFormat, systemSchema, name, columns, from, join, where);
+                String sqlQuery = String.format(sqlFormat, systemSchema, name, columns, systemSchema, from, join, where);
 
                 handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
             }
@@ -370,8 +370,8 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             long authorization)
         {
             String selects =  command.commandHandlers().values().stream()
-                .map("SELECT * FROM %s"::formatted)
-                .collect(Collectors.joining("UNION ALL\n"));
+                .map(value -> String.format("SELECT * FROM %s.%s", systemSchema, value))
+                .collect(Collectors.joining("\nUNION ALL\n"));
 
             String sqlQuery = String.format(sqlFormat, command.schema(), command.name(), selects);
 
@@ -534,7 +534,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
     private final class CreateReplySink implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s.%s_replies_sink AS
+            CREATE SINK %s_replies_sink AS
                 SELECT
                       COALESCE(r.status, '400') AS status,
                       c.correlation_id
@@ -543,7 +543,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                   ON c.correlation_id = r.correlation_id
             WITH (
                 connector = 'kafka',
-                topic = '%s.%s_replies',
+                topic = '%s.%s_replies_sink',
                 properties.bootstrap.server = '%s',
             ) FORMAT PLAIN ENCODE AVRO (
               force_append_only='true',
@@ -555,10 +555,12 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             long traceId,
             long authorization)
         {
-            String name = command.name();
-            String schema = command.schema();
+            final String name = command.name();
+            final String schema = command.schema();
 
-            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, name,
+            final String systemName = "%s.%s".formatted(systemSchema, name);
+
+            String sqlQuery = String.format(sqlFormat, systemName, systemName, systemName,
                 schema, name, bootstrapServer, schemaRegistry);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);

@@ -151,7 +151,7 @@ read "CREATE MATERIALIZED VIEW zb_catalog.send_payment_handler AS\n"
      "         WHEN balance >= c.amount THEN 'PaymentSent'\n"
      "         ELSE 'PaymentDeclined'\n"
      "     END AS event, c.user_id, c.amount\n"
-     "    FROM app_events_commands c\n"
+     "    FROM zb_catalog.app_events_commands c\n"
      "    JOIN balance ON WHERE user_id = c.user_id\n"
      "    WHERE c.command = 'SendPayment';"
      [0x00]
@@ -176,7 +176,7 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "CREATE MATERIALIZED VIEW public.app_events AS\n"
-     "    SELECT * FROM send_payment_handler;"
+     "    SELECT * FROM zb_catalog.send_payment_handler;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -250,12 +250,12 @@ read "CREATE SINK zb_catalog.app_events_replies_sink AS\n"
      "    SELECT\n"
      "          COALESCE(r.status, '400') AS status,\n"
      "          c.correlation_id\n"
-     "      FROM app_events_commands c\n"
-     "      LEFT JOIN app_events_reply_handler r\n"
+     "      FROM zb_catalog.app_events_commands c\n"
+     "      LEFT JOIN zb_catalog.app_events_reply_handler r\n"
      "      ON c.correlation_id = r.correlation_id\n"
      "WITH (\n"
      "    connector = 'kafka',\n"
-     "    topic = 'public.app_events_replies',\n"
+     "    topic = 'public.app_events_replies_sink',\n"
      "    properties.bootstrap.server = 'localhost:9092',\n"
      ") FORMAT PLAIN ENCODE AVRO (\n"
      "  force_append_only='true',\n"
