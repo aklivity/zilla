@@ -278,6 +278,7 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
             CREATE MATERIALIZED VIEW %s.%s AS
                 SELECT
                     c.correlation_id,
+                    %s,
                     %s
                 FROM %s.%s_commands c
                 %s
@@ -316,6 +317,11 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
                     }
                 }
 
+                String include = command.columns().stream()
+                    .filter(c -> ZILLA_MAPPINGS.containsKey(c.generatedAlways()))
+                    .map(c -> "c.%s".formatted(c.name()))
+                    .collect(Collectors.joining(",\n        "));
+
                 String commandName = command.commandHandlers().entrySet().stream()
                     .filter(e -> e.getValue().equals(name))
                     .map(Map.Entry::getKey)
@@ -324,7 +330,8 @@ public class RisingwaveCreateZstreamMacro extends RisingwaveMacroBase
 
                 String where = "c.%s = '%s'".formatted(command.dispatchOn(), commandName);
 
-                String sqlQuery = String.format(sqlFormat, systemSchema, name, columns, systemSchema, from, join, where);
+                String sqlQuery = String.format(sqlFormat, systemSchema, name, include, columns,
+                    systemSchema, from, join, where);
 
                 handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
             }

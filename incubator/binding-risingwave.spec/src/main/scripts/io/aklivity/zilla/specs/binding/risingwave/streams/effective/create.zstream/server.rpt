@@ -147,6 +147,8 @@ read zilla:data.ext ${pgsql:dataEx()
 read "CREATE MATERIALIZED VIEW zb_catalog.send_payment_handler AS\n"
      "    SELECT\n"
      "        c.correlation_id,\n"
+     "        c.owner_id,\n"
+     "        c.created_at,\n"
      "        CASE\n"
      "         WHEN balance >= c.amount THEN 'PaymentSent'\n"
      "         ELSE 'PaymentDeclined'\n"
