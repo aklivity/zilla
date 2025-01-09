@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.115...HEAD)
+
+**Fixed bugs:**
+
+- Zilla is unresponsive sometimes & the app logs Stopped but accepts the CRUD requests [\#1312](https://github.com/aklivity/zilla/issues/1312)
+- Asyncapi kafka header extraction expression don’t match zilla yaml expressions  [\#1138](https://github.com/aklivity/zilla/issues/1138)
+
+**Merged pull requests:**
+
+- Minor bug fixes in zstream [\#1364](https://github.com/aklivity/zilla/pull/1364) ([akrambek](https://github.com/akrambek))
+- fix: kafka header extraction expression in composite zilla.yaml [\#1362](https://github.com/aklivity/zilla/pull/1362) ([ankitk-me](https://github.com/ankitk-me))
+- Support GSS encrypt request decoding as part of psql 14.15 client [\#1361](https://github.com/aklivity/zilla/pull/1361) ([akrambek](https://github.com/akrambek))
+- Zfunction and Zstream support [\#1354](https://github.com/aklivity/zilla/pull/1354) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.115](https://github.com/aklivity/zilla/tree/0.9.115) (2024-12-26)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.114...0.9.115)
