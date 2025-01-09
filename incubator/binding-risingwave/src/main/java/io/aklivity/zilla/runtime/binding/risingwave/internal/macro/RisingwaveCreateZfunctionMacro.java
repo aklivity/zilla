@@ -18,7 +18,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveCreateZfunctionMacro
+public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
 {
     private static final String ZFUNCTION_NAME = "zfunctions";
 
@@ -35,6 +35,8 @@ public class RisingwaveCreateZfunctionMacro
         CreateZfunction command,
         RisingwaveMacroHandler handler)
     {
+        super(sql, handler);
+
         this.systemSchema = systemSchema;
         this.user = user;
         this.sql = sql;
@@ -65,6 +67,43 @@ public class RisingwaveCreateZfunctionMacro
             String sqlQuery = String.format(sqlFormat, systemSchema, ZFUNCTION_NAME, name, newSql);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            FlushState state = new FlushState();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class FlushState implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            FLUSH;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            handler.doExecuteSystemClient(traceId, authorization, sqlFormat);
         }
 
         @Override
