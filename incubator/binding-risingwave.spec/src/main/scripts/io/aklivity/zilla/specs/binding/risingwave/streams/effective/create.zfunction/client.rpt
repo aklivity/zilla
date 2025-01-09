@@ -88,7 +88,7 @@ write flush
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("FLUSH_COMPLETE")
+                                .tag("FLUSH")
                                 .build()
                               .build()}
 
