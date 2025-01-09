@@ -14,43 +14,52 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser;
 
+import java.util.BitSet;
 import java.util.List;
 
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterStreamTopicListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZstreamTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateStreamListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZfunctionListener;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZstreamListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlShowListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 
 public final class PgsqlParser
 {
     private final ParseTreeWalker walker;
-    private final BailErrorStrategy errorStrategy;
     private final PostgreSqlLexer lexer;
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
-    private final SqlCreateStreamListener createStreamListener;
+    private final SqlCreateZstreamListener createStreamListener;
     private final SqlCreateZtableTopicListener createTableListener;
     private final SqlAlterZtableTopicListener alterTableListener;
-    private final SqlAlterStreamTopicListener alterStreamListener;
+    private final SqlAlterZstreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
+    private final SqlCreateZfunctionListener createZfunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
     private final SqlShowListener showListener;
     private final SqlDropListener dropListener;
@@ -58,20 +67,25 @@ public final class PgsqlParser
     public PgsqlParser()
     {
         this.walker = new ParseTreeWalker();
-        this.errorStrategy = new BailErrorStrategy();
+        BailErrorStrategy errorStrategy = new BailErrorStrategy();
+        ParserErrorListener errorListener = new ParserErrorListener();
         this.lexer = new PostgreSqlLexer(null);
         this.tokens = new CommonTokenStream(lexer);
         this.parser = new PostgreSqlParser(tokens);
+        this.parser.removeErrorListeners();
+        this.parser.addErrorListener(errorListener);
+        this.parser.setErrorHandler(errorStrategy);
+
         this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateZtableTopicListener(tokens);
         this.alterTableListener = new SqlAlterZtableTopicListener(tokens);
-        this.alterStreamListener = new SqlAlterStreamTopicListener(tokens);
-        this.createStreamListener = new SqlCreateStreamListener(tokens);
+        this.alterStreamListener = new SqlAlterZstreamTopicListener(tokens);
+        this.createStreamListener = new SqlCreateZstreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
+        this.createZfunctionListener = new SqlCreateZfunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
         this.showListener = new SqlShowListener();
-        parser.setErrorHandler(errorStrategy);
     }
 
     public String parseCommand(
@@ -102,18 +116,25 @@ public final class PgsqlParser
         return alterStreamListener.alter();
     }
 
-    public CreateStream parseCreateStream(
+    public CreateZstream parseCreateZstream(
         String sql)
     {
         parser(sql, createStreamListener);
         return createStreamListener.stream();
     }
 
-    public Function parseCreateFunction(
+    public CreateFunction parseCreateFunction(
         String sql)
     {
         parser(sql, createFunctionListener);
         return createFunctionListener.function();
+    }
+
+    public CreateZfunction parseCreateZfunction(
+        String sql)
+    {
+        parser(sql, createZfunctionListener);
+        return createZfunctionListener.zfunction();
     }
 
     public CreateZview parseCreateZView(
@@ -155,6 +176,56 @@ public final class PgsqlParser
             walker.walk(listener, parser.root());
         }
         catch (Exception ignore)
+        {
+        }
+    }
+
+    private final class ParserErrorListener implements ANTLRErrorListener
+    {
+        @Override
+        public void syntaxError(
+            Recognizer<?, ?> recognizer,
+            Object offendingSymbol,
+            int line,
+            int charPositionInLine,
+            String msg,
+            RecognitionException e)
+        {
+            //Only for debugging
+            //System.err.println("Syntax error at line " + line + ":" + charPositionInLine + " " + msg);
+        }
+
+        @Override
+        public void reportAmbiguity(
+            Parser recognizer,
+            DFA dfa,
+            int startIndex,
+            int stopIndex,
+            boolean exact,
+            BitSet ambigAlts,
+            ATNConfigSet configs)
+        {
+        }
+
+        @Override
+        public void reportAttemptingFullContext(
+            Parser recognizer,
+            DFA dfa,
+            int startIndex,
+            int stopIndex,
+            BitSet conflictingAlts,
+            ATNConfigSet configs)
+        {
+        }
+
+        @Override
+        public void reportContextSensitivity(
+            Parser recognizer,
+            DFA dfa,
+            int startIndex,
+            int stopIndex,
+            int prediction,
+            ATNConfigSet configs)
         {
         }
     }

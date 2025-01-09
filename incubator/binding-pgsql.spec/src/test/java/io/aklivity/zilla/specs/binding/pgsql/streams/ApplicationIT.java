@@ -103,6 +103,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gss.encrypt.request/client",
+        "${app}/gss.encrypt.request/server" })
+    public void shouldHandleGssEncryptRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/ssl.request/client",
         "${app}/ssl.request/server" })
     public void shouldHandleSslRequest() throws Exception

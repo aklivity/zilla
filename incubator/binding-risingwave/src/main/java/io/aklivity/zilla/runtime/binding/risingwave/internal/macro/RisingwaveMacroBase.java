@@ -18,6 +18,9 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public abstract class RisingwaveMacroBase
 {
+    protected static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
+    protected static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
+
     protected final RisingwaveMacroHandler handler;
     protected final String sql;
 

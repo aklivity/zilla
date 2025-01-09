@@ -25,12 +25,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateStream;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Function;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Select;
 
 public class PgsqlParserTest
 {
@@ -248,54 +250,10 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldCreateStream()
-    {
-        String sql = "CREATE STREAM test_stream (id INT, name VARCHAR(100));";
-        CreateStream createStream = parser.parseCreateStream(sql);
-        assertNotNull(createStream);
-        assertEquals("test_stream", createStream.name());
-        assertEquals(2, createStream.columns().size());
-        assertEquals("INT", createStream.columns().get("id"));
-        assertEquals("VARCHAR(100)", createStream.columns().get("name"));
-    }
-
-    @Test
-    public void shouldCreateStreamIfNotExists()
-    {
-        String sql = "CREATE STREAM IF NOT EXISTS test_stream (id INT, name VARCHAR(100));";
-        CreateStream createStream = parser.parseCreateStream(sql);
-        assertNotNull(createStream);
-        assertEquals("test_stream", createStream.name());
-        assertEquals(2, createStream.columns().size());
-        assertEquals("INT", createStream.columns().get("id"));
-        assertEquals("VARCHAR(100)", createStream.columns().get("name"));
-    }
-
-    @Test
-    public void shouldHandleInvalidCreateStream()
-    {
-        String sql = "CREATE STREAM test_stream";
-        CreateStream createStream = parser.parseCreateStream(sql);
-
-        assertNull(createStream.name());
-    }
-
-    @Test
-    public void shouldCreateFunction()
-    {
-        String sql = "CREATE FUNCTION test_function() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql;";
-        Function function = parser.parseCreateFunction(sql);
-
-        assertNotNull(function);
-        assertEquals("test_function", function.name());
-        assertEquals("INT", function.returnType());
-    }
-
-    @Test
     public void shouldCreateFunctionWithLanguage()
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS TABLE (x INT) LANGUAGE python AS 'test_function';";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNotNull(function);
         assertEquals("test_function", function.name());
@@ -308,7 +266,7 @@ public class PgsqlParserTest
     {
         String sql = "CREATE FUNCTION test_function(int) RETURNS struct<key varchar, value varchar>" +
             " LANGUAGE python AS 'test_function';";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNotNull(function);
         assertEquals("test_function", function.name());
@@ -320,7 +278,7 @@ public class PgsqlParserTest
     public void shouldHandleInvalidCreateFunction()
     {
         String sql = "CREATE FUNCTION test_function()";
-        Function function = parser.parseCreateFunction(sql);
+        CreateFunction function = parser.parseCreateFunction(sql);
 
         assertNull(function.name());
     }
@@ -359,7 +317,7 @@ public class PgsqlParserTest
     @Test
     public void shouldCreateZtableWithDefaultValues()
     {
-        String sql = "CREATE ZTABLE test (id INT DEFAULT 0, name VARCHAR(100) DEFAULT 'unknown');";
+        String sql = "CREATE ZTABLE test (id INT DEFAULT 0, name VARCHAR(100));";
         CreateTable createTable = parser.parseCreateTable(sql);
 
         assertNotNull(createTable);
@@ -477,7 +435,7 @@ public class PgsqlParserTest
     @Test
     public void shouldDetectAlterStreamAddColumn()
     {
-        String sql = "ALTER STREAM test_stream ADD COLUMN new_column INT;";
+        String sql = "ALTER ZSTREAM test_stream ADD COLUMN new_column INT;";
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
@@ -490,7 +448,7 @@ public class PgsqlParserTest
     @Test
     public void shouldAlterStreamDropColumn()
     {
-        String sql = "ALTER STREAM test_stream DROP COLUMN old_column;";
+        String sql = "ALTER ZSTREAM test_stream DROP COLUMN old_column;";
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
@@ -511,7 +469,7 @@ public class PgsqlParserTest
     @Test
     public void shouldAlterStreamModifyColumn()
     {
-        String sql = "ALTER STREAM test_stream ALTER COLUMN existing_column TYPE VARCHAR(100);";
+        String sql = "ALTER ZSTREAM test_stream ALTER COLUMN existing_column TYPE VARCHAR(100);";
         Alter alter = parser.parseAlterStream(sql);
 
         assertEquals("test_stream", alter.name());
@@ -537,5 +495,107 @@ public class PgsqlParserTest
         String type = parser.parseShow(sql);
 
         assertEquals("ZTABLES", type);
+    }
+
+    @Test
+    public void shouldParseCreateZfunctionWithTableReturnType()
+    {
+        String sql = """
+           CREATE ZFUNCTION send_payment_handler(
+             user_id VARCHAR,
+             amount DOUBLE PRECISION)
+            RETURNS TABLE(
+             event VARCHAR,
+             user_id VARCHAR,
+             amount DOUBLE PRECISION)
+            LANGUAGE SQL AS $$
+             SELECT
+                 CASE
+                     WHEN balance >= args.amount THEN "PaymentSent"
+                     ELSE "PaymentDeclined"
+                 END AS event,
+                 args.user_id,
+                 args.amount
+             FROM balance WHERE user_id = args.user_id;
+            $$
+            """;
+        CreateZfunction function = parser.parseCreateZfunction(sql);
+        assertNotNull(function);
+
+        assertEquals("send_payment_handler", function.name());
+        assertEquals(2, function.arguments().size());
+        assertEquals("user_id", function.arguments().get(0).name());
+        assertEquals("VARCHAR", function.arguments().get(0).type());
+        assertEquals("amount", function.arguments().get(1).name());
+        assertEquals("DOUBLE PRECISION", function.arguments().get(1).type());
+
+        assertEquals(3, function.returnTypes().size());
+        assertEquals("event", function.returnTypes().get(0).name());
+        assertEquals("VARCHAR", function.returnTypes().get(0).type());
+        assertEquals("user_id", function.returnTypes().get(1).name());
+        assertEquals("VARCHAR", function.returnTypes().get(1).type());
+        assertEquals("amount", function.returnTypes().get(2).name());
+        assertEquals("DOUBLE PRECISION", function.returnTypes().get(2).type());
+
+        Select select = function.select();
+        assertNotNull(select);
+        assertEquals(3, select.columns().size());
+        assertEquals("CASE\n" +
+            "          WHEN balance >= args.amount THEN \"PaymentSent\"\n" +
+            "          ELSE \"PaymentDeclined\"\n" +
+            "      END AS event", select.columns().get(0));
+        assertEquals("args.user_id", select.columns().get(1));
+        assertEquals("args.amount", select.columns().get(2));
+        assertEquals("balance", select.from());
+        assertEquals("WHERE user_id = args.user_id", select.whereClause());
+    }
+
+    @Test
+    public void shouldCreateZstream()
+    {
+        String sql = """
+            CREATE ZSTREAM app_events (
+                event VARCHAR,
+                user_id VARCHAR,
+                request_id VARCHAR,
+                amount DOUBLE PRECISION,
+                notes VARCHAR,
+                owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,
+                created_at TIMESTAMP GENERATED ALWAYS AS NOW
+            )
+            WITH (
+                DISPATCH_ON = 'command',
+                HANDLERS = (
+                    'SendPayment' TO 'send_payment_handler',
+                    'RequestPayment' TO 'request_payment_handler',
+                    'RejectPayment' TO 'reject_payment_handler'
+                )
+            );
+            """;
+
+        CreateZstream createStream = parser.parseCreateZstream(sql);
+
+        assertEquals("app_events", createStream.name());
+        assertEquals("event", createStream.columns().get(0).name());
+        assertEquals("VARCHAR", createStream.columns().get(0).type());
+        assertEquals("user_id", createStream.columns().get(1).name());
+        assertEquals("VARCHAR", createStream.columns().get(1).type());
+        assertEquals("request_id", createStream.columns().get(2).name());
+        assertEquals("VARCHAR", createStream.columns().get(2).type());
+        assertEquals("amount", createStream.columns().get(3).name());
+        assertEquals("DOUBLE PRECISION", createStream.columns().get(3).type());
+        assertEquals("notes", createStream.columns().get(4).name());
+        assertEquals("VARCHAR", createStream.columns().get(4).type());
+        assertEquals("owner_id", createStream.columns().get(5).name());
+        assertEquals("VARCHAR", createStream.columns().get(5).type());
+        assertEquals("created_at", createStream.columns().get(6).name());
+        assertEquals("TIMESTAMP", createStream.columns().get(6).type());
+
+        assertEquals("command", createStream.dispatchOn());
+
+        assertEquals(3, createStream.commandHandlers().size());
+        assertEquals("send_payment_handler", createStream.commandHandlers().get("SendPayment"));
+        assertEquals("request_payment_handler", createStream.commandHandlers().get("RequestPayment"));
+        assertEquals("reject_payment_handler", createStream.commandHandlers().get("RejectPayment"));
     }
 }

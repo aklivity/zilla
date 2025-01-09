@@ -31,14 +31,12 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
 {
     private static final String ZTABLE_NAME = "ztables";
     private static final String TABLE_NAME = "tables";
-    private static final String ZILLA_IDENTITY = "GENERATED ALWAYS AS IDENTITY";
-    private static final String ZILLA_TIMESTAMP = "GENERATED ALWAYS AS NOW";
 
     private static final Map<String, String> ZILLA_MAPPINGS = new Object2ObjectHashMap<>();
     static
     {
-        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s\n");
-        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s\n");
+        ZILLA_MAPPINGS.put(ZILLA_IDENTITY, "INCLUDE header 'zilla:identity' AS %s_header\n");
+        ZILLA_MAPPINGS.put(ZILLA_TIMESTAMP, "INCLUDE timestamp AS %s_timestamp\n");
     }
 
     private final String bootstrapServer;
@@ -145,7 +143,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
     private final class CreateSourceState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SOURCE IF NOT EXISTS %s (*)%s
+            CREATE SOURCE IF NOT EXISTS %s_source (*)%s
             WITH (
                connector='kafka',
                properties.bootstrap.server='%s',
@@ -163,7 +161,6 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
         {
             String schema = command.schema();
             String table = command.name();
-            String sourceName = "%s_source".formatted(table);
 
             includeBuilder.setLength(0);
             List<TableColumn> includes = command.columns().stream()
@@ -185,11 +182,11 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
                         {
                             if (ZILLA_TIMESTAMP.equals(c))
                             {
-                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_timestamp".formatted(name)));
+                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), name));
                             }
                             else
                             {
-                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), "%s_header".formatted(name)));
+                                includeBuilder.append(String.format(ZILLA_MAPPINGS.get(c), name));
                             }
                         });
 
@@ -197,7 +194,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
                 includeBuilder.delete(includeBuilder.length() - 1, includeBuilder.length());
             }
 
-            String sqlQuery = String.format(sqlFormat, sourceName, includeBuilder, bootstrapServer,
+            String sqlQuery = String.format(sqlFormat, table, includeBuilder, bootstrapServer,
                 schema, table, scanStartupMil, schemaRegistry);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);

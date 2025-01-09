@@ -18,32 +18,20 @@ package io.aklivity.zilla.runtime.binding.kafka.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T, KafkaTopicTransformsConfigBuilder<T>>
 {
-    private static final String PATH = "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
-    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final String INTERNAL_VALUE = "$.%s";
-    private static final String INTERNAL_PATH = "^\\$\\..*$";
-    private static final Pattern INTERNAL_PATH_PATTERN = Pattern.compile(INTERNAL_PATH);
-
-    private final Matcher matcher;
-    private final Matcher internalMatcher;
     private final Function<KafkaTopicTransformsConfig, T> mapper;
     private String extractKey;
-    private List<KafkaTopicHeaderType> extractHeaders;
+    private List<KafkaTopicHeaderConfig> extractHeaders;
 
     KafkaTopicTransformsConfigBuilder(
         Function<KafkaTopicTransformsConfig, T> mapper)
     {
         this.mapper = mapper;
         this.extractHeaders = new ArrayList<>();
-        this.matcher = PATH_PATTERN.matcher("");
-        this.internalMatcher = INTERNAL_PATH_PATTERN.matcher("");
     }
 
     @Override
@@ -56,14 +44,13 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     public KafkaTopicTransformsConfigBuilder<T> extractKey(
         String extractKey)
     {
-        this.extractKey = extractKey != null && matcher.reset(extractKey).matches()
-            ? String.format(INTERNAL_VALUE, matcher.group(2))
-            : extractKey;
+        this.extractKey = extractKey;
+
         return this;
     }
 
     public KafkaTopicTransformsConfigBuilder<T> extractHeaders(
-        List<KafkaTopicHeaderType> extractHeaders)
+        List<KafkaTopicHeaderConfig> extractHeaders)
     {
         if (extractHeaders != null)
         {
@@ -73,7 +60,7 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     }
 
     public KafkaTopicTransformsConfigBuilder<T> extractHeader(
-        KafkaTopicHeaderType header)
+        KafkaTopicHeaderConfig header)
     {
         return extractHeader(header.name, header.path);
     }
@@ -86,15 +73,9 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
         {
             this.extractHeaders = new ArrayList<>();
         }
-        if (matcher.reset(path).matches())
-        {
-            this.extractHeaders.add(new KafkaTopicHeaderType(name,
-                String.format(INTERNAL_VALUE, matcher.group(2))));
-        }
-        else if (internalMatcher.reset(path).matches())
-        {
-            this.extractHeaders.add(new KafkaTopicHeaderType(name, path));
-        }
+
+        this.extractHeaders.add(new KafkaTopicHeaderConfig(name, path));
+
         return this;
     }
 

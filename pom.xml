@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.115</version>
+  <version>0.9.116</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -305,6 +305,7 @@
             <excludes>
               <exclude>src/conf/**</exclude>
               <exclude>src/**/*.btm</exclude>
+              <exclude>src/**/gen/*</exclude>
             </excludes>
             <mapping>
               <g4>SLASHSTAR_STYLE</g4>

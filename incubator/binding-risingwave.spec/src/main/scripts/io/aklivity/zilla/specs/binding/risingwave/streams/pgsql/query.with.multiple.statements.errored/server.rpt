@@ -36,8 +36,8 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read  "CREATE STREAM cities "
-      "(id VARCHAR, name VARCHAR, description VARCHAR);"
+read  "CREATE ZTABLE cities "
+      "(id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));"
       "UPDATE weather SET id = 'SF';"
       [0x00]
 

@@ -29,6 +29,17 @@ scope protocol
             uint8 answer = 78;
         }
 
+        struct PgsqlGssEncryptRequest
+        {
+            int32 length = 4;
+            int32 code = 80877104;
+        }
+
+        struct PgsqlGssEncryptResponse
+        {
+            uint8 answer = 78;
+        }
+
         struct PgsqlStartupMessage
         {
             int32 length;
