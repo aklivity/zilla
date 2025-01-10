@@ -36,7 +36,7 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
 {
     public static final String COMMON_NAME_KEY = "common.name";
 
-    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^\\s,]+).*");
+    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^\\s,]+)");
 
     private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
 
@@ -116,7 +116,7 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                             X500Principal subject = chain[0].getSubjectX500Principal();
 
                             if (subject != null &&
-                                matchCN.reset(subject.getName()).matches() &&
+                                matchCN.reset(subject.getName()).find() &&
                                 subjectCN.equals(matchCN.group("cn")))
                             {
                                 alias = candidate;
