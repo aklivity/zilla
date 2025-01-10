@@ -22,25 +22,29 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 
 public final class MqttConditionMatcher
 {
     private final List<Matcher> sessionMatchers;
-    private final List<Matcher> subscribeMatchers;
-    private final List<Matcher> publishMatchers;
+    private final List<String> subscribeTopics;
+    private final List<String> publishTopics;
+    private final List<GuardedConfig> guarded;
 
     public MqttConditionMatcher(
-        MqttConditionConfig condition)
+        MqttConditionConfig condition,
+        List<GuardedConfig> guarded)
     {
         this.sessionMatchers =
             condition.sessions != null && !condition.sessions.isEmpty() ?
                 asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList())) : null;
-        this.subscribeMatchers =
+        this.subscribeTopics =
             condition.subscribes != null && !condition.subscribes.isEmpty() ?
-                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
-        this.publishMatchers =
+                condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList()) : null;
+        this.publishTopics =
             condition.publishes != null && !condition.publishes.isEmpty() ?
-                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+                condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList()) : null;
+        this.guarded = guarded;
     }
 
     public boolean matchesSession(
@@ -62,14 +66,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesSubscribe(
-        String topic)
+        String topic,
+        long authorization)
     {
         boolean match = false;
-        if (subscribeMatchers != null)
+        if (subscribeTopics != null)
         {
-            for (Matcher matcher : subscribeMatchers)
+            for (String subscribeTopic : subscribeTopics)
             {
-                match = matcher.reset(topic).matches();
+                match = topicMatches(topic, subscribeTopic, authorization);
                 if (match)
                 {
                     break;
@@ -80,14 +85,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesPublish(
-        String topic)
+        String topic,
+        long authorization)
     {
         boolean match = false;
-        if (publishMatchers != null)
+        if (publishTopics != null)
         {
-            for (Matcher matcher : publishMatchers)
+            for (String publishTopic : publishTopics)
             {
-                match = matcher.reset(topic).matches();
+                match = topicMatches(topic, publishTopic, authorization);
                 if (match)
                 {
                     break;
@@ -95,6 +101,58 @@ public final class MqttConditionMatcher
             }
         }
         return match;
+    }
+
+    private boolean topicMatches(String topic, String pattern, long authorization)
+    {
+        int topicIndex = 0;
+        for (int i = 0; i < pattern.length(); ++i)
+        {
+            char patternChar = pattern.charAt(i);
+            if (patternChar == '#')
+            {
+                return true;
+            }
+            else if (patternChar == '+')
+            {
+                while (topicIndex < topic.length() && topic.charAt(topicIndex) != '/')
+                {
+                    topicIndex++;
+                }
+            }
+            else
+            {
+                if (pattern.startsWith("{guarded[", i))
+                {
+                    int i2 = i + "{guarded[".length();
+                    GuardedConfig guardedMatch = null;
+                    for (GuardedConfig g : guarded)
+                    {
+                        if (pattern.startsWith(g.name, i2))
+                        {
+                            guardedMatch = g;
+                            i2 += g.name.length();
+                            break;
+                        }
+                    }
+                    if (guardedMatch != null && pattern.startsWith("].identity}", i2))
+                    {
+                        String identity = guardedMatch.identity.apply(authorization);
+                        if (identity != null && topic.startsWith(identity, topicIndex))
+                        {
+                            i = i2 + "].identity}".length();
+                            topicIndex += identity.length();
+                            continue;
+                        }
+                    }
+                }
+                if (topicIndex == topic.length() || topic.charAt(topicIndex++) != patternChar)
+                {
+                    return false;
+                }
+            }
+        }
+        return topicIndex == topic.length();
     }
 
     private static List<Matcher> asWildcardMatcher(
@@ -113,22 +171,6 @@ public final class MqttConditionMatcher
 
         }
 
-        return matchers;
-    }
-
-    private static List<Matcher> asTopicMatcher(
-        List<String> wildcards)
-    {
-        List<Matcher> matchers = new ArrayList<>();
-        for (String wildcard : wildcards)
-        {
-            matchers.add(Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher(""));
-
-        }
         return matchers;
     }
 }

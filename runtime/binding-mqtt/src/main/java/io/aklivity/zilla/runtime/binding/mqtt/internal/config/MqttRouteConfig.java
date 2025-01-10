@@ -39,7 +39,7 @@ public final class MqttRouteConfig
         this.id = route.id;
         this.when = route.when.stream()
             .map(MqttConditionConfig.class::cast)
-            .map(MqttConditionMatcher::new)
+            .map(conf -> new MqttConditionMatcher(conf, route.guarded))
             .collect(toList());
         this.with = (MqttWithConfig) route.with;
         this.authorized = route.authorized;
@@ -63,14 +63,16 @@ public final class MqttRouteConfig
     }
 
     boolean matchesSubscribe(
-        String topic)
+        String topic,
+        long authorization)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic, authorization));
     }
 
     boolean matchesPublish(
-        String topic)
+        String topic,
+        long authorization)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic, authorization));
     }
 }
