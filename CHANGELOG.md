@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.115...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.116...HEAD)
+
+**Merged pull requests:**
+
+- Flush the insert to have immediate effect [\#1365](https://github.com/aklivity/zilla/pull/1365) ([akrambek](https://github.com/akrambek))
+
+## [0.9.116](https://github.com/aklivity/zilla/tree/0.9.116) (2025-01-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.115...0.9.116)
 
 **Fixed bugs:**
 
