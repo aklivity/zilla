@@ -134,7 +134,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final TlsServerDecoder decodeNotHandshakingUnwrapped = this::decodeNotHandshakingUnwrapped;
     private final TlsServerDecoder decodeIgnoreAll = this::decodeIgnoreAll;
 
-    private final Matcher matchCN = Pattern.compile("CN=([^,]*).*").matcher("");
+    private final Matcher matchCN = Pattern.compile("CN=([^,]*)").matcher("");
 
     private final int proxyTypeId;
     private final Signaler signaler;
@@ -2422,7 +2422,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 if (peer != null)
                 {
                     String name = peer.getName();
-                    if (matchCN.reset(name).matches())
+                    if (matchCN.reset(name).find())
                     {
                         commonName = matchCN.group(1);
                     }
