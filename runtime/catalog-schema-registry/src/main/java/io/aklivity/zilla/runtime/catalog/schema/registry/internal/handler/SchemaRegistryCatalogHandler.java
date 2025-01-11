@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler;
 
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.CachedSchemaId.IN_PROGRESS;
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest.NO_VERSIONS;
+import static java.util.Base64.getEncoder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -33,6 +34,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
@@ -52,6 +54,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final byte MAGIC_BYTE = 0x0;
     private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
+    public static final String CREDENTIAL_PATTERN = "%s:%s";
 
     private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -68,22 +71,27 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> cachedSchemas;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
+    private final String credentials;
 
     public SchemaRegistryCatalogHandler(
         SchemaRegistryCatalogConfig catalog)
     {
-        this.baseUrl = catalog.options.url;
+        AbstractSchemaRegistryOptionsConfig options = catalog.options;
+        this.baseUrl = options.url;
         this.client = HttpClient.newHttpClient();
         this.registerRequest = new RegisterSchemaRequest();
         this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.maxAgeMillis = catalog.options.maxAge.toMillis();
+        this.maxAgeMillis = options.maxAge.toMillis();
         this.event = catalog.events;
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
+        this.credentials = options.key != null
+            ? getEncoder().encodeToString(CREDENTIAL_PATTERN.formatted(options.key, options.secret).getBytes())
+            : null;
     }
 
     @Override
@@ -366,16 +374,21 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private String sendHttpRequest(
         String path)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
                 .newBuilder(toURI(baseUrl, path))
-                .GET()
-                .build();
+                .GET();
+
+        if (credentials != null)
+        {
+            httpRequest.header("Authorization", "Basic " + credentials);
+        }
+
         // TODO: introduce interrupt/timeout for request to schema registry
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
@@ -389,18 +402,23 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         String path,
         String body)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, path))
             .version(HttpClient.Version.HTTP_1_1)
             .header("content-type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build();
+            .POST(HttpRequest.BodyPublishers.ofString(body));
+
+        if (credentials != null)
+        {
+            httpRequest.header("Authorization", "Basic " + credentials);
+        }
+
         // TODO: introduce interrupt/timeout for request to schema registry
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
@@ -413,16 +431,20 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private String sendDeleteHttpRequest(
         String path)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, path))
             .version(HttpClient.Version.HTTP_1_1)
-            .DELETE()
-            .build();
+            .DELETE();
+
+        if (credentials != null)
+        {
+            httpRequest.header("Authorization", "Basic " + credentials);
+        }
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)

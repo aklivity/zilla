@@ -40,8 +40,10 @@ public final class KarapaceOptionsConfigBuilder<T>
     protected KarapaceOptionsConfig newOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        String key,
+        String secret)
     {
-        return new KarapaceOptionsConfig(url, context, maxAge);
+        return new KarapaceOptionsConfig(url, context, maxAge, key, secret);
     }
 }

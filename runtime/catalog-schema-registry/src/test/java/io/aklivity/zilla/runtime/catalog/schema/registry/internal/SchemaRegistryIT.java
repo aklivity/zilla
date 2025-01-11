@@ -59,6 +59,17 @@ public class SchemaRegistryIT
     }
 
     @Test
+    @Configuration("resolve/schema/id/secure/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${remote}/resolve.secure.schema.via.schema.id" })
+    public void shouldResolveSecureSchemaViaSchemaId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("resolve/subject/version/zilla.yaml")
     @Specification({
         "${net}/handshake/client",

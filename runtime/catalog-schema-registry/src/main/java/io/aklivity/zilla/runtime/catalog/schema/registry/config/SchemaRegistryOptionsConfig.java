@@ -35,8 +35,10 @@ public final class SchemaRegistryOptionsConfig extends AbstractSchemaRegistryOpt
     SchemaRegistryOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        String key,
+        String secret)
     {
-        super(url, context, maxAge);
+        super(url, context, maxAge, key, secret);
     }
 }

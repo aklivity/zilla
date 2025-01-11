@@ -30,6 +30,8 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
     private String url;
     private String context;
     private Duration maxAge;
+    private String key;
+    private String secret;
 
     public B url(
         String url)
@@ -52,11 +54,25 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
         return thisType().cast(this);
     }
 
+    public B key(
+        String key)
+    {
+        this.key = key;
+        return thisType().cast(this);
+    }
+
+    public B secret(
+        String secret)
+    {
+        this.secret = secret;
+        return thisType().cast(this);
+    }
+
     @Override
     public T build()
     {
         Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(newOptionsConfig(url, context, maxAge));
+        return mapper.apply(newOptionsConfig(url, context, maxAge, key, secret));
     }
 
     protected AbstractSchemaRegistryOptionsConfigBuilder(
@@ -68,5 +84,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
     protected abstract AbstractSchemaRegistryOptionsConfig newOptionsConfig(
         String url,
         String context,
-        Duration maxAge);
+        Duration maxAge,
+        String key,
+        String secret);
 }

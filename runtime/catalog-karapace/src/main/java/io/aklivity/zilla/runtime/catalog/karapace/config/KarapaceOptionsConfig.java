@@ -36,8 +36,10 @@ public class KarapaceOptionsConfig extends AbstractSchemaRegistryOptionsConfig
     KarapaceOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        String key,
+        String secret)
     {
-        super(url, context, maxAge);
+        super(url, context, maxAge, key, secret);
     }
 }

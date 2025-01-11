@@ -34,6 +34,8 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String URL = "url";
     private static final String CONTEXT = "context";
     private static final String MAX_AGE_NAME = "max-age";
+    private static final String KEY_NAME = "key";
+    private static final String SECRET_NAME = "secret";
 
     private final String type;
     private final Set<String> aliases;
@@ -83,6 +85,18 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
 
+        if (config.key != null &&
+            !config.key.isEmpty())
+        {
+            catalog.add(KEY_NAME, config.key);
+        }
+
+        if (config.secret != null &&
+            !config.secret.isEmpty())
+        {
+            catalog.add(SECRET_NAME, config.secret);
+        }
+
         return catalog.build();
     }
 
@@ -107,6 +121,16 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             if (object.containsKey(MAX_AGE_NAME))
             {
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
+            }
+
+            if (object.containsKey(KEY_NAME))
+            {
+                options.key(object.getString(KEY_NAME));
+            }
+
+            if (object.containsKey(SECRET_NAME))
+            {
+                options.secret(object.getString(SECRET_NAME));
             }
         }
 

@@ -39,9 +39,11 @@ public final class SchemaRegistryOptionsConfigBuilder<T>
     protected SchemaRegistryOptionsConfig newOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        String key,
+        String secret)
     {
-        return new SchemaRegistryOptionsConfig(url, context, maxAge);
+        return new SchemaRegistryOptionsConfig(url, context, maxAge, key, secret);
     }
 
 }
