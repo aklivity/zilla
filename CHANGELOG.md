@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.116...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.117...HEAD)
+
+**Merged pull requests:**
+
+- update extract `CN` logic to handle entry with `CN` in any order [\#1368](https://github.com/aklivity/zilla/pull/1368) ([ankitk-me](https://github.com/ankitk-me))
+- Bump lycheeverse/lychee-action from 2.1.0 to 2.2.0 [\#1358](https://github.com/aklivity/zilla/pull/1358) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.117](https://github.com/aklivity/zilla/tree/0.9.117) (2025-01-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.116...0.9.117)
 
 **Merged pull requests:**
 
