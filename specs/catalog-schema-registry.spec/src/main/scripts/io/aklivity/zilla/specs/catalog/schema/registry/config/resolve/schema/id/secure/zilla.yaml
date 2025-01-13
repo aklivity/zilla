@@ -20,7 +20,18 @@ catalogs:
     type: schema-registry
     options:
       url: http://localhost:8081
-      context: default
-      max-age: 30
       key: user
       secret: secret
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      catalog:
+        catalog0:
+          - id: 9
+      assertions:
+        catalog:
+          catalog0:
+            - schema: '{"fields":[{"name":"id","type":"string"},{"name":"status","type":"string"}],"name":"Event","namespace":"io.aklivity.example","type":"record"}'
+    exit: app0

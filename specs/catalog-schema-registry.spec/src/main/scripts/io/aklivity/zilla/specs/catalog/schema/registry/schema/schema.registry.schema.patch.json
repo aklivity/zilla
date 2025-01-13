@@ -59,9 +59,40 @@
                     "title": "Max Age",
                     "type": "integer",
                     "default": 300
+                },
+                "key":
+                {
+                    "type": "string"
+                },
+                "secret":
+                {
+                    "type": "string"
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf":
+            [
+                {
+                    "if":
+                    {
+                        "required": ["key"]
+                    },
+                    "then":
+                    {
+                        "required": ["secret"]
+                    }
+                },
+                {
+                    "if":
+                    {
+                        "required": ["secret"]
+                    },
+                    "then":
+                    {
+                        "required": ["key"]
+                    }
+                }
+            ]
         }
     }
 ]

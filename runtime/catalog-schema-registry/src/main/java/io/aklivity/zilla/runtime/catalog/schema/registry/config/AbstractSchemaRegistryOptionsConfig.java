@@ -23,14 +23,20 @@ public abstract class AbstractSchemaRegistryOptionsConfig extends OptionsConfig
     public final String url;
     public final String context;
     public final Duration maxAge;
+    public final String key;
+    public final String secret;
 
     protected AbstractSchemaRegistryOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        String key,
+        String secret)
     {
         this.url = url;
         this.context = context;
         this.maxAge = maxAge;
+        this.key = key;
+        this.secret = secret;
     }
 }
