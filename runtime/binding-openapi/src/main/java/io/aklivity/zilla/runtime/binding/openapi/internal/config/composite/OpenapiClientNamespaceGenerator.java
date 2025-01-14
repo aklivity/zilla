@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -146,7 +146,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                 {
                     for (Map.Entry<String, OpenapiResponse> response2 : responses1.content.entrySet())
                     {
-                        OpenapiSchemaView schema = OpenapiSchemaView.of(openApi.components.schemas, response2.getValue().schema);
+                        OpenapiSchemaView2 schema = OpenapiSchemaView2.of(openApi.components.schemas, response2.getValue().schema);
                         request
                             .response()
                                 .status(Integer.parseInt(status))

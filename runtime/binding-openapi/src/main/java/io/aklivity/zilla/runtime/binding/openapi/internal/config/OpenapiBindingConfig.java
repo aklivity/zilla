@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPath;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
@@ -75,9 +75,9 @@ public final class OpenapiBindingConfig
     private final Consumer<NamespaceConfig> attach;
     private final Consumer<NamespaceConfig> detach;
     private final Long2LongHashMap resolvedIds;
-    private final Object2ObjectHashMap<Matcher, OpenapiPathItem> paths;
+    private final Object2ObjectHashMap<Matcher, OpenapiPath> paths;
     private final Int2ObjectHashMap<NamespaceConfig> composites;
-    private final Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod;
+    private final Map<CharSequence, Function<OpenapiPath, String>> resolversByMethod;
 
     public OpenapiBindingConfig(
         BindingConfig binding,
@@ -106,7 +106,7 @@ public final class OpenapiBindingConfig
         this.detach = detachComposite;
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
-        Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
+        Map<CharSequence, Function<OpenapiPath, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
         resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
         resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
         resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
@@ -201,13 +201,13 @@ public final class OpenapiBindingConfig
         String operationId = null;
 
         resolve:
-        for (Map.Entry<Matcher, OpenapiPathItem> item : paths.entrySet())
+        for (Map.Entry<Matcher, OpenapiPath> item : paths.entrySet())
         {
             Matcher matcher = item.getKey();
             matcher.reset(helper.path);
             if (matcher.find())
             {
-                OpenapiPathItem operations = item.getValue();
+                OpenapiPath operations = item.getValue();
                 operationId = resolveMethod(operations);
                 break resolve;
             }
@@ -217,9 +217,9 @@ public final class OpenapiBindingConfig
     }
 
     private String resolveMethod(
-        OpenapiPathItem operations)
+        OpenapiPath operations)
     {
-        Function<OpenapiPathItem, String> resolver = resolversByMethod.get(helper.method);
+        Function<OpenapiPath, String> resolver = resolversByMethod.get(helper.method);
         return resolver != null ? resolver.apply(operations) : null;
     }
 

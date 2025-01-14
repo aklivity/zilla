@@ -17,38 +17,53 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 import static java.util.Collections.unmodifiableMap;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPath;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiPathView
 {
-    public final Map<String, OpenapiOperation> methods;
+    public final OpenapiView specification;
+    public final String path;
+    public final Map<String, OpenapiOperationView> methods;
 
     OpenapiPathView(
-        OpenapiPathItem pathItem)
+        OpenapiView specification,
+        List<OpenapiServerConfig> configs,
+        OpenapiResolver resolver,
+        String path,
+        OpenapiPath model)
     {
-        Map<String, OpenapiOperation> methods = new LinkedHashMap<>();
-        putIfNotNull(methods, "GET", pathItem.get);
-        putIfNotNull(methods, "PUT", pathItem.put);
-        putIfNotNull(methods, "POST", pathItem.post);
-        putIfNotNull(methods, "DELETE", pathItem.delete);
-        putIfNotNull(methods, "OPTIONS", pathItem.options);
-        putIfNotNull(methods, "HEAD", pathItem.head);
-        putIfNotNull(methods, "PATCH", pathItem.patch);
-        putIfNotNull(methods, "TRACE", pathItem.trace);
+        this.specification = specification;
+        this.path = path;
+
+        Map<String, OpenapiOperationView> methods = new LinkedHashMap<>();
+        putIfModelNotNull(methods, this, configs, resolver, "GET", model.get);
+        putIfModelNotNull(methods, this, configs, resolver, "PUT", model.put);
+        putIfModelNotNull(methods, this, configs, resolver, "POST", model.post);
+        putIfModelNotNull(methods, this, configs, resolver, "DELETE", model.delete);
+        putIfModelNotNull(methods, this, configs, resolver, "OPTIONS", model.options);
+        putIfModelNotNull(methods, this, configs, resolver, "HEAD", model.head);
+        putIfModelNotNull(methods, this, configs, resolver, "PATCH", model.patch);
+        putIfModelNotNull(methods, this, configs, resolver, "TRACE", model.trace);
         this.methods = unmodifiableMap(methods);
     }
 
-    private static <K, V> void putIfNotNull(
-        Map<K, V> map,
-        K key,
-        V value)
+    private static <K, V> void putIfModelNotNull(
+        Map<String, OpenapiOperationView> methods,
+        OpenapiPathView path,
+        List<OpenapiServerConfig> configs,
+        OpenapiResolver resolver,
+        String name,
+        OpenapiOperation model)
     {
-        if (value != null)
+        if (model != null)
         {
-            map.put(key, value);
+            methods.put(name, new OpenapiOperationView(path, configs, resolver, name, model));
         }
     }
 }

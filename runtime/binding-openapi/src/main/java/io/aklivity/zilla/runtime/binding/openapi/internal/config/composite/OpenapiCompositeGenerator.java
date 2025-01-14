@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -342,7 +342,7 @@ public abstract class OpenapiCompositeGenerator
 
                 if (message.headers != null && message.headers.properties != null)
                 {
-                    for (Map.Entry<String, AsyncapiSchemaView> header : message.headers.properties.entrySet())
+                    for (Map.Entry<String, OpenapiSchemaView> header : message.headers.properties.entrySet())
                     {
                         final String name = header.getKey();
                         final OpenapiSchemaItemView schema = header.getValue();
@@ -413,7 +413,7 @@ public abstract class OpenapiCompositeGenerator
             {
                 ModelConfig model = null;
 
-                if (message.payload instanceof OpenapiSchemaView schema &&
+                if (message.payload instanceof OpenapiSchemaView2 schema &&
                     schema.type != null)
                 {
                     String modelType = schema.format != null

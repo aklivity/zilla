@@ -14,74 +14,61 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
-public final class OpenapiSchemaView extends OpenapiResolvable<OpenapiSchema>
+public final class OpenapiSchemaView
 {
-    private static final String ARRAY_TYPE = "array";
+    public final String name;
+    public final OpenapiSchema model;
 
-    private final OpenapiSchema schema;
-    private final Map<String, OpenapiSchema> schemas;
-    private final OpenapiSchema schemaRef;
+    public final String type;
+    public final OpenapiSchemaView items;
+    public final Map<String, OpenapiSchemaView> properties;
+    public final List<String> required;
+    public final String format;
+    public final String description;
+    public final Integer minimum;
+    public final Integer maximum;
+    public final List<String> values;
+    public final OpenapiSchemaView schema;
+
+    OpenapiSchemaView(
+        OpenapiResolver resolver,
+        OpenapiSchema model)
+    {
+        this(resolver.schemas.resolveRef(model.ref), resolver.schemas.resolve(model), resolver);
+    }
 
     private OpenapiSchemaView(
-        Map<String, OpenapiSchema> schemas,
-        OpenapiSchema schema)
+        String name,
+        OpenapiSchema resolved,
+        OpenapiResolver resolver)
     {
-        super(schemas, "#/components/schemas/(\\w+)");
-        OpenapiSchema schemaRef = null;
-        if (schema.ref != null)
-        {
-            schemaRef = new OpenapiSchema();
-            schemaRef.ref = schema.ref;
-            schema = resolveRef(schema.ref);
-        }
-        else if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
-        {
-            schema.items = resolveRef(schema.items.ref);
-        }
-        this.schemaRef = schemaRef;
-        this.schemas = schemas;
-        this.schema = schema;
-    }
+        this.name = name;
+        this.model = resolved;
 
-    public String refKey()
-    {
-        return key;
-    }
-    public OpenapiSchema ref()
-    {
-        return schemaRef;
-    }
-
-    public String getType()
-    {
-        return schema.type;
-    }
-
-    public OpenapiSchemaView getItems()
-    {
-        return schema.items == null ? null : OpenapiSchemaView.of(schemas, schema.items);
-    }
-
-    public Map<String, OpenapiSchemaItem> getProperties()
-    {
-        return schema.properties;
-    }
-
-    public List<String> getRequired()
-    {
-        return schema.required;
-    }
-
-    public static OpenapiSchemaView of(
-        Map<String, OpenapiSchema> schemas,
-        OpenapiSchema schema)
-    {
-        return new OpenapiSchemaView(schemas, schema);
+        this.type = resolved.type;
+        this.items = resolved.items != null
+            ? new OpenapiSchemaView(resolver, resolved.items)
+            : null;
+        this.properties = resolved.properties != null
+            ? resolved.properties.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, e -> new OpenapiSchemaView(resolver, e.getValue())))
+            : null;
+        this.required = resolved.required;
+        this.format = resolved.format;
+        this.description = resolved.description;
+        this.minimum = resolved.minimum;
+        this.maximum = resolved.maximum;
+        this.values = resolved.values;
+        this.schema = resolved.schema != null
+            ? new OpenapiSchemaView(resolver, resolved.schema)
+            : null;
     }
 }

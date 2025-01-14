@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiComposit
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiParameterView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -307,7 +307,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 {
                     for (OpenapiParameterView parameter : operation.channel.parameters)
                     {
-                        final OpenapiSchemaView schema = parameter.schema;
+                        final OpenapiSchemaView2 schema = parameter.schema;
                         if (schema != null && schema.type != null)
                         {
                             String modelType = schema.format != null

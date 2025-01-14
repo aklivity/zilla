@@ -14,10 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.Map;
+import java.util.List;
 
-public class OpenapiResponseByContentType
+public class OpenapiPath extends AbstractOpenapiResolvable
 {
-    public Map<String, OpenapiHeader> headers;
-    public Map<String, OpenapiResponse> content;
+    public OpenapiOperation get;
+    public OpenapiOperation put;
+    public OpenapiOperation post;
+    public OpenapiOperation delete;
+    public OpenapiOperation options;
+    public OpenapiOperation head;
+    public OpenapiOperation patch;
+    public OpenapiOperation trace;
+
+    public List<OpenapiServer> servers;
+
+    public List<OpenapiParameter> parameters;
 }

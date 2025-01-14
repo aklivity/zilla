@@ -22,4 +22,5 @@ public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
     public String scheme;
     public String bearerFormat;
     public String openidConnectUrl;
+    public Object flows;
 }

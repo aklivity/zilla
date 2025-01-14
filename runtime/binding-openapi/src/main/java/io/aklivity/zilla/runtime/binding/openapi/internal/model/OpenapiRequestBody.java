@@ -19,4 +19,5 @@ import java.util.Map;
 public class OpenapiRequestBody extends AbstractOpenapiResolvable
 {
     public Map<String, OpenapiMediaType> content;
+    public boolean required;
 }

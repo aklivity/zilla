@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -288,7 +288,7 @@ public final class OpenapiAsyncNamespaceGenerator
         merge:
         for (Map.Entry<String, OpenapiResponseByContentType> response : operation.responses.entrySet())
         {
-            OpenapiSchemaView schema = resolveSchemaForJsonContentType(response.getValue().content, openapi);
+            OpenapiSchemaView2 schema = resolveSchemaForJsonContentType(response.getValue().content, openapi);
 
             if (schema != null && "array".equals(schema.getType()))
             {
@@ -457,7 +457,7 @@ public final class OpenapiAsyncNamespaceGenerator
         return binding;
     }
 
-    private OpenapiSchemaView resolveSchemaForJsonContentType(
+    private OpenapiSchemaView2 resolveSchemaForJsonContentType(
         Map<String, OpenapiResponse> content,
         Openapi openApi)
     {
@@ -474,6 +474,6 @@ public final class OpenapiAsyncNamespaceGenerator
             }
         }
 
-        return response == null ? null : OpenapiSchemaView.of(openApi.components.schemas, response.schema);
+        return response == null ? null : OpenapiSchemaView2.of(openApi.components.schemas, response.schema);
     }
 }

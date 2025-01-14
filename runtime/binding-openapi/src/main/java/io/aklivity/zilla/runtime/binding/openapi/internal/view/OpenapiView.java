@@ -15,13 +15,11 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import static io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiCompositeId.compositeId;
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-
-import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -54,29 +52,28 @@ public final class OpenapiView
     private OpenapiView(
         int id,
         String label,
-        Openapi openapi,
+        Openapi model,
         List<OpenapiServerConfig> configs)
     {
         this.label = label;
         this.compositeId = compositeId(id, 0);
 
-        OpenapiResolver resolver = new OpenapiResolver(openapi);
+        OpenapiResolver resolver = new OpenapiResolver(model);
 
-        this.servers = openapi.servers != null
-            ? openapi.servers.stream()
+        this.servers = model.servers != null
+            ? model.servers.stream()
                 .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                 .toList()
             : null;
 
-        MutableInteger pathIndex = new MutableInteger(1);
-        this.paths = openapi.paths != null
-            ? new TreeMap<>(openapi.paths).entrySet().stream()
-                .collect(toMap(Map.Entry::getKey,
-                    e -> new OpenapiPathView(this, compositeId(id, pathIndex.value++), resolver, e.getKey(), e.getValue())))
+        this.paths = model.paths != null
+            ? model.paths.entrySet().stream()
+                .map(e -> new OpenapiPathView(this, configs, resolver, e.getKey(), e.getValue()))
+                .collect(toMap(c -> c.path, identity()))
             : null;
 
-        this.components = openapi.components != null
-                ? new OpenapiComponentsView(resolver, openapi.components)
-                : null;
+        this.components = model.components != null
+            ? new OpenapiComponentsView(resolver, model.components)
+            : null;
     }
 }

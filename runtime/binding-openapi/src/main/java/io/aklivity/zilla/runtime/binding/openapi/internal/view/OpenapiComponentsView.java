@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 public final class OpenapiComponentsView
 {
     public final List<OpenapiSecuritySchemeView> securitySchemes;
-    public final Map<String, OpenapiSchemaItemView> schemas;
+    public final Map<String, OpenapiSchemaView> schemas;
 
     OpenapiComponentsView(
         OpenapiResolver resolver,
@@ -38,7 +38,7 @@ public final class OpenapiComponentsView
 
         this.schemas = model.schemas != null
                 ? model.schemas.entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> OpenapiSchemaItemView.of(resolver, e.getValue())))
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> new OpenapiSchemaView(resolver, e.getValue())))
                 : null;
     }
 }

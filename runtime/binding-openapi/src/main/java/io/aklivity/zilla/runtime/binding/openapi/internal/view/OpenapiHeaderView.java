@@ -14,22 +14,27 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServerVariable;
-
-public final class OpenapiVariableView
+public final class OpenapiHeaderView
 {
-    public String name;
-    public final String defaultValue;
-    public final List<String> values;
+    public final String name;
+    public final boolean required;
+    public final boolean allowEmptyValue;
+    public final OpenapiSchemaView schema;
 
-    OpenapiVariableView(
+    OpenapiHeaderView(
+        OpenapiResolver resolver,
         String name,
-        OpenapiServerVariable model)
+        OpenapiHeader model)
     {
         this.name = name;
-        this.defaultValue = model.defaultValue;
-        this.values = model.values;
+
+        OpenapiHeader resolved = resolver.headers.resolve(model);
+
+        this.required = resolved.required;
+        this.allowEmptyValue = resolved.allowEmptyValue;
+        this.schema = new OpenapiSchemaView(resolver, model.schema);
     }
 }

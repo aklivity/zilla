@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -204,7 +204,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             operation.requestBody.content != null &&
             !operation.requestBody.content.isEmpty())
         {
-            OpenapiSchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content, openApi);
+            OpenapiSchemaView2 schema = resolveSchemaForJsonContentType(operation.requestBody.content, openApi);
             if (schema != null)
             {
                 request.
@@ -451,7 +451,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             {
                 for (Map.Entry<String, OpenapiSchema> entry : openApi.components.schemas.entrySet())
                 {
-                    OpenapiSchemaView schemaView = OpenapiSchemaView.of(openApi.components.schemas, entry.getValue());
+                    OpenapiSchemaView2 schemaView = OpenapiSchemaView2.of(openApi.components.schemas, entry.getValue());
                     OpenapiSchema schema = schemaView.ref() != null ? schemaView.ref() : entry.getValue();
 
                     subjects
@@ -504,7 +504,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         return result;
     }
 
-    private OpenapiSchemaView resolveSchemaForJsonContentType(
+    private OpenapiSchemaView2 resolveSchemaForJsonContentType(
         Map<String, OpenapiMediaType> content,
         Openapi openApi)
     {
@@ -521,6 +521,6 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             }
         }
 
-        return mediaType == null ? null : OpenapiSchemaView.of(openApi.components.schemas, mediaType.schema);
+        return mediaType == null ? null : OpenapiSchemaView2.of(openApi.components.schemas, mediaType.schema);
     }
 }

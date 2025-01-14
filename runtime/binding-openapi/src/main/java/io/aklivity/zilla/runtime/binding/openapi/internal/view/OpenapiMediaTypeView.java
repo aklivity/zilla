@@ -14,22 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServerVariable;
-
-public final class OpenapiVariableView
+public class OpenapiMediaTypeView
 {
-    public String name;
-    public final String defaultValue;
-    public final List<String> values;
+    public final String name;
+    public final OpenapiSchemaView schema;
+    public final OpenapiEncodingView encoding;
 
-    OpenapiVariableView(
+    OpenapiMediaTypeView(
+        OpenapiResolver resolver,
         String name,
-        OpenapiServerVariable model)
+        OpenapiMediaType model)
     {
         this.name = name;
-        this.defaultValue = model.defaultValue;
-        this.values = model.values;
+        this.schema = new OpenapiSchemaView(resolver, model.schema);
+        this.encoding = new OpenapiEncodingView(resolver, model.encoding);
     }
 }
