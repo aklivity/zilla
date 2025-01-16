@@ -20,6 +20,9 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
+
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -66,9 +69,11 @@ public final class OpenapiView
                 .toList()
             : null;
 
+        MutableInteger opIndex = new MutableInteger(1);
+        LongSupplier supplyCompositeId = () -> compositeId(id, opIndex.value++);
         this.paths = model.paths != null
             ? model.paths.entrySet().stream()
-                .map(e -> new OpenapiPathView(this, configs, resolver, e.getKey(), e.getValue()))
+                .map(e -> new OpenapiPathView(this, supplyCompositeId, configs, resolver, e.getKey(), e.getValue()))
                 .collect(toMap(c -> c.path, identity()))
             : null;
 

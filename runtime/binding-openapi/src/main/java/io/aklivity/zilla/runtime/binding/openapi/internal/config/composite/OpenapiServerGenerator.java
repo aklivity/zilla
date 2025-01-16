@@ -30,17 +30,13 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiParameterView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
@@ -91,7 +87,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private final OpenapiSchemaConfig schema;
             private final List<String> plain;
             private final List<String> secure;
-            private final Map<String, String> plainBySecure;
 
             private ServerBindingsHelper(
                 OpenapiSchemaConfig schema)
@@ -99,9 +94,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 this.schema = schema;
                 this.plain = List.of("http");
                 this.secure = List.of("https");
-                this.plainBySecure = Map.of(
-                    "https", "http"
-                );
             }
 
             @Override
@@ -124,7 +116,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         .ports(Stream.of(schema)
                             .map(s -> s.openapi)
                             .flatMap(v -> v.servers.stream())
-                            .mapToInt(s -> s.port)
+                            .mapToInt(s -> s.url.getPort())
                             .distinct()
                             .toArray())
                         .build();
@@ -148,21 +140,21 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(s -> plain.contains(s.protocol))
+                    .filter(s -> plain.contains(s.url.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.url.getPort())
                             .build()
-                        .exit(String.format("%s_server0", s.protocol))
+                        .exit("http_server0")
                         .build());
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                    .filter(s -> secure.contains(s.url.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.url.getPort())
                             .build()
                         .exit("tls_server0")
                         .build());
@@ -176,7 +168,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
-                    .anyMatch(s -> secure.contains(s.protocol)))
+                    .anyMatch(s -> secure.contains(s.url.getScheme())))
                 {
                     namespace.binding()
                         .name("tls_server0")
@@ -197,12 +189,12 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                    .filter(s -> secure.contains(s.url.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.url.getPort())
                             .build()
-                        .exit(String.format("%s_server0", plainBySecure.get(s.protocol)))
+                        .exit("http_server0")
                         .build());
 
                 return binding;
@@ -249,19 +241,17 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.openapi)
-                    .flatMap(v -> v.operations.values().stream())
-                    .filter(OpenapiOperationView::hasBindingsHttp)
-                    .filter(OpenapiOperationView::hasMessagesOrParameters)
+                    .flatMap(v -> v.paths.values().stream())
+                    .flatMap(v -> v.methods.values().stream())
+                    .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
-                    {
                         options
                             .request()
-                                .path(operation.channel.address)
-                                .method(Method.valueOf(operation.bindings.http.method))
+                                .path(operation.path)
+                                .method(Method.valueOf(operation.method))
                                 .inject(request -> injectHttpContent(request, operation))
                                 .inject(request -> injectHttpPathParams(request, operation))
-                            .build();
-                    });
+                            .build());
 
                 return options;
             }
@@ -270,7 +260,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 HttpRequestConfigBuilder<C> request,
                 OpenapiOperationView operation)
             {
-                if (operation.channel.hasMessages())
+                if (operation.hasRequestBody())
                 {
                     request
                         .content(JsonModelConfig::builder)
@@ -288,12 +278,14 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 CatalogedConfigBuilder<C> cataloged,
                 OpenapiOperationView operation)
             {
-                for (OpenapiMessageView message : operation.messages)
+                if (operation.hasRequestBody())
                 {
-                    cataloged.schema()
-                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
-                        .version("latest")
-                        .build();
+                    operation.requestBody.content.values()
+                        .forEach(typed ->
+                            cataloged.schema()
+                                .subject("%s-%s-value".formatted(operation.id, typed.name))
+                                .version("latest")
+                                .build());
                 }
 
                 return cataloged;
@@ -303,39 +295,24 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 HttpRequestConfigBuilder<C> request,
                 OpenapiOperationView operation)
             {
-                if (operation.channel.hasParameters())
+                if (operation.hasParameters())
                 {
-                    for (OpenapiParameterView parameter : operation.channel.parameters)
-                    {
-                        final OpenapiSchemaView2 schema = parameter.schema;
-                        if (schema != null && schema.type != null)
-                        {
-                            String modelType = schema.format != null
-                                ? String.format("%s:%s", schema.type, schema.format)
-                                : schema.type;
-
-                            ModelConfig model = MODELS.get(modelType);
-
-                            if (model == null)
-                            {
-                                model = JsonModelConfig.builder()
+                    operation.parameters.stream()
+                        .filter(parameter -> parameter.schema != null)
+                        .forEach(parameter ->
+                            request
+                                .pathParam()
+                                .name(parameter.name)
+                                .model(JsonModelConfig::builder)
                                     .catalog()
                                         .name("catalog0")
                                         .schema()
                                             .version("latest")
-                                            .subject("%s-params-%s".formatted(parameter.channel.name, parameter.name))
+                                            .subject("%s-params-%s".formatted(operation.id, parameter.name))
                                             .build()
                                         .build()
-                                    .build();
-                            }
-
-                            request
-                                .pathParam()
-                                .name(parameter.name)
-                                .model(model)
-                                .build();
-                        }
-                    }
+                                    .build()
+                                .build());
                 }
 
                 return request;
@@ -346,24 +323,21 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.openapi)
-                    .flatMap(v -> v.operations.values().stream())
+                    .flatMap(v -> v.paths.values().stream())
+                    .flatMap(p -> p.methods.values().stream())
                     .forEach(operation ->
-                    {
-                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
-
                         binding
                             .route()
                             .exit(config.qname)
                             .when(HttpConditionConfig::builder)
-                                .header(":path", path)
-                                .header(":method", operation.bindings.http.method)
+                                .header(":path", operation.path.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                .header(":method", operation.method)
                                 .build()
                             .with(HttpWithConfig::builder)
                                 .compositeId(operation.compositeId)
                                 .build()
                             .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                            .build();
-                    });
+                            .build());
 
                 return binding;
             }
@@ -372,19 +346,23 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 RouteConfigBuilder<C> route,
                 OpenapiOperationView operation)
             {
-                if (operation.security != null && !operation.security.isEmpty())
+                Map<String, OpenapiSecuritySchemeView> securitySchemes = operation.specification.components.securitySchemes;
+                final List<Map<String, List<String>>> security = operation.security;
+
+                if (security != null)
                 {
-                    final OpenapiSecuritySchemeView securityScheme = operation.security.get(0);
-                    if (config.options.http.authorization != null &&
-                        "oauth2".equals(securityScheme.type))
-                    {
-                        route
-                            .guarded()
-                                .name(config.options.http.authorization.qname)
-                                .roles(securityScheme.scopes)
-                                .build();
-                    }
+                    security.stream()
+                        .flatMap(s -> s.entrySet().stream())
+                        .filter(e -> securitySchemes.containsKey(e.getKey()))
+                        .filter(e -> "jwt".equalsIgnoreCase(securitySchemes.get(e.getKey()).bearerFormat))
+                        .forEach(e ->
+                            route
+                                .guarded()
+                                    .name(config.options.http.authorization.qname)
+                                    .inject(guarded -> injectGuardedRoles(guarded, e.getValue()))
+                                    .build());
                 }
+
                 return route;
             }
         }

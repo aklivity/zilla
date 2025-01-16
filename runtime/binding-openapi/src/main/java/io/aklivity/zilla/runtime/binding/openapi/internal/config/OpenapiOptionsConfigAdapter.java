@@ -140,7 +140,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     catalogObject.add(SERVERS_NAME, servers);
                 }
 
-                specs.add(openapiConfig.apiLabel, catalogObject);
+                specs.add(openapiConfig.label, catalogObject);
             }
             object.add(SPECS_NAME, specs);
         }

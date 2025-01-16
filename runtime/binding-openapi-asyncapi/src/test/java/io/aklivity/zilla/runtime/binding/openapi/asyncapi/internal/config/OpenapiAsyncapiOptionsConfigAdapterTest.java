@@ -95,8 +95,8 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
         assertThat(options, not(nullValue()));
         OpenapiSpecificationConfig openapi = options.specs.openapi.stream().findFirst().get();
-        assertEquals("openapi-id", openapi.apiLabel);
-        assertThat(openapi.apiLabel, not(nullValue()));
+        assertEquals("openapi-id", openapi.label);
+        assertThat(openapi.label, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
         assertEquals("asyncapi-id", asyncapi.label);
         assertThat(asyncapi.label, not(nullValue()));

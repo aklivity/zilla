@@ -20,11 +20,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import jakarta.json.Json;
@@ -39,11 +35,14 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchemaItem;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView2;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMediaTypeView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiRequestBodyView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
@@ -52,42 +51,10 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringPattern;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class OpenapiCompositeGenerator
 {
-    public static final Map<String, ModelConfig> MODELS = Map.of(
-        "string", StringModelConfig.builder().build(),
-        "string:%s".formatted(StringPattern.DATE.format),
-            StringModelConfig.builder()
-                .pattern(StringPattern.DATE.pattern)
-                .build(),
-        "string:%s".formatted(StringPattern.DATE_TIME.format),
-            StringModelConfig.builder()
-                .pattern(StringPattern.DATE_TIME.pattern)
-                .build(),
-        "string:%s".formatted(StringPattern.EMAIL.format),
-            StringModelConfig.builder()
-                .pattern(StringPattern.EMAIL.pattern)
-                .build(),
-        "integer", Int32ModelConfig.builder().build(),
-        "integer:%s".formatted(Int32ModelConfig.INT_32),
-            Int32ModelConfig.builder().build(),
-        "integer:%s".formatted(Int64ModelConfig.INT_64),
-            Int64ModelConfig.builder().build(),
-        "number", FloatModelConfig.builder().build(),
-        "number:%s".formatted(FloatModelConfig.FLOAT),
-            FloatModelConfig.builder().build(),
-        "number:%s".formatted(DoubleModelConfig.DOUBLE),
-            DoubleModelConfig.builder().build()
-    );
-
     public final OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding)
     {
@@ -237,41 +204,7 @@ public abstract class OpenapiCompositeGenerator
             public <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace)
             {
-                Optional<OpenapiServerView> serverRef = Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> s.bindings != null)
-                    .filter(s -> s.bindings.kafka != null)
-                    .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
-                    .findFirst();
-
-                if (serverRef.isPresent())
-                {
-                    final OpenapiServerView server = serverRef.get();
-
-                    final String vendor = Optional
-                            .ofNullable(server.bindings.kafka.schemaRegistryVendor)
-                            .orElse("schema-registry");
-
-                    switch (vendor)
-                    {
-                    case "apicurio":
-                        injectApicurioRegistry(server, namespace);
-                        break;
-                    case "karapace":
-                        injectKarapaceSchemaRegistry(server, namespace);
-                        break;
-                    case "schema-registry":
-                    default:
-                        injectSchemaRegistry(server, namespace);
-                        break;
-                    }
-                }
-                else
-                {
-                    injectInline(namespace);
-                }
-
+                injectInline(namespace);
                 return namespace;
             }
 
@@ -295,21 +228,21 @@ public abstract class OpenapiCompositeGenerator
                 {
                     Stream.of(schema)
                         .map(s -> s.openapi)
-                        .flatMap(v -> v.operations.values().stream())
-                        .filter(o -> o.messages != null)
-                        .flatMap(o -> o.messages.stream())
+                        .flatMap(v -> v.paths.values().stream())
+                        .flatMap(p -> p.methods.values().stream())
+                        .map(o -> o.requestBody)
                         .forEach(m -> injectInlineSubject(jsonb, options, m));
 
                     Stream.of(schema)
                         .map(s -> s.openapi)
-                        .flatMap(v -> v.operations.values().stream())
-                        .map(o -> o.channel)
-                        .filter(c -> c.parameters != null)
+                        .flatMap(v -> v.paths.values().stream())
+                        .flatMap(p -> p.methods.values().stream())
+                        .filter(o -> o.parameters != null)
                         .flatMap(c -> c.parameters.stream())
                         .filter(p -> p.schema != null) // TODO: runtime expressions
                         .forEach(p ->
                         {
-                            final String subject = "%s-params-%s".formatted(p.channel.name, p.name);
+                            final String subject = "%s-params-%s".formatted(p.operation.id, p.name);
 
                             options.schema()
                                 .subject(subject)
@@ -329,38 +262,41 @@ public abstract class OpenapiCompositeGenerator
             protected <C> void injectInlineSubject(
                 Jsonb jsonb,
                 InlineOptionsConfigBuilder<C> options,
-                OpenapiMessageView message)
+                OpenapiRequestBodyView request)
             {
-                if (message.payload != null)
+                if (request.content != null)
                 {
-                    options.schema()
-                        .subject("%s-%s-value".formatted(message.channel.name, message.name))
-                        .version("latest")
-                        .schema(toSchemaJson(jsonb, message.payload.model))
-                        .build();
-                }
-
-                if (message.headers != null && message.headers.properties != null)
-                {
-                    for (Map.Entry<String, OpenapiSchemaView> header : message.headers.properties.entrySet())
+                    for (OpenapiMediaTypeView typed : request.content.values())
                     {
-                        final String name = header.getKey();
-                        final OpenapiSchemaItemView schema = header.getValue();
-
-                        final String subject = "%s-header-%s".formatted(message.channel.address, name);
-
                         options.schema()
-                            .subject(subject)
+                            .subject("%s-%s-value".formatted(request.operation.id, typed.name))
                             .version("latest")
-                            .schema(toSchemaJson(jsonb, schema.model))
+                            .schema(toSchemaJson(jsonb, typed.schema.model))
                             .build();
+
+                        if (typed.encoding != null && typed.encoding.headers != null)
+                        {
+                            for (OpenapiHeaderView header : typed.encoding.headers.values())
+                            {
+                                final String name = header.name;
+                                final OpenapiSchemaView schema = header.schema;
+
+                                final String subject = "%s-header-%s".formatted(request.operation.id, name);
+
+                                options.schema()
+                                    .subject(subject)
+                                    .version("latest")
+                                    .schema(toSchemaJson(jsonb, schema.model))
+                                    .build();
+                            }
+                        }
                     }
                 }
             }
 
             protected static String toSchemaJson(
                 Jsonb jsonb,
-                OpenapiSchemaItem schema)
+                OpenapiSchema schema)
             {
                 String schemaJson = jsonb.toJson(schema);
 
@@ -389,83 +325,33 @@ public abstract class OpenapiCompositeGenerator
 
         protected abstract class BindingsHelper
         {
-            private static final Pattern MODEL_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?(json|avro|protobuf)$");
-
             protected static final String REGEX_ADDRESS_PARAMETER = "\\{[^}]+\\}";
-
-            private final Matcher modelContentType = MODEL_CONTENT_TYPE.matcher("");
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,
-                OpenapiMessageView message)
+                OpenapiRequestBodyView request)
             {
-                String subject = "%s-%s-value".formatted(message.channel.name, message.name);
-                injectPayloadModel(injector, message, subject);
+                String subject = "%s-value".formatted(request.operation.id);
+                injectPayloadModel(injector, request, subject);
             }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,
-                OpenapiMessageView message,
+                OpenapiRequestBodyView message,
                 String subject)
             {
-                ModelConfig model = null;
-
-                if (message.payload instanceof OpenapiSchemaView2 schema &&
-                    schema.type != null)
-                {
-                    String modelType = schema.format != null
-                        ? String.format("%s:%s", schema.type, schema.format)
-                        : schema.type;
-
-                    model = MODELS.get(modelType);
-                }
-
-                if (model == null &&
-                    message.contentType != null &&
-                    modelContentType.reset(message.contentType).matches())
-                {
-                    switch (modelContentType.group(1))
-                    {
-                    case "json":
-                        model = JsonModelConfig.builder()
-                            .catalog()
-                                .name("catalog0")
-                                .schema()
-                                    .version("latest")
-                                    .subject(subject)
-                                    .build()
-                                .build()
-                            .build();
-                        break;
-                    case "avro":
-                        model = AvroModelConfig.builder()
-                            .view("json")
-                            .catalog()
-                                .name("catalog0")
-                                .schema()
-                                    .version("latest")
-                                    .subject(subject)
-                                    .build()
-                                .build()
-                            .build();
-                        break;
-                    case "protobuf":
-                        model = ProtobufModelConfig.builder()
-                            .view("json")
-                            .catalog()
-                                .name("catalog0")
-                                .schema()
-                                    .version("latest")
-                                    .subject(subject)
-                                    .build()
-                                .build()
-                            .build();
-                        break;
-                    }
-                }
+                ModelConfig model = JsonModelConfig.builder()
+                    .catalog()
+                        .name("catalog0")
+                        .schema()
+                            .subject(subject)
+                            .version("latest")
+                            .build()
+                        .build()
+                    .build();
 
                 injector.accept(model);
             }

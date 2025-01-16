@@ -16,9 +16,16 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import static java.util.Collections.unmodifiableMap;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
+
+import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
@@ -31,8 +38,34 @@ public final class OpenapiPathView
     public final String path;
     public final Map<String, OpenapiOperationView> methods;
 
+    private static final Map<String, Function<OpenapiPath, OpenapiOperation>> METHOD_ACCESSORS;
+
+    static
+    {
+        Map<String, Function<OpenapiPath, OpenapiOperation>> accessors = new LinkedHashMap<>();
+
+        try
+        {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            for (String method : List.of("GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE"))
+            {
+                String field = method.toLowerCase();
+                VarHandle handle = lookup.findVarHandle(OpenapiPath.class, field, OpenapiOperation.class);
+
+                accessors.put(method, p -> OpenapiOperation.class.cast(handle.get(p)));
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        METHOD_ACCESSORS = unmodifiableMap(accessors);
+    }
+
     OpenapiPathView(
         OpenapiView specification,
+        LongSupplier supplyCompositeId,
         List<OpenapiServerConfig> configs,
         OpenapiResolver resolver,
         String path,
@@ -40,30 +73,10 @@ public final class OpenapiPathView
     {
         this.specification = specification;
         this.path = path;
-
-        Map<String, OpenapiOperationView> methods = new LinkedHashMap<>();
-        putIfModelNotNull(methods, this, configs, resolver, "GET", model.get);
-        putIfModelNotNull(methods, this, configs, resolver, "PUT", model.put);
-        putIfModelNotNull(methods, this, configs, resolver, "POST", model.post);
-        putIfModelNotNull(methods, this, configs, resolver, "DELETE", model.delete);
-        putIfModelNotNull(methods, this, configs, resolver, "OPTIONS", model.options);
-        putIfModelNotNull(methods, this, configs, resolver, "HEAD", model.head);
-        putIfModelNotNull(methods, this, configs, resolver, "PATCH", model.patch);
-        putIfModelNotNull(methods, this, configs, resolver, "TRACE", model.trace);
-        this.methods = unmodifiableMap(methods);
-    }
-
-    private static <K, V> void putIfModelNotNull(
-        Map<String, OpenapiOperationView> methods,
-        OpenapiPathView path,
-        List<OpenapiServerConfig> configs,
-        OpenapiResolver resolver,
-        String name,
-        OpenapiOperation model)
-    {
-        if (model != null)
-        {
-            methods.put(name, new OpenapiOperationView(path, configs, resolver, name, model));
-        }
+        this.methods = METHOD_ACCESSORS.entrySet().stream()
+            .filter(e -> e.getValue().apply(model) != null)
+            .collect(Collectors.toMap(Map.Entry::getKey, e ->
+                new OpenapiOperationView(specification, supplyCompositeId.getAsLong(),
+                        configs, resolver, e.getKey(), path, e.getValue().apply(model))));
     }
 }

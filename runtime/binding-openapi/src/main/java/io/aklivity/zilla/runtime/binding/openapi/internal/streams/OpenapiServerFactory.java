@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
-import java.util.function.Consumer;
-import java.util.function.LongFunction;
-import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -27,26 +24,26 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiServerNamespaceGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiServerGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
@@ -69,46 +66,39 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
-    private final OpenapiBeginExFW openapiBeginExRO = new OpenapiBeginExFW();
-    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final ExtensionFW extensionRO = new ExtensionFW();
+    private final OpenapiBeginExFW beginExRO = new OpenapiBeginExFW();
 
-    private final OpenapiBeginExFW.Builder openapiBeginExRW = new OpenapiBeginExFW.Builder();
+    private final OpenapiBeginExFW.Builder beginExRW = new OpenapiBeginExFW.Builder();
 
-    private final OpenapiConfiguration config;
-    private final OpenapiServerNamespaceGenerator namespaceGenerator;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final BufferPool bufferPool;
+    private final EngineContext context;
+
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongSupplier supplyTraceId;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-    private final Consumer<NamespaceConfig> attachComposite;
-    private final Consumer<NamespaceConfig> detachComposite;
+    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
+
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
     private final int openapiTypeId;
     private final int httpTypeId;
+
+    private final OpenapiServerGenerator generator;
 
     public OpenapiServerFactory(
         OpenapiConfiguration config,
         EngineContext context)
     {
-        this.config = config;
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyTraceId = context::supplyTraceId;
-        this.supplyCatalog = context::supplyCatalog;
-        this.attachComposite = context::attachComposite;
-        this.detachComposite = context::detachComposite;
-        this.namespaceGenerator = new OpenapiServerNamespaceGenerator();
-        this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
+        this.bindings = new Long2ObjectHashMap<>();
+        this.generator = new OpenapiServerGenerator();
     }
 
     @Override
@@ -127,19 +117,30 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
-            attachComposite, detachComposite, config.targetRouteId());
-        bindings.put(binding.id, openapiBinding);
+        OpenapiBindingConfig attached = new OpenapiBindingConfig(context, binding);
+        bindings.put(binding.id, attached);
 
-        openapiBinding.attach(binding);
+        OpenapiCompositeConfig composite = generator.generate(attached);
+        assert composite != null;
+        // TODO: schedule generate retry if null
+
+        composite.namespaces.forEach(context::attachComposite);
+        attached.composite = composite;
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        OpenapiBindingConfig openapiBinding = bindings.remove(bindingId);
-        openapiBinding.detach();
+        OpenapiBindingConfig binding = bindings.remove(bindingId);
+        OpenapiCompositeConfig composite = binding.composite;
+
+        if (composite != null)
+        {
+            composite.namespaces.forEach(context::detachComposite);
+        }
+
+        // TODO: cancel generate retry if scheduled
     }
 
     @Override
@@ -157,40 +158,63 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         final long affinity = begin.affinity();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
-        final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
         final OpenapiBindingConfig binding = bindings.get(routedId);
+        final OpenapiCompositeConfig composite = binding != null ? binding.composite : null;
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.isCompositeOriginId(originId))
+        if (binding != null && composite != null)
         {
-            final OpenapiRouteConfig route = binding.resolve(authorization);
-
-            if (route != null)
+            if (composite.hasBindingId(originId))
             {
-                final String operationId = binding.resolveOperationId(httpBeginEx);
-                final long apiId = binding.resolveApiId(originId);
+                final ExtensionFW extensionEx = extension.get(extensionRO::wrap);
+                final long compositeId = extensionEx.compositeId();
+                final OpenapiOperationView operation = composite.resolveOperation(compositeId);
+                final OpenapiView specification = operation != null
+                        ? operation.specification
+                        : composite.resolveSpecification(compositeId);
 
-                newStream = new HttpStream(
-                    receiver,
-                    originId,
-                    routedId,
-                    initialId,
-                    affinity,
-                    authorization,
-                    route.id,
-                    apiId,
-                    operationId)::onHttpMessage;
+                if (specification != null)
+                {
+                    final String apiId = specification.label;
+                    final String operationId = operation != null ? operation.id : null;
+
+                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+
+                    if (route != null)
+                    {
+                        final long resolvedId = route.id;
+                        final long resolvedApiId = composite.resolveApiId(
+                            route.with != null
+                                ? route.with.apiId
+                                : apiId);
+                        final String resolvedOperationId =
+                            route.with != null
+                                ? route.with.operationId
+                                : operationId;
+
+                        newStream = new CompositeStream(
+                            receiver,
+                            originId,
+                            routedId,
+                            initialId,
+                            affinity,
+                            authorization,
+                            resolvedId,
+                            resolvedApiId,
+                            resolvedOperationId)::onCompositeMessage;
+                    }
+                }
             }
         }
 
         return newStream;
     }
 
-    private final class HttpStream
+    private final class CompositeStream
     {
-        private final OpenapiStream openapi;
+        private final OpenapiStream delegate;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -201,7 +225,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         private int state;
 
-        private HttpStream(
+        private CompositeStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -212,7 +236,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long apiId,
             String operationId)
         {
-            this.openapi =  new OpenapiStream(this, routedId, resolvedId, authorization, apiId, operationId);
+            this.delegate =  new OpenapiStream(this, routedId, resolvedId, authorization, apiId, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -222,7 +246,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             this.authorization = authorization;
         }
 
-        private void onHttpMessage(
+        private void onCompositeMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -232,38 +256,38 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onHttpBegin(begin);
+                onCompositeBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onHttpData(data);
+                onCompositeData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onHttpEnd(end);
+                onCompositeEnd(end);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onHttpFlush(flush);
+                onCompositeFlush(flush);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onHttpAbort(abort);
+                onCompositeAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onHttpWindow(window);
+                onCompositeWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onHttpReset(reset);
+                onCompositeReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onHttpBegin(
+        private void onCompositeBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -277,10 +301,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.openingInitial(state);
 
-            openapi.doOpenapiBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
+            delegate.doOpenapiBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
         }
 
-        private void onHttpData(
+        private void onCompositeData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -296,11 +320,11 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            openapi.doOpenapiData(sequence, acknowledge, maximum, traceId, authorization, budgetId,
+            delegate.doOpenapiData(sequence, acknowledge, maximum, traceId, authorization, budgetId,
                 reserved, flags, payload, extension);
         }
 
-        private void onHttpEnd(
+        private void onCompositeEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -313,10 +337,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closeInitial(state);
 
-            openapi.doOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
 
-        private void onHttpFlush(
+        private void onCompositeFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -329,10 +353,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            openapi.doOpenapiFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
+            delegate.doOpenapiFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
         }
 
-        private void onHttpAbort(
+        private void onCompositeAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -345,10 +369,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closeInitial(state);
 
-            openapi.doOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
         }
 
-        private void onHttpReset(
+        private void onCompositeReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -360,10 +384,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closeReply(state);
 
-            openapi.doOpenapiReset(sequence, acknowledge, maximum, traceId);
+            delegate.doOpenapiReset(sequence, acknowledge, maximum, traceId);
         }
 
-        private void onHttpWindow(
+        private void onCompositeWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -378,10 +402,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closingReply(state);
 
-            openapi.doOpenapiWindow(sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
+            delegate.doOpenapiWindow(sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
         }
 
-        private void doHttpBegin(
+        private void doCompositeBegin(
             long traceId,
             long sequence,
             long acknowledge,
@@ -394,7 +418,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 traceId, authorization, affinity, extension);
         }
 
-        private void doHttpData(
+        private void doCompositeData(
             long sequence,
             long acknowledge,
             int maximum,
@@ -409,7 +433,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
         }
 
-        private void doHttpFlush(
+        private void doCompositeFlush(
             long traceId,
             long replyBudgetId,
             long sequence,
@@ -422,7 +446,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 traceId, authorization, replyBudgetId, reserved, extension);
         }
 
-        private void doHttpEnd(
+        private void doCompositeEnd(
             long sequence,
             long acknowledge,
             int maximum,
@@ -438,7 +462,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             state = OpenapiState.closeReply(state);
         }
 
-        private void doHttpAbort(
+        private void doCompositeAbort(
             long sequence,
             long acknowledge,
             int maximum,
@@ -453,7 +477,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             state = OpenapiState.closeInitial(state);
         }
 
-        private void doHttpReset(
+        private void doCompositeReset(
             long sequence,
             long acknowledge,
             int maximum,
@@ -468,7 +492,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             }
         }
 
-        private void doHttpWindow(
+        private void doCompositeWindow(
             long sequence,
             long acknowledge,
             int maximum,
@@ -484,7 +508,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
     private final class OpenapiStream
     {
-        private final HttpStream delegate;
+        private final CompositeStream delegate;
         private final String operationId;
         private final long originId;
         private final long routedId;
@@ -498,7 +522,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private int state;
 
         private OpenapiStream(
-            HttpStream delegate,
+            CompositeStream delegate,
             long originId,
             long routedId,
             long authorization,
@@ -568,10 +592,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.openingReply(state);
 
-            final OpenapiBeginExFW beginEx = extension.get(openapiBeginExRO::tryWrap);
+            final OpenapiBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             OctetsFW openapiEx = beginEx != null ? beginEx.extension() : EMPTY_OCTETS;
 
-            delegate.doHttpBegin(traceId, sequence, acknowledge, maximum, openapiEx);
+            delegate.doCompositeBegin(traceId, sequence, acknowledge, maximum, openapiEx);
         }
 
         private void onOpenapiData(
@@ -589,7 +613,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doHttpData(sequence, acknowledge, maximum, traceId, flags, reserved, budgetId, payload, extension);
+            delegate.doCompositeData(sequence, acknowledge, maximum, traceId, flags, reserved, budgetId, payload, extension);
         }
 
         private void onOpenapiFlush(
@@ -605,7 +629,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doHttpFlush(traceId, budgetId, sequence, acknowledge, maximum, reserved, extension);
+            delegate.doCompositeFlush(traceId, budgetId, sequence, acknowledge, maximum, reserved, extension);
         }
 
         private void onOpenapiEnd(
@@ -621,7 +645,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closingReply(state);
 
-            delegate.doHttpEnd(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doCompositeEnd(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onOpenapiAbort(
@@ -636,7 +660,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closingReply(state);
 
-            delegate.doHttpAbort(sequence, acknowledge, maximum, traceId);
+            delegate.doCompositeAbort(sequence, acknowledge, maximum, traceId);
         }
 
         private void onOpenapiReset(
@@ -651,7 +675,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.closeInitial(state);
 
-            delegate.doHttpReset(sequence, acknowledge, maximum, traceId);
+            delegate.doCompositeReset(sequence, acknowledge, maximum, traceId);
         }
 
 
@@ -670,7 +694,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.openInitial(state);
 
-            delegate.doHttpWindow(sequence, acknowledge, maximum, authorization, traceId, budgetId, padding);
+            delegate.doCompositeWindow(sequence, acknowledge, maximum, authorization, traceId, budgetId, padding);
         }
 
         private void doOpenapiBegin(
@@ -685,7 +709,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             {
                 assert state == 0;
 
-                final OpenapiBeginExFW openapiBeginEx = openapiBeginExRW
+                final OpenapiBeginExFW openapiBeginEx = beginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(openapiTypeId)
                     .apiId(apiId)

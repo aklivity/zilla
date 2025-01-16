@@ -19,15 +19,19 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 
 public class OpenapiParameterView
 {
+    public final OpenapiOperationView operation;
     public final String name;
     public final String in;
     public final boolean required;
     public final OpenapiSchemaView schema;
 
     OpenapiParameterView(
+        OpenapiOperationView operation,
         OpenapiResolver resolver,
         OpenapiParameter model)
     {
+        this.operation = operation;
+
         OpenapiParameter resolved = resolver.parameters.resolve(model);
 
         this.name = resolved.name;

@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 
 public final class OpenapiResponseView
 {
+    public final OpenapiOperationView operation;
     public final String status;
 
     public final Map<String, OpenapiHeaderView> headers;
@@ -33,10 +34,12 @@ public final class OpenapiResponseView
     public final OpenapiSchemaView schema;
 
     OpenapiResponseView(
+        OpenapiOperationView operation,
         OpenapiResolver resolver,
         String status,
         OpenapiResponse model)
     {
+        this.operation = operation;
         this.status = status;
 
         this.headers = model.headers != null

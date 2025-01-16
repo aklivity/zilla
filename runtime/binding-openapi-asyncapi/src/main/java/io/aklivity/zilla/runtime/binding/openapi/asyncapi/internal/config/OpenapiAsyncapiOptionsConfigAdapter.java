@@ -89,7 +89,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 subjectObject.add(catalog.name, schemaObject);
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
-            openapi.add(openapiConfig.apiLabel, catalogObject);
+            openapi.add(openapiConfig.label, catalogObject);
         }
         spec.add(OPENAPI_NAME, openapi);
 

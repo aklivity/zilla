@@ -14,16 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import java.util.List;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiComponents;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiComponentsView
 {
-    public final List<OpenapiSecuritySchemeView> securitySchemes;
+    public final Map<String, OpenapiSecuritySchemeView> securitySchemes;
     public final Map<String, OpenapiSchemaView> schemas;
 
     OpenapiComponentsView(
@@ -32,13 +32,12 @@ public final class OpenapiComponentsView
     {
         this.securitySchemes = model.securitySchemes != null
                 ? model.securitySchemes.entrySet().stream()
-                    .map(e -> new OpenapiSecuritySchemeView(resolver, e.getKey(), e.getValue()))
-                    .toList()
+                    .collect(toMap(e -> e.getKey(), e -> new OpenapiSecuritySchemeView(resolver, e.getKey(), e.getValue())))
                 : null;
 
         this.schemas = model.schemas != null
                 ? model.schemas.entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> new OpenapiSchemaView(resolver, e.getValue())))
+                    .collect(toMap(e -> e.getKey(), e -> new OpenapiSchemaView(resolver, e.getValue())))
                 : null;
     }
 }

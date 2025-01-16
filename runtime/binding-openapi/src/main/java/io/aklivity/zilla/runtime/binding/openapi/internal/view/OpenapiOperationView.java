@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
@@ -29,8 +30,9 @@ public final class OpenapiOperationView
     public static final String DEFAULT = "default";
 
     public final OpenapiView specification;
-    //public final long compositeId;
+    public final long compositeId;
     public final String method;
+    public final String path;
     public final String id;
 
     public final List<OpenapiParameterView> parameters;
@@ -40,31 +42,34 @@ public final class OpenapiOperationView
     public final List<OpenapiServerView> servers;
 
     OpenapiOperationView(
-        OpenapiPathView path,
+        OpenapiView specification,
+        long compositeId,
         List<OpenapiServerConfig> configs,
         OpenapiResolver resolver,
         String method,
+        String path,
         OpenapiOperation model)
     {
-        this.specification = path.specification;
-        //this.compositeId = compositeId;
+        this.specification = specification;
+        this.compositeId = compositeId;
         this.method = method;
+        this.path = path;
 
-        this.id = model.operationId;
+        this.id = Objects.requireNonNull(model.operationId);
 
         this.parameters = model.parameters != null
                 ? model.parameters.stream()
-                    .map(p -> new OpenapiParameterView(resolver, p))
+                    .map(p -> new OpenapiParameterView(this, resolver, p))
                     .toList()
                 : null;
 
         this.requestBody = model.requestBody != null
-                ? new OpenapiRequestBodyView(resolver, model.requestBody)
+                ? new OpenapiRequestBodyView(this, resolver, model.requestBody)
                 : null;
 
         this.responses = model.responses != null
                 ? model.responses.entrySet().stream()
-                    .map(e -> new OpenapiResponseView(resolver, e.getKey(), e.getValue()))
+                    .map(e -> new OpenapiResponseView(this, resolver, e.getKey(), e.getValue()))
                     .collect(toMap(c -> c.status, identity()))
                 : null;
 
@@ -75,5 +80,20 @@ public final class OpenapiOperationView
                     .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
                 : null;
+    }
+
+    public boolean hasRequestBodyOrParameters()
+    {
+        return hasRequestBody() || hasParameters();
+    }
+
+    public boolean hasRequestBody()
+    {
+        return requestBody != null && requestBody.content != null;
+    }
+
+    public boolean hasParameters()
+    {
+        return parameters != null;
     }
 }

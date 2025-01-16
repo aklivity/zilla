@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -21,15 +23,56 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 
-public final class OpenapiSchemaResolver extends AbstractOpenapiResolver<OpenapiSchema>
+public final class OpenapiSchemaResolver
 {
+    private final ResolverImpl resolver;
+
     public OpenapiSchemaResolver(
         Openapi model)
     {
-        super(
-            Optional.ofNullable(model.components)
-                .map(c -> c.schemas)
-                .orElseGet(Map::of),
-            Pattern.compile("#/components/schemas/(.+)"));
+        this.resolver = new ResolverImpl(model);
+    }
+
+    public OpenapiSchema resolve(
+        OpenapiSchema model)
+    {
+        OpenapiSchema resolved = resolver.resolve(model);
+
+        if (resolved.schema != null)
+        {
+            resolved.schema = resolve(resolved.schema);
+        }
+
+        if (resolved.items != null)
+        {
+            resolved.items = resolve(resolved.items);
+        }
+
+        if (resolved.properties != null)
+        {
+            resolved.properties = resolved.properties.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, entry -> resolve(entry.getValue())));
+        }
+
+        return resolved;
+    }
+
+    public String resolveRef(
+        String ref)
+    {
+        return resolver.resolveRef(ref);
+    }
+
+    private final class ResolverImpl extends AbstractOpenapiResolver<OpenapiSchema>
+    {
+        private ResolverImpl(
+            Openapi model)
+        {
+            super(
+                Optional.ofNullable(model.components)
+                    .map(c -> c.schemas)
+                    .orElseGet(Map::of),
+                Pattern.compile("#/components/schemas/(.+)"));
+        }
     }
 }

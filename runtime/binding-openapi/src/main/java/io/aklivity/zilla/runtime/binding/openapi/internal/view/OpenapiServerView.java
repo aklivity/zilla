@@ -18,6 +18,7 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -29,7 +30,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 
 public final class OpenapiServerView
 {
-    public final String url;
+    public final URI url;
 
     OpenapiServerView(
         OpenapiResolver resolver,
@@ -50,8 +51,8 @@ public final class OpenapiServerView
                 : Map.of();
 
         this.url = model.url != null
-                ? new VariableMatcher(variables::get, model.url)
-                        .resolve(config != null ? config.url : null)
+                ? URI.create(new VariableMatcher(variables::get, model.url)
+                        .resolve(config != null ? config.url : null))
                 : null;
     }
 

@@ -195,7 +195,7 @@ public final class OpenapiAsyncapiBindingConfig
                 final CatalogHandler handler = supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                openapiConfigs.add(new OpenapiSchemaConfig(config.apiLabel, schemaId, openapiParser.parse(payload)));
+                openapiConfigs.add(new OpenapiSchemaConfig(config.label, schemaId, openapiParser.parse(payload)));
             }
         }
         return openapiConfigs;

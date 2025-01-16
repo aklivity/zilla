@@ -66,7 +66,8 @@ public final class OpenapiCompositeConfig
 
         this.operationsById = schemas.stream()
             .map(s -> s.openapi)
-            .flatMap(v -> v.operations.values().stream())
+            .flatMap(v -> v.paths.values().stream())
+            .flatMap(v -> v.methods.values().stream())
             .collect(toMap(o -> o.compositeId, o -> o, (o1, o2) -> o1, Long2ObjectHashMap::new));
 
         this.specificationsById = schemas.stream()

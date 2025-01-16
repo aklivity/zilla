@@ -24,13 +24,17 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 
 public final class OpenapiRequestBodyView
 {
+    public final OpenapiOperationView operation;
     public final Map<String, OpenapiMediaTypeView> content;
     public final boolean required;
 
     OpenapiRequestBodyView(
+        OpenapiOperationView operation,
         OpenapiResolver resolver,
         OpenapiRequestBody model)
     {
+        this.operation = operation;
+
         OpenapiRequestBody resolved = resolver.requestBodies.resolve(model);
 
         this.content = model.content != null

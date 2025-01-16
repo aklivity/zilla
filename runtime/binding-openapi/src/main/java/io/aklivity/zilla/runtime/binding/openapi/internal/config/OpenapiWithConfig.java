@@ -12,20 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal;
+package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration.OPENAPI_COMPOSITE_ROUTE_ID;
-import static org.junit.Assert.assertEquals;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-import org.junit.Test;
-
-public class OpenapiConfigurationTest
+public class OpenapiWithConfig extends WithConfig
 {
-    public static final String OPENAPI_TARGET_ROUTE_ID_NAME = "zilla.binding.openapi.target.route.id";
+    public final String apiId;
+    public final String operationId;
 
-    @Test
-    public void shouldVerifyConstants() throws Exception
+    public OpenapiWithConfig(
+        String apiId,
+        String operationId)
     {
-        assertEquals(OPENAPI_COMPOSITE_ROUTE_ID.name(), OPENAPI_TARGET_ROUTE_ID_NAME);
+        this.apiId = apiId;
+        this.operationId = operationId;
     }
 }

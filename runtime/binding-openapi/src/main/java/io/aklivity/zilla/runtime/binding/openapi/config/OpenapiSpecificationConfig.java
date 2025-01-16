@@ -20,16 +20,16 @@ import java.util.List;
 
 public class OpenapiSpecificationConfig
 {
-    public final String apiLabel;
+    public final String label;
     public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
 
     public OpenapiSpecificationConfig(
-        String apiLabel,
+        String label,
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this.apiLabel = apiLabel;
+        this.label = label;
         this.servers = servers;
         this.catalogs = catalogs;
     }
