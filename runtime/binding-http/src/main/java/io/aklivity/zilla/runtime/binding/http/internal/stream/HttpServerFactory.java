@@ -2422,7 +2422,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             if (allowCrossOrigin == null)
             {
                 HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
-                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
+
+                if (allowOrigin != null)
+                {
+                    codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
+                }
 
                 HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
                 if (allowCredentials != null)
@@ -6852,10 +6856,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             final HttpHeaderFW allowCrossOrigin = headers.matchFirst(h ->
                 HEADER_ACCESS_CONTROL_ALLOW_ORIGIN.equals(h.name()));
 
-            if (allowCrossOrigin == null)
+            if (allowCrossOrigin == null && access != null)
             {
                 HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
-                headerBlock.header(b -> encodeHeader(allowOrigin, b));
+
+                if (allowOrigin != null)
+                {
+                    headerBlock.header(b -> encodeHeader(allowOrigin, b));
+                }
 
                 HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
                 if (allowCredentials != null)
