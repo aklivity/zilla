@@ -351,4 +351,15 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.access.control.cross.origin.yaml")
+    @Specification({
+        "${net}/ignore.explicit.allow.origin/client",
+        "${app}/ignore.explicit.allow.origin/server",
+    })
+    public void shouldIgnoreAllowOriginWithNoExplicitImplicitOrigin() throws Exception
+    {
+        k3po.finish();
+    }
 }
