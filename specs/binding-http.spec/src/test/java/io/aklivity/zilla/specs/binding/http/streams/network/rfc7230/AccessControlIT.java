@@ -316,4 +316,14 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/ignore.explicit.allow.origin/client",
+        "${net}/ignore.explicit.allow.origin/server",
+    })
+    public void shouldIgnoreExplicitAllowOrigin() throws Exception
+    {
+        k3po.finish();
+    }
 }
