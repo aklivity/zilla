@@ -347,7 +347,7 @@ public class AccessControlIT
         "${net}/ignore.explicit.allow.origin/client",
         "${app}/ignore.explicit.allow.origin/server",
     })
-    public void shouldIgnoreExplicitAllowOrigin() throws Exception
+    public void shouldIgnoreExplicitAllowOriginWhenExplicit() throws Exception
     {
         k3po.finish();
     }
@@ -358,7 +358,7 @@ public class AccessControlIT
         "${net}/ignore.explicit.allow.origin/client",
         "${app}/ignore.explicit.allow.origin/server",
     })
-    public void shouldIgnoreAllowOriginWithNoExplicitImplicitOrigin() throws Exception
+    public void shouldIgnoreExplicitAllowOriginWhenImplicit() throws Exception
     {
         k3po.finish();
     }
