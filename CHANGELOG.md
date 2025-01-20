@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.117...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.118...HEAD)
+
+**Merged pull requests:**
+
+- Handle CN with spaces [\#1372](https://github.com/aklivity/zilla/pull/1372) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.118](https://github.com/aklivity/zilla/tree/0.9.118) (2025-01-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.117...0.9.118)
 
 **Merged pull requests:**
 
