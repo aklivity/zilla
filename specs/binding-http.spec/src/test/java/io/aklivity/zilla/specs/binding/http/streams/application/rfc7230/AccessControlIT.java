@@ -129,10 +129,10 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${app}/ignore.explicit.allow.origin/client",
-        "${app}/ignore.explicit.allow.origin/server",
+        "${app}/allow.origin.present/client",
+        "${app}/allow.origin.present/server",
     })
-    public void shouldIgnoreExplicitAllowOrigin() throws Exception
+    public void shouldAllowOriginWhenPresent() throws Exception
     {
         k3po.finish();
     }

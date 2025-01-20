@@ -368,10 +368,10 @@ public class AccessControlIT
     @Test
     @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
-        "${net}/ignore.explicit.allow.origin/client",
-        "${app}/ignore.explicit.allow.origin/server",
+        "${net}/allow.origin.present/client",
+        "${app}/allow.origin.present/server",
     })
-    public void shouldIgnoreExplicitAllowOriginWhenExplicit() throws Exception
+    public void shouldNotDefaultExplicitAllowOriginWhenPresent() throws Exception
     {
         k3po.finish();
     }
@@ -379,10 +379,10 @@ public class AccessControlIT
     @Test
     @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
-        "${net}/ignore.explicit.allow.origin/client",
-        "${app}/ignore.explicit.allow.origin/server",
+        "${net}/allow.origin.present/client",
+        "${app}allow.origin.present//server",
     })
-    public void shouldIgnoreExplicitAllowOriginWhenImplicit() throws Exception
+    public void shouldNotDefaultImplicitAllowOriginWhenPresent() throws Exception
     {
         k3po.finish();
     }
