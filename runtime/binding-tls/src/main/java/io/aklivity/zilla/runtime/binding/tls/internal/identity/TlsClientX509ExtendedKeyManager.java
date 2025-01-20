@@ -36,7 +36,7 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
 {
     public static final String COMMON_NAME_KEY = "common.name";
 
-    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^\\s,]+)");
+    public static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^,]+)");
 
     private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
 

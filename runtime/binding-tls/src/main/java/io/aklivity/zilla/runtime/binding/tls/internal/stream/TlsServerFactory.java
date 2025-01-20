@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.COMMON_NAME_PATTERN;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -134,7 +135,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final TlsServerDecoder decodeNotHandshakingUnwrapped = this::decodeNotHandshakingUnwrapped;
     private final TlsServerDecoder decodeIgnoreAll = this::decodeIgnoreAll;
 
-    private final Matcher matchCN = Pattern.compile("CN=([^,]*)").matcher("");
+    private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
 
     private final int proxyTypeId;
     private final Signaler signaler;
@@ -2424,7 +2425,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     String name = peer.getName();
                     if (matchCN.reset(name).find())
                     {
-                        commonName = matchCN.group(1);
+                        commonName = matchCN.group("cn");
                     }
                 }
             }
