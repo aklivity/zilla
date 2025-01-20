@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.119...HEAD)
+
+**Merged pull requests:**
+
+- Make TLS client HTTPS endpoint identification configurable [\#1375](https://github.com/aklivity/zilla/pull/1375) ([jfallows](https://github.com/jfallows))
+- Fix checkstyle in TLS Server [\#1373](https://github.com/aklivity/zilla/pull/1373) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.119](https://github.com/aklivity/zilla/tree/0.9.119) (2025-01-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.118...0.9.119)
