@@ -340,4 +340,26 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
+    @Specification({
+        "${net}/allow.origin.present/client",
+        "${app}/allow.origin.present/server",
+    })
+    public void shouldNotDefaultExplicitAllowOriginWhenPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.access.control.cross.origin.yaml")
+    @Specification({
+        "${net}/allow.origin.present/client",
+        "${app}/allow.origin.present/server",
+    })
+    public void shouldNotDefaultImplicitAllowOriginWhenPresent() throws Exception
+    {
+        k3po.finish();
+    }
 }
