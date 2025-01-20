@@ -72,6 +72,8 @@ public final class TlsBindingConfig
 
     private SSLContext context;
 
+    private boolean clientHttpsIdentification;
+
     public TlsBindingConfig(
         BindingConfig binding)
     {
@@ -123,6 +125,7 @@ public final class TlsBindingConfig
             context.init(keyManagers, trustManagers, random);
 
             this.context = context;
+            this.clientHttpsIdentification = config.clientHttpsIdentification();
         }
         catch (Exception ex)
         {
@@ -231,7 +234,11 @@ public final class TlsBindingConfig
             }
 
             final SSLParameters parameters = engine.getSSLParameters();
-            parameters.setEndpointIdentificationAlgorithm("HTTPS");
+
+            if (clientHttpsIdentification)
+            {
+                parameters.setEndpointIdentificationAlgorithm("HTTPS");
+            }
 
             if (sni != null)
             {
