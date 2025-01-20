@@ -316,4 +316,14 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/allow.origin.present/client",
+        "${net}/allow.origin.present/server",
+    })
+    public void shouldAllowOriginWhenPresent() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.119...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.120...HEAD)
+
+**Merged pull requests:**
+
+- Ignore appending allow origin if already present [\#1371](https://github.com/aklivity/zilla/pull/1371) ([akrambek](https://github.com/akrambek))
+
+## [0.9.120](https://github.com/aklivity/zilla/tree/0.9.120) (2025-01-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.119...0.9.120)
 
 **Merged pull requests:**
 

@@ -2415,44 +2415,53 @@ public final class HttpServerFactory implements HttpStreamFactory
             final String origin = exchange.origin;
             final HttpPolicyConfig policy = exchange.policy;
             final HttpAccessControlConfig access = binding.access();
-            HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
-            if (allowOrigin != null)
-            {
-                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
-            }
 
-            HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
-            if (allowCredentials != null)
-            {
-                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowCredentials);
-            }
+            final HttpHeaderFW allowCrossOrigin = headers.matchFirst(h ->
+                HEADER_ACCESS_CONTROL_ALLOW_ORIGIN.equals(h.name()));
 
-            if (access.exposeHeadersExplicit())
+            if (allowCrossOrigin == null)
             {
-                headers.forEach(h ->
+                HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
+
+                if (allowOrigin != null)
                 {
-                    final String8FW name = h.name();
-                    if (access.exposeHeader(name.asString()))
+                    codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
+                }
+
+                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+                if (allowCredentials != null)
+                {
+                    codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowCredentials);
+                }
+
+                if (access.exposeHeadersExplicit())
+                {
+                    headers.forEach(h ->
                     {
-                        String8FW expose = HEADER_ACCESS_CONTROL_EXPOSE_HEADERS;
-                        codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, expose.value(), name.value(), true);
+                        final String8FW name = h.name();
+                        if (access.exposeHeader(name.asString()))
+                        {
+                            String8FW expose = HEADER_ACCESS_CONTROL_EXPOSE_HEADERS;
+                            codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                                expose.value(), name.value(), true);
+                        }
+                    });
+                }
+                else if (access.exposeHeaders())
+                {
+                    if (headers.anyMatch(h -> access.exposeHeader(h.name().asString())))
+                    {
+                        codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                                HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD);
                     }
-                });
-            }
-            else if (access.exposeHeaders())
-            {
-                if (headers.anyMatch(h -> access.exposeHeader(h.name().asString())))
+                }
+
+                if (allowOrigin != null &&
+                    !allowOrigin.equals(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD))
                 {
                     codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
-                            HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD);
+                            HEADER_VARY_ORIGIN, true);
                 }
-            }
-
-            if (allowOrigin != null &&
-                !allowOrigin.equals(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD))
-            {
-                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
-                        HEADER_VARY_ORIGIN, true);
             }
 
             codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
@@ -6844,9 +6853,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                 headerBlock.header(b -> b.literal(l -> l.type(WITHOUT_INDEXING).name(54).value(server.value())));
             }
 
-            if (access != null)
+            final HttpHeaderFW allowCrossOrigin = headers.matchFirst(h ->
+                HEADER_ACCESS_CONTROL_ALLOW_ORIGIN.equals(h.name()));
+
+            if (allowCrossOrigin == null && access != null)
             {
                 HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
+
                 if (allowOrigin != null)
                 {
                     headerBlock.header(b -> encodeHeader(allowOrigin, b));
