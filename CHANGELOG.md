@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.119](https://github.com/aklivity/zilla/tree/0.9.119) (2025-01-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.118...0.9.119)
+
+**Merged pull requests:**
+
+- Handle CN with spaces [\#1372](https://github.com/aklivity/zilla/pull/1372) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.118](https://github.com/aklivity/zilla/tree/0.9.118) (2025-01-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.117...0.9.118)
