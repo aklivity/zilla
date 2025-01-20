@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler;
 
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.CachedSchemaId.IN_PROGRESS;
 import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest.NO_VERSIONS;
-import static java.util.Base64.getEncoder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +26,7 @@ import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
@@ -40,8 +40,10 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaR
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
@@ -54,7 +56,6 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final byte MAGIC_BYTE = 0x0;
     private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
-    public static final String CREDENTIAL_PATTERN = "%s:%s";
 
     private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -71,13 +72,16 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> cachedSchemas;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
-    private final String credentials;
+    private final String authorization;
 
     public SchemaRegistryCatalogHandler(
-        SchemaRegistryCatalogConfig catalog)
+        SchemaRegistryCatalogConfig catalog,
+        EngineContext context)
     {
         AbstractSchemaRegistryOptionsConfig options = catalog.options;
         this.baseUrl = options.url;
+        LongFunction<VaultHandler> supplyVault = context::supplyVault;
+        VaultHandler vault = supplyVault.apply(catalog.vaultId);
         this.client = HttpClient.newHttpClient();
         this.registerRequest = new RegisterSchemaRequest();
         this.unregisterRequest = new UnregisterSchemaRequest();
@@ -89,9 +93,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
-        this.credentials = options.key != null
-            ? getEncoder().encodeToString(CREDENTIAL_PATTERN.formatted(options.key, options.secret).getBytes())
-            : null;
+        this.authorization = options.authorization;
     }
 
     @Override
@@ -378,9 +380,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                 .newBuilder(toURI(baseUrl, path))
                 .GET();
 
-        if (credentials != null)
+        if (authorization != null)
         {
-            httpRequest.header("Authorization", "Basic " + credentials);
+            httpRequest.header("Authorization", authorization);
         }
 
         // TODO: introduce interrupt/timeout for request to schema registry
@@ -408,9 +410,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             .header("content-type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
 
-        if (credentials != null)
+        if (authorization != null)
         {
-            httpRequest.header("Authorization", "Basic " + credentials);
+            httpRequest.header("Authorization", authorization);
         }
 
         // TODO: introduce interrupt/timeout for request to schema registry
@@ -436,9 +438,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             .version(HttpClient.Version.HTTP_1_1)
             .DELETE();
 
-        if (credentials != null)
+        if (authorization != null)
         {
-            httpRequest.header("Authorization", "Basic " + credentials);
+            httpRequest.header("Authorization", authorization);
         }
 
         String responseBody;

@@ -208,6 +208,11 @@
                     "type": "string",
                     "enum": []
                 },
+                "vault":
+                {
+                    "title": "Vault",
+                    "type": "string"
+                },
                 "options":
                 {
                     "title": "Options",

@@ -264,6 +264,10 @@ public class EngineManager
         for (CatalogConfig catalog : namespace.catalogs)
         {
             catalog.id = resolver.resolve(catalog.name);
+            if (catalog.vault != null)
+            {
+                catalog.vaultId = resolver.resolve(catalog.vault);
+            }
         }
 
         for (MetricConfig metric : namespace.telemetry.metrics)

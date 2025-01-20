@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.karapace.config;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfigBuilder;
@@ -41,9 +42,11 @@ public final class KarapaceOptionsConfigBuilder<T>
         String url,
         String context,
         Duration maxAge,
-        String key,
-        String secret)
+        List<String> keys,
+        List<String> trust,
+        boolean trustcacerts,
+        String authorization)
     {
-        return new KarapaceOptionsConfig(url, context, maxAge, key, secret);
+        return new KarapaceOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization);
     }
 }

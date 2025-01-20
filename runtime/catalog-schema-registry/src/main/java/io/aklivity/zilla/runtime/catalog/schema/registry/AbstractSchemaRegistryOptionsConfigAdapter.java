@@ -14,13 +14,19 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry;
 
+import static java.util.stream.Collectors.toList;
+
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
@@ -34,8 +40,12 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String URL = "url";
     private static final String CONTEXT = "context";
     private static final String MAX_AGE_NAME = "max-age";
-    private static final String KEY_NAME = "key";
-    private static final String SECRET_NAME = "secret";
+    private static final String KEYS_NAME = "keys";
+    private static final String TRUST_NAME = "trust";
+    private static final String TRUSTCACERTS_NAME = "trustcacerts";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
 
     private final String type;
     private final Set<String> aliases;
@@ -85,18 +95,6 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
 
-        if (config.key != null &&
-            !config.key.isEmpty())
-        {
-            catalog.add(KEY_NAME, config.key);
-        }
-
-        if (config.secret != null &&
-            !config.secret.isEmpty())
-        {
-            catalog.add(SECRET_NAME, config.secret);
-        }
-
         return catalog.build();
     }
 
@@ -123,18 +121,54 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
 
-            if (object.containsKey(KEY_NAME))
+            if (object.containsKey(KEYS_NAME))
             {
-                options.key(object.getString(KEY_NAME));
+                options.keys(asListString(object.getJsonArray(KEYS_NAME)));
             }
 
-            if (object.containsKey(SECRET_NAME))
+            if (object.containsKey(TRUST_NAME))
             {
-                options.secret(object.getString(SECRET_NAME));
+                options.trust(asListString(object.getJsonArray(TRUST_NAME)));
+            }
+
+            if (object.containsKey(TRUSTCACERTS_NAME))
+            {
+                options.trustcacerts(object.getBoolean(TRUSTCACERTS_NAME));
+            }
+
+            if (object.containsKey(AUTHORIZATION_CREDENTIALS_NAME))
+            {
+                JsonObject credentials = object.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+
+                JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+
+                options.authorization(headers.getJsonString(AUTHORIZATION_NAME));
             }
         }
 
         return options.build();
+    }
+
+    private static List<String> asListString(
+        JsonArray array)
+    {
+        return array.stream()
+            .map(AbstractSchemaRegistryOptionsConfigAdapter::asString)
+            .collect(toList());
+    }
+
+    private static String asString(
+        JsonValue value)
+    {
+        switch (value.getValueType())
+        {
+            case STRING:
+                return ((JsonString) value).getString();
+            case NULL:
+                return null;
+            default:
+                throw new IllegalArgumentException("Unexpected type: " + value.getValueType());
+        }
     }
 
     protected AbstractSchemaRegistryOptionsConfigAdapter(

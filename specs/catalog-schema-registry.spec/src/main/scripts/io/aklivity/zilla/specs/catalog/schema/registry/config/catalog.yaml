@@ -22,5 +22,3 @@ catalogs:
       url: http://localhost:8081
       context: default
       max-age: 30
-      key: user
-      secret: secret

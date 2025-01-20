@@ -46,6 +46,6 @@ public class SchemaRegistryCatalogContext implements CatalogContext
     {
         SchemaRegistryCache cache = cachesById.computeIfAbsent(catalog.id, id -> new SchemaRegistryCache());
         SchemaRegistryCatalogConfig config = new SchemaRegistryCatalogConfig(type, context, catalog, cache);
-        return new SchemaRegistryCatalogHandler(config);
+        return new SchemaRegistryCatalogHandler(config, context);
     }
 }

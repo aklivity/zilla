@@ -27,6 +27,11 @@
                     {
                         "const": "schema-registry"
                     },
+                    "vault":
+                    {
+                        "title": "Vault",
+                        "type": "string"
+                    },
                     "options":
                     {
                         "$ref": "#/$defs/options/catalog/schema-registry"
@@ -60,39 +65,53 @@
                     "type": "integer",
                     "default": 300
                 },
-                "key":
+                "keys":
                 {
-                    "type": "string"
+                    "title": "Vault Keys",
+                    "type": "array",
+                    "items":
+                    {
+                        "type": "string"
+                    }
                 },
-                "secret":
+                "trust":
                 {
-                    "type": "string"
+                    "title": "Vault Certificates",
+                    "type": "array",
+                    "items":
+                    {
+                        "type": "string"
+                    }
+                },
+                "trustcacerts":
+                {
+                    "title": "Trust CA Certificates",
+                    "type": "boolean"
+                },
+                "credentials":
+                {
+                    "title": "Credentials",
+                    "type": "object",
+                    "properties":
+                    {
+                        "headers":
+                        {
+                            "title": "Headers",
+                            "type": "object",
+                            "properties":
+                            {
+                                "authorization":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
-            "additionalProperties": false,
-            "allOf":
-            [
-                {
-                    "if":
-                    {
-                        "required": ["key"]
-                    },
-                    "then":
-                    {
-                        "required": ["secret"]
-                    }
-                },
-                {
-                    "if":
-                    {
-                        "required": ["secret"]
-                    },
-                    "then":
-                    {
-                        "required": ["key"]
-                    }
-                }
-            ]
+            "additionalProperties": false
         }
     }
 ]

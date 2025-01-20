@@ -55,7 +55,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldVerifyMaxPadding()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
 
         assertEquals(5, catalog.encodePadding(0));
     }
@@ -63,7 +63,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldVerifyEncodedData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -79,7 +79,7 @@ public class SchemaRegistryCatalogHandlerTest
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -95,7 +95,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
