@@ -96,4 +96,9 @@ public final class OpenapiOperationView
     {
         return parameters != null;
     }
+
+    public boolean hasResponses()
+    {
+        return responses != null;
+    }
 }

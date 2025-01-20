@@ -41,7 +41,9 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiComposit
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMediaTypeView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiRequestBodyView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -191,7 +193,7 @@ public abstract class OpenapiCompositeGenerator
             return value;
         }
 
-        protected class CatalogsHelper
+        protected abstract class CatalogsHelper
         {
             protected final OpenapiSchemaConfig schema;
 
@@ -201,14 +203,10 @@ public abstract class OpenapiCompositeGenerator
                 this.schema = schema;
             }
 
-            public <C> NamespaceConfigBuilder<C> injectAll(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                injectInline(namespace);
-                return namespace;
-            }
+            public abstract <C> NamespaceConfigBuilder<C> injectAll(
+                NamespaceConfigBuilder<C> namespace);
 
-            private <C> void injectInline(
+            protected final <C> void injectInlineRequests(
                 NamespaceConfigBuilder<C> namespace)
             {
                 namespace
@@ -216,12 +214,25 @@ public abstract class OpenapiCompositeGenerator
                         .name("catalog0")
                         .type("inline")
                         .options(InlineOptionsConfig::builder)
-                            .inject(this::injectInlineSubjects)
+                            .inject(this::injectInlineRequests)
                             .build()
                         .build();
             }
 
-            private <C> InlineOptionsConfigBuilder<C> injectInlineSubjects(
+            protected final <C> void injectInlineResponses(
+                NamespaceConfigBuilder<C> namespace)
+            {
+                namespace
+                    .catalog()
+                        .name("catalog0")
+                        .type("inline")
+                        .options(InlineOptionsConfig::builder)
+                            .inject(this::injectInlineResponses)
+                            .build()
+                        .build();
+            }
+
+            private <C> InlineOptionsConfigBuilder<C> injectInlineRequests(
                 InlineOptionsConfigBuilder<C> options)
             {
                 try (Jsonb jsonb = JsonbBuilder.create())
@@ -231,7 +242,7 @@ public abstract class OpenapiCompositeGenerator
                         .flatMap(v -> v.paths.values().stream())
                         .flatMap(p -> p.methods.values().stream())
                         .map(o -> o.requestBody)
-                        .forEach(m -> injectInlineSubject(jsonb, options, m));
+                        .forEach(m -> injectInlineRequest(jsonb, options, m));
 
                     Stream.of(schema)
                         .map(s -> s.openapi)
@@ -259,7 +270,7 @@ public abstract class OpenapiCompositeGenerator
                 return options;
             }
 
-            protected <C> void injectInlineSubject(
+            private <C> void injectInlineRequest(
                 Jsonb jsonb,
                 InlineOptionsConfigBuilder<C> options,
                 OpenapiRequestBodyView request)
@@ -274,22 +285,83 @@ public abstract class OpenapiCompositeGenerator
                             .schema(toSchemaJson(jsonb, typed.schema.model))
                             .build();
 
-                        if (typed.encoding != null && typed.encoding.headers != null)
-                        {
-                            for (OpenapiHeaderView header : typed.encoding.headers.values())
+                        Stream.of(typed)
+                            .filter(t -> t.encoding != null)
+                            .map(t -> t.encoding)
+                            .filter(e -> e.headers != null)
+                            .forEach(encoding ->
                             {
-                                final String name = header.name;
-                                final OpenapiSchemaView schema = header.schema;
+                                for (OpenapiHeaderView header : encoding.headers.values())
+                                {
+                                    final String name = header.name;
+                                    final OpenapiSchemaView schema = header.schema;
 
-                                final String subject = "%s-header-%s".formatted(request.operation.id, name);
+                                    final String subject = "%s-header-%s-%s"
+                                            .formatted(request.operation.id, name, encoding.contentType);
 
-                                options.schema()
-                                    .subject(subject)
-                                    .version("latest")
-                                    .schema(toSchemaJson(jsonb, schema.model))
-                                    .build();
-                            }
-                        }
+                                    options.schema()
+                                        .subject(subject)
+                                        .version("latest")
+                                        .schema(toSchemaJson(jsonb, schema.model))
+                                        .build();
+                                }
+                            });
+                    }
+                }
+            }
+
+            private <C> InlineOptionsConfigBuilder<C> injectInlineResponses(
+                InlineOptionsConfigBuilder<C> options)
+            {
+                try (Jsonb jsonb = JsonbBuilder.create())
+                {
+                    Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.paths.values().stream())
+                        .flatMap(p -> p.methods.values().stream())
+                        .filter(OpenapiOperationView::hasResponses)
+                        .flatMap(o -> o.responses.values().stream())
+                        .forEach(o -> injectInlineResponse(jsonb, options, o));
+                }
+                catch (Exception ex)
+                {
+                    rethrowUnchecked(ex);
+                }
+
+                return options;
+            }
+
+            private <C> void injectInlineResponse(
+                Jsonb jsonb,
+                InlineOptionsConfigBuilder<C> options,
+                OpenapiResponseView response)
+            {
+                if (response.headers != null)
+                {
+                    for (OpenapiHeaderView header : response.headers.values())
+                    {
+                        final String name = header.name;
+                        final OpenapiSchemaView schema = header.schema;
+
+                        final String subject = "%s-header-%s".formatted(response.operation.id, name);
+
+                        options.schema()
+                            .subject(subject)
+                            .version("latest")
+                            .schema(toSchemaJson(jsonb, schema.model))
+                            .build();
+                    }
+                }
+
+                if (response.content != null)
+                {
+                    for (OpenapiMediaTypeView typed : response.content.values())
+                    {
+                        options.schema()
+                            .subject("%s-%s-value".formatted(response.operation.id, typed.name))
+                            .version("latest")
+                            .schema(toSchemaJson(jsonb, typed.schema.model))
+                            .build();
                     }
                 }
             }

@@ -18,29 +18,31 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import jakarta.json.bind.Jsonb;
-
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiChannelView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMessageView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiEncodingView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
 {
@@ -60,17 +62,17 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
 
             namespaces.add(namespace);
 
-            Matcher routedType = Pattern.compile("(?:http|sse|mqtt|kafka_cache)_client0").matcher("");
+            final String httpType = "http";
+            final int httpTypeId = binding.supplyTypeId.applyAsInt(httpType);
             namespace.bindings.stream()
-                .filter(b -> routedType.reset(b.name).matches())
+                .filter(b -> httpType.equals(b.type))
                 .forEach(b ->
                 {
-                    final int operationTypeId = binding.supplyTypeId.applyAsInt(b.type);
                     final long routeId = binding.supplyBindingId.applyAsLong(namespace, b);
 
                     final OpenapiCompositeConditionConfig when = new OpenapiCompositeConditionConfig(
                         schema.schemaId,
-                        operationTypeId);
+                        httpTypeId);
 
                     routes.add(new OpenapiCompositeRouteConfig(routeId, when));
                 });
@@ -109,59 +111,24 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 super(schema);
             }
 
-            @Override
-            protected <C> void injectInlineSubject(
-                Jsonb jsonb,
-                InlineOptionsConfigBuilder<C> options,
-                OpenapiMessageView message)
+            public <C> NamespaceConfigBuilder<C> injectAll(
+                NamespaceConfigBuilder<C> namespace)
             {
-                super.injectInlineSubject(jsonb, options, message);
-
-                if (message.bindings != null &&
-                    message.bindings.kafka != null &&
-                    message.bindings.kafka.key != null)
-                {
-                    Optional<OpenapiServerView> serverRef = Stream.of(schema)
-                            .map(s -> s.asyncapi)
-                            .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
-                            .findFirst();
-
-                    String subject = serverRef.isPresent()
-                        ? "%s-key".formatted(message.channel.address)
-                        : "%s-%s-key".formatted(message.channel.name, message.name);
-
-                    options.schema()
-                        .subject(subject)
-                        .version("latest")
-                        .schema(toSchemaJson(jsonb, message.bindings.kafka.key.model))
-                        .build();
-                }
+                injectInlineResponses(namespace);
+                return namespace;
             }
         }
 
         private final class ClientBindingsHelper extends BindingsHelper
         {
-            private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile(REGEX_ADDRESS_PARAMETER);
-
             private final OpenapiSchemaConfig schema;
-            private final Map<String, NamespaceInjector> protocols;
             private final List<String> secure;
 
             private ClientBindingsHelper(
                 OpenapiSchemaConfig schema)
             {
                 this.schema = schema;
-                this.protocols = Map.of(
-                    "kafka", this::injectKafka,
-                    "kafka-secure", this::injectKafkaSecure,
-                    "http", this::injectHttp,
-                    "https", this::injectHttps,
-                    "mqtt", this::injectMqtt,
-                    "mqtts", this::injectMqtts);
-                this.secure = List.of("kafka-secure", "https", "mqtts");
+                this.secure = List.of("https");
             }
 
             @Override
@@ -169,22 +136,47 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
-                        .inject(this::injectProtocols)
+                        .inject(this::injectHttpClient)
                         .inject(this::injectTlsClient)
                         .inject(this::injectTcpClient);
             }
 
-            private <C> NamespaceConfigBuilder<C> injectProtocols(
+            private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
+                if (Stream.of(schema)
+                    .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
-                    .map(s -> s.protocol)
-                    .distinct()
-                    .map(protocols::get)
-                    .filter(Objects::nonNull)
-                    .forEach(p -> p.inject(namespace));
+                    .findFirst()
+                    .filter(s -> secure.contains(s.url.getScheme()))
+                    .isPresent())
+                {
+                    namespace
+                        .binding()
+                            .name("http_client0")
+                            .type("http")
+                            .kind(CLIENT)
+                            .options(HttpOptionsConfig::builder)
+                                .inject(this::injectHttpRequests)
+                                .build()
+                            .inject(this::injectMetrics)
+                            .exit("tls_client0")
+                            .build();
+                }
+                else
+                {
+                    namespace
+                        .binding()
+                            .name("http_client0")
+                            .type("http")
+                            .kind(CLIENT)
+                            .options(HttpOptionsConfig::builder)
+                                .inject(this::injectHttpRequests)
+                                .build()
+                            .inject(this::injectMetrics)
+                            .exit("tcp_client0")
+                            .build();
+                }
 
                 return namespace;
             }
@@ -193,8 +185,11 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream()).anyMatch(s -> secure.contains(s.protocol)))
+                    .map(s -> s.openapi)
+                    .flatMap(v -> v.servers.stream())
+                    .findFirst()
+                    .filter(s -> secure.contains(s.url.getScheme()))
+                    .isPresent())
                 {
                     namespace
                         .binding()
@@ -219,309 +214,122 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         : TcpOptionsConfig.builder()
                             .inject(o ->
                                 Stream.of(schema)
-                                    .map(s -> s.asyncapi)
+                                    .map(s -> s.openapi)
                                     .flatMap(v -> v.servers.stream())
+                                    .filter(s -> s.url != null)
                                     .findFirst()
                                     .map(s -> o
-                                        .host(s.hostname)
-                                        .ports(new int[] { s.port }))
+                                        .host(s.url.getHost())
+                                        .ports(new int[] { s.url.getPort() }))
                                     .get())
                             .build();
 
                 return namespace
                     .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .inject(this::injectMetrics)
-                    .options(tcpOptions)
-                .build();
-
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectKafka(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                    .inject(this::injectKafkaCache)
-                    .binding()
-                        .name("kafka_client0")
-                        .type("kafka")
+                        .name("tcp_client0")
+                        .type("tcp")
                         .kind(CLIENT)
-                        .options(KafkaOptionsConfig::builder)
-                            .inject(this::injectKafkaSaslOptions)
-                            .inject(this::injectKafkaServerOptions)
-                            .build()
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .options(tcpOptions)
                         .build();
+
             }
 
-            private <C> NamespaceConfigBuilder<C> injectKafkaSecure(
-                NamespaceConfigBuilder<C> namespace)
+            private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
+                HttpOptionsConfigBuilder<C> options)
             {
-                return namespace
-                    .inject(this::injectKafkaCache)
-                    .binding()
-                        .name("kafka_client0")
-                        .type("kafka")
-                        .kind(CLIENT)
-                        .options(KafkaOptionsConfig::builder)
-                            .inject(this::injectKafkaSaslOptions)
-                            .inject(this::injectKafkaServerOptions)
-                            .build()
-                        .inject(this::injectMetrics)
-                        .exit("tls_client0")
-                        .build();
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectKafkaCache(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                        .binding()
-                            .name("kafka_cache_client0")
-                            .type("kafka")
-                            .kind(KindConfig.CACHE_CLIENT)
-                            .inject(this::injectMetrics)
-                            .options(KafkaOptionsConfig::builder)
-                                .inject(this::injectKafkaTopicOptions)
-                                .build()
-                            .exit("kafka_cache_server0")
-                        .build()
-                        .binding()
-                            .name("kafka_cache_server0")
-                            .type("kafka")
-                            .kind(KindConfig.CACHE_SERVER)
-                            .inject(this::injectMetrics)
-                            .options(KafkaOptionsConfig::builder)
-                                .inject(this::injectKafkaBootstrapOptions)
-                                .inject(this::injectKafkaTopicOptions)
-                                .build()
-                            .exit("kafka_client0")
-                        .build();
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaTopicOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                List<KafkaTopicConfig> topics = config.options.kafka != null
-                    ? config.options.kafka.topics
-                    : null;
-
                 Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.channels.values().stream())
-                    .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
-                    .distinct()
-                    .forEach(channel ->
-                        options.topic()
-                            .name(channel.address)
-                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
-                            .inject(t -> injectKafkaTopicKey(t, channel))
-                            .inject(t -> injectKafkaTopicValue(t, channel))
+                    .map(s -> s.openapi)
+                    .flatMap(v -> v.paths.values().stream())
+                    .flatMap(p -> p.methods.values().stream())
+                    .filter(OpenapiOperationView::hasResponses)
+                    .forEach(operation -> 
+                        options
+                            .request()
+                                .path(operation.path)
+                                .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                .inject(request -> injectHttpResponses(request, operation))
+                                .build()
                             .build());
 
                 return options;
             }
 
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
-                KafkaTopicConfigBuilder<C> topic,
-                OpenapiChannelView channel,
-                List<KafkaTopicConfig> topics)
+            private <C> HttpRequestConfigBuilder<C> injectHttpResponses(
+                HttpRequestConfigBuilder<C> request,
+                OpenapiOperationView operation)
             {
-                if (topics != null)
+                if (operation.hasResponses())
                 {
-                    Optional<KafkaTopicConfig> topicConfig = topics.stream()
-                        .filter(t -> t.name.equals(channel.address))
-                        .findFirst();
-                    topicConfig.ifPresent(kafkaTopicConfig -> topic
-                        .transforms()
-                        .extractKey(kafkaTopicConfig.transforms.extractKey)
-                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                        .build());
-                }
-                return topic;
-            }
-
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(
-                KafkaTopicConfigBuilder<C> topic,
-                OpenapiChannelView channel)
-            {
-                if (channel.hasMessages())
-                {
-                    Optional<OpenapiServerView> serverRef = Stream.of(schema)
-                            .map(s -> s.asyncapi)
-                            .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
-                            .findFirst();
-
-                    channel.messages.stream()
-                        .filter(m -> m.bindings != null && m.bindings.kafka != null && m.bindings.kafka.key != null)
-                        .forEach(message ->
-                            topic.key(AvroModelConfig::builder) // TODO: assumes AVRO
-                                .catalog()
-                                    .name("catalog0")
-                                    .schema()
-                                        .version("latest")
-                                        .subject(serverRef.isPresent()
-                                            ? "%s-key".formatted(message.channel.address)
-                                            : "%s-%s-key".formatted(message.channel.name, message.name))
+                    operation.responses.values().stream()
+                        .filter(r -> r.content != null)
+                        .forEach(response -> 
+                        {
+                            response.content.values().forEach(typed ->
+                            {
+                                request
+                                    .response()
+                                        .status(Integer.parseInt(response.status))
+                                        .contentType(typed.name)
+                                        .inject(r -> injectResponseHeaders(r, typed.encoding))
+                                        .content(JsonModelConfig::builder)
+                                            .catalog()
+                                            .name("catalog0")
+                                            .schema()
+                                                .subject(schema.refKey())
+                                                .build()
+                                            .build()
                                         .build()
-                                    .build()
-                                .build());
+                                    .build();
+                            });
+                        });
                 }
-                return topic;
+
+                return request;
             }
 
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicValue(
-                KafkaTopicConfigBuilder<C> topic,
-                OpenapiChannelView channel)
+            private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
+                HttpResponseConfigBuilder<C> response,
+                OpenapiEncodingView typed)
             {
-                if (channel.hasMessages())
+                if (typed.headers != null)
                 {
-                    Optional<OpenapiServerView> serverRef = Stream.of(schema)
-                            .map(s -> s.asyncapi)
-                            .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
-                            .findFirst();
+                    for (OpenapiHeaderView header : typed.headers.values())
+                    {
+                        String name = header.name;
+                        OpenapiSchemaView schema = header.schema;
 
-                    OpenapiMessageView message = channel.messages.get(0);
-                    String subject = serverRef.isPresent()
-                        ? "%s-value".formatted(message.channel.address)
-                        : "%s-%s-value".formatted(message.channel.name, message.name);
+                        if (schema != null)
+                        {
+                            String format = schema.format;
+                            String type = schema.type;
+                            ModelConfig model;
+                            if (StringModel.NAME.equals(type))
+                            {
+                                StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+                                if (format != null)
+                                {
+                                    builder.pattern(StringPattern.of(format));
+                                }
+                                model = builder.build();
+                            }
+                            else
+                            {
+                                model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+                            }
 
-                    injectPayloadModel(topic::value, message, subject);
+                            if (model != null)
+                            {
+                                response
+                                    .header()
+                                    .name(name)
+                                    .model(model)
+                                    .build();
+                            }
+                        }
+                    }
                 }
-
-                return topic;
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaBootstrapOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.channels.values().stream())
-                    .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
-                    .map(c -> c.address)
-                    .distinct()
-                    .forEach(options::bootstrap);
-
-                return options;
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaSaslOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                KafkaSaslConfig sasl = config.options != null && config.options.kafka != null
-                    ? config.options.kafka.sasl
-                    : null;
-
-                if (sasl != null)
-                {
-                    options.sasl()
-                        .mechanism(sasl.mechanism)
-                        .username(sasl.username)
-                        .password(sasl.password)
-                        .build();
-                }
-
-                return options;
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .forEach(s ->
-                        options.server()
-                            .host(s.hostname)
-                            .port(s.port)
-                            .build());
-
-                return options;
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectHttp(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                    .inject(this::injectSseClient)
-                    .binding()
-                        .name("http_client0")
-                        .type("http")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .exit("tcp_client0")
-                        .build();
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectHttps(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                    .inject(this::injectSseClient)
-                    .binding()
-                        .name("http_client0")
-                        .type("http")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .exit("tls_client0")
-                        .build();
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectSseClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.operations.values().stream())
-                    .anyMatch(OpenapiOperationView::hasBindingsSse))
-                {
-                    namespace
-                        .binding()
-                            .name("sse_client0")
-                            .type("sse")
-                            .kind(CLIENT)
-                            .inject(this::injectMetrics)
-                            .exit("http_client0")
-                            .build();
-                }
-
-                return namespace;
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectMqtt(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                    .binding()
-                        .name("mqtt_client0")
-                        .type("mqtt")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .exit("tcp_client0")
-                        .build();
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectMqtts(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                return namespace
-                    .binding()
-                        .name("mqtt_client0")
-                        .type("mqtt")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .exit("tls_client0")
-                        .build();
+                return response;
             }
         }
     }

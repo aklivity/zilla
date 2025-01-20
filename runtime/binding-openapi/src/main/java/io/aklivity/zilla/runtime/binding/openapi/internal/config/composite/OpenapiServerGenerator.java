@@ -69,7 +69,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             OpenapiSchemaConfig schema)
         {
             super(config, schema.apiLabel);
-            this.catalogs = new CatalogsHelper(schema);
+            this.catalogs = new ServerCatalogsHelper(schema);
             this.bindings = new ServerBindingsHelper(schema);
         }
 
@@ -80,6 +80,22 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             return namespace
                 .inject(catalogs::injectAll)
                 .inject(bindings::injectAll);
+        }
+
+        private final class ServerCatalogsHelper extends CatalogsHelper
+        {
+            private ServerCatalogsHelper(
+                OpenapiSchemaConfig schema)
+            {
+                super(schema);
+            }
+
+            public <C> NamespaceConfigBuilder<C> injectAll(
+                NamespaceConfigBuilder<C> namespace)
+            {
+                injectInlineRequests(namespace);
+                return namespace;
+            }
         }
 
         private final class ServerBindingsHelper extends BindingsHelper
