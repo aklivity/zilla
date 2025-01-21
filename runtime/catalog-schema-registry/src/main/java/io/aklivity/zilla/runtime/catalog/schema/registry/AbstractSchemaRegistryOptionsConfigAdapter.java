@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
@@ -93,6 +94,37 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
         if (maxAge != null)
         {
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
+        }
+
+        if (config.keys != null)
+        {
+            JsonArrayBuilder keys = Json.createArrayBuilder();
+            config.keys.forEach(keys::add);
+            catalog.add(KEYS_NAME, keys);
+        }
+
+        if (config.trust != null)
+        {
+            JsonArrayBuilder trust = Json.createArrayBuilder();
+            config.trust.forEach(trust::add);
+            catalog.add(TRUST_NAME, trust);
+        }
+
+        if (config.trust != null && config.trustcacerts ||
+            config.trust == null && !config.trustcacerts)
+        {
+            catalog.add(TRUSTCACERTS_NAME, config.trustcacerts);
+        }
+
+        if (config.authorization != null)
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            headers.add(AUTHORIZATION_NAME, config.authorization);
+
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(AUTHORIZATION_CREDENTIALS_HEADERS_NAME, headers);
+
+            catalog.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
         }
 
         return catalog.build();

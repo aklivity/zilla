@@ -31,9 +31,9 @@ import javax.security.auth.x500.X500Principal;
 
 public class SchemaRegistryCatalogX509ExtendedKeyManager extends X509ExtendedKeyManager implements X509KeyManager
 {
-    public static final String COMMON_NAME_KEY = "common.name";
+    private static final String COMMON_NAME_KEY = "common.name";
 
-    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^\\s,]+)");
+    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^,]+)");
 
     private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
 
