@@ -127,7 +127,7 @@ catalogs:
         - client1
       credentials:
         headers:
-          authorization: ${{env.CREDENTIAL}}
+          authorization: Basic dXNlcjpzZWNyZXQ=
 bindings:
   net0:
     type: test

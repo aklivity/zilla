@@ -22,27 +22,41 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
+
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.identity.SchemaRegistryCatalogX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
@@ -75,6 +89,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final String authorization;
 
     public SchemaRegistryCatalogHandler(
+        Configuration configuration,
         SchemaRegistryCatalogConfig catalog,
         EngineContext context)
     {
@@ -82,7 +97,16 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.baseUrl = options.url;
         LongFunction<VaultHandler> supplyVault = context::supplyVault;
         VaultHandler vault = supplyVault.apply(catalog.vaultId);
-        this.client = HttpClient.newHttpClient();
+
+        if (vault != null)
+        {
+            this.client = httpClientWithSSLContext(configuration, vault, options);
+        }
+        else
+        {
+            this.client = HttpClient.newHttpClient();
+        }
+
         this.registerRequest = new RegisterSchemaRequest();
         this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
@@ -477,5 +501,110 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         crc32c.reset();
         crc32c.update(bytes, 0, bytes.length);
         return (int) crc32c.getValue();
+    }
+
+    private HttpClient httpClientWithSSLContext(
+        Configuration configuration,
+        VaultHandler vault,
+        AbstractSchemaRegistryOptionsConfig options)
+    {
+        HttpClient client = null;
+        try
+        {
+            KeyManagerFactory keys = newKeys(vault, options.keys);
+            TrustManagerFactory trust = newTrust(configuration, vault, options.trust, options.trustcacerts);
+
+            KeyManager[] keyManagers = null;
+            if (keys != null)
+            {
+                keyManagers = keys.getKeyManagers();
+
+                if (keyManagers != null)
+                {
+                    for (int i = 0; i < keyManagers.length; i++)
+                    {
+                        if (keyManagers[i] instanceof X509ExtendedKeyManager)
+                        {
+                            X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
+                            keyManagers[i] = new SchemaRegistryCatalogX509ExtendedKeyManager(keyManager);
+                        }
+                    }
+                }
+            }
+
+            TrustManager[] trustManagers = null;
+            if (trust != null)
+            {
+                trustManagers = trust.getTrustManagers();
+            }
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagers, trustManagers, new SecureRandom());
+
+            client = HttpClient.newBuilder().sslContext(sslContext).build();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+        return client;
+    }
+
+    private TrustManagerFactory newTrust(
+        Configuration configuration,
+        VaultHandler vault,
+        List<String> trustNames,
+        boolean trustcacerts)
+    {
+        TrustManagerFactory trust = null;
+
+        try
+        {
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(configuration) : null;
+
+            if (vault != null)
+            {
+                trust = vault.initTrust(trustNames, cacerts);
+            }
+            else if (cacerts != null)
+            {
+                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(cacerts);
+                trust = factory;
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return trust;
+    }
+
+    private KeyManagerFactory newKeys(
+        VaultHandler vault,
+        List<String> keyNames)
+    {
+        KeyManagerFactory keys = null;
+
+        keys:
+        try
+        {
+            if (vault == null)
+            {
+                break keys;
+            }
+
+            if (keyNames != null)
+            {
+                keys = vault.initKeys(keyNames);
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return keys;
     }
 }

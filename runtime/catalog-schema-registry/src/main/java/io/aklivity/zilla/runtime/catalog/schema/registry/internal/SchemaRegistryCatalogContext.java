@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCache;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCatalogHandler;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -26,15 +27,18 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogContext implements CatalogContext
 {
+    private final Configuration configuration;
     private final String type;
     private final EngineContext context;
     private final ConcurrentMap<Long, SchemaRegistryCache> cachesById;
 
     public SchemaRegistryCatalogContext(
+        Configuration configuration,
         String type,
         EngineContext context,
         ConcurrentMap<Long, SchemaRegistryCache> cachesById)
     {
+        this.configuration = configuration;
         this.type = type;
         this.context = context;
         this.cachesById = cachesById;
@@ -46,6 +50,6 @@ public class SchemaRegistryCatalogContext implements CatalogContext
     {
         SchemaRegistryCache cache = cachesById.computeIfAbsent(catalog.id, id -> new SchemaRegistryCache());
         SchemaRegistryCatalogConfig config = new SchemaRegistryCatalogConfig(type, context, catalog, cache);
-        return new SchemaRegistryCatalogHandler(config, context);
+        return new SchemaRegistryCatalogHandler(configuration, config, context);
     }
 }

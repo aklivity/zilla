@@ -142,7 +142,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
 
                 JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
 
-                options.authorization(headers.getJsonString(AUTHORIZATION_NAME));
+                options.authorization(headers.getString(AUTHORIZATION_NAME));
             }
         }
 
@@ -162,12 +162,12 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     {
         switch (value.getValueType())
         {
-            case STRING:
-                return ((JsonString) value).getString();
-            case NULL:
-                return null;
-            default:
-                throw new IllegalArgumentException("Unexpected type: " + value.getValueType());
+        case STRING:
+            return ((JsonString) value).getString();
+        case NULL:
+            return null;
+        default:
+            throw new IllegalArgumentException("Unexpected type: " + value.getValueType());
         }
     }
 
