@@ -119,7 +119,11 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             security.add(TRUSTCACERTS_NAME, config.trustcacerts);
         }
 
-        catalog.add(SECURITY_NAME, security);
+        JsonObject securityJson = security.build();
+        if (!securityJson.isEmpty())
+        {
+            catalog.add(SECURITY_NAME, securityJson);
+        }
 
         if (config.authorization != null)
         {
