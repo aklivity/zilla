@@ -46,20 +46,30 @@ public class SchemaRegistryOptionsConfigAdapterTest
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"url\": \"http://localhost:8081\"," +
-                    "\"context\": \"default\"," +
-                    "\"trust\": [\"serverca\"]," +
-                    "\"keys\": [\"client1\"]," +
-                    "\"credentials\": " +
-                    "{" +
-                        "\"headers\": " +
-                        "{" +
-                            "\"authorization\": \"Basic dXNlcjpzZWNyZXQ=\"" +
-                        "}" +
-                    "}" +
-                "}";
+        String text = """
+            {
+              "url": "http://localhost:8081",
+              "context": "default",
+              "security":
+              {
+                "keys":
+                [
+                  "client1"
+                ],
+                "trust":
+                [
+                  "serverca"
+                ]
+              },
+              "credentials":
+              {
+                "headers":
+                {
+                  "authorization": "Basic dXNlcjpzZWNyZXQ="
+                }
+              }
+            }
+            """;
 
         SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
 
@@ -86,23 +96,33 @@ public class SchemaRegistryOptionsConfigAdapterTest
 
         String text = jsonb.toJson(catalog);
 
-        String expected =
-            "{" +
-                "\"url\":\"http://localhost:8081\"," +
-                "\"context\":\"default\"," +
-                "\"max-age\":300," +
-                "\"keys\":[\"client1\"]," +
-                "\"trust\":[\"serverca\"]," +
-                "\"credentials\":" +
-                "{" +
-                    "\"headers\":" +
-                    "{" +
-                        "\"authorization\":\"Basic dXNlcjpzZWNyZXQ=\"" +
-                    "}" +
-                "}" +
-            "}";
+        String expected = """
+            {
+              "url":"http://localhost:8081",
+              "context":"default",
+              "max-age":300,
+              "security":
+              {
+                "keys":
+                [
+                  "client1"
+                ],
+                "trust":
+                [
+                  "serverca"
+                ]
+              },
+              "credentials":
+              {
+                "headers":
+                {
+                  "authorization":"Basic dXNlcjpzZWNyZXQ="
+                }
+              }
+            }
+            """;
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expected));
+        assertThat(text, equalTo(expected.replaceAll("\\s*\\n\\s*", "")));
     }
 }

@@ -37,7 +37,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509ExtendedKeyManager;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -48,7 +47,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.identity.SchemaRegistryCatalogX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
@@ -89,7 +87,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final String authorization;
 
     public SchemaRegistryCatalogHandler(
-        Configuration configuration,
+        Configuration config,
         SchemaRegistryCatalogConfig catalog,
         EngineContext context)
     {
@@ -98,15 +96,43 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         LongFunction<VaultHandler> supplyVault = context::supplyVault;
         VaultHandler vault = supplyVault.apply(catalog.vaultId);
 
+        HttpClient client;
         if (vault != null)
         {
-            this.client = httpClientWithSSLContext(configuration, vault, options);
+            try
+            {
+                KeyManagerFactory keys = newKeys(vault, options.keys);
+                TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts);
+
+                KeyManager[] keyManagers = null;
+                if (keys != null)
+                {
+                    keyManagers = keys.getKeyManagers();
+                }
+
+                TrustManager[] trustManagers = null;
+                if (trust != null)
+                {
+                    trustManagers = trust.getTrustManagers();
+                }
+
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(keyManagers, trustManagers, new SecureRandom());
+
+                client = HttpClient.newBuilder().sslContext(sslContext).build();
+            }
+            catch (Exception ex)
+            {
+                client = HttpClient.newHttpClient();
+                LangUtil.rethrowUnchecked(ex);
+            }
         }
         else
         {
-            this.client = HttpClient.newHttpClient();
+            client = HttpClient.newHttpClient();
         }
 
+        this.client = client;
         this.registerRequest = new RegisterSchemaRequest();
         this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
@@ -406,7 +432,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         if (authorization != null)
         {
-            httpRequest.header("Authorization", authorization);
+            httpRequest.header("authorization", authorization);
         }
 
         // TODO: introduce interrupt/timeout for request to schema registry
@@ -436,7 +462,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         if (authorization != null)
         {
-            httpRequest.header("Authorization", authorization);
+            httpRequest.header("authorization", authorization);
         }
 
         // TODO: introduce interrupt/timeout for request to schema registry
@@ -464,7 +490,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         if (authorization != null)
         {
-            httpRequest.header("Authorization", authorization);
+            httpRequest.header("authorization", authorization);
         }
 
         String responseBody;
@@ -503,55 +529,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         return (int) crc32c.getValue();
     }
 
-    private HttpClient httpClientWithSSLContext(
-        Configuration configuration,
-        VaultHandler vault,
-        AbstractSchemaRegistryOptionsConfig options)
-    {
-        HttpClient client = null;
-        try
-        {
-            KeyManagerFactory keys = newKeys(vault, options.keys);
-            TrustManagerFactory trust = newTrust(configuration, vault, options.trust, options.trustcacerts);
-
-            KeyManager[] keyManagers = null;
-            if (keys != null)
-            {
-                keyManagers = keys.getKeyManagers();
-
-                if (keyManagers != null)
-                {
-                    for (int i = 0; i < keyManagers.length; i++)
-                    {
-                        if (keyManagers[i] instanceof X509ExtendedKeyManager)
-                        {
-                            X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
-                            keyManagers[i] = new SchemaRegistryCatalogX509ExtendedKeyManager(keyManager);
-                        }
-                    }
-                }
-            }
-
-            TrustManager[] trustManagers = null;
-            if (trust != null)
-            {
-                trustManagers = trust.getTrustManagers();
-            }
-
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(keyManagers, trustManagers, new SecureRandom());
-
-            client = HttpClient.newBuilder().sslContext(sslContext).build();
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-        return client;
-    }
-
     private TrustManagerFactory newTrust(
-        Configuration configuration,
+        Configuration config,
         VaultHandler vault,
         List<String> trustNames,
         boolean trustcacerts)
@@ -560,7 +539,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         try
         {
-            KeyStore cacerts = trustcacerts ? Trusted.cacerts(configuration) : null;
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
 
             if (vault != null)
             {

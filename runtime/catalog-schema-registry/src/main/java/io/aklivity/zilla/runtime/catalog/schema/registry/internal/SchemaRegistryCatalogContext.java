@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogContext implements CatalogContext
 {
-    private final Configuration configuration;
+    private final Configuration config;
     private final String type;
     private final EngineContext context;
     private final ConcurrentMap<Long, SchemaRegistryCache> cachesById;
 
     public SchemaRegistryCatalogContext(
-        Configuration configuration,
         String type,
+        Configuration config,
         EngineContext context,
         ConcurrentMap<Long, SchemaRegistryCache> cachesById)
     {
-        this.configuration = configuration;
+        this.config = config;
         this.type = type;
         this.context = context;
         this.cachesById = cachesById;
@@ -49,7 +49,7 @@ public class SchemaRegistryCatalogContext implements CatalogContext
         CatalogConfig catalog)
     {
         SchemaRegistryCache cache = cachesById.computeIfAbsent(catalog.id, id -> new SchemaRegistryCache());
-        SchemaRegistryCatalogConfig config = new SchemaRegistryCatalogConfig(type, context, catalog, cache);
-        return new SchemaRegistryCatalogHandler(configuration, config, context);
+        SchemaRegistryCatalogConfig attached = new SchemaRegistryCatalogConfig(type, context, catalog, cache);
+        return new SchemaRegistryCatalogHandler(config, attached, context);
     }
 }

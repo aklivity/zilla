@@ -15,6 +15,33 @@
 
 ---
 name: test
+catalogs:
+  catalog0:
+    type: schema-registry
+    vault: client
+    options:
+      url: http://localhost:8081
+      security:
+        trust:
+          - serverca
+        keys:
+          - client1
+      credentials:
+        headers:
+          authorization: Basic dXNlcjpzZWNyZXQ=
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      catalog:
+        catalog0:
+          - id: 9
+      assertions:
+        catalog:
+          catalog0:
+            - schema: '{"fields":[{"name":"id","type":"string"},{"name":"status","type":"string"}],"name":"Event","namespace":"io.aklivity.example","type":"record"}'
+    exit: app0
 vaults:
   client:
     type: test
@@ -115,29 +142,3 @@ vaults:
           epvLX8PSLdbal8ZBcosduxy1dSiQzy7Hj5wsOuj8neoVRaCHmAXouiJDDpQcnasC
           p0XXN2RYSD7FW7RNb4xcNQ==
           -----END CERTIFICATE-----
-catalogs:
-  catalog0:
-    type: schema-registry
-    vault: client
-    options:
-      url: http://localhost:8081
-      trust:
-        - serverca
-      keys:
-        - client1
-      credentials:
-        headers:
-          authorization: Basic dXNlcjpzZWNyZXQ=
-bindings:
-  net0:
-    type: test
-    kind: server
-    options:
-      catalog:
-        catalog0:
-          - id: 9
-      assertions:
-        catalog:
-          catalog0:
-            - schema: '{"fields":[{"name":"id","type":"string"},{"name":"status","type":"string"}],"name":"Event","namespace":"io.aklivity.example","type":"record"}'
-    exit: app0

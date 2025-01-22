@@ -20,7 +20,7 @@ connected
 
 read http:method "GET"
 read http:version "HTTP/1.1"
-read http:header "Authorization" "Basic dXNlcjpzZWNyZXQ="
+read http:header "authorization" "Basic dXNlcjpzZWNyZXQ="
 read closed
 
 write http:status "200" "OK"

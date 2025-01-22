@@ -47,6 +47,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String SECURITY_NAME = "security";
 
     private final String type;
     private final Set<String> aliases;
@@ -96,25 +97,29 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
 
+        JsonObjectBuilder security = Json.createObjectBuilder();
+
         if (config.keys != null)
         {
             JsonArrayBuilder keys = Json.createArrayBuilder();
             config.keys.forEach(keys::add);
-            catalog.add(KEYS_NAME, keys);
+            security.add(KEYS_NAME, keys);
         }
 
         if (config.trust != null)
         {
             JsonArrayBuilder trust = Json.createArrayBuilder();
             config.trust.forEach(trust::add);
-            catalog.add(TRUST_NAME, trust);
+            security.add(TRUST_NAME, trust);
         }
 
         if (config.trust != null && config.trustcacerts ||
             config.trust == null && !config.trustcacerts)
         {
-            catalog.add(TRUSTCACERTS_NAME, config.trustcacerts);
+            security.add(TRUSTCACERTS_NAME, config.trustcacerts);
         }
+
+        catalog.add(SECURITY_NAME, security);
 
         if (config.authorization != null)
         {
@@ -153,19 +158,24 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
 
-            if (object.containsKey(KEYS_NAME))
+            if (object.containsKey(SECURITY_NAME))
             {
-                options.keys(asListString(object.getJsonArray(KEYS_NAME)));
-            }
+                JsonObject security = object.getJsonObject(SECURITY_NAME);
 
-            if (object.containsKey(TRUST_NAME))
-            {
-                options.trust(asListString(object.getJsonArray(TRUST_NAME)));
-            }
+                if (security.containsKey(KEYS_NAME))
+                {
+                    options.keys(asListString(security.getJsonArray(KEYS_NAME)));
+                }
 
-            if (object.containsKey(TRUSTCACERTS_NAME))
-            {
-                options.trustcacerts(object.getBoolean(TRUSTCACERTS_NAME));
+                if (security.containsKey(TRUST_NAME))
+                {
+                    options.trust(asListString(security.getJsonArray(TRUST_NAME)));
+                }
+
+                if (security.containsKey(TRUSTCACERTS_NAME))
+                {
+                    options.trustcacerts(security.getBoolean(TRUSTCACERTS_NAME));
+                }
             }
 
             if (object.containsKey(AUTHORIZATION_CREDENTIALS_NAME))

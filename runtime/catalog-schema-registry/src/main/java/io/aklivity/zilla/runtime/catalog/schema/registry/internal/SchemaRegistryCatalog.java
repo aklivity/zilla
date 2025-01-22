@@ -63,7 +63,7 @@ public final class SchemaRegistryCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new SchemaRegistryCatalogContext(config, type, context, cache);
+        return new SchemaRegistryCatalogContext(type, config, context, cache);
     }
 
     @Override

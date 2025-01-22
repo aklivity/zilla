@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+import java.util.Properties;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -35,14 +36,14 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class SchemaRegistryCatalogHandlerTest
 {
-    private SchemaRegistryCatalogConfig config;
+    private SchemaRegistryCatalogConfig catalog;
     private EngineContext context = mock(EngineContext.class);
-    private EngineConfiguration configuration = mock(EngineConfiguration.class);
+    private EngineConfiguration config = new EngineConfiguration(new Properties());
 
     @Before
     public void setup()
     {
-        config = CatalogConfig.builder(c -> new SchemaRegistryCatalogConfig(context, c))
+        catalog = CatalogConfig.builder(c -> new SchemaRegistryCatalogConfig(context, c))
             .namespace("test")
             .name("test0")
             .type(SchemaRegistryCatalogFactorySpi.TYPE)
@@ -57,7 +58,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldVerifyMaxPadding()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(configuration, config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, this.catalog, context);
 
         assertEquals(5, catalog.encodePadding(0));
     }
@@ -65,7 +66,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldVerifyEncodedData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(configuration, config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, this.catalog, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -81,7 +82,7 @@ public class SchemaRegistryCatalogHandlerTest
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(configuration, config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, this.catalog, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -97,7 +98,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(configuration, config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, this.catalog, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
