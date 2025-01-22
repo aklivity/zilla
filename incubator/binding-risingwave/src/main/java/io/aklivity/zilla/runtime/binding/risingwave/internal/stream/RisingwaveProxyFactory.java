@@ -911,6 +911,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     .arguments(arguments)
                     .returnType(returnType)
                     .language("SQL")
+                    .events(command.events())
                     .build();
 
                 doAppData(client, traceId, authorization, FLAGS_COMP,

@@ -31,7 +31,7 @@ public class RisingwaveShowZfunctionCommandMacro
     private final String sql;
     private final RisingwaveMacroHandler handler;
 
-    private final List<String> columns = List.of("Name", "Arguments", "Return Type", "Language", "Link");
+    private final List<String> columns = List.of("Name", "Arguments", "Return Type", "Language", "Events");
 
     public RisingwaveShowZfunctionCommandMacro(
         PgsqlParser parser,

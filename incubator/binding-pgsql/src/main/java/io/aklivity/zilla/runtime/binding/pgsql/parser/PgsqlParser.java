@@ -171,7 +171,7 @@ public final class PgsqlParser
             RecognitionException e)
         {
             //Only for debugging
-            System.err.println("Syntax error at line " + line + ":" + charPositionInLine + " " + msg);
+            //System.err.println("Syntax error at line " + line + ":" + charPositionInLine + " " + msg);
         }
 
         @Override
