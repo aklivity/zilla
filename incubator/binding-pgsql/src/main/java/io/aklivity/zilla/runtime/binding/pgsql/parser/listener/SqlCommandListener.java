@@ -69,13 +69,6 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     }
 
     @Override
-    public void enterCreatezstreamstmt(
-        PostgreSqlParser.CreatezstreamstmtContext ctx)
-    {
-        command = "CREATE ZSTREAM";
-    }
-
-    @Override
     public void enterCreatezviewstmt(
         PostgreSqlParser.CreatezviewstmtContext ctx)
     {

@@ -107,7 +107,6 @@ stmt
     | createseqstmt
     | createstmt
     | createztstmt
-    | createzstreamstmt
     | createsubscriptionstmt
     | createstatsstmt
     | createtablespacestmt
@@ -415,37 +414,7 @@ altertablestmt
     | ALTER MATERIALIZED VIEW (IF_P EXISTS)? qualified_name alter_table_cmds
     | ALTER MATERIALIZED VIEW ALL IN_P TABLESPACE name (OWNED BY role_list)? SET TABLESPACE name opt_nowait
     | ALTER FOREIGN TABLE (IF_P EXISTS)? relation_expr alter_table_cmds
-    | ALTER ZSTREAM (IF_P EXISTS)? relation_expr alter_zstream_cmds
     | ALTER ZVIEW (IF_P EXISTS)? qualified_name alter_table_cmds
-    ;
-
-alter_zstream_cmds
-    : alter_zstream_cmd (COMMA alter_zstream_cmd)*
-    ;
-
-alter_zstream_cmd
-    : ADD_P columnDef
-    | ADD_P IF_P NOT EXISTS columnDef
-    | ADD_P COLUMN columnDef
-    | ADD_P COLUMN IF_P NOT EXISTS columnDef
-    | ALTER opt_column colid alter_column_default
-    | ALTER opt_column colid DROP NOT NULL_P
-    | ALTER opt_column colid SET NOT NULL_P
-    | ALTER opt_column colid DROP EXPRESSION
-    | ALTER opt_column colid DROP EXPRESSION IF_P EXISTS
-    | ALTER opt_column colid SET STATISTICS signediconst
-    | ALTER opt_column iconst SET STATISTICS signediconst
-    | ALTER opt_column colid SET reloptions
-    | ALTER opt_column colid RESET reloptions
-    | ALTER opt_column colid SET STORAGE colid
-    | ALTER opt_column colid ADD_P GENERATED generated_when AS IDENTITY_P optparenthesizedseqoptlist
-    | ALTER opt_column colid alter_identity_column_option_list
-    | ALTER opt_column colid DROP IDENTITY_P
-    | ALTER opt_column colid DROP IDENTITY_P IF_P EXISTS
-    | ALTER opt_column colid opt_set_data TYPE_P typename opt_collate_clause alter_using
-    | ALTER opt_column colid alter_generic_options
-    | DROP opt_column IF_P EXISTS colid opt_drop_behavior
-    | DROP opt_column colid opt_drop_behavior
     ;
 
 alter_table_cmds
@@ -694,22 +663,6 @@ copy_generic_opt_arg_list_item
     : opt_boolean_or_string
     ;
 
-createzstreamstmt
-    : CREATE ZSTREAM (IF_P NOT EXISTS)? zstream_name OPEN_PAREN zstream_columns CLOSE_PAREN opt_with_zstream
-    ;
-
-zstream_name
-    : qualified_name
-    ;
-
-zstream_columns
-    : zstream_column (COMMA zstream_column)*
-    ;
-
-zstream_column
-    : colid typename opt_generated_clause
-    ;
-
 opt_generated_clause
     : GENERATED ALWAYS AS generation_type
     | /* Empty */
@@ -718,10 +671,6 @@ opt_generated_clause
 generation_type
     : IDENTITY_P
     | NOW
-    ;
-
-opt_with_zstream
-    : WITH OPEN_PAREN zreloptions CLOSE_PAREN
     ;
 
 zreloptions
@@ -1679,7 +1628,6 @@ show_object_type_name
     | ZTABLES
     | ZVIEWS
     | ZFUNCTIONS
-    | ZSTREAMS
     ;
 
 dropstmt
@@ -1703,7 +1651,6 @@ object_type_any_name
     | VIEW
     | MATERIALIZED VIEW
     | TOPIC
-    | ZSTREAM
     | ZVIEW
     | ZTABLE
     | INDEX
