@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCre
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZfunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZfunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZviewMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
@@ -166,6 +167,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.ALTER_ZTABLE_COMMAND, this::decodeAlterZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
+        clientTransforms.put(RisingwaveCommandType.DROP_ZFUNCTION_COMMAND, this::decodeDropZfunctionCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZSTREAMS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowCommand);
@@ -1867,6 +1869,28 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final Drop command = parser.parseDrop(statement).get(0);
 
             RisingwaveDropZviewMacro machine = new RisingwaveDropZviewMacro(
+                RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start();
+        }
+
+        server.macroState.onStarted(traceId, authorization);
+    }
+
+    private void decodeDropZfunctionCommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.macroState == null)
+        {
+            // TODO: Enhance multiple streams
+            final Drop command = parser.parseDrop(statement).get(0);
+
+            RisingwaveDropZfunctionMacro machine = new RisingwaveDropZfunctionMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 statement,
                 command,

@@ -34,80 +34,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "SELECT * FROM zb_catalog.zstreams WHERE name = 'app_events';"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .type()
-                                .column()
-                                    .name("name")
-                                    .tableOid(0)
-                                    .index(0)
-                                    .typeOid(701)
-                                    .length(8)
-                                    .modifier(-1)
-                                    .format("TEXT")
-                                    .build()
-                                .column()
-                                    .name("sql")
-                                    .tableOid(0)
-                                    .index(0)
-                                    .typeOid(20)
-                                    .length(3)
-                                    .modifier(-1)
-                                    .format("TEXT")
-                                    .build()
-                                .build()
-                              .build()}
-
-write zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .row()
-                                .build()
-                              .build()}
-write [0x00 0x02]                                                 # Field Count
-      [0x00 0x00 0x00 0x0a]                                       # Length
-      "app_events"                                                # Data
-      [0x00 0x00 0x01 0x4d]                                       # Length
-      "CREATE ZSTREAM app_events (\n"                             # Data
-      "    event VARCHAR,\n"
-      "    user_id VARCHAR,\n"
-      "    amount DOUBLE PRECISION,\n"
-      "    notes VARCHAR,\n"
-      "    owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,\n"
-      "    created_at TIMESTAMP GENERATED ALWAYS AS NOW\n"
-      ")\n"
-      "WITH (\n"
-      "    DISPATCH_ON = 'command',\n"
-      "    HANDLERS = (\n"
-      "        'RequestPayment' TO 'request_payment_handler'\n"
-      "    )\n"
-      ");"
-      [0x00]
-write flush
-
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("SELECT 1")
-                                .build()
-                              .build()}
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
-
-read zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .query()
-                                .build()
-                              .build()}
-read "DELETE FROM zb_catalog.zstreams WHERE name = 'app_events';"
+read "DELETE FROM zb_catalog.zfunctions WHERE name = 'send_payment';"
       [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -129,7 +56,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP SINK zb_catalog.app_events_replies_sink;"
+read "DROP SINK zb_catalog.send_payment_replies;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -151,7 +78,29 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP MATERIALIZED VIEW zb_catalog.app_events_reply_handler;"
+read "DROP SINK zb_catalog.send_payment_sink_into;"
+     [0x00]
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("DROP_SINK")
+                                .build()
+                              .build()}
+
+write advise zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+read zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+read "DROP MATERIALIZED VIEW zb_catalog.send_payment_events;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -173,51 +122,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP MATERIALIZED VIEW public.app_events;"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("DROP_MATERIALIZED_VIEW")
-                                .build()
-                              .build()}
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
-
-read zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .query()
-                                .build()
-                              .build()}
-read "DROP MATERIALIZED VIEW zb_catalog.request_payment_handler;"
-     [0x00]
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .completion()
-                                .tag("DROP_MATERIALIZED_VIEW")
-                                .build()
-                              .build()}
-
-write advise zilla:flush ${pgsql:flushEx()
-                              .typeId(zilla:id("pgsql"))
-                              .ready()
-                                .status("IDLE")
-                                .build()
-                              .build()}
-
-read zilla:data.ext ${pgsql:dataEx()
-                              .typeId(zilla:id("pgsql"))
-                              .query()
-                                .build()
-                              .build()}
-read "DROP SOURCE zb_catalog.app_events_commands;"
+read "DROP SOURCE zb_catalog.send_payment_commands;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -267,7 +172,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP TOPIC public.app_events_replies_sink;"
+read "DROP TOPIC public.send_payment_replies;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
@@ -289,7 +194,7 @@ read zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-read "DROP TOPIC public.app_events_commands;"
+read "DROP TOPIC public.send_payment_commands;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()

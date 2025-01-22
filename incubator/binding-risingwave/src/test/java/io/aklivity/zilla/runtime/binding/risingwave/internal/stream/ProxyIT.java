@@ -253,6 +253,16 @@ public class ProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/drop.zfunction/client",
+        "${effective}/drop.zfunction/server" })
+    public void shouldDropZfunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.zfunctions/client",

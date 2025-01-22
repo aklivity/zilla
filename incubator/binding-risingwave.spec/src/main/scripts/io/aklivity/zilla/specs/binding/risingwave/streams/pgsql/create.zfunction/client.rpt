@@ -53,7 +53,6 @@ write "CREATE ZFUNCTION send_payment(\n"
       " EVENTS = 'app_events'\n"
       ");"
       [0x00]
-
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

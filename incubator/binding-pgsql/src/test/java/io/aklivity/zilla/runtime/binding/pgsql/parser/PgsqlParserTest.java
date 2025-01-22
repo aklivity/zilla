@@ -473,7 +473,7 @@ public class PgsqlParserTest
             WITH(
                 EVENTS = 'app_events'
             )
-           """;
+            """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 
@@ -505,5 +505,17 @@ public class PgsqlParserTest
         assertEquals("WHERE user_id = args.user_id", select.whereClause());
 
         assertEquals("app_events", function.events());
+    }
+
+    @Test
+    public void shouldDropSingleZfunction()
+    {
+        String sql = "DROP ZFUNCTION test_function;";
+
+        List<Drop> drops = parser.parseDrop(sql);
+
+        assertEquals(1, drops.size());
+        assertEquals("public", drops.get(0).schema());
+        assertEquals("test_function", drops.get(0).name());
     }
 }

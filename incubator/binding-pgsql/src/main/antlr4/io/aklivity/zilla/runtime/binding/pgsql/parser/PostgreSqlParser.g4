@@ -1652,6 +1652,7 @@ object_type_any_name
     | MATERIALIZED VIEW
     | TOPIC
     | ZVIEW
+    | ZFUNCTION
     | ZTABLE
     | INDEX
     | FOREIGN TABLE

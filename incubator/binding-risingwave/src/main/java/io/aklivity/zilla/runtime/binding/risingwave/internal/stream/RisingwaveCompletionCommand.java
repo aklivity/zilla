@@ -24,6 +24,7 @@ public enum RisingwaveCompletionCommand
     ALTER_ZTABLE_COMMAND("ALTER_ZTABLE".getBytes()),
     DROP_ZTABLE_COMMAND("DROP_ZTABLE".getBytes()),
     DROP_ZVIEW_COMMAND("DROP_ZVIEW".getBytes()),
+    DROP_ZFUNCTION_COMMAND("DROP_ZFUNCTION".getBytes()),
     SHOW_COMMAND("SHOW_COMMAND".getBytes());
 
     private final byte[] value;
