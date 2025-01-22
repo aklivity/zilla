@@ -51,10 +51,8 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveRo
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveAlterZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateFunctionMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZfunctionMacro;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZstreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveCreateZviewMacro;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZstreamMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZtableMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDropZviewMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
@@ -162,12 +160,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         Object2ObjectHashMap<RisingwaveCommandType, PgsqlTransform> clientTransforms =
             new Object2ObjectHashMap<>();
         clientTransforms.put(RisingwaveCommandType.CREATE_ZTABLE_COMMAND, this::decodeCreateZtableCommand);
-        clientTransforms.put(RisingwaveCommandType.CREATE_ZSTREAM_COMMAND, this::decodeCreateZstreamCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZVIEW_COMMAND, this::decodeCreateZviewCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_FUNCTION_COMMAND, this::decodeCreateFunctionCommand);
         clientTransforms.put(RisingwaveCommandType.CREATE_ZFUNCTION_COMMAND, this::decodeCreateZfunctionCommand);
         clientTransforms.put(RisingwaveCommandType.ALTER_ZTABLE_COMMAND, this::decodeAlterZtableCommand);
-        clientTransforms.put(RisingwaveCommandType.DROP_ZSTREAM_COMMAND, this::decodeDropZstreamCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZSTREAMS_COMMAND, this::decodeShowCommand);
@@ -1712,7 +1708,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         server.macroState.onStarted(traceId, authorization);
     }
 
-    private void decodeCreateZstreamCommand(
+    private void decodeCreateZfunctionCommand(
         PgsqlServer server,
         long traceId,
         long authorization,
@@ -1720,11 +1716,11 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         if (server.macroState == null)
         {
-            final CreateZstream command = parser.parseCreateZstream(statement);
+            final CreateZfunction command = parser.parseCreateZfunction(statement);
 
             RisingwaveBindingConfig binding = server.binding;
 
-            RisingwaveCreateZstreamMacro machine = new RisingwaveCreateZstreamMacro(
+            RisingwaveCreateZfunctionMacro machine = new RisingwaveCreateZfunctionMacro(
                 binding.bootstrapServer,
                 binding.schemaRegistry,
                 config.kafkaScanStartupTimestampMillis(),
@@ -1780,28 +1776,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             RisingwaveCreateFunctionMacro machine = new RisingwaveCreateFunctionMacro(
                 binding.options.udfs,
-                RisingwaveBindingConfig.INTERNAL_SCHEMA,
-                server.user,
-                statement,
-                command,
-                server.macroHandler);
-            server.macroState = machine.start();
-        }
-
-        server.macroState.onStarted(traceId, authorization);
-    }
-
-    private void decodeCreateZfunctionCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        String statement)
-    {
-        if (server.macroState == null)
-        {
-            final CreateZfunction command = parser.parseCreateZfunction(statement);
-
-            RisingwaveCreateZfunctionMacro machine = new RisingwaveCreateZfunctionMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
                 server.user,
                 statement,
@@ -1875,29 +1849,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 statement,
                 command,
                 server.macroHandler);
-            server.macroState = machine.start();
-        }
-
-        server.macroState.onStarted(traceId, authorization);
-    }
-
-    private void decodeDropZstreamCommand(
-        PgsqlServer server,
-        long traceId,
-        long authorization,
-        String statement)
-    {
-        if (server.macroState == null)
-        {
-            // TODO: Enhance multiple streams
-            final Drop command = parser.parseDrop(statement).get(0);
-
-            RisingwaveDropZstreamMacro machine = new RisingwaveDropZstreamMacro(
-                RisingwaveBindingConfig.INTERNAL_SCHEMA,
-                statement,
-                command,
-                server.macroHandler,
-                parser);
             server.macroState = machine.start();
         }
 

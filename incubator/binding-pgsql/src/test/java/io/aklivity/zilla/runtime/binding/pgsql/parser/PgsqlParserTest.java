@@ -470,7 +470,10 @@ public class PgsqlParserTest
                  args.amount
              FROM balance WHERE user_id = args.user_id;
             $$
-            """;
+            WITH(
+                EVENTS = 'app_events'
+            )
+           """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 

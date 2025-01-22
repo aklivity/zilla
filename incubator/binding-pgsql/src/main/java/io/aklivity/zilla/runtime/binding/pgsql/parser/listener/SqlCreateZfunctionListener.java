@@ -42,6 +42,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     private String orderByClause;
     private String limitClause;
     private String offsetClause;
+    private String events;
 
     private String schema;
     private String name;
@@ -72,7 +73,8 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
             name,
             arguments,
             returnTypes,
-            select);
+            select,
+            events);
     }
 
     @Override
@@ -171,5 +173,15 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
         PostgreSqlParser.Offset_clauseContext ctx)
     {
         offsetClause = tokens.getText(ctx);
+    }
+
+    @Override
+    public void enterZfunc_with_option(
+        PostgreSqlParser.Zfunc_with_optionContext ctx)
+    {
+        if (ctx.EVENTS() != null)
+        {
+            events = tokens.getText(ctx.sconst());
+        }
     }
 }

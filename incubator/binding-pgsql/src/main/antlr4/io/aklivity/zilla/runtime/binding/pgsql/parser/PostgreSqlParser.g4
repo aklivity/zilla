@@ -1990,7 +1990,19 @@ opt_nulls_order
 
 createzfunctionstmt
     : CREATE ZFUNCTION func_name func_args_with_defaults
-      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN LANGUAGE SQL_P AS DOLLAR_DELIMITER selectstmt SEMI DOLLAR_DELIMITER
+      RETURNS TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN
+      LANGUAGE SQL_P AS DOLLAR_DELIMITER selectstmt SEMI DOLLAR_DELIMITER
+      zfunc_opt_with_clause
+    ;
+
+zfunc_opt_with_clause
+    : WITH OPEN_PAREN zfunc_with_option CLOSE_PAREN
+    | /* empty */
+    ;
+
+zfunc_with_option
+    : EVENTS EQUAL sconst
+    | collabel EQUAL sconst
     ;
 
 createfunctionstmt
