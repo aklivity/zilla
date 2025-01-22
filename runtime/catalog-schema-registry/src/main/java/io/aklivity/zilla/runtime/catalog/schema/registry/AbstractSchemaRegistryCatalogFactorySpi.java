@@ -41,7 +41,7 @@ public abstract class AbstractSchemaRegistryCatalogFactorySpi implements Catalog
     public Catalog create(
         Configuration config)
     {
-        return new SchemaRegistryCatalog(config, type, aliases, schema);
+        return new SchemaRegistryCatalog(type, config, aliases, schema);
     }
 
     protected AbstractSchemaRegistryCatalogFactorySpi(

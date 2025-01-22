@@ -35,8 +35,8 @@ public final class SchemaRegistryCatalog implements Catalog
     private final ConcurrentMap<Long, SchemaRegistryCache> cache;
 
     public SchemaRegistryCatalog(
-        Configuration config,
         String type,
+        Configuration config,
         Set<String> aliases,
         Supplier<URL> schema)
     {
