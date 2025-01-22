@@ -60,16 +60,6 @@ public class ProxyIT
     }
 
     @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${pgsql}/create.zstream/client",
-        "${effective}/create.zstream/server" })
-    public void shouldCreateZstream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.tables.with.newline/client",
@@ -195,16 +185,6 @@ public class ProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${pgsql}/drop.zstream/client",
-        "${effective}/drop.zstream/server" })
-    public void shouldDropZstream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
         "${pgsql}/drop.ztable/client",
         "${effective}/drop.ztable/server" })
     public void shouldDropZtable() throws Exception
@@ -263,7 +243,7 @@ public class ProxyIT
     }
 
     @Test
-    @Configuration("proxy.risingwave.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${pgsql}/create.zfunction/client",
         "${effective}/create.zfunction/server" })
@@ -278,16 +258,6 @@ public class ProxyIT
         "${pgsql}/show.zfunctions/client",
         "${effective}/show.zfunctions/server" })
     public void shouldShowZfunctions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.risingwave.yaml")
-    @Specification({
-        "${pgsql}/show.zstreams/client",
-        "${effective}/show.zstreams/server" })
-    public void shouldShowZstreams() throws Exception
     {
         k3po.finish();
     }

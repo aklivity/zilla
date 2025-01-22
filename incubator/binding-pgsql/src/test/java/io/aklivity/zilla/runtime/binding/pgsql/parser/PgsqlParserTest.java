@@ -503,5 +503,7 @@ public class PgsqlParserTest
         assertEquals("args.amount", select.columns().get(2));
         assertEquals("balance", select.from());
         assertEquals("WHERE user_id = args.user_id", select.whereClause());
+
+        assertEquals("app_events", function.events());
     }
 }

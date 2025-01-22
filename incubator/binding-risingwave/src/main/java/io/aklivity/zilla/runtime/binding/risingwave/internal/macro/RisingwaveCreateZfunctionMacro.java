@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 
 public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
 {
-    private static final String ZFUNCTION_NAME = "zfunction";
+    private static final String ZFUNCTION_NAME = "zfunctions";
 
     private final String bootstrapServer;
     private final String schemaRegistry;
@@ -116,11 +116,11 @@ public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
             INCLUDE header 'zilla:identity' VARCHAR AS owner_id
             INCLUDE timestamp AS created_at
             WITH (
-               connector='kafka',
-               properties.bootstrap.server='%s',
-               topic='%s.%s_commands',
-               scan.startup.mode='latest',
-               scan.startup.timestamp.millis='%d'
+               connector = 'kafka',
+               properties.bootstrap.server = '%s',
+               topic = '%s.%s_commands',
+               scan.startup.mode = 'latest',
+               scan.startup.timestamp.millis = '%d'
             ) FORMAT PLAIN ENCODE AVRO (
                schema.registry = '%s'
             );\u0000""";
@@ -232,15 +232,17 @@ public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
     private final class CreateSinkIntoState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s.%_sink_into INTO %s FROM %s.%s_events;\u0000""";
+            CREATE SINK %s_sink_into INTO %s FROM %s_events;\u0000""";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
+            final String systemName = "%s.%s".formatted(systemSchema, command.name());
             final String events = command.events();
-            String sqlQuery = String.format(sqlFormat, systemSchema, command.name(), events, command.schema(), command.name());
+
+            String sqlQuery = String.format(sqlFormat, systemName, events, systemName);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -272,7 +274,7 @@ public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
     private final class CreateSinkTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE TOPIC %s.%s_replies_sink (status VARCHAR, correlation_id VARCHAR);\u0000""";
+            CREATE TOPIC %s.%s_replies (status VARCHAR, correlation_id VARCHAR);\u0000""";
 
         @Override
         public void onStarted(
@@ -313,19 +315,19 @@ public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
     private final class CreateReplySink implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s_replies_sink AS
-               SELECT
-                  '200' AS status,
-                  c.correlation_id
-               FROM %s_commands c
-               LEFT JOIN %s_events r
-               ON c.correlation_id = r.correlation_id
+            CREATE SINK %s_replies AS
+                SELECT
+                   '200' AS status,
+                   c.correlation_id
+                FROM %s_commands c
+                LEFT JOIN %s_events r
+                ON c.correlation_id = r.correlation_id
             WITH (
                 connector = 'kafka',
-                topic = '%s.%s_replies_sink',
+                topic = '%s.%s_replies',
                 properties.bootstrap.server = '%s',
             ) FORMAT PLAIN ENCODE AVRO (
-              force_append_only='true',
+              force_append_only = 'true',
               schema.registry = '%s'
             );\u0000""";
 

@@ -182,6 +182,11 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
         if (ctx.EVENTS() != null)
         {
             events = tokens.getText(ctx.sconst());
+
+            if (events != null && events.length() >= 2)
+            {
+                events = events.substring(1, events.length() - 1);
+            }
         }
     }
 }
