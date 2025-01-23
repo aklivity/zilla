@@ -48,16 +48,6 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/create.zstream/client",
-        "${app}/create.zstream/server"
-    })
-    public void shouldCreateZstream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/create.zview/client",
         "${app}/create.zview/server"
     })
@@ -182,9 +172,9 @@ public class PgsqlIT
 
     @Test
     @Specification({
-        "${app}/drop.zstream/client",
-        "${app}/drop.zstream/server" })
-    public void shouldDropZstream() throws Exception
+        "${app}/drop.zfunction/client",
+        "${app}/drop.zfunction/server" })
+    public void shouldDropZfunction() throws Exception
     {
         k3po.finish();
     }

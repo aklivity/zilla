@@ -48,16 +48,6 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/create.zstream/client",
-        "${app}/create.zstream/server"
-    })
-    public void shouldCreateZstream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/create.zview/client",
         "${app}/create.zview/server"
     })
@@ -182,18 +172,18 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/drop.zstream/client",
-        "${app}/drop.zstream/server" })
-    public void shouldDropZstream() throws Exception
+        "${app}/drop.zview/client",
+        "${app}/drop.zview/server" })
+    public void shouldDropZview() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/drop.zview/client",
-        "${app}/drop.zview/server" })
-    public void shouldDropZview() throws Exception
+        "${app}/drop.zfunction/client",
+        "${app}/drop.zfunction/server" })
+    public void shouldDropZfunction() throws Exception
     {
         k3po.finish();
     }

@@ -27,44 +27,32 @@ write zilla:begin.ext ${pgsql:beginEx()
 
 connected
 
+read notify CREATE_TOPIC_COMPLETED
+
 write zilla:data.ext ${pgsql:dataEx()
                               .typeId(zilla:id("pgsql"))
                               .query()
                                 .build()
                               .build()}
-write "INSERT INTO zb_catalog.zfunctions (name, sql) VALUES ('send_payment_handler', 'CREATE ZFUNCTION send_payment_handler(\n"
-      " type VARCHAR,\n"
-      " user_id VARCHAR,\n"
-      " random VARCHAR,\n"
-      " amount DOUBLE PRECISION,\n"
-      " notes VARCHAR)\n"
-      "RETURNS TABLE(\n"
-      " type VARCHAR,\n"
-      " user_id VARCHAR,\n"
-      " request_id VARCHAR,\n"
-      " amount DOUBLE PRECISION,\n"
-      " notes VARCHAR)\n"
-      "LANGUAGE SQL AS $$\n"
-      " SELECT\n"
-      "     CASE\n"
-      "         WHEN balance >= amount THEN \"PaymentSent\"\n"
-      "         ELSE \"PaymentDeclined\"\n"
-      "     END AS type,\n"
-      "     user_id,\n"
-      "     request_id,\n"
-      "     amount,\n"
-      "     balance,\n"
-      "     notes\n"
-      " FROM balance as b WHERE b.user_id = user_id;\n"
-      "$$');"
+write "CREATE SOURCE zb_catalog.send_payment_commands (*)\n"
+      "INCLUDE header 'zilla:correlation-id' VARCHAR AS correlation_id\n"
+      "INCLUDE header 'zilla:identity' VARCHAR AS owner_id\n"
+      "INCLUDE timestamp AS created_at\n"
+      "WITH (\n"
+      "   connector = 'kafka',\n"
+      "   properties.bootstrap.server = 'localhost:9092',\n"
+      "   topic = 'public.send_payment_commands',\n"
+      "   scan.startup.mode = 'latest',\n"
+      "   scan.startup.timestamp.millis = '140000000'\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
+      "   schema.registry = 'http://localhost:8081'\n"
+      ");"
       [0x00]
-
-write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("INSERT 0 2")
+                                .tag("CREATE_SOURCE")
                                 .build()
                               .build()}
 
@@ -80,15 +68,123 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "FLUSH;"
+write "CREATE MATERIALIZED VIEW zb_catalog.send_payment_events AS\n"
+      "    SELECT\n"
+      "        c.correlation_id,\n"
+      "        c.owner_id,\n"
+      "        c.created_at,\n"
+      "        CASE\n"
+      "         WHEN balance >= c.amount THEN 'PaymentSent'\n"
+      "         ELSE 'PaymentDeclined'\n"
+      "     END AS event, c.user_id, c.amount\n"
+      "    FROM zb_catalog.send_payment_commands c\n"
+      "    JOIN balance ON user_id = c.user_id;"
       [0x00]
-
-write flush
 
 read advised zilla:flush ${pgsql:flushEx()
                               .typeId(zilla:id("pgsql"))
                               .completion()
-                                .tag("FLUSH")
+                                .tag("CREATE_MATERIALIZED_VIEW")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE SINK zb_catalog.send_payment_sink_into INTO app_events"
+      " FROM zb_catalog.send_payment_events;"
+      [0x00]
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SINK")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE SINK zb_catalog.send_payment_replies AS\n"
+      "    SELECT\n"
+      "       '200' AS status,\n"
+      "       c.correlation_id\n"
+      "    FROM zb_catalog.send_payment_commands c\n"
+      "    LEFT JOIN zb_catalog.send_payment_events r\n"
+      "    ON c.correlation_id = r.correlation_id\n"
+      "WITH (\n"
+      "    connector = 'kafka',\n"
+      "    topic = 'public.send_payment_replies',\n"
+      "    properties.bootstrap.server = 'localhost:9092',\n"
+      ") FORMAT PLAIN ENCODE AVRO (\n"
+      "  force_append_only = 'true',\n"
+      "  schema.registry = 'http://localhost:8081'\n"
+      ");"
+      [0x00]
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_SINK")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "INSERT INTO zb_catalog.zfunctions (name, sql) VALUES ('send_payment', 'CREATE ZFUNCTION send_payment(\n"
+      " user_id VARCHAR,\n"
+      " amount DOUBLE PRECISION)\n"
+      "RETURNS TABLE(\n"
+      " event VARCHAR,\n"
+      " user_id VARCHAR,\n"
+      " amount DOUBLE PRECISION)\n"
+      "LANGUAGE SQL AS $$\n"
+      " SELECT\n"
+      "     CASE\n"
+      "         WHEN balance >= args.amount THEN ''PaymentSent''\n"
+      "         ELSE ''PaymentDeclined''\n"
+      "     END AS event,\n"
+      "     args.user_id,\n"
+      "     args.amount\n"
+      " FROM balance WHERE user_id = args.user_id;\n"
+      "$$\n"
+      "WITH (\n"
+      " EVENTS = ''app_events''\n"
+      ");');"
+      [0x00]
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("INSERT 0 2")
                                 .build()
                               .build()}
 
@@ -112,3 +208,65 @@ write zilla:begin.ext ${pgsql:beginEx()
                               .build()}
 
 connected
+
+connect "zilla://streams/app2"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${pgsql:beginEx()
+                              .typeId(zilla:id("pgsql"))
+                              .parameter("user", "postgres")
+                              .parameter("database", "dev")
+                              .parameter("application_name", "psql")
+                              .parameter("client_encoding", "UTF8")
+                              .build()}
+
+connected
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE TOPIC public.send_payment_commands "
+      "(user_id VARCHAR, amount DOUBLE PRECISION);"
+      [0x00]
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_TOPIC")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+write zilla:data.ext ${pgsql:dataEx()
+                              .typeId(zilla:id("pgsql"))
+                              .query()
+                                .build()
+                              .build()}
+write "CREATE TOPIC public.send_payment_replies "
+      "(status VARCHAR, correlation_id VARCHAR);"
+      [0x00]
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .completion()
+                                .tag("CREATE_TOPIC")
+                                .build()
+                              .build()}
+
+read advised zilla:flush ${pgsql:flushEx()
+                              .typeId(zilla:id("pgsql"))
+                              .ready()
+                                .status("IDLE")
+                                .build()
+                              .build()}
+
+

@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
@@ -433,53 +432,6 @@ public class PgsqlParserTest
     }
 
     @Test
-    public void shouldDetectAlterStreamAddColumn()
-    {
-        String sql = "ALTER ZSTREAM test_stream ADD COLUMN new_column INT;";
-        Alter alter = parser.parseAlterStream(sql);
-
-        assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.expressions().size());
-        assertEquals(Operation.ADD, alter.expressions().get(0).operation());
-        assertEquals("new_column", alter.expressions().get(0).columnName());
-        assertEquals("INT", alter.expressions().get(0).columnType());
-    }
-
-    @Test
-    public void shouldAlterStreamDropColumn()
-    {
-        String sql = "ALTER ZSTREAM test_stream DROP COLUMN old_column;";
-        Alter alter = parser.parseAlterStream(sql);
-
-        assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.expressions().size());
-        assertEquals(Operation.DROP, alter.expressions().get(0).operation());
-        assertEquals("old_column", alter.expressions().get(0).columnName());
-    }
-
-    @Test
-    public void shouldHandleInvalidAlterStream()
-    {
-        String sql = "ALTER STREAM";
-        Alter alter = parser.parseAlterStream(sql);
-
-        assertNull(alter.name());
-    }
-
-    @Test
-    public void shouldAlterStreamModifyColumn()
-    {
-        String sql = "ALTER ZSTREAM test_stream ALTER COLUMN existing_column TYPE VARCHAR(100);";
-        Alter alter = parser.parseAlterStream(sql);
-
-        assertEquals("test_stream", alter.name());
-        assertEquals(1, alter.expressions().size());
-        assertEquals(Operation.MODIFY, alter.expressions().get(0).operation());
-        assertEquals("existing_column", alter.expressions().get(0).columnName());
-        assertEquals("VARCHAR(100)", alter.expressions().get(0).columnType());
-    }
-
-    @Test
     public void shouldShowZviews()
     {
         String sql = "SHOW ZVIEWS;";
@@ -501,101 +453,75 @@ public class PgsqlParserTest
     public void shouldParseCreateZfunctionWithTableReturnType()
     {
         String sql = """
-           CREATE ZFUNCTION send_payment_handler(
-             user_id VARCHAR,
-             amount DOUBLE PRECISION)
+            CREATE ZFUNCTION send_payment_handler(
+               user_id VARCHAR,
+               request_id VARCHAR,
+               amount DOUBLE PRECISION,
+               notes VARCHAR)
             RETURNS TABLE(
-             event VARCHAR,
-             user_id VARCHAR,
-             amount DOUBLE PRECISION)
+               event VARCHAR,
+               user_id VARCHAR,
+               request_id VARCHAR,
+               amount DOUBLE PRECISION,
+               notes VARCHAR)
             LANGUAGE SQL AS $$
-             SELECT
-                 CASE
-                     WHEN balance >= args.amount THEN "PaymentSent"
-                     ELSE "PaymentDeclined"
-                 END AS event,
+               SELECT
+                  CASE
+                    WHEN balance >= args.amount THEN 'PaymentSent'
+                    ELSE 'PaymentDeclined'
+                  END AS event,
                  args.user_id,
-                 args.amount
-             FROM balance WHERE user_id = args.user_id;
+                 args.request_id,
+                 args.amount,
+                 args.notes
+               FROM balance b WHERE b.user_id = args.user_id;
             $$
+            WITH(
+                EVENTS = 'app_events'
+            );
             """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 
         assertEquals("send_payment_handler", function.name());
-        assertEquals(2, function.arguments().size());
+        assertEquals(4, function.arguments().size());
         assertEquals("user_id", function.arguments().get(0).name());
         assertEquals("VARCHAR", function.arguments().get(0).type());
-        assertEquals("amount", function.arguments().get(1).name());
-        assertEquals("DOUBLE PRECISION", function.arguments().get(1).type());
+        assertEquals("request_id", function.arguments().get(1).name());
+        assertEquals("VARCHAR", function.arguments().get(1).type());
 
-        assertEquals(3, function.returnTypes().size());
+        assertEquals(5, function.returnTypes().size());
         assertEquals("event", function.returnTypes().get(0).name());
         assertEquals("VARCHAR", function.returnTypes().get(0).type());
         assertEquals("user_id", function.returnTypes().get(1).name());
         assertEquals("VARCHAR", function.returnTypes().get(1).type());
-        assertEquals("amount", function.returnTypes().get(2).name());
-        assertEquals("DOUBLE PRECISION", function.returnTypes().get(2).type());
+        assertEquals("request_id", function.returnTypes().get(2).name());
+        assertEquals("VARCHAR", function.returnTypes().get(2).type());
 
         Select select = function.select();
         assertNotNull(select);
-        assertEquals(3, select.columns().size());
+        assertEquals(5, select.columns().size());
         assertEquals("CASE\n" +
-            "          WHEN balance >= args.amount THEN \"PaymentSent\"\n" +
-            "          ELSE \"PaymentDeclined\"\n" +
+            "        WHEN balance >= args.amount THEN 'PaymentSent'\n" +
+            "        ELSE 'PaymentDeclined'\n" +
             "      END AS event", select.columns().get(0));
         assertEquals("args.user_id", select.columns().get(1));
-        assertEquals("args.amount", select.columns().get(2));
-        assertEquals("balance", select.from());
-        assertEquals("WHERE user_id = args.user_id", select.whereClause());
+        assertEquals("args.request_id", select.columns().get(2));
+        assertEquals("balance b", select.from());
+        assertEquals("b.user_id = args.user_id", select.whereClause());
+
+        assertEquals("app_events", function.events());
     }
 
     @Test
-    public void shouldCreateZstream()
+    public void shouldDropSingleZfunction()
     {
-        String sql = """
-            CREATE ZSTREAM app_events (
-                event VARCHAR,
-                user_id VARCHAR,
-                request_id VARCHAR,
-                amount DOUBLE PRECISION,
-                notes VARCHAR,
-                owner_id VARCHAR GENERATED ALWAYS AS IDENTITY,
-                created_at TIMESTAMP GENERATED ALWAYS AS NOW
-            )
-            WITH (
-                DISPATCH_ON = 'command',
-                HANDLERS = (
-                    'SendPayment' TO 'send_payment_handler',
-                    'RequestPayment' TO 'request_payment_handler',
-                    'RejectPayment' TO 'reject_payment_handler'
-                )
-            );
-            """;
+        String sql = "DROP ZFUNCTION test_function;";
 
-        CreateZstream createStream = parser.parseCreateZstream(sql);
+        List<Drop> drops = parser.parseDrop(sql);
 
-        assertEquals("app_events", createStream.name());
-        assertEquals("event", createStream.columns().get(0).name());
-        assertEquals("VARCHAR", createStream.columns().get(0).type());
-        assertEquals("user_id", createStream.columns().get(1).name());
-        assertEquals("VARCHAR", createStream.columns().get(1).type());
-        assertEquals("request_id", createStream.columns().get(2).name());
-        assertEquals("VARCHAR", createStream.columns().get(2).type());
-        assertEquals("amount", createStream.columns().get(3).name());
-        assertEquals("DOUBLE PRECISION", createStream.columns().get(3).type());
-        assertEquals("notes", createStream.columns().get(4).name());
-        assertEquals("VARCHAR", createStream.columns().get(4).type());
-        assertEquals("owner_id", createStream.columns().get(5).name());
-        assertEquals("VARCHAR", createStream.columns().get(5).type());
-        assertEquals("created_at", createStream.columns().get(6).name());
-        assertEquals("TIMESTAMP", createStream.columns().get(6).type());
-
-        assertEquals("command", createStream.dispatchOn());
-
-        assertEquals(3, createStream.commandHandlers().size());
-        assertEquals("send_payment_handler", createStream.commandHandlers().get("SendPayment"));
-        assertEquals("request_payment_handler", createStream.commandHandlers().get("RequestPayment"));
-        assertEquals("reject_payment_handler", createStream.commandHandlers().get("RejectPayment"));
+        assertEquals(1, drops.size());
+        assertEquals("public", drops.get(0).schema());
+        assertEquals("test_function", drops.get(0).name());
     }
 }

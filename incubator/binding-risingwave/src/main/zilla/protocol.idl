@@ -25,7 +25,7 @@ scope protocol
             string32 arguments;
             string32 returnType;
             string32 language;
-            string32 link = null;
+            string32 events;
         }
     }
 }

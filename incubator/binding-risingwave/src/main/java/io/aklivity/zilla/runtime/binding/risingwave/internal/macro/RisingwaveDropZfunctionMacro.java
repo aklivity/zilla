@@ -14,121 +14,36 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
-import java.nio.ByteOrder;
-import java.util.Iterator;
-
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
-public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
+public class RisingwaveDropZfunctionMacro extends RisingwaveMacroBase
 {
     private final String systemSchema;
     private final Drop command;
-    private final PgsqlParser parser;
 
-    private CreateZstream createZstream;
-
-    private String lastHandler;
-    private Iterator<String> zstreamInterator;
-
-    public RisingwaveDropZstreamMacro(
+    public RisingwaveDropZfunctionMacro(
         String systemSchema,
         String sql,
         Drop command,
-        RisingwaveMacroHandler handler,
-        PgsqlParser parser)
+        RisingwaveMacroHandler handler)
     {
         super(sql, handler);
 
         this.systemSchema = systemSchema;
         this.command = command;
-        this.parser = parser;
     }
 
     public RisingwaveMacroState start()
     {
-        return new SelectZstreamsCommandState();
+        return new DeleteCatalogState();
     }
 
-    private final class SelectZstreamsCommandState implements RisingwaveMacroState
+    private final class DeleteCatalogState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            SELECT * FROM zb_catalog.zstreams WHERE name = '%s';\u0000""";
-
-        @Override
-        public void onStarted(
-            long traceId,
-            long authorization)
-        {
-            String sqlQuery = String.format(sqlFormat, command.name());
-
-            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-        }
-
-        @Override
-        public <T> RisingwaveMacroState onRow(
-            T client,
-            long traceId,
-            long authorization,
-            int flags,
-            DirectBuffer buffer,
-            int offset,
-            int limit,
-            OctetsFW extension)
-        {
-            int progress = offset;
-
-            short fields = buffer.getShort(progress, ByteOrder.BIG_ENDIAN);
-            progress += Short.BYTES;
-
-            assert fields == 2;
-
-            int nameLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
-            progress += Integer.BYTES + nameLength;
-
-            int sqlLength = buffer.getInt(progress, ByteOrder.BIG_ENDIAN);
-            progress += Integer.BYTES;
-
-            String statement = buffer.getStringWithoutLengthAscii(progress, sqlLength);
-
-            createZstream = parser.parseCreateZstream(statement);
-
-            return this;
-        }
-
-        @Override
-        public RisingwaveMacroState onReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            DeleteIntoCatalogState state = new DeleteIntoCatalogState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
-
-        @Override
-        public RisingwaveMacroState onError(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-            return errorState();
-        }
-    }
-
-    private final class DeleteIntoCatalogState implements RisingwaveMacroState
-    {
-        private final String sqlFormat = """
-            DELETE FROM %s.zstreams WHERE name = '%s';\u0000""";
+            DELETE FROM %s.zfunctions WHERE name = '%s';\u0000""";
 
         @Override
         public void onStarted(
@@ -165,7 +80,7 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
     private final class DropReplySink implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP SINK %s.%s_replies_sink;\u0000""";
+            DROP SINK %s.%s_replies;\u0000""";
 
         @Override
         public void onStarted(
@@ -204,7 +119,7 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
     private final class DropSinkTopicState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP TOPIC %s.%s_replies_sink;\u0000""";
+            DROP TOPIC %s.%s_replies;\u0000""";
 
         @Override
         public void onStarted(
@@ -214,6 +129,47 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
             String topic = command.name();
 
             String sqlQuery = String.format(sqlFormat, command.schema(), topic);
+
+            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
+        }
+
+        @Override
+        public RisingwaveMacroState onReady(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            DropReplySinkInto state = new DropReplySinkInto();
+            state.onStarted(traceId, authorization);
+
+            return state;
+        }
+
+        @Override
+        public RisingwaveMacroState onError(
+            long traceId,
+            long authorization,
+            PgsqlFlushExFW flushEx)
+        {
+            handler.doFlushProxy(traceId, authorization, flushEx);
+
+            return errorState();
+        }
+    }
+
+    private final class DropReplySinkInto implements RisingwaveMacroState
+    {
+        private final String sqlFormat = """
+            DROP SINK %s.%s_sink_into;\u0000""";
+
+        @Override
+        public void onStarted(
+            long traceId,
+            long authorization)
+        {
+            String name = command.name();
+
+            String sqlQuery = String.format(sqlFormat, systemSchema, name);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
@@ -236,8 +192,6 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-
             return errorState();
         }
     }
@@ -245,7 +199,7 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
     private final class DropReplyMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP MATERIALIZED VIEW %s.%s_reply_handler;\u0000""";
+            DROP MATERIALIZED VIEW %s.%s_events;\u0000""";
 
         @Override
         public void onStarted(
@@ -263,99 +217,7 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            DropStreamMaterializedViewState state = new DropStreamMaterializedViewState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
-
-        @Override
-        public RisingwaveMacroState onError(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-
-            return errorState();
-        }
-    }
-
-    private final class DropStreamMaterializedViewState implements RisingwaveMacroState
-    {
-        private final String sqlFormat = """
-            DROP MATERIALIZED VIEW %s.%s;\u0000""";
-
-        @Override
-        public void onStarted(
-            long traceId,
-            long authorization)
-        {
-            String sqlQuery = String.format(sqlFormat, command.schema(), command.name());
-
-            handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-        }
-
-        @Override
-        public RisingwaveMacroState onReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            DropHandlerMaterializedViewState state = new DropHandlerMaterializedViewState();
-            state.onStarted(traceId, authorization);
-
-            return state;
-        }
-
-        @Override
-        public RisingwaveMacroState onError(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            handler.doFlushProxy(traceId, authorization, flushEx);
-
-            return errorState();
-        }
-    }
-
-    private final class DropHandlerMaterializedViewState implements RisingwaveMacroState
-    {
-        private final String sqlFormat = """
-            DROP MATERIALIZED VIEW %s.%s;\u0000""";
-
-        @Override
-        public void onStarted(
-            long traceId,
-            long authorization)
-        {
-            if (lastHandler == null)
-            {
-                if (zstreamInterator == null)
-                {
-                    zstreamInterator = createZstream.commandHandlers().values().iterator();
-                }
-
-                lastHandler = zstreamInterator.next();
-
-                String sqlQuery = String.format(sqlFormat, systemSchema, lastHandler);
-
-                handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
-            }
-        }
-
-        @Override
-        public RisingwaveMacroState onReady(
-            long traceId,
-            long authorization,
-            PgsqlFlushExFW flushEx)
-        {
-            lastHandler = null;
-
-            RisingwaveMacroState state = zstreamInterator.hasNext()
-                ? new DropHandlerMaterializedViewState()
-                : new DropSourceState();
+            DropSourceState state = new DropSourceState();
             state.onStarted(traceId, authorization);
 
             return state;
@@ -432,7 +294,7 @@ public class RisingwaveDropZstreamMacro extends RisingwaveMacroBase
             long authorization,
             PgsqlFlushExFW flushEx)
         {
-            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_ZSTREAM_COMMAND);
+            handler.doCompletion(traceId, authorization, RisingwaveCompletionCommand.DROP_ZFUNCTION_COMMAND);
             return this;
         }
 

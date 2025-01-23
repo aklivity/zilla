@@ -79,11 +79,11 @@ write advise zilla:flush ${pgsql:flushEx()
                                       .format("TEXT")
                                       .build()
                                   .column()
-                                      .name("Link")
+                                      .name("Events")
                                       .tableOid(0)
                                       .index(0)
                                       .typeOid(1043)
-                                      .length(4)
+                                      .length(6)
                                       .modifier(-1)
                                       .format("TEXT")
                                       .build()
@@ -98,16 +98,15 @@ write zilla:data.ext ${pgsql:dataEx()
                               .build()}
 write [0x00 0x05]                                                 # Field Count
       [0x00 0x00 0x00 0x0c]                                       # Length
-      "test_command"                                              # Data
-      [0x00 0x00 0x00 0x47]                                       # Length
-      "user_id VARCHAR, random VARCHAR, "                         # Data
-      "amount DOUBLE PRECISION, notes VARCHAR"
-      [0x00 0x00 0x00 0x59]                                       # Length
-      "type VARCHAR, user_id VARCHAR, request_id VARCHAR, "       # Data
-      "amount DOUBLE PRECISION, notes VARCHAR"
+      "send_payment"                                              # Data
+      [0x00 0x00 0x00 0x28]                                       # Length
+      "user_id VARCHAR, amount DOUBLE PRECISION"                  # Data
+      [0x00 0x00 0x00 0x37]                                       # Length
+      "event VARCHAR, user_id VARCHAR, amount DOUBLE PRECISION"   # Data
       [0x00 0x00 0x00 0x03]                                       # Length
       "SQL"                                                       # Data
-      [0xff 0xff 0xff 0xff]                                       # Length
+      [0x00 0x00 0x00 0x0a]                                       # Length
+      "app_events"                                                # Data
 
 write flush
 
