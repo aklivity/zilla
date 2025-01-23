@@ -168,7 +168,6 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZFUNCTION_COMMAND, this::decodeDropZfunctionCommand);
-        clientTransforms.put(RisingwaveCommandType.SHOW_ZSTREAMS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZFUNCTIONS_COMMAND, this::decodeShowZfunctionCommand);
