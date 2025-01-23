@@ -80,7 +80,7 @@ read "CREATE MATERIALIZED VIEW zb_catalog.send_payment_events AS\n"
      "         ELSE 'PaymentDeclined'\n"
      "     END AS event, c.user_id, c.amount\n"
      "    FROM zb_catalog.send_payment_commands c\n"
-     "    JOIN balance ON WHERE user_id = c.user_id;"
+     "    JOIN balance ON user_id = c.user_id;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()
