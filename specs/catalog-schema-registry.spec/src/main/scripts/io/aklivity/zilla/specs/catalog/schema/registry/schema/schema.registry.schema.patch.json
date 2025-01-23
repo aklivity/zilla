@@ -61,9 +61,9 @@
                     "type": "integer",
                     "default": 300
                 },
-                "security":
+                "tls":
                 {
-                    "title": "Security",
+                    "title": "TLS",
                     "type": "object",
                     "properties":
                     {
@@ -90,7 +90,8 @@
                             "title": "Trust CA Certificates",
                             "type": "boolean"
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "credentials":
                 {

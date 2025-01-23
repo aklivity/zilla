@@ -21,7 +21,7 @@ catalogs:
     vault: client
     options:
       url: https://localhost:8081
-      security:
+      tls:
         trust:
           - serverca
         keys:

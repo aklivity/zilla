@@ -50,7 +50,7 @@ public class SchemaRegistryOptionsConfigAdapterTest
             {
               "url": "http://localhost:8081",
               "context": "default",
-              "security":
+              "tls":
               {
                 "keys":
                 [
@@ -101,7 +101,7 @@ public class SchemaRegistryOptionsConfigAdapterTest
               "url":"http://localhost:8081",
               "context":"default",
               "max-age":300,
-              "security":
+              "tls":
               {
                 "keys":
                 [

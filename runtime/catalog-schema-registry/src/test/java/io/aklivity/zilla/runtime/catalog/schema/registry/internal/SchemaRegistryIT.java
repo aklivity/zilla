@@ -59,12 +59,23 @@ public class SchemaRegistryIT
     }
 
     @Test
-    @Configuration("resolve/schema/id/secure/zilla.yaml")
+    @Configuration("resolve/schema/id/secure/mTLS/zilla.yaml")
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${remote}/resolve.secure.schema.via.schema.id" })
-    public void shouldResolveSecureSchemaViaSchemaId() throws Exception
+        "${remote}/resolve.secure.mTLS.schema.via.schema.id" })
+    public void shouldResolveSecureMutualTLSSchemaViaSchemaId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("resolve/schema/id/secure/server/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${remote}/resolve.secure.server.schema.via.schema.id" })
+    public void shouldResolveSecureServerSchemaViaSchemaId() throws Exception
     {
         k3po.finish();
     }

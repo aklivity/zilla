@@ -47,7 +47,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
-    private static final String SECURITY_NAME = "security";
+    private static final String TLS_NAME = "tls";
 
     private final String type;
     private final Set<String> aliases;
@@ -97,32 +97,32 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
 
-        JsonObjectBuilder security = Json.createObjectBuilder();
+        JsonObjectBuilder tls = Json.createObjectBuilder();
 
         if (config.keys != null)
         {
             JsonArrayBuilder keys = Json.createArrayBuilder();
             config.keys.forEach(keys::add);
-            security.add(KEYS_NAME, keys);
+            tls.add(KEYS_NAME, keys);
         }
 
         if (config.trust != null)
         {
             JsonArrayBuilder trust = Json.createArrayBuilder();
             config.trust.forEach(trust::add);
-            security.add(TRUST_NAME, trust);
+            tls.add(TRUST_NAME, trust);
         }
 
         if (config.trust != null && config.trustcacerts ||
             config.trust == null && !config.trustcacerts)
         {
-            security.add(TRUSTCACERTS_NAME, config.trustcacerts);
+            tls.add(TRUSTCACERTS_NAME, config.trustcacerts);
         }
 
-        JsonObject securityJson = security.build();
-        if (!securityJson.isEmpty())
+        JsonObject tlsJson = tls.build();
+        if (!tlsJson.isEmpty())
         {
-            catalog.add(SECURITY_NAME, securityJson);
+            catalog.add(TLS_NAME, tlsJson);
         }
 
         if (config.authorization != null)
@@ -162,23 +162,23 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
 
-            if (object.containsKey(SECURITY_NAME))
+            if (object.containsKey(TLS_NAME))
             {
-                JsonObject security = object.getJsonObject(SECURITY_NAME);
+                JsonObject tls = object.getJsonObject(TLS_NAME);
 
-                if (security.containsKey(KEYS_NAME))
+                if (tls.containsKey(KEYS_NAME))
                 {
-                    options.keys(asListString(security.getJsonArray(KEYS_NAME)));
+                    options.keys(asListString(tls.getJsonArray(KEYS_NAME)));
                 }
 
-                if (security.containsKey(TRUST_NAME))
+                if (tls.containsKey(TRUST_NAME))
                 {
-                    options.trust(asListString(security.getJsonArray(TRUST_NAME)));
+                    options.trust(asListString(tls.getJsonArray(TRUST_NAME)));
                 }
 
-                if (security.containsKey(TRUSTCACERTS_NAME))
+                if (tls.containsKey(TRUSTCACERTS_NAME))
                 {
-                    options.trustcacerts(security.getBoolean(TRUSTCACERTS_NAME));
+                    options.trustcacerts(tls.getBoolean(TRUSTCACERTS_NAME));
                 }
             }
 

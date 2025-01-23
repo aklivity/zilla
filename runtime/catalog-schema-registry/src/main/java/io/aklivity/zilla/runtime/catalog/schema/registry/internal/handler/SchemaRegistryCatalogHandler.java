@@ -63,6 +63,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final String REGISTER_SUBJECT_PATH = "/subjects/{0}/versions";
     private static final String UNREGISTER_SUBJECT_PATH = "/subjects/{0}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
+    private static final String HTTPS = "https";
 
     private static final int MAX_PADDING_LENGTH = 5;
     private static final byte MAGIC_BYTE = 0x0;
@@ -97,7 +98,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         VaultHandler vault = supplyVault.apply(catalog.vaultId);
 
         HttpClient client;
-        if (vault != null)
+        if (this.baseUrl.regionMatches(true, 0, HTTPS, 0, 5))
         {
             try
             {
