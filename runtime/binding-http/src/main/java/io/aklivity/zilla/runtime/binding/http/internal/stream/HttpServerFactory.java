@@ -1072,6 +1072,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route != null)
                         {
+                            event.requestAccepted(traceId, server.originId, guard, authorization, beginEx.headers());
+
                             Map<String8FW, String16FW> overrides = route.overrides();
                             if (overrides != null)
                             {
@@ -2273,8 +2275,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpBeginExFW beginEx,
             HttpRequestType requestType)
         {
-            event.requestAccepted(traceId, originId, guard, authorization, beginEx.headers());
-
             final HttpExchange exchange = new HttpExchange(originId, routedId, authorization,
                 traceId, policy, origin, requestType);
             boolean headersValid = exchange.validateHeaders(beginEx);
@@ -4961,7 +4961,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
-                event.requestAccepted(traceId, routedId, guard, authorization, headers);
                 if (isCorsPreflightRequest(headers))
                 {
                     if (!endRequest)
@@ -5029,6 +5028,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
+                            event.requestAccepted(traceId, routedId, guard, authorization, headers);
 
                             Map<String8FW, String16FW> overrides = route.overrides();
                             if (overrides != null)
