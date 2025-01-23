@@ -48,7 +48,8 @@
             {
                 "url":
                 {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "^https?://"
                 },
                 "context":
                 {
@@ -116,7 +117,31 @@
                     "additionalProperties": false
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "if":
+            {
+                "properties":
+                {
+                    "url":
+                    {
+                        "pattern": "^https:\/\/"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "tls": true
+                }
+            },
+            "else":
+            {
+                "properties":
+                {
+                    "tls": false
+                }
+            }
         }
     }
 ]
