@@ -195,7 +195,8 @@ public class RisingwaveCreateZfunctionMacro extends RisingwaveMacroBase
 
                 if (select.whereClause() != null)
                 {
-                    join = String.format("%s ON %s", join, select.whereClause().replace("args", "c"));
+                    join = String.format("%s ON %s", join, select.whereClause()
+                        .replace("args", "c"));
                 }
             }
 

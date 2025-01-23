@@ -453,56 +453,62 @@ public class PgsqlParserTest
     public void shouldParseCreateZfunctionWithTableReturnType()
     {
         String sql = """
-           CREATE ZFUNCTION send_payment_handler(
-             user_id VARCHAR,
-             amount DOUBLE PRECISION)
+            CREATE ZFUNCTION send_payment_handler(
+               user_id VARCHAR,
+               request_id VARCHAR,
+               amount DOUBLE PRECISION,
+               notes VARCHAR)
             RETURNS TABLE(
-             event VARCHAR,
-             user_id VARCHAR,
-             amount DOUBLE PRECISION)
+               event VARCHAR,
+               user_id VARCHAR,
+               request_id VARCHAR,
+               amount DOUBLE PRECISION,
+               notes VARCHAR)
             LANGUAGE SQL AS $$
-             SELECT
-                 CASE
-                     WHEN balance >= args.amount THEN "PaymentSent"
-                     ELSE "PaymentDeclined"
-                 END AS event,
+               SELECT
+                  CASE
+                    WHEN balance >= args.amount THEN 'PaymentSent'
+                    ELSE 'PaymentDeclined'
+                  END AS event,
                  args.user_id,
-                 args.amount
-             FROM balance WHERE user_id = args.user_id;
+                 args.request_id,
+                 args.amount,
+                 args.notes
+               FROM balance b WHERE b.user_id = args.user_id;
             $$
             WITH(
                 EVENTS = 'app_events'
-            )
+            );
             """;
         CreateZfunction function = parser.parseCreateZfunction(sql);
         assertNotNull(function);
 
         assertEquals("send_payment_handler", function.name());
-        assertEquals(2, function.arguments().size());
+        assertEquals(4, function.arguments().size());
         assertEquals("user_id", function.arguments().get(0).name());
         assertEquals("VARCHAR", function.arguments().get(0).type());
-        assertEquals("amount", function.arguments().get(1).name());
-        assertEquals("DOUBLE PRECISION", function.arguments().get(1).type());
+        assertEquals("request_id", function.arguments().get(1).name());
+        assertEquals("VARCHAR", function.arguments().get(1).type());
 
-        assertEquals(3, function.returnTypes().size());
+        assertEquals(5, function.returnTypes().size());
         assertEquals("event", function.returnTypes().get(0).name());
         assertEquals("VARCHAR", function.returnTypes().get(0).type());
         assertEquals("user_id", function.returnTypes().get(1).name());
         assertEquals("VARCHAR", function.returnTypes().get(1).type());
-        assertEquals("amount", function.returnTypes().get(2).name());
-        assertEquals("DOUBLE PRECISION", function.returnTypes().get(2).type());
+        assertEquals("request_id", function.returnTypes().get(2).name());
+        assertEquals("VARCHAR", function.returnTypes().get(2).type());
 
         Select select = function.select();
         assertNotNull(select);
-        assertEquals(3, select.columns().size());
+        assertEquals(5, select.columns().size());
         assertEquals("CASE\n" +
-            "          WHEN balance >= args.amount THEN \"PaymentSent\"\n" +
-            "          ELSE \"PaymentDeclined\"\n" +
+            "        WHEN balance >= args.amount THEN 'PaymentSent'\n" +
+            "        ELSE 'PaymentDeclined'\n" +
             "      END AS event", select.columns().get(0));
         assertEquals("args.user_id", select.columns().get(1));
-        assertEquals("args.amount", select.columns().get(2));
-        assertEquals("balance", select.from());
-        assertEquals("WHERE user_id = args.user_id", select.whereClause());
+        assertEquals("args.request_id", select.columns().get(2));
+        assertEquals("balance b", select.from());
+        assertEquals("b.user_id = args.user_id", select.whereClause());
 
         assertEquals("app_events", function.events());
     }

@@ -144,7 +144,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     public void enterWhere_clause(
         PostgreSqlParser.Where_clauseContext ctx)
     {
-        whereClause = tokens.getText(ctx);
+        whereClause = tokens.getText(ctx).replaceAll("(?i)\\bwhere\\s", "");
     }
 
     @Override
