@@ -120,9 +120,9 @@ public class SchemaRegistryOptionsConfigAdapterTest
                 }
               }
             }
-            """;
+            """.replaceAll("\\s*\\n\\s*", "");
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(expected.replaceAll("\\s*\\n\\s*", "")));
+        assertThat(text, equalTo(expected));
     }
 }

@@ -14,6 +14,12 @@
 #
 
 accept "http://localhost:8081/schemas/ids/9"
+    option http:transport "tls://localhost:8081"
+    option tls:keyStoreFile ${core:file('src/test/democa/server/keys')}
+    option tls:keyStorePassword "generated"
+    option tls:needClientAuth "true"
+    option tls:trustStoreFile ${core:file('src/test/democa/server/trust')}
+    option tls:trustStorePassword "generated"
 
 accepted
 connected

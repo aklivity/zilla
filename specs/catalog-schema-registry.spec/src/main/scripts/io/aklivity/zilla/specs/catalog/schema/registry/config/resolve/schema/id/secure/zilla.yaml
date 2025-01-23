@@ -20,7 +20,7 @@ catalogs:
     type: schema-registry
     vault: client
     options:
-      url: http://localhost:8081
+      url: https://localhost:8081
       security:
         trust:
           - serverca
