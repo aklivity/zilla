@@ -58,4 +58,14 @@ public class EventIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.event.override.yaml")
+    @Specification({
+        "${net}/connection.headers/client",
+        "${app}/connection.headers.override/server" })
+    public void connectionHeadersOverride() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -49,6 +49,15 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${app}/request.with.headers.override/client",
+        "${app}/request.with.headers.override/server" })
+    public void requestWithHeadersOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.with.content.length/client",
         "${app}/request.with.content.length/server" })
     public void requestWithContentLength() throws Exception
