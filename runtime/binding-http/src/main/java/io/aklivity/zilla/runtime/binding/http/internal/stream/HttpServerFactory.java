@@ -4961,6 +4961,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
+                event.requestAccepted(traceId, originId, guard, authorization, headers);
                 if (isCorsPreflightRequest(headers))
                 {
                     if (!endRequest)
@@ -5028,7 +5029,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
-                            event.requestAccepted(traceId, originId, guard, authorization, headers);
 
                             Map<String8FW, String16FW> overrides = route.overrides();
                             if (overrides != null)
