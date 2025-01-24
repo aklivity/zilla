@@ -1072,7 +1072,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route != null)
                         {
-                            event.requestAccepted(traceId, server.originId, guard, authorization, beginEx.headers());
+                            event.requestAccepted(traceId, server.routedId, guard, authorization, beginEx.headers());
 
                             Map<String8FW, String16FW> overrides = route.overrides();
                             if (overrides != null)
@@ -5028,7 +5028,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
-                            event.requestAccepted(traceId, routedId, guard, authorization, headers);
+                            event.requestAccepted(traceId, originId, guard, authorization, headers);
 
                             Map<String8FW, String16FW> overrides = route.overrides();
                             if (overrides != null)
