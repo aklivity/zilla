@@ -45,7 +45,7 @@ public class SchemaTest
     @Test
     public void shouldValidateSecureCatalog()
     {
-        JsonObject config = schema.validate("resolve/schema/id/secure/mTLS/zilla.yaml");
+        JsonObject config = schema.validate("resolve/schema/id/secure/mtls/zilla.yaml");
 
         assertThat(config, not(nullValue()));
     }
