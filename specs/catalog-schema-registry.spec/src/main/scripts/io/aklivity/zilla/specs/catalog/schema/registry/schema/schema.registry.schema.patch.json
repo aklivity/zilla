@@ -124,18 +124,11 @@
                 {
                     "url":
                     {
-                        "pattern": "^https:\/\/"
+                        "pattern": "^http:\/\/"
                     }
                 }
             },
             "then":
-            {
-                "properties":
-                {
-                    "tls": true
-                }
-            },
-            "else":
             {
                 "properties":
                 {
