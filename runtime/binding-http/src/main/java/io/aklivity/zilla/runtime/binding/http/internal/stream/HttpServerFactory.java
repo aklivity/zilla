@@ -4960,7 +4960,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
-                event.requestAccepted(traceId, originId, guard, authorization, headers);
+                event.requestAccepted(traceId, routedId, guard, authorization, headers);
                 if (isCorsPreflightRequest(headers))
                 {
                     if (!endRequest)
