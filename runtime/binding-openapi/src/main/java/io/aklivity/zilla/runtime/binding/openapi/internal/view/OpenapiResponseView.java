@@ -60,6 +60,8 @@ public final class OpenapiResponseView
                     .collect(toMap(c -> c.name, identity()))
                 : null;
 
-        this.schema = new OpenapiSchemaView(resolver, model.schema);
+        this.schema = model.schema != null
+                ? new OpenapiSchemaView(resolver, model.schema)
+                : null;
     }
 }

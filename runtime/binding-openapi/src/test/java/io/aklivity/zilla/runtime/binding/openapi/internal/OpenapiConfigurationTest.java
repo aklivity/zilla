@@ -21,11 +21,11 @@ import org.junit.Test;
 
 public class OpenapiConfigurationTest
 {
-    public static final String OPENAPI_TARGET_ROUTE_ID_NAME = "zilla.binding.openapi.target.route.id";
+    public static final String OPENAPI_COMPOSITE_ROUTE_ID_NAME = "zilla.binding.openapi.composite.route.id";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
-        assertEquals(OPENAPI_COMPOSITE_ROUTE_ID.name(), OPENAPI_TARGET_ROUTE_ID_NAME);
+        assertEquals(OPENAPI_COMPOSITE_ROUTE_ID.name(), OPENAPI_COMPOSITE_ROUTE_ID_NAME);
     }
 }

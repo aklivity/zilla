@@ -31,7 +31,7 @@ public class OpenapiServerConfig
         return new OpenapiServerConfigBuilder<>(mapper);
     }
 
-    public OpenapiServerConfig(
+    OpenapiServerConfig(
         String url)
     {
         this.url = url;

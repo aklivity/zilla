@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -24,6 +26,7 @@ import java.util.stream.Stream;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
@@ -31,12 +34,14 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
@@ -261,15 +266,76 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.methods.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
-                        options
-                            .request()
-                                .path(operation.path)
-                                .method(Method.valueOf(operation.method))
-                                .inject(request -> injectHttpContent(request, operation))
-                                .inject(request -> injectHttpPathParams(request, operation))
-                            .build());
+                    {
+                        for (var server : operation.specification.servers)
+                        {
+                            Path serverPath = Paths.get(server.url.getPath());
+                            Path requestPath = serverPath.resolve(operation.path);
+                            options
+                                .request()
+                                    .path(requestPath.toString())
+                                    .method(Method.valueOf(operation.method))
+                                    .inject(request -> injectHttpParams(request, operation))
+                                    .inject(request -> injectHttpContent(request, operation))
+                                .build();
+                        }
+                    });
 
                 return options;
+            }
+
+            private <C> HttpRequestConfigBuilder<C> injectHttpParams(
+                HttpRequestConfigBuilder<C> request,
+                OpenapiOperationView operation)
+            {
+                if (operation.hasParameters())
+                {
+                    operation.parameters.stream()
+                        .filter(parameter -> parameter.schema != null)
+                        .forEach(parameter ->
+                        {
+                            switch (parameter .in)
+                            {
+                            case "path":
+                                request.inject(HttpRequestConfigBuilder::pathParam)
+                                    .name(parameter.name)
+                                    .inject(p -> injectHttpParam(p, parameter.schema))
+                                    .build();
+                                break;
+                            case "query":
+                                request.inject(HttpRequestConfigBuilder::queryParam)
+                                    .name(parameter.name)
+                                    .inject(p -> injectHttpParam(p, parameter.schema))
+                                    .build();
+                                break;
+                            case "header":
+                                request.inject(HttpRequestConfigBuilder::header)
+                                    .name(parameter.name)
+                                    .inject(p -> injectHttpParam(p, parameter.schema))
+                                    .build();
+                                break;
+                            }
+                        });
+                }
+
+                return request;
+            }
+
+            private <C> HttpParamConfigBuilder<C> injectHttpParam(
+                HttpParamConfigBuilder<C> param,
+                OpenapiSchemaView schema)
+            {
+                String format = schema.format;
+                String type = schema.type;
+
+                ModelConfig model = resolveModelBySchema(type, format);
+
+                if (model != null)
+                {
+                    param.model(model);
+                }
+
+                return param;
             }
 
             private <C> HttpRequestConfigBuilder<C> injectHttpContent(
@@ -305,33 +371,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 }
 
                 return cataloged;
-            }
-
-            private <C> HttpRequestConfigBuilder<C> injectHttpPathParams(
-                HttpRequestConfigBuilder<C> request,
-                OpenapiOperationView operation)
-            {
-                if (operation.hasParameters())
-                {
-                    operation.parameters.stream()
-                        .filter(parameter -> parameter.schema != null)
-                        .forEach(parameter ->
-                            request
-                                .pathParam()
-                                .name(parameter.name)
-                                .model(JsonModelConfig::builder)
-                                    .catalog()
-                                        .name("catalog0")
-                                        .schema()
-                                            .version("latest")
-                                            .subject("%s-params-%s".formatted(operation.id, parameter.name))
-                                            .build()
-                                        .build()
-                                    .build()
-                                .build());
-                }
-
-                return request;
             }
 
             private <C>BindingConfigBuilder<C> injectHttpRoutes(

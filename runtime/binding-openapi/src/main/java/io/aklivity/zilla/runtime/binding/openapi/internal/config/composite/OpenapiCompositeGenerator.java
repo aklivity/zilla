@@ -20,6 +20,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -53,6 +55,14 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class OpenapiCompositeGenerator
@@ -242,6 +252,7 @@ public abstract class OpenapiCompositeGenerator
                         .flatMap(v -> v.paths.values().stream())
                         .flatMap(p -> p.methods.values().stream())
                         .map(o -> o.requestBody)
+                        .filter(Objects::nonNull)
                         .forEach(m -> injectInlineRequest(jsonb, options, m));
 
                     Stream.of(schema)
@@ -366,7 +377,7 @@ public abstract class OpenapiCompositeGenerator
                 }
             }
 
-            protected static String toSchemaJson(
+            protected final String toSchemaJson(
                 Jsonb jsonb,
                 OpenapiSchema schema)
             {
@@ -455,6 +466,38 @@ public abstract class OpenapiCompositeGenerator
 
                 return guarded;
             }
+
+            protected final ModelConfig resolveModelBySchema(
+                String type,
+                String format)
+            {
+                return StringModel.NAME.equals(type)
+                    ? StringModelConfig.builder()
+                        .inject(s -> injectStringPattern(s, format))
+                        .build()
+                    : MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+            }
+
+            private <C> StringModelConfigBuilder<C> injectStringPattern(
+                StringModelConfigBuilder<C> model,
+                String format)
+            {
+                if (format != null)
+                {
+                    model.pattern(StringPattern.of(format));
+                }
+
+                return model;
+            }
+
+            private static final Map<String, ModelConfig> MODELS = Map.of(
+                "integer", Int32ModelConfig.builder().build(),
+                "integer:int32", Int32ModelConfig.builder().build(),
+                "integer:int64", Int64ModelConfig.builder().build(),
+                "number", FloatModelConfig.builder().build(),
+                "number:float", FloatModelConfig.builder().build(),
+                "number:double", DoubleModelConfig.builder().build()
+            );
         }
     }
 }

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -26,15 +25,15 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class OpenapiServerIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/openapi/streams/http")
-        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/streams/composite")
-        .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/streams/openapi");
+        .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/streams/openapi")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -42,6 +41,8 @@ public class OpenapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config")
+        .configure(EngineConfiguration.ENGINE_VERBOSE, true)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, true)
         .external("openapi0")
         .clean();
 
@@ -62,7 +63,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.port.http.default.yaml")
     @Specification({
-        "${http}/create.pet.port.http.default/client",
+        "${composite}/create.pet.port.http.default/client",
         "${openapi}/create.pet.port.http.default/server"
     })
     public void shouldCreatePetWithHttpDefaultPort() throws Exception
@@ -73,7 +74,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.port.https.default.yaml")
     @Specification({
-        "${http}/create.pet.port.https.default/client",
+        "${composite}/create.pet.port.https.default/client",
         "${openapi}/create.pet.port.https.default/server"
     })
     public void shouldCreatePetWithHttpsDefaultPort() throws Exception
@@ -95,7 +96,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.secure.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/create.pet/client",
         "${openapi}/create.pet/server"
     })
     public void shouldCreateSecurePet() throws Exception
@@ -103,7 +104,6 @@ public class OpenapiServerIT
         k3po.finish();
     }
 
-    @Ignore("requires /prod path prefix")
     @Test
     @Configuration("server.env.prod.yaml")
     @Specification({
@@ -111,16 +111,6 @@ public class OpenapiServerIT
         "${openapi}/create.pet.prod/server"
     })
     public void shouldCreatePetWithProductionEnvironment() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${http}/reject.non.composite.origin/client"
-    })
-    public void shouldRejectNonCompositeOrigin() throws Exception
     {
         k3po.finish();
     }

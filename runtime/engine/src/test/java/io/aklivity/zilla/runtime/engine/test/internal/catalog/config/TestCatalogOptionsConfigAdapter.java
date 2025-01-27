@@ -57,16 +57,16 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
             catalog.add(SUBJECT_NAME, subject);
         }
 
+        int id = config.id;
+        if (id != ID_DEFAULT)
+        {
+            catalog.add(ID_NAME, id);
+        }
+
         String schema = config.schema;
         if (schema != null && !schema.isEmpty())
         {
             catalog.add(SCHEMA_NAME, schema);
-        }
-
-        int id = config.id;
-        if (id != ID_DEFAULT)
-        {
-            catalog.add(SCHEMA_NAME, id);
         }
 
         String prefix = config.prefix;
@@ -91,14 +91,14 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
                 config.subject(object.getString(SUBJECT_NAME));
             }
 
+            config.id(object.containsKey(ID_NAME)
+                    ? object.getInt(ID_NAME)
+                    : ID_DEFAULT);
+
             if (object.containsKey(SCHEMA_NAME))
             {
                 config.schema(object.getString(SCHEMA_NAME));
             }
-
-            config.id(object.containsKey(ID_NAME)
-                ? object.getInt(ID_NAME)
-                : ID_DEFAULT);
 
             if (object.containsKey(PREFIX_NAME))
             {

@@ -29,7 +29,11 @@ public class OpenapiMediaTypeView
         OpenapiMediaType model)
     {
         this.name = name;
-        this.schema = new OpenapiSchemaView(resolver, model.schema);
-        this.encoding = new OpenapiEncodingView(resolver, model.encoding);
+        this.schema = model.schema != null
+            ? new OpenapiSchemaView(resolver, model.schema)
+            : null;
+        this.encoding = model.encoding != null
+            ? new OpenapiEncodingView(resolver, model.encoding)
+            : null;
     }
 }

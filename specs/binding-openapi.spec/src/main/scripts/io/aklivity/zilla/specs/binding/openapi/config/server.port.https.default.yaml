@@ -20,6 +20,7 @@ catalogs:
   catalog0:
     type: test
     options:
+      id: 1
       subject: petstore
       schema: |
         openapi: "3.0.0"

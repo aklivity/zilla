@@ -18,10 +18,12 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
@@ -30,18 +32,15 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiEncodingView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.StringPattern;
-import io.aklivity.zilla.runtime.model.core.internal.StringModel;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
@@ -243,7 +242,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.paths.values().stream())
                     .flatMap(p -> p.methods.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
-                    .forEach(operation -> 
+                    .forEach(operation ->
                         options
                             .request()
                                 .path(operation.path)
@@ -262,8 +261,9 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 if (operation.hasResponses())
                 {
                     operation.responses.values().stream()
-                        .filter(r -> r.content != null)
-                        .forEach(response -> 
+                        .filter(response -> !"default".equals(response.status))
+                        .filter(response -> response.content != null)
+                        .forEach(response ->
                         {
                             response.content.values().forEach(typed ->
                             {
@@ -271,14 +271,8 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                                     .response()
                                         .status(Integer.parseInt(response.status))
                                         .contentType(typed.name)
-                                        .inject(r -> injectResponseHeaders(r, typed.encoding))
-                                        .content(JsonModelConfig::builder)
-                                            .catalog()
-                                            .name("catalog0")
-                                            .schema()
-                                                .subject(schema.refKey())
-                                                .build()
-                                            .build()
+                                        .inject(r -> injectResponseHeaders(r, response.operation, response.headers))
+                                        .inject(r -> injectResponseContent(r, response.operation, typed))
                                         .build()
                                     .build();
                             });
@@ -288,48 +282,66 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 return request;
             }
 
+            private <C> HttpResponseConfigBuilder<C> injectResponseContent(
+                HttpResponseConfigBuilder<C> response,
+                OpenapiOperationView operation,
+                OpenapiMediaTypeView typed)
+            {
+                return response.content(JsonModelConfig::builder)
+                    .catalog()
+                        .name("catalog0")
+                        .schema()
+                            .inject(s -> injectResponseContentSchema(s, operation, typed))
+                            .build()
+                        .build()
+                    .build();
+            }
+
+            private <C> SchemaConfigBuilder<C> injectResponseContentSchema(
+                SchemaConfigBuilder<C> schema,
+                OpenapiOperationView operation,
+                OpenapiMediaTypeView typed)
+            {
+                return schema.subject("%s-%s-value".formatted(operation.id, typed.name));
+            }
+
             private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
                 HttpResponseConfigBuilder<C> response,
-                OpenapiEncodingView typed)
+                OpenapiOperationView operation,
+                Map<String, OpenapiHeaderView> headers)
             {
-                if (typed.headers != null)
+                if (headers != null)
                 {
-                    for (OpenapiHeaderView header : typed.headers.values())
+                    for (OpenapiHeaderView header : headers.values())
                     {
-                        String name = header.name;
-                        OpenapiSchemaView schema = header.schema;
-
-                        if (schema != null)
+                        if (header.schema != null)
                         {
-                            String format = schema.format;
-                            String type = schema.type;
-                            ModelConfig model;
-                            if (StringModel.NAME.equals(type))
-                            {
-                                StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
-                                if (format != null)
-                                {
-                                    builder.pattern(StringPattern.of(format));
-                                }
-                                model = builder.build();
-                            }
-                            else
-                            {
-                                model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
-                            }
-
-                            if (model != null)
-                            {
-                                response
-                                    .header()
-                                    .name(name)
-                                    .model(model)
-                                    .build();
-                            }
+                            response
+                                .header()
+                                .name(header.name)
+                                .inject(p -> injectResponseHeader(p, header.schema))
+                                .build();
                         }
                     }
                 }
                 return response;
+            }
+
+            private <C> HttpParamConfigBuilder<C> injectResponseHeader(
+                HttpParamConfigBuilder<C> param,
+                OpenapiSchemaView schema)
+            {
+                String format = schema.format;
+                String type = schema.type;
+
+                ModelConfig model = resolveModelBySchema(type, format);
+
+                if (model != null)
+                {
+                    param.model(model);
+                }
+
+                return param;
             }
         }
     }
