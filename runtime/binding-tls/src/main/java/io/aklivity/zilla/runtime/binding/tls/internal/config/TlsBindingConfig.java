@@ -73,6 +73,7 @@ public final class TlsBindingConfig
     private SSLContext context;
 
     private boolean clientHttpsIdentification;
+    private boolean clientServerNameIndication;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -126,6 +127,7 @@ public final class TlsBindingConfig
 
             this.context = context;
             this.clientHttpsIdentification = config.clientHttpsIdentification();
+            this.clientServerNameIndication = config.clientServerNameIndication();
         }
         catch (Exception ex)
         {
@@ -240,9 +242,10 @@ public final class TlsBindingConfig
                 parameters.setEndpointIdentificationAlgorithm("HTTPS");
             }
 
-            if (sni != null)
+            if (clientServerNameIndication && sni != null)
             {
                 List<SNIServerName> serverNames = sni.stream()
+                        .map(TlsBindingConfig::trimHostnameTrailingDot)
                         .map(SNIHostName::new)
                         .collect(toList());
                 parameters.setServerNames(serverNames);
@@ -495,5 +498,11 @@ public final class TlsBindingConfig
         }
 
         return names;
+    }
+
+    private static String trimHostnameTrailingDot(
+        String hostname)
+    {
+        return hostname.endsWith(".") ? hostname.substring(0, hostname.length() - 1) : hostname;
     }
 }
