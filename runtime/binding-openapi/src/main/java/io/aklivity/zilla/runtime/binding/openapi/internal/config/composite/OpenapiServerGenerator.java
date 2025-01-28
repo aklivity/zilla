@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -36,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiComposit
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
@@ -269,11 +268,14 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     {
                         for (var server : operation.specification.servers)
                         {
-                            Path serverPath = Paths.get(server.url.getPath());
-                            Path requestPath = serverPath.resolve(operation.path);
+                            String serverPath = server.url.getPath();
+                            String requestPath = serverPath != null
+                                    ? serverPath.concat(operation.path)
+                                    : operation.path;
+
                             options
                                 .request()
-                                    .path(requestPath.toString())
+                                    .path(requestPath)
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
@@ -380,19 +382,30 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .map(s -> s.openapi)
                     .flatMap(v -> v.paths.values().stream())
                     .flatMap(p -> p.methods.values().stream())
+                    .filter(o -> o.servers != null)
                     .forEach(operation ->
-                        binding
-                            .route()
-                            .exit(config.qname)
-                            .when(HttpConditionConfig::builder)
-                                .header(":path", operation.path.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                .header(":method", operation.method)
-                                .build()
-                            .with(HttpWithConfig::builder)
-                                .compositeId(operation.compositeId)
-                                .build()
-                            .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                            .build());
+                    {
+                        for (OpenapiServerView server : operation.servers)
+                        {
+                            String serverPath = server.url.getPath();
+                            String requestPath = serverPath != null
+                                    ? serverPath.concat(operation.path)
+                                    : operation.path;
+
+                            binding
+                                .route()
+                                .exit(config.qname)
+                                .when(HttpConditionConfig::builder)
+                                    .header(":path", requestPath.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                    .header(":method", operation.method)
+                                    .build()
+                                .with(HttpWithConfig::builder)
+                                    .compositeId(operation.compositeId)
+                                    .build()
+                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                .build();
+                        }
+                    });
 
                 return binding;
             }

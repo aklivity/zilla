@@ -40,7 +40,14 @@ public final class OpenapiView
     public static OpenapiView of(
         Openapi model)
     {
-        return of(0, null, model, List.of());
+        return of(model, List.of());
+    }
+
+    public static OpenapiView of(
+        Openapi model,
+        List<OpenapiServerConfig> configs)
+    {
+        return of(0, null, model, configs);
     }
 
     public static OpenapiView of(

@@ -22,6 +22,7 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -70,6 +71,20 @@ public final class OpenapiBindingConfig
         this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+
+        // TODO: move to engine
+        if (options != null)
+        {
+            if (options.http != null)
+            {
+                final HttpAuthorizationConfig authorization = options.http.authorization;
+                if (authorization != null)
+                {
+                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                    authorization.qname = context.supplyQName(namespacedId);
+                }
+            }
+        }
     }
 
     public OpenapiRouteConfig resolve(

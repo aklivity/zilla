@@ -19,10 +19,13 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
@@ -51,8 +54,8 @@ public final class OpenapiServerView
                 : Map.of();
 
         this.url = model.url != null
-                ? URI.create(new VariableMatcher(variables::get, model.url)
-                        .resolve(config != null ? config.url : null))
+                ? resolvePorts(URI.create(new VariableMatcher(variables::get, model.url)
+                        .resolve(config != null ? config.url : null)))
                 : null;
     }
 
@@ -81,5 +84,39 @@ public final class OpenapiServerView
             this.defaultValue = VARIABLE.matcher(value)
                     .replaceAll(mr -> resolver.apply(mr.group(1)).defaultValue);
         }
+    }
+
+    private static URI resolvePorts(
+        URI url)
+    {
+        String scheme = url.getScheme();
+        int port = url.getPort();
+
+        if (port == -1)
+        {
+            String userInfo = url.getUserInfo();
+            String host = url.getHost();
+            String path = url.getPath();
+            String query = url.getQuery();
+            String fragment = url.getFragment();
+
+            int defaultPort = switch (scheme)
+            {
+            case "http" -> 80;
+            case "https" -> 443;
+            default -> port;
+            };
+
+            try
+            {
+                url = new URI(scheme, userInfo, host, defaultPort, path, query, fragment);
+            }
+            catch (URISyntaxException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
+
+        return url;
     }
 }

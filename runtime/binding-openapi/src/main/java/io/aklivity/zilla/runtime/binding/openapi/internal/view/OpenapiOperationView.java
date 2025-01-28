@@ -23,6 +23,7 @@ import java.util.Objects;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
@@ -79,7 +80,7 @@ public final class OpenapiOperationView
                 ? model.servers.stream()
                     .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
-                : null;
+                : specification.servers;
     }
 
     public boolean hasRequestBodyOrParameters()

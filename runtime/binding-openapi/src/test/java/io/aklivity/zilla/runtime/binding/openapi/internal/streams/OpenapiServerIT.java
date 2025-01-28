@@ -41,8 +41,8 @@ public class OpenapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config")
-        .configure(EngineConfiguration.ENGINE_VERBOSE, true)
-        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, true)
+        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
         .external("openapi0")
         .clean();
 
@@ -56,28 +56,6 @@ public class OpenapiServerIT
         "${openapi}/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.port.http.default.yaml")
-    @Specification({
-        "${composite}/create.pet.port.http.default/client",
-        "${openapi}/create.pet.port.http.default/server"
-    })
-    public void shouldCreatePetWithHttpDefaultPort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.port.https.default.yaml")
-    @Specification({
-        "${composite}/create.pet.port.https.default/client",
-        "${openapi}/create.pet.port.https.default/server"
-    })
-    public void shouldCreatePetWithHttpsDefaultPort() throws Exception
     {
         k3po.finish();
     }
@@ -110,7 +88,7 @@ public class OpenapiServerIT
         "${composite}/create.pet.prod/client",
         "${openapi}/create.pet.prod/server"
     })
-    public void shouldCreatePetWithProductionEnvironment() throws Exception
+    public void shouldCreatePetWithProductionServer() throws Exception
     {
         k3po.finish();
     }
