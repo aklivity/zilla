@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.122](https://github.com/aklivity/zilla/tree/0.9.122) (2025-01-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.121...0.9.122)
+
+**Fixed bugs:**
+
+- Logging wrong accept url when http proxy is configured [\#1380](https://github.com/aklivity/zilla/issues/1380)
+- Connection to MQTT server over WebSocket fails from web browser [\#1374](https://github.com/aklivity/zilla/issues/1374)
+- Zilla unable to produce to Kafka when removing the north/south cache blocks [\#1353](https://github.com/aklivity/zilla/issues/1353)
+
+**Closed issues:**
+
+- Unify ZFUNCTION and ZSTREAM into a single concept [\#1376](https://github.com/aklivity/zilla/issues/1376)
+
+**Merged pull requests:**
+
+- Support configurable TLS client SNI validation and handle FQDNs … [\#1383](https://github.com/aklivity/zilla/pull/1383) ([jfallows](https://github.com/jfallows))
+- Log accepted before overriding the headers [\#1381](https://github.com/aklivity/zilla/pull/1381) ([akrambek](https://github.com/akrambek))
+- Unify ZFUNCTION and ZSTREAM into a single concept [\#1377](https://github.com/aklivity/zilla/pull/1377) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.121](https://github.com/aklivity/zilla/tree/0.9.121) (2025-01-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.120...0.9.121)
