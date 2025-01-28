@@ -21,6 +21,7 @@ public record CreateZfunction(
     String name,
     List<FunctionArgument> arguments,
     List<FunctionArgument> returnTypes,
-    Select select)
+    Select select,
+    String events)
 {
 }

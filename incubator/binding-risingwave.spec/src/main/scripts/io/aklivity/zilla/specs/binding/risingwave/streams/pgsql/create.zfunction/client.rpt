@@ -32,33 +32,27 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE ZFUNCTION send_payment_handler(\n"
-      " type VARCHAR,\n"
+write "CREATE ZFUNCTION send_payment(\n"
       " user_id VARCHAR,\n"
-      " random VARCHAR,\n"
-      " amount DOUBLE PRECISION,\n"
-      " notes VARCHAR)\n"
+      " amount DOUBLE PRECISION)\n"
       "RETURNS TABLE(\n"
-      " type VARCHAR,\n"
+      " event VARCHAR,\n"
       " user_id VARCHAR,\n"
-      " request_id VARCHAR,\n"
-      " amount DOUBLE PRECISION,\n"
-      " notes VARCHAR)\n"
+      " amount DOUBLE PRECISION)\n"
       "LANGUAGE SQL AS $$\n"
       " SELECT\n"
       "     CASE\n"
-      "         WHEN balance >= amount THEN \"PaymentSent\"\n"
-      "         ELSE \"PaymentDeclined\"\n"
-      "     END AS type,\n"
-      "     user_id,\n"
-      "     request_id,\n"
-      "     amount,\n"
-      "     balance,\n"
-      "     notes\n"
-      " FROM balance as b WHERE b.user_id = user_id;\n"
-      "$$"
+      "         WHEN balance >= args.amount THEN 'PaymentSent'\n"
+      "         ELSE 'PaymentDeclined'\n"
+      "     END AS event,\n"
+      "     args.user_id,\n"
+      "     args.amount\n"
+      " FROM balance WHERE user_id = args.user_id;\n"
+      "$$\n"
+      "WITH (\n"
+      " EVENTS = 'app_events'\n"
+      ");"
       [0x00]
-
 write flush
 
 read advised zilla:flush ${pgsql:flushEx()

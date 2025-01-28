@@ -1029,6 +1029,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Map<String, String> headers = new LinkedHashMap<>();
                 beginEx.headers().forEach(h -> headers.put(h.name().asString().toLowerCase(), h.value().asString()));
 
+                HttpBindingConfig binding = server.binding;
+                GuardHandler guard = server.guard;
+                event.requestAccepted(traceId, server.routedId, guard, authorization, beginEx.headers());
+
                 if (isCorsPreflightRequest(headers))
                 {
                     server.onDecodeCorsPreflight(traceId, authorization, headers);
@@ -1041,9 +1045,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    HttpBindingConfig binding = server.binding;
-                    GuardHandler guard = server.guard;
-
                     if (CHALLENGE_RESPONSE_METHOD.equals(headers.get(HEADER_NAME_METHOD)) &&
                         CHALLENGE_RESPONSE_CONTENT_TYPE.equals(headers.get(HEADER_NAME_CONTENT_TYPE)) &&
                         CHALLENGE_RESPONSE_CONTENT_LENGTH.equals(headers.get(HEADER_NAME_CONTENT_LENGTH)))
@@ -2273,8 +2274,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpBeginExFW beginEx,
             HttpRequestType requestType)
         {
-            event.requestAccepted(traceId, originId, guard, authorization, beginEx.headers());
-
             final HttpExchange exchange = new HttpExchange(originId, routedId, authorization,
                 traceId, policy, origin, requestType);
             boolean headersValid = exchange.validateHeaders(beginEx);

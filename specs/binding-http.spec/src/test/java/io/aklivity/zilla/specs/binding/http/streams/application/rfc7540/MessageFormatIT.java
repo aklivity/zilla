@@ -149,6 +149,16 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${app}/connection.headers.override/client",
+        "${app}/connection.headers.override/server"
+    })
+    public void connectionHeadersOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/stream.id.order/client",
         "${app}/stream.id.order/server"
     })

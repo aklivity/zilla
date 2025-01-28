@@ -29,12 +29,10 @@ import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZstreamTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlAlterZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCommandListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateFunctionListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZfunctionListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZstreamListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZtableTopicListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlCreateZviewListener;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.listener.SqlDropListener;
@@ -43,7 +41,6 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZstream;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 
@@ -54,10 +51,8 @@ public final class PgsqlParser
     private final CommonTokenStream tokens;
     private final PostgreSqlParser parser;
     private final SqlCommandListener commandListener;
-    private final SqlCreateZstreamListener createStreamListener;
     private final SqlCreateZtableTopicListener createTableListener;
     private final SqlAlterZtableTopicListener alterTableListener;
-    private final SqlAlterZstreamTopicListener alterStreamListener;
     private final SqlCreateFunctionListener createFunctionListener;
     private final SqlCreateZfunctionListener createZfunctionListener;
     private final SqlCreateZviewListener createMaterializedViewListener;
@@ -79,8 +74,6 @@ public final class PgsqlParser
         this.commandListener = new SqlCommandListener(tokens);
         this.createTableListener = new SqlCreateZtableTopicListener(tokens);
         this.alterTableListener = new SqlAlterZtableTopicListener(tokens);
-        this.alterStreamListener = new SqlAlterZstreamTopicListener(tokens);
-        this.createStreamListener = new SqlCreateZstreamListener(tokens);
         this.createFunctionListener = new SqlCreateFunctionListener(tokens);
         this.createZfunctionListener = new SqlCreateZfunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
@@ -107,20 +100,6 @@ public final class PgsqlParser
     {
         parser(sql, alterTableListener);
         return alterTableListener.alter();
-    }
-
-    public Alter parseAlterStream(
-        String sql)
-    {
-        parser(sql, alterStreamListener);
-        return alterStreamListener.alter();
-    }
-
-    public CreateZstream parseCreateZstream(
-        String sql)
-    {
-        parser(sql, createStreamListener);
-        return createStreamListener.stream();
     }
 
     public CreateFunction parseCreateFunction(
