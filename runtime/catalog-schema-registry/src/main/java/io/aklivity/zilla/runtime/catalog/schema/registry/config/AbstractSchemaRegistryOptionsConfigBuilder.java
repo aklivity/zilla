@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.config;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -30,6 +31,10 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
     private String url;
     private String context;
     private Duration maxAge;
+    private List<String> keys;
+    private List<String> trust;
+    private Boolean trustcacerts;
+    private String authorization;
 
     public B url(
         String url)
@@ -52,11 +57,40 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
         return thisType().cast(this);
     }
 
+    public B keys(
+        List<String> keys)
+    {
+        this.keys = keys;
+        return thisType().cast(this);
+    }
+
+    public B trust(
+        List<String> trust)
+    {
+        this.trust = trust;
+        return thisType().cast(this);
+    }
+
+    public B trustcacerts(
+        boolean trustcacerts)
+    {
+        this.trustcacerts = trustcacerts;
+        return thisType().cast(this);
+    }
+
+    public B authorization(
+        String authorization)
+    {
+        this.authorization = authorization;
+        return thisType().cast(this);
+    }
+
     @Override
     public T build()
     {
         Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(newOptionsConfig(url, context, maxAge));
+        final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
+        return mapper.apply(newOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization));
     }
 
     protected AbstractSchemaRegistryOptionsConfigBuilder(
@@ -68,5 +102,9 @@ public abstract class AbstractSchemaRegistryOptionsConfigBuilder<T, B extends Ab
     protected abstract AbstractSchemaRegistryOptionsConfig newOptionsConfig(
         String url,
         String context,
-        Duration maxAge);
+        Duration maxAge,
+        List<String> keys,
+        List<String> trust,
+        boolean trustcacerts,
+        String authorization);
 }

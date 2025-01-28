@@ -30,12 +30,22 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/catalog/schema/registry/schema/schema.registry.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/catalog/schema/registry/config");
 
     @Test
     public void shouldValidateCatalog()
     {
         JsonObject config = schema.validate("catalog.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateSecureCatalog()
+    {
+        JsonObject config = schema.validate("resolve/schema/id/secure/mtls/zilla.yaml");
 
         assertThat(config, not(nullValue()));
     }

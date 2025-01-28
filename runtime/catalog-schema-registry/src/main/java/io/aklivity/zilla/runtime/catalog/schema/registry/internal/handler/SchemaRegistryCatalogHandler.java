@@ -22,24 +22,40 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.security.Trusted;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
@@ -47,6 +63,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final String REGISTER_SUBJECT_PATH = "/subjects/{0}/versions";
     private static final String UNREGISTER_SUBJECT_PATH = "/subjects/{0}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
+    private static final String HTTPS = "https://";
 
     private static final int MAX_PADDING_LENGTH = 5;
     private static final byte MAGIC_BYTE = 0x0;
@@ -68,22 +85,66 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> cachedSchemas;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
+    private final String authorization;
 
     public SchemaRegistryCatalogHandler(
-        SchemaRegistryCatalogConfig catalog)
+        Configuration config,
+        SchemaRegistryCatalogConfig catalog,
+        EngineContext context)
     {
-        this.baseUrl = catalog.options.url;
-        this.client = HttpClient.newHttpClient();
+        AbstractSchemaRegistryOptionsConfig options = catalog.options;
+        this.baseUrl = options.url;
+        LongFunction<VaultHandler> supplyVault = context::supplyVault;
+        VaultHandler vault = supplyVault.apply(catalog.vaultId);
+
+        HttpClient client;
+        if (this.baseUrl.startsWith(HTTPS))
+        {
+            try
+            {
+                KeyManagerFactory keys = newKeys(vault, options.keys);
+                TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts);
+
+                KeyManager[] keyManagers = null;
+                if (keys != null)
+                {
+                    keyManagers = keys.getKeyManagers();
+                }
+
+                TrustManager[] trustManagers = null;
+                if (trust != null)
+                {
+                    trustManagers = trust.getTrustManagers();
+                }
+
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(keyManagers, trustManagers, new SecureRandom());
+
+                client = HttpClient.newBuilder().sslContext(sslContext).build();
+            }
+            catch (Exception ex)
+            {
+                client = HttpClient.newHttpClient();
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
+        else
+        {
+            client = HttpClient.newHttpClient();
+        }
+
+        this.client = client;
         this.registerRequest = new RegisterSchemaRequest();
         this.unregisterRequest = new UnregisterSchemaRequest();
         this.crc32c = new CRC32C();
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.maxAgeMillis = catalog.options.maxAge.toMillis();
+        this.maxAgeMillis = options.maxAge.toMillis();
         this.event = catalog.events;
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
+        this.authorization = options.authorization;
     }
 
     @Override
@@ -366,16 +427,21 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private String sendHttpRequest(
         String path)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
                 .newBuilder(toURI(baseUrl, path))
-                .GET()
-                .build();
+                .GET();
+
+        if (authorization != null)
+        {
+            httpRequest.header("authorization", authorization);
+        }
+
         // TODO: introduce interrupt/timeout for request to schema registry
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
@@ -389,18 +455,23 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         String path,
         String body)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, path))
             .version(HttpClient.Version.HTTP_1_1)
             .header("content-type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build();
+            .POST(HttpRequest.BodyPublishers.ofString(body));
+
+        if (authorization != null)
+        {
+            httpRequest.header("authorization", authorization);
+        }
+
         // TODO: introduce interrupt/timeout for request to schema registry
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
@@ -413,16 +484,20 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private String sendDeleteHttpRequest(
         String path)
     {
-        HttpRequest httpRequest = HttpRequest
+        HttpRequest.Builder httpRequest = HttpRequest
             .newBuilder(toURI(baseUrl, path))
             .version(HttpClient.Version.HTTP_1_1)
-            .DELETE()
-            .build();
+            .DELETE();
+
+        if (authorization != null)
+        {
+            httpRequest.header("authorization", authorization);
+        }
 
         String responseBody;
         try
         {
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = client.send(httpRequest.build(), HttpResponse.BodyHandlers.ofString());
             responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
@@ -453,5 +528,63 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         crc32c.reset();
         crc32c.update(bytes, 0, bytes.length);
         return (int) crc32c.getValue();
+    }
+
+    private TrustManagerFactory newTrust(
+        Configuration config,
+        VaultHandler vault,
+        List<String> trustNames,
+        boolean trustcacerts)
+    {
+        TrustManagerFactory trust = null;
+
+        try
+        {
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
+
+            if (vault != null)
+            {
+                trust = vault.initTrust(trustNames, cacerts);
+            }
+            else if (cacerts != null)
+            {
+                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(cacerts);
+                trust = factory;
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return trust;
+    }
+
+    private KeyManagerFactory newKeys(
+        VaultHandler vault,
+        List<String> keyNames)
+    {
+        KeyManagerFactory keys = null;
+
+        keys:
+        try
+        {
+            if (vault == null)
+            {
+                break keys;
+            }
+
+            if (keyNames != null)
+            {
+                keys = vault.initKeys(keyNames);
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return keys;
     }
 }

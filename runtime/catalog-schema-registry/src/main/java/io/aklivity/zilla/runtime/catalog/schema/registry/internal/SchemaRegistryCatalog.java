@@ -21,12 +21,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCache;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 
 public final class SchemaRegistryCatalog implements Catalog
 {
+    private final Configuration config;
     private final String type;
     private final Set<String> aliases;
     private final Supplier<URL> schema;
@@ -34,9 +36,11 @@ public final class SchemaRegistryCatalog implements Catalog
 
     public SchemaRegistryCatalog(
         String type,
+        Configuration config,
         Set<String> aliases,
         Supplier<URL> schema)
     {
+        this.config = config;
         this.type = type;
         this.aliases = aliases;
         this.schema = schema;
@@ -59,7 +63,7 @@ public final class SchemaRegistryCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new SchemaRegistryCatalogContext(type, context, cache);
+        return new SchemaRegistryCatalogContext(type, config, context, cache);
     }
 
     @Override

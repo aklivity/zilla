@@ -14,13 +14,20 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry;
 
+import static java.util.stream.Collectors.toList;
+
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
@@ -34,6 +41,13 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String URL = "url";
     private static final String CONTEXT = "context";
     private static final String MAX_AGE_NAME = "max-age";
+    private static final String KEYS_NAME = "keys";
+    private static final String TRUST_NAME = "trust";
+    private static final String TRUSTCACERTS_NAME = "trustcacerts";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String TLS_NAME = "tls";
 
     private final String type;
     private final Set<String> aliases;
@@ -83,6 +97,45 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
 
+        JsonObjectBuilder tls = Json.createObjectBuilder();
+
+        if (config.keys != null)
+        {
+            JsonArrayBuilder keys = Json.createArrayBuilder();
+            config.keys.forEach(keys::add);
+            tls.add(KEYS_NAME, keys);
+        }
+
+        if (config.trust != null)
+        {
+            JsonArrayBuilder trust = Json.createArrayBuilder();
+            config.trust.forEach(trust::add);
+            tls.add(TRUST_NAME, trust);
+        }
+
+        if (config.trust != null && config.trustcacerts ||
+            config.trust == null && !config.trustcacerts)
+        {
+            tls.add(TRUSTCACERTS_NAME, config.trustcacerts);
+        }
+
+        JsonObject tlsJson = tls.build();
+        if (!tlsJson.isEmpty())
+        {
+            catalog.add(TLS_NAME, tlsJson);
+        }
+
+        if (config.authorization != null)
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            headers.add(AUTHORIZATION_NAME, config.authorization);
+
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(AUTHORIZATION_CREDENTIALS_HEADERS_NAME, headers);
+
+            catalog.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
+        }
+
         return catalog.build();
     }
 
@@ -108,9 +161,60 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
             {
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
+
+            if (object.containsKey(TLS_NAME))
+            {
+                JsonObject tls = object.getJsonObject(TLS_NAME);
+
+                if (tls.containsKey(KEYS_NAME))
+                {
+                    options.keys(asListString(tls.getJsonArray(KEYS_NAME)));
+                }
+
+                if (tls.containsKey(TRUST_NAME))
+                {
+                    options.trust(asListString(tls.getJsonArray(TRUST_NAME)));
+                }
+
+                if (tls.containsKey(TRUSTCACERTS_NAME))
+                {
+                    options.trustcacerts(tls.getBoolean(TRUSTCACERTS_NAME));
+                }
+            }
+
+            if (object.containsKey(AUTHORIZATION_CREDENTIALS_NAME))
+            {
+                JsonObject credentials = object.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+
+                JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+
+                options.authorization(headers.getString(AUTHORIZATION_NAME));
+            }
         }
 
         return options.build();
+    }
+
+    private static List<String> asListString(
+        JsonArray array)
+    {
+        return array.stream()
+            .map(AbstractSchemaRegistryOptionsConfigAdapter::asString)
+            .collect(toList());
+    }
+
+    private static String asString(
+        JsonValue value)
+    {
+        switch (value.getValueType())
+        {
+        case STRING:
+            return ((JsonString) value).getString();
+        case NULL:
+            return null;
+        default:
+            throw new IllegalArgumentException("Unexpected type: " + value.getValueType());
+        }
     }
 
     protected AbstractSchemaRegistryOptionsConfigAdapter(

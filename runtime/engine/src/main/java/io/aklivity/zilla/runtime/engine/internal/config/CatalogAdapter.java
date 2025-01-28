@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class CatalogAdapter
 {
     private static final String TYPE_NAME = "type";
+    private static final String VAULT_NAME = "vault";
     private static final String OPTIONS_NAME = "options";
 
     private final OptionsConfigAdapter options;
@@ -73,6 +74,11 @@ public class CatalogAdapter
 
         String type = object.getString(TYPE_NAME);
         builder.type(type);
+
+        if (object.containsKey(VAULT_NAME))
+        {
+            builder.vault(object.getString(VAULT_NAME));
+        }
 
         options.adaptType(type);
 
