@@ -65,6 +65,15 @@ public class GrpcProduceIT
 
     @Test
     @Specification({
+        "${grpc}/client.stream.rpc.oneway/client",
+        "${grpc}/client.stream.rpc.oneway/server"})
+    public void shouldExchangeMessageInClientStreamOneway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/client.stream.rpc.write.abort/client",
         "${grpc}/client.stream.rpc.write.abort/server"})
     public void shouldNotProduceClientStreamMessageOnWriteAbort() throws Exception
@@ -95,6 +104,15 @@ public class GrpcProduceIT
         "${grpc}/unary.rpc/client",
         "${grpc}/unary.rpc/server"})
     public void shouldExchangeMessageInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.oneway/client",
+        "${grpc}/unary.rpc.oneway/server"})
+    public void shouldExchangeMessageInUnaryOneway() throws Exception
     {
         k3po.finish();
     }
