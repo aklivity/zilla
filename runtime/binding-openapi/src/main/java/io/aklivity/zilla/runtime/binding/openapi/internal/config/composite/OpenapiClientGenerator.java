@@ -243,13 +243,14 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                     .flatMap(p -> p.methods.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        options
-                            .request()
-                                .path(operation.path)
-                                .method(HttpRequestConfig.Method.valueOf(operation.method))
-                                .inject(request -> injectHttpResponses(request, operation))
-                                .build()
-                            .build());
+                        operation.servers.forEach(server ->
+                            options
+                                .request()
+                                    .path(operation.requestPath(server))
+                                    .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                    .inject(request -> injectHttpResponses(request, operation))
+                                    .build()
+                                .build()));
 
                 return options;
             }

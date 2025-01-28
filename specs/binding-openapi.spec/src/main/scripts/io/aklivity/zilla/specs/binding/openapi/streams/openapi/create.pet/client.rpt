@@ -20,6 +20,7 @@ connect "zilla://streams/openapi0"
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
+                             .apiId(1)
                              .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
