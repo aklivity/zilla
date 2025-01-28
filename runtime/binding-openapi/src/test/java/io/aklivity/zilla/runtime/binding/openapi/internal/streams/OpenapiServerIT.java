@@ -41,8 +41,8 @@ public class OpenapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config")
-        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
-        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE, true)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, true)
         .external("openapi0")
         .clean();
 

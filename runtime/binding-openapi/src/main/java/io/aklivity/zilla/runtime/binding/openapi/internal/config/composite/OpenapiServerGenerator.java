@@ -266,16 +266,11 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
                     {
-                        for (var server : operation.specification.servers)
+                        for (OpenapiServerView server : operation.servers)
                         {
-                            String serverPath = server.url.getPath();
-                            String requestPath = serverPath != null
-                                    ? serverPath.concat(operation.path)
-                                    : operation.path;
-
                             options
                                 .request()
-                                    .path(requestPath)
+                                    .path(operation.requestPath(server))
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
@@ -384,28 +379,19 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .flatMap(p -> p.methods.values().stream())
                     .filter(o -> o.servers != null)
                     .forEach(operation ->
-                    {
-                        for (OpenapiServerView server : operation.servers)
-                        {
-                            String serverPath = server.url.getPath();
-                            String requestPath = serverPath != null
-                                    ? serverPath.concat(operation.path)
-                                    : operation.path;
-
+                        operation.servers.forEach(server ->
                             binding
                                 .route()
                                 .exit(config.qname)
                                 .when(HttpConditionConfig::builder)
-                                    .header(":path", requestPath.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                    .header(":path", operation.requestPath(server).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
                                     .header(":method", operation.method)
                                     .build()
                                 .with(HttpWithConfig::builder)
                                     .compositeId(operation.compositeId)
                                     .build()
                                 .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build();
-                        }
-                    });
+                                .build()));
 
                 return binding;
             }

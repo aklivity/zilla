@@ -23,7 +23,6 @@ import java.util.Objects;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
@@ -101,5 +100,15 @@ public final class OpenapiOperationView
     public boolean hasResponses()
     {
         return responses != null;
+    }
+
+    public String requestPath(
+        OpenapiServerView server)
+    {
+        String serverPath = server.url.getPath();
+
+        return serverPath != null
+            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
+            : path;
     }
 }
