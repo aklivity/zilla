@@ -62,7 +62,7 @@ public class CompositeIT
         "${composite}/create.pet.prod/client",
         "${composite}/create.pet.prod/server"
     })
-    public void shouldCreatePetWithProductionEnvironment() throws Exception
+    public void shouldCreatePetWithProductionServer() throws Exception
     {
         k3po.finish();
     }

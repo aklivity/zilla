@@ -63,22 +63,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerWithHttpDefaultPort()
-    {
-        JsonObject config = schema.validate("server.port.http.default.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateServerWithHttpsDefaultPort()
-    {
-        JsonObject config = schema.validate("server.port.https.default.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateServerSecure()
     {
         JsonObject config = schema.validate("server.secure.yaml");
