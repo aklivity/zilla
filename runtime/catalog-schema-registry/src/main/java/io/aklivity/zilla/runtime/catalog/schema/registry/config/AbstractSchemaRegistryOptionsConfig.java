@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.config;
 
 import java.time.Duration;
+import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -23,14 +24,26 @@ public abstract class AbstractSchemaRegistryOptionsConfig extends OptionsConfig
     public final String url;
     public final String context;
     public final Duration maxAge;
+    public final List<String> keys;
+    public final List<String> trust;
+    public final boolean trustcacerts;
+    public final String authorization;
 
     protected AbstractSchemaRegistryOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        List<String> keys,
+        List<String> trust,
+        boolean trustcacerts,
+        String authorization)
     {
         this.url = url;
         this.context = context;
         this.maxAge = maxAge;
+        this.keys = keys;
+        this.trust = trust;
+        this.trustcacerts = trustcacerts;
+        this.authorization = authorization;
     }
 }

@@ -47,8 +47,8 @@ public final class TestVaultHandler implements VaultHandler
 {
     private static final Pattern PATTERN_KEY_ENTRY =
         Pattern.compile(
-            "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]+)" +
-            "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]+)+)");
+            "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
+            "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
 
     private final TestVaultEntryConfig key;
     private final TestVaultEntryConfig signer;

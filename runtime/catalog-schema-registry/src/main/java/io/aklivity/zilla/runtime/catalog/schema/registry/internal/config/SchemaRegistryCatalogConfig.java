@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 public final class SchemaRegistryCatalogConfig
 {
     public final long id;
+    public final long vaultId;
     public final SchemaRegistryEventContext events;
     public final AbstractSchemaRegistryOptionsConfig options;
     public final SchemaRegistryCache cache;
@@ -42,6 +43,7 @@ public final class SchemaRegistryCatalogConfig
         SchemaRegistryCache cache)
     {
         this.id = catalog.id;
+        this.vaultId = catalog.vaultId;
         this.options = AbstractSchemaRegistryOptionsConfig.class.cast(catalog.options);
         this.events = new SchemaRegistryEventContext(context, type);
         this.cache = cache;

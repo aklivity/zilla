@@ -26,6 +26,7 @@ public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfi
     private String namespace;
     private String name;
     private String type;
+    private String vault;
     private OptionsConfig options;
 
     CatalogConfigBuilder(
@@ -62,6 +63,13 @@ public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfi
         return this;
     }
 
+    public CatalogConfigBuilder<T> vault(
+        String vault)
+    {
+        this.vault = vault;
+        return this;
+    }
+
     public <C extends ConfigBuilder<CatalogConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, CatalogConfigBuilder<T>>, C> options)
     {
@@ -78,6 +86,6 @@ public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfi
     @Override
     public T build()
     {
-        return mapper.apply(new CatalogConfig(namespace, name, type, options));
+        return mapper.apply(new CatalogConfig(namespace, name, type, vault, options));
     }
 }

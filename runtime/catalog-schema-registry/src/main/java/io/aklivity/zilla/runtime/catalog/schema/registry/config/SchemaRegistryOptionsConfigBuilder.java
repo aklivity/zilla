@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.config;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -39,9 +40,13 @@ public final class SchemaRegistryOptionsConfigBuilder<T>
     protected SchemaRegistryOptionsConfig newOptionsConfig(
         String url,
         String context,
-        Duration maxAge)
+        Duration maxAge,
+        List<String> keys,
+        List<String> trust,
+        boolean trustcacerts,
+        String authorization)
     {
-        return new SchemaRegistryOptionsConfig(url, context, maxAge);
+        return new SchemaRegistryOptionsConfig(url, context, maxAge, keys, trust, trustcacerts, authorization);
     }
 
 }
