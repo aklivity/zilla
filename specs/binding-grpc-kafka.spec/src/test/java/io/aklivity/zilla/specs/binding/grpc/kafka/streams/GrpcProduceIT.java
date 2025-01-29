@@ -67,7 +67,7 @@ public class GrpcProduceIT
     @Specification({
         "${grpc}/client.stream.rpc.oneway/client",
         "${grpc}/client.stream.rpc.oneway/server"})
-    public void shouldExchangeMessageInClientStreamOneway() throws Exception
+    public void shouldSendMessageInClientStreamOneway() throws Exception
     {
         k3po.finish();
     }
@@ -112,7 +112,7 @@ public class GrpcProduceIT
     @Specification({
         "${grpc}/unary.rpc.oneway/client",
         "${grpc}/unary.rpc.oneway/server"})
-    public void shouldExchangeMessageInUnaryOneway() throws Exception
+    public void shouldSendMessageInUnaryOneway() throws Exception
     {
         k3po.finish();
     }

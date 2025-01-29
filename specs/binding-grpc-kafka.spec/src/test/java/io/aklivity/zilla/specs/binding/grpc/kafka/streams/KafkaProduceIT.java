@@ -67,7 +67,7 @@ public class KafkaProduceIT
     @Specification({
         "${kafka}/client.stream.rpc.oneway/client",
         "${kafka}/client.stream.rpc.oneway/server"})
-    public void shouldExchangeMessageInClientStreamOneway() throws Exception
+    public void shouldSendMessageInClientStreamOneway() throws Exception
     {
         k3po.finish();
     }
@@ -112,7 +112,7 @@ public class KafkaProduceIT
     @Specification({
         "${kafka}/unary.rpc.oneway/client",
         "${kafka}/unary.rpc.oneway/server"})
-    public void shouldExchangeMessageInUnaryOneway() throws Exception
+    public void shouldSendMessageInUnaryOneway() throws Exception
     {
         k3po.finish();
     }

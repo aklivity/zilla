@@ -94,7 +94,11 @@ public class GrpcKafkaWithProduceResult
         hash.updateHash(correlation.method.value());
         hash.updateHash(method.value());
         hash.updateHash(correlation.replyTo.value());
-        hash.updateHash(replyTo.value());
+
+        if (replyTo != null && replyTo.value() != null)
+        {
+            hash.updateHash(replyTo.value());
+        }
 
         if (overrides != null)
         {
@@ -155,8 +159,13 @@ public class GrpcKafkaWithProduceResult
 
         builder.item(this::service);
         builder.item(this::method);
-        builder.item(this::replyTo);
-        builder.item(this::correlationId);
+
+        if (replyTo != null && replyTo.value() != null)
+        {
+            builder.item(this::replyTo);
+            builder.item(this::correlationId);
+        }
+
         metadata.forEach(m -> builder.item(i -> metadata(i, m)));
     }
 

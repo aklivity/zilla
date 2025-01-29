@@ -242,13 +242,26 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final GrpcKafkaWithProduceResult result =
                     route.with.resolveProduce(authorization, grpcBeginEx);
 
-                newStream = new GrpcProduceProxy(
-                    grpc,
-                    originId,
-                    routedId,
-                    initialId,
-                    resolvedId,
-                    result)::onGrpcMessage;
+                if (result.replyTo() != null && result.replyTo().value() != null)
+                {
+                    newStream = new GrpcProduceProxy(
+                        grpc,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        result)::onGrpcMessage;
+                }
+                else
+                {
+                    newStream = new GrpcProduceNoReplyProxy(
+                        grpc,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        result)::onGrpcMessage;
+                }
 
                 break;
             }
@@ -1636,6 +1649,437 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         }
     }
 
+    private final class GrpcProduceNoReplyProxy extends GrpcProxy
+    {
+        private final KafkaProduceProxy delegate;
+        private final long resolvedId;
+
+        private GrpcProduceNoReplyProxy(
+            MessageConsumer grpc,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            GrpcKafkaWithProduceResult result)
+        {
+            super(grpc, originId, routedId, initialId);
+            this.resolvedId = resolvedId;
+            this.delegate = new KafkaProduceProxy(routedId, resolvedId, this, result);
+        }
+
+        private void onGrpcMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onGrpcBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onGrpcData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onGrpcEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onGrpcAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onGrpcReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onGrpcWindow(window);
+                break;
+            }
+        }
+
+        private void onGrpcBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final long affinity = begin.affinity();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+            state = GrpcKafkaState.openingInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doKafkaBegin(traceId, authorization, affinity);
+        }
+
+        private void onGrpcData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            Flyweight kafkaDataEx = emptyRO;
+            if ((flags & DATA_FLAG_INIT) != 0x00)
+            {
+                GrpcDataExFW dataEx = null;
+                if (extension.sizeof() > 0)
+                {
+                    dataEx = extension.get(grpcDataExRO::tryWrap);
+                }
+
+                final int deferred = dataEx != null ? dataEx.deferred() : 0;
+                kafkaDataEx = kafkaDataExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m.produce(mp -> mp
+                        .deferred(deferred)
+                        .timestamp(now().toEpochMilli())
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(delegate.result::key)
+                        .headers(delegate.result::headers)))
+                    .build();
+            }
+
+            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
+        }
+
+        private void onGrpcEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = GrpcKafkaState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doKafkaEnd(traceId, authorization);
+
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization);
+            }
+
+            if (GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcData(traceId, authorization);
+            }
+
+            doGrpcEnd(traceId, authorization);
+        }
+
+        private void onGrpcAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = GrpcKafkaState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doKafkaAbort(traceId, authorization);
+        }
+
+        private void onGrpcReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final int maximum = reset.maximum();
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            state = GrpcKafkaState.closeReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doKafkaReset(traceId, authorization);
+        }
+
+        private void onGrpcWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyBud = budgetId;
+            replyPad = padding;
+            replyCap = capabilities;
+            state = GrpcKafkaState.openReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doKafkaWindow(traceId);
+        }
+
+        @Override
+        protected void onKafkaReset(
+            long traceId,
+            long authorization)
+        {
+            cleanup(traceId, authorization);
+        }
+
+        @Override
+        protected void onKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization);
+            }
+
+            cleanup(traceId, authorization);
+        }
+
+        @Override
+        protected void onKafkaBegin(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization);
+            }
+        }
+
+        @Override
+        protected void onKafkaData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            KafkaDataExFW kafkaDataEx)
+        {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization);
+            }
+
+            if (GrpcKafkaState.replyClosing(state))
+            {
+                replySeq += reserved;
+            }
+            else
+            {
+                if (payload == null)
+                {
+                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().fetch().headers()
+                        .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_STATUS.value().equals(h.name().value()));
+
+                    if (grpcStatus != null &&
+                        !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
+                    {
+                        OctetsFW value = grpcStatus.value();
+                        String16FW status = statusRW
+                            .set(value.buffer(), value.offset(), value.sizeof())
+                            .build();
+                        doGrpcAbort(traceId, authorization, status);
+                    }
+                    else
+                    {
+                        doGrpcEnd(traceId, traceId);
+                    }
+                }
+                else if (GrpcKafkaState.replyOpening(state))
+                {
+                    doGrpcData(traceId, authorization);
+                }
+            }
+        }
+
+        @Override
+        protected void onKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+            if (GrpcKafkaState.initialClosed(state))
+            {
+                delegate.doKafkaEnd(traceId, authorization);
+            }
+        }
+
+        @Override
+        protected void onKafkaWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+            doGrpcWindow(authorization, traceId, budgetId, padding, capabilities);
+        }
+
+        private void cleanup(
+            long traceId,
+            long authorization)
+        {
+            doGrpcReset(traceId, authorization);
+            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+
+            delegate.doKafkaAbort(traceId, authorization);
+            delegate.doKafkaReset(traceId, authorization);
+        }
+
+        private void doGrpcBegin(
+            long traceId,
+            long authorization)
+        {
+            state = GrpcKafkaState.openingReply(state);
+
+            GrpcBeginExFW beginEx = grpcBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .build();
+
+            doBegin(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0, beginEx);
+        }
+
+        private void doGrpcData(
+            long traceId,
+            long authorization)
+        {
+            GrpcDataExFW dataEx = grpcDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .build();
+
+            doData(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0L, DATA_FLAG_COMPLETE, 0,  null, dataEx);
+
+            assert replySeq <= replyAck + replyMax;
+        }
+
+        private void doGrpcAbort(
+            long traceId,
+            long authorization,
+            String16FW status)
+        {
+            if (GrpcKafkaState.replyOpening(state) &&
+                !GrpcKafkaState.replyClosed(state))
+            {
+                final GrpcAbortExFW grpcAbortEx =
+                    grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .status(status)
+                        .build();
+
+                doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, grpcAbortEx);
+            }
+            state = GrpcKafkaState.closeReply(state);
+        }
+
+        private void doGrpcEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcKafkaState.replyClosed(state))
+            {
+                state = GrpcKafkaState.closeReply(state);
+
+                doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+            }
+        }
+
+        private void doGrpcWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+            initialAck = delegate.initialAck;
+            initialMax = delegate.initialMax;
+
+            doWindow(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding, capabilities);
+        }
+
+        private void doGrpcReset(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcKafkaState.initialClosed(state))
+            {
+                state = GrpcKafkaState.closeInitial(state);
+
+                final GrpcResetExFW grpcResetEx =
+                    grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                        .build();
+
+                doReset(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, grpcResetEx);
+            }
+        }
+    }
+
     private final class KafkaProduceProxy
     {
         private MessageConsumer kafka;
@@ -1644,7 +2088,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final GrpcKafkaWithProduceResult result;
-        private final GrpcProduceProxy delegate;
+        private final GrpcProxy delegate;
 
         private int state;
 
@@ -1663,7 +2107,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private KafkaProduceProxy(
             long originId,
             long routedId,
-            GrpcProduceProxy delegate,
+            GrpcProxy delegate,
             GrpcKafkaWithProduceResult result)
         {
             this.originId = originId;
