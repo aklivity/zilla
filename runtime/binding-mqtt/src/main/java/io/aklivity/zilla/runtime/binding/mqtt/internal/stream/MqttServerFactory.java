@@ -5174,10 +5174,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                if (!wasOpen || willPayloadBytes != 0)
-                {
-                    decodeNetwork(traceId);
-                }
+                decodeNetwork(traceId);
 
                 if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
                 {
