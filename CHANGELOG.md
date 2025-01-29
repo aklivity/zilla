@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.122...HEAD)
+
+**Implemented enhancements:**
+
+- Allow separate Auth config for Catalog definitions [\#1195](https://github.com/aklivity/zilla/issues/1195)
+
+**Merged pull requests:**
+
+- Decode network unconditionally when received window on MQTT session stream [\#1386](https://github.com/aklivity/zilla/pull/1386) ([bmaidics](https://github.com/bmaidics))
+- Support secure schema access [\#1369](https://github.com/aklivity/zilla/pull/1369) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.122](https://github.com/aklivity/zilla/tree/0.9.122) (2025-01-28)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.121...0.9.122)
