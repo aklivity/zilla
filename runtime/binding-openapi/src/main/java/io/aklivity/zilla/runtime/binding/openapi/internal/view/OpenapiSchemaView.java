@@ -14,82 +14,149 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
-@JsonbPropertyOrder({
-    "type",
-    "items",
-    "properties",
-    "required"
-})
-public final class OpenapiSchemaView extends OpenapiResolvable<OpenapiSchema>
+public final class OpenapiSchemaView
 {
-    private static final String ARRAY_TYPE = "array";
+    public final String name;
+    public final OpenapiJsonSchema model;
 
-    private final OpenapiSchema schema;
-    private final Map<String, OpenapiSchema> schemas;
-    private final OpenapiSchema schemaRef;
+    public final String type;
+    public final OpenapiSchemaView items;
+    public final Map<String, OpenapiSchemaView> properties;
+    public final List<String> required;
+    public final String format;
+    public final String description;
+    public final Integer minimum;
+    public final Integer maximum;
+    public final List<String> values;
+    public final OpenapiSchemaView schema;
+
+    OpenapiSchemaView(
+        OpenapiResolver resolver,
+        OpenapiSchema model)
+    {
+        this(resolver.schemas.resolveRef(model.ref), resolver.schemas.resolve(model), resolver);
+    }
 
     private OpenapiSchemaView(
-        Map<String, OpenapiSchema> schemas,
-        OpenapiSchema schema)
+        String name,
+        OpenapiSchema resolved,
+        OpenapiResolver resolver)
     {
-        super(schemas, "#/components/schemas/(\\w+)");
-        OpenapiSchema schemaRef = null;
-        if (schema.ref != null)
+        this.name = name;
+        this.model = OpenapiJsonSchema.of(resolved);
+
+        this.type = resolved.type;
+        this.items = resolved.items != null
+            ? new OpenapiSchemaView(resolver, resolved.items)
+            : null;
+        this.properties = resolved.properties != null
+            ? resolved.properties.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, e -> new OpenapiSchemaView(resolver, e.getValue())))
+            : null;
+        this.required = resolved.required;
+        this.format = resolved.format;
+        this.description = resolved.description;
+        this.minimum = resolved.minimum;
+        this.maximum = resolved.maximum;
+        this.values = resolved.values;
+        this.schema = resolved.schema != null
+            ? new OpenapiSchemaView(resolver, resolved.schema)
+            : null;
+    }
+
+    @JsonbPropertyOrder({
+        "type",
+        "items",
+        "properties",
+        "required",
+        "format",
+        "description",
+        "enum",
+        "title",
+        "multipleOf",
+        "maximum",
+        "exclusiveMaximum",
+        "minimum",
+        "exclusiveMinimum",
+        "maxLength",
+        "minLength",
+        "pattern",
+        "maxItems",
+        "minItems",
+        "uniqueItems",
+        "maxProperties",
+        "minProperties",
+        "schema"
+    })
+    public static final class OpenapiJsonSchema
+    {
+        public String type;
+        public OpenapiSchema items;
+        public Map<String, OpenapiJsonSchema> properties;
+        public List<String> required;
+        public String format;
+        public String description;
+        @JsonbProperty("enum")
+        public List<String> values;
+        public String title;
+        public Integer multipleOf;
+        public Integer maximum;
+        public Integer exclusiveMaximum;
+        public Integer minimum;
+        public Integer exclusiveMinimum;
+        public Integer maxLength;
+        public Integer minLength;
+        public String pattern;
+        public Integer maxItems;
+        public Integer minItems;
+        public Boolean uniqueItems;
+        public Integer maxProperties;
+        public Integer minProperties;
+        public OpenapiJsonSchema schema;
+
+        public static OpenapiJsonSchema of(
+            OpenapiSchema model)
         {
-            schemaRef = new OpenapiSchema();
-            schemaRef.ref = schema.ref;
-            schema = resolveRef(schema.ref);
+            OpenapiJsonSchema json = new OpenapiJsonSchema();
+            json.type = model.type;
+            json.items = model.items;
+            json.properties = model.properties != null
+                   ? model.properties.entrySet().stream()
+                       .collect(Collectors.toMap(Map.Entry::getKey, e -> of(e.getValue())))
+                   : null;
+            json.required = model.required;
+            json.format = model.format;
+            json.description = model.description;
+            json.values = model.values;
+            json.title = model.title;
+            json.multipleOf = model.multipleOf;
+            json.maximum = Boolean.TRUE.equals(model.exclusiveMaximum) ? null : model.maximum;
+            json.exclusiveMaximum = Boolean.TRUE.equals(model.exclusiveMaximum) ? model.maximum : null;
+            json.minimum = Boolean.TRUE.equals(model.exclusiveMinimum) ? null : model.minimum;
+            json.exclusiveMinimum = Boolean.TRUE.equals(model.exclusiveMinimum) ? model.minimum : null;
+            json.maxLength = model.maxLength;
+            json.minLength = model.minLength;
+            json.pattern = model.pattern;
+            json.maxItems = model.maxItems;
+            json.minItems = model.minItems;
+            json.uniqueItems = model.uniqueItems;
+            json.maxProperties = model.maxProperties;
+            json.minProperties = model.minProperties;
+            json.schema = model.schema != null ? of(model.schema) : null;
+
+            return json;
         }
-        else if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
-        {
-            schema.items = resolveRef(schema.items.ref);
-        }
-        this.schemaRef = schemaRef;
-        this.schemas = schemas;
-        this.schema = schema;
-    }
-
-    public String refKey()
-    {
-        return key;
-    }
-    public OpenapiSchema ref()
-    {
-        return schemaRef;
-    }
-
-    public String getType()
-    {
-        return schema.type;
-    }
-
-    public OpenapiSchemaView getItems()
-    {
-        return schema.items == null ? null : OpenapiSchemaView.of(schemas, schema.items);
-    }
-
-    public Map<String, OpenapiItem> getProperties()
-    {
-        return schema.properties;
-    }
-
-    public List<String> getRequired()
-    {
-        return schema.required;
-    }
-
-    public static OpenapiSchemaView of(
-        Map<String, OpenapiSchema> schemas,
-        OpenapiSchema schema)
-    {
-        return new OpenapiSchemaView(schemas, schema);
     }
 }

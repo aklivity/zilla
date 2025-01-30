@@ -32,14 +32,16 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -129,7 +131,7 @@ public final class OpenapiAsyncapiBindingConfig
         final List<OpenapiSchemaConfig> openapiConfigs = convertToOpenapi(options.specs.openapi);
         final List<AsyncapiSchemaConfig> asyncapiConfigs = convertToAsyncapi(options.specs.asyncapi);
 
-        final Map<String, Openapi> openapis = openapiConfigs.stream()
+        final Map<String, OpenapiView> openapis = openapiConfigs.stream()
             .collect(Collectors.toMap(
                 c -> c.apiLabel,
                 c -> c.openapi,
@@ -176,7 +178,8 @@ public final class OpenapiAsyncapiBindingConfig
                 final CatalogHandler handler = supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final AsyncapiView asyncapi = AsyncapiView.of(asyncapiParser.parse(payload));
+                final Asyncapi model = asyncapiParser.parse(payload);
+                final AsyncapiView asyncapi = AsyncapiView.of(model);
                 asyncapiConfigs.add(new AsyncapiSchemaConfig(config.label, schemaId, asyncapi));
             }
         }
@@ -184,10 +187,10 @@ public final class OpenapiAsyncapiBindingConfig
     }
 
     private List<OpenapiSchemaConfig> convertToOpenapi(
-        Set<OpenapiConfig> configs)
+        Set<OpenapiSpecificationConfig> configs)
     {
         final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
-        for (OpenapiConfig config : configs)
+        for (OpenapiSpecificationConfig config : configs)
         {
             for (OpenapiCatalogConfig catalog : config.catalogs)
             {
@@ -195,7 +198,9 @@ public final class OpenapiAsyncapiBindingConfig
                 final CatalogHandler handler = supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                openapiConfigs.add(new OpenapiSchemaConfig(config.apiLabel, schemaId, openapiParser.parse(payload)));
+                final Openapi model = openapiParser.parse(payload);
+                final OpenapiView openapi = OpenapiView.of(model);
+                openapiConfigs.add(new OpenapiSchemaConfig(config.label, schemaId, openapi));
             }
         }
         return openapiConfigs;

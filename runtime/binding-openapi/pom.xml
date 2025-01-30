@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.123</version>
+    <version>0.9.124</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -24,8 +24,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.60</jacoco.coverage.ratio>
-    <jacoco.missed.count>4</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.73</jacoco.coverage.ratio>
+    <jacoco.missed.count>8</jacoco.missed.count>
   </properties>
 
   <dependencies>

@@ -26,6 +26,6 @@ public class AsyncapiServer
     public String pathname;
     public String protocol;
     public List<AsyncapiSecurityScheme> security;
-    public Map<String, AsyncapiVariable> variables;
+    public Map<String, AsyncapiServerVariable> variables;
     public AsyncapiServerBindings bindings;
 }

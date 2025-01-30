@@ -15,40 +15,21 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import java.util.List;
-import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServerVariable;
 
-public final class OpenapiVariableView extends OpenapiResolvable<OpenapiVariable>
+public final class OpenapiVariableView
 {
-    private final OpenapiVariable variable;
+    public String name;
+    public final String defaultValue;
+    public final List<String> values;
 
-    public String refKey()
+    OpenapiVariableView(
+        String name,
+        OpenapiServerVariable model)
     {
-        return key;
-    }
-
-    public List<String> values()
-    {
-        return variable.values;
-    }
-    public String defaultValue()
-    {
-        return variable.defaultValue;
-    }
-
-    public static OpenapiVariableView of(
-        Map<String, OpenapiVariable> variables,
-        OpenapiVariable variable)
-    {
-        return new OpenapiVariableView(variables, variable);
-    }
-
-    private OpenapiVariableView(
-        Map<String, OpenapiVariable> variables,
-        OpenapiVariable variable)
-    {
-        super(variables, "#/components/serverVariables/(\\w+)");
-        this.variable = variable.ref == null ? variable : resolveRef(variable.ref);
+        this.name = name;
+        this.defaultValue = model.defaultValue;
+        this.values = model.values;
     }
 }

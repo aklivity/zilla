@@ -14,56 +14,78 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import static java.util.Objects.requireNonNull;
+import static io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiCompositeId.compositeId;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
-import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.function.LongSupplier;
 
+import org.agrona.collections.MutableInteger;
+
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiView
 {
-    private final Openapi openapi;
+    public final String label;
+    public final long compositeId;
 
-    public int[] resolvePortsForScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
+    public final OpenapiComponentsView components;
+    public final Map<String, OpenapiPathView> paths;
+    public final List<OpenapiServerView> servers;
 
-    public URI findFirstServerUrlWithScheme(
-        String scheme)
+    public static OpenapiView of(
+        Openapi model)
     {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer server : openapi.servers)
-        {
-            OpenapiServerView view = OpenapiServerView.of(server);
-            if (scheme.equals(view.url().getScheme()))
-            {
-                result = view.url();
-                break;
-            }
-        }
-        return result;
+        return of(model, List.of());
     }
 
     public static OpenapiView of(
-        Openapi openapi)
+        Openapi model,
+        List<OpenapiServerConfig> configs)
     {
-        return new OpenapiView(openapi);
+        return of(0, null, model, configs);
+    }
+
+    public static OpenapiView of(
+        int id,
+        String label,
+        Openapi model,
+        List<OpenapiServerConfig> configs)
+    {
+        return new OpenapiView(id, label, model, configs);
     }
 
     private OpenapiView(
-        Openapi openapi)
+        int id,
+        String label,
+        Openapi model,
+        List<OpenapiServerConfig> configs)
     {
-        this.openapi = openapi;
+        this.label = label;
+        this.compositeId = compositeId(id, 0);
+
+        OpenapiResolver resolver = new OpenapiResolver(model);
+
+        this.servers = model.servers != null
+            ? model.servers.stream()
+                .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                .toList()
+            : null;
+
+        MutableInteger opIndex = new MutableInteger(1);
+        LongSupplier supplyCompositeId = () -> compositeId(id, opIndex.value++);
+        this.paths = model.paths != null
+            ? model.paths.entrySet().stream()
+                .map(e -> new OpenapiPathView(this, supplyCompositeId, configs, resolver, e.getKey(), e.getValue()))
+                .collect(toMap(c -> c.path, identity()))
+            : null;
+
+        this.components = model.components != null
+            ? new OpenapiComponentsView(resolver, model.components)
+            : null;
     }
 }

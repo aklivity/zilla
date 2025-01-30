@@ -14,57 +14,101 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import java.util.Map;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
 {
     public static final String DEFAULT = "default";
 
-    private final OpenapiOperation operation;
-    private final boolean hasResponses;
+    public final OpenapiView specification;
+    public final long compositeId;
+    public final String method;
+    public final String path;
+    public final String id;
 
-    private OpenapiOperationView(
-        OpenapiOperation operation)
+    public final List<OpenapiParameterView> parameters;
+    public final OpenapiRequestBodyView requestBody;
+    public final Map<String, OpenapiResponseView> responses;
+    public final List<Map<String, List<String>>> security;
+    public final List<OpenapiServerView> servers;
+
+    OpenapiOperationView(
+        OpenapiView specification,
+        long compositeId,
+        List<OpenapiServerConfig> configs,
+        OpenapiResolver resolver,
+        String method,
+        String path,
+        OpenapiOperation model)
     {
-        this.operation = operation;
-        this.hasResponses = initHasResponses();
+        this.specification = specification;
+        this.compositeId = compositeId;
+        this.method = method;
+        this.path = path;
+
+        this.id = Objects.requireNonNull(model.operationId);
+
+        this.parameters = model.parameters != null
+                ? model.parameters.stream()
+                    .map(p -> new OpenapiParameterView(this, resolver, p))
+                    .toList()
+                : null;
+
+        this.requestBody = model.requestBody != null
+                ? new OpenapiRequestBodyView(this, resolver, model.requestBody)
+                : null;
+
+        this.responses = model.responses != null
+                ? model.responses.entrySet().stream()
+                    .map(e -> new OpenapiResponseView(this, resolver, e.getKey(), e.getValue()))
+                    .collect(toMap(c -> c.status, identity()))
+                : null;
+
+        this.security = model.security;
+
+        this.servers = model.servers != null
+                ? model.servers.stream()
+                    .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                    .toList()
+                : specification.servers;
     }
 
-    public Map<String, OpenapiResponseByContentType> responsesByStatus()
+    public boolean hasRequestBodyOrParameters()
     {
-        return operation.responses;
+        return hasRequestBody() || hasParameters();
+    }
+
+    public boolean hasRequestBody()
+    {
+        return requestBody != null && requestBody.content != null;
+    }
+
+    public boolean hasParameters()
+    {
+        return parameters != null;
     }
 
     public boolean hasResponses()
     {
-        return hasResponses;
+        return responses != null;
     }
 
-    private boolean initHasResponses()
+    public String requestPath(
+        OpenapiServerView server)
     {
-        boolean result = false;
-        if (operation != null && operation.responses != null)
-        {
-            for (Map.Entry<String, OpenapiResponseByContentType> response0 : operation.responses.entrySet())
-            {
-                String status = response0.getKey();
-                OpenapiResponseByContentType response1 = response0.getValue();
-                if (!(DEFAULT.equals(status)) && response1.content != null)
-                {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
+        String serverPath = server.url.getPath();
 
-    public static OpenapiOperationView of(
-        OpenapiOperation operation)
-    {
-        return new OpenapiOperationView(operation);
+        return serverPath != null
+            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
+            : path;
     }
 }

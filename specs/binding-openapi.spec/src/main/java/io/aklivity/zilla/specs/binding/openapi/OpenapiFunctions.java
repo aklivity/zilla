@@ -16,7 +16,6 @@
 package io.aklivity.zilla.specs.binding.openapi;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -25,7 +24,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.specs.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
 public final class OpenapiFunctions
@@ -98,7 +96,7 @@ public final class OpenapiFunctions
         private Integer typeId;
         private Long apiId;
         private String operationId;
-        private OctetsFW.Builder extensionRW;
+        private BytesMatcher extension;
 
         public OpenapiBeginExMatcherBuilder typeId(
             int typeId)
@@ -122,13 +120,9 @@ public final class OpenapiFunctions
         }
 
         public OpenapiBeginExMatcherBuilder extension(
-            byte[] extension)
+            BytesMatcher extension)
         {
-            assert extensionRW == null;
-            extensionRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-            extensionRW.set(Objects.requireNonNullElseGet(extension, () -> new byte[] {}));
-
+            this.extension = extension;
             return this;
         }
 
@@ -151,11 +145,14 @@ public final class OpenapiFunctions
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
                 matchApiId(beginEx) &&
-                matchOperationId(beginEx) &&
-                matchExtension(beginEx))
+                matchOperationId(beginEx))
             {
-                byteBuf.position(byteBuf.position() + beginEx.sizeof());
-                return beginEx;
+                byteBuf.position(byteBuf.position() + beginEx.sizeof() - beginEx.extension().sizeof());
+
+                if (matchExtension(beginEx))
+                {
+                    return beginEx;
+                }
             }
             throw new Exception(beginEx.toString());
         }
@@ -179,9 +176,9 @@ public final class OpenapiFunctions
         }
 
         private boolean matchExtension(
-            final OpenapiBeginExFW beginEx)
+            final OpenapiBeginExFW beginEx) throws Exception
         {
-            return extensionRW == null || extensionRW.build().equals(beginEx.extension());
+            return extension == null || extension.match(bufferRO.byteBuffer()) != null;
         }
     }
 

@@ -21,21 +21,22 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
+                             .apiId(1)
                              .operationId("createPets")
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
                                   .header(":path", "/pets")
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "39")
+                                  .header("content-length", "41")
                                   .build())
                              .build()}
 
 connected
 
-read "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
+read "{\"id\": 1, \"name\": \"rocky\", \"tag\": \"test\"}"
 read closed
 
 write zilla:begin.ext ${openapi:beginEx()
@@ -45,7 +46,7 @@ write zilla:begin.ext ${openapi:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "application/json")
-                              .header("content-length", "34")
+                              .header("content-length", "31")
                               .build())
                              .build()}
 write flush
@@ -58,8 +59,9 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
+                             .apiId(2)
                              .operationId("createItems")
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
@@ -82,7 +84,7 @@ write zilla:begin.ext ${openapi:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "application/json")
-                              .header("content-length", "34")
+                              .header("content-length", "31")
                               .build())
                              .build()}
 write flush

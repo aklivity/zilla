@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiVariable;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServerVariable;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiServerVariableView
@@ -28,9 +28,9 @@ public final class AsyncapiServerVariableView
     AsyncapiServerVariableView(
         AsyncapiResolver resolver,
         String name,
-        AsyncapiVariable model)
+        AsyncapiServerVariable model)
     {
-        final AsyncapiVariable resolved = resolver.serverVariables.resolve(model);
+        final AsyncapiServerVariable resolved = resolver.serverVariables.resolve(model);
 
         this.name = name;
         this.defaultValue = resolved.defaultValue;

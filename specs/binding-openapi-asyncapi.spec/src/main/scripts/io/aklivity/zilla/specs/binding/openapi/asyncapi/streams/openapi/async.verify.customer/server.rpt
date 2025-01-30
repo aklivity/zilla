@@ -18,11 +18,11 @@ accept "zilla://streams/composite0"
         option zilla:transmission "half-duplex"
 accepted
 
-read zilla:begin.ext ${openapi:beginEx()
+read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
                              .apiId(0)
                              .operationId("createCustomer")
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
@@ -60,7 +60,7 @@ read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
                              .apiId(0)
                              .operationId("getVerifiedCustomer")
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "GET")
                                   .header(":scheme", "http")

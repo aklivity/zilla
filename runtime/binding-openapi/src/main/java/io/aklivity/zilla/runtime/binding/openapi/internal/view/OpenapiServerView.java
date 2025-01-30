@@ -14,71 +14,109 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import org.agrona.LangUtil;
+
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiServerView
 {
-    private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
-    private final Matcher variable = VARIABLE.matcher("");
+    public final URI url;
 
-    private final OpenapiServer server;
-    private String defaultUrl;
-
-    public Matcher urlMatcher;
-
-    public URI url()
+    OpenapiServerView(
+        OpenapiResolver resolver,
+        OpenapiServer model)
     {
-        return URI.create(server.url);
+        this(resolver, model, null);
     }
 
-    public int getPort()
+    OpenapiServerView(
+        OpenapiResolver resolver,
+        OpenapiServer model,
+        OpenapiServerConfig config)
     {
-        return URI.create(server.url).getPort();
+        Map<String, OpenapiVariableView> variables = model.variables != null
+                ? model.variables.entrySet().stream()
+                    .map(e -> new OpenapiVariableView(e.getKey(), e.getValue()))
+                    .collect(toMap(v -> v.name, identity()))
+                : Map.of();
+
+        this.url = model.url != null
+                ? resolvePorts(URI.create(new VariableMatcher(variables::get, model.url)
+                        .resolve(config != null ? config.url : null)))
+                : null;
     }
 
-    public void resolveURL(
-        String url)
+    public static final class VariableMatcher
     {
-        server.url = (url == null || url.isEmpty()) ? defaultUrl : url;
+        private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
+
+        private final Matcher matcher;
+        private final String defaultValue;
+
+        public String resolve(
+            String value)
+        {
+            return value != null && matcher.reset(value).matches() ? value : defaultValue;
+        }
+
+        private VariableMatcher(
+            Function<String, OpenapiVariableView> resolver,
+            String value)
+        {
+            String regex = VARIABLE.matcher(value)
+                .replaceAll(mr -> resolver.apply(mr.group(1)).values.stream()
+                    .collect(joining("|", "(", ")")));
+
+            this.matcher = Pattern.compile(regex).matcher("");
+            this.defaultValue = VARIABLE.matcher(value)
+                    .replaceAll(mr -> resolver.apply(mr.group(1)).defaultValue);
+        }
     }
 
-    public static OpenapiServerView of(
-        OpenapiServer server)
+    private static URI resolvePorts(
+        URI url)
     {
-        return new OpenapiServerView(server);
-    }
+        String scheme = url.getScheme();
+        int port = url.getPort();
 
-    public static OpenapiServerView of(
-        OpenapiServer server,
-        Map<String, OpenapiVariable> variables)
-    {
-        return new OpenapiServerView(server, variables);
-    }
+        if (port == -1)
+        {
+            String userInfo = url.getUserInfo();
+            String host = url.getHost();
+            String path = url.getPath();
+            String query = url.getQuery();
+            String fragment = url.getFragment();
 
-    private OpenapiServerView(
-        OpenapiServer server)
-    {
-        this.server = server;
-    }
+            int defaultPort = switch (scheme)
+            {
+            case "http" -> 80;
+            case "https" -> 443;
+            default -> port;
+            };
 
-    private OpenapiServerView(
-        OpenapiServer server,
-        Map<String, OpenapiVariable> variables)
-    {
-        this.server = server;
-        Pattern urlPattern = Pattern.compile(variable.reset(Optional.ofNullable(server.url).orElse(""))
-            .replaceAll(mr -> OpenapiVariableView.of(variables, server.variables.get(mr.group(1))).values().stream()
-                .collect(Collectors.joining("|", "(", ")"))));
-        this.urlMatcher = urlPattern.matcher("");
-        this.defaultUrl = variable.reset(Optional.ofNullable(server.url).orElse(""))
-            .replaceAll(mr -> OpenapiVariableView.of(variables, server.variables.get(mr.group(1))).defaultValue());
+            try
+            {
+                url = new URI(scheme, userInfo, host, defaultPort, path, query, fragment);
+            }
+            catch (URISyntaxException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
+
+        return url;
     }
 }

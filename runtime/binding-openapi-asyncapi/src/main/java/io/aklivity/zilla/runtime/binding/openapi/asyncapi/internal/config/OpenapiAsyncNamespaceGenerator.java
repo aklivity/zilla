@@ -36,14 +36,13 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFil
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMediaTypeView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -66,7 +65,7 @@ public final class OpenapiAsyncNamespaceGenerator
 
     public NamespaceConfig generate(
         BindingConfig binding,
-        Map<String, Openapi> openapis,
+        Map<String, OpenapiView> openapis,
         Map<String, AsyncapiView> asyncapis,
         ToLongFunction<String> resolveApiId)
     {
@@ -93,7 +92,7 @@ public final class OpenapiAsyncNamespaceGenerator
     private <C> BindingConfigBuilder<C> injectHttpKafkaRoutes(
         BindingConfigBuilder<C> binding,
         String qname,
-        Map<String, Openapi> openapis,
+        Map<String, OpenapiView> openapis,
         Map<String, AsyncapiView> asyncapis,
         List<OpenapiAsyncapiRouteConfig> routes)
     {
@@ -101,7 +100,7 @@ public final class OpenapiAsyncNamespaceGenerator
         {
             for (OpenapiAsyncapiConditionConfig condition : route.when)
             {
-                Optional<Openapi> openapiConfig = openapis.entrySet().stream()
+                Optional<OpenapiView> openapiConfig = openapis.entrySet().stream()
                     .filter(e -> e.getKey().equals(condition.apiId))
                     .map(Map.Entry::getValue)
                     .findFirst();
@@ -112,7 +111,7 @@ public final class OpenapiAsyncNamespaceGenerator
 
                 if (openapiConfig.isPresent() && asyncapiConfig.isPresent())
                 {
-                    final Openapi openapi = openapiConfig.get();
+                    final OpenapiView openapi = openapiConfig.get();
                     final AsyncapiView asyncapi = asyncapiConfig.get();
 
                     computeRoutes(binding, qname, condition, openapi, asyncapi);
@@ -128,18 +127,19 @@ public final class OpenapiAsyncNamespaceGenerator
         BindingConfigBuilder<C> binding,
         String qname,
         OpenapiAsyncapiConditionConfig condition,
-        Openapi openapi,
+        OpenapiView openapi,
         AsyncapiView asyncapi)
     {
         for (String item : openapi.paths.keySet())
         {
-            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
-            for (String method : path.methods().keySet())
+            OpenapiPathView path = openapi.paths.get(item);
+            for (String method : path.methods.keySet())
             {
-                final String operationId = condition.operationId != null ?
-                    condition.operationId : path.methods().get(method).operationId;
+                final String operationId = condition.operationId != null
+                    ? condition.operationId
+                    : path.methods.get(method).id;
 
-                final OpenapiOperation openapiOperation = path.methods().get(method);
+                final OpenapiOperationView openapiOperation = path.methods.get(method);
                 final Optional<AsyncapiOperationView> asyncapiOperation = findAsyncOperation(
                     item, openapi, asyncapi, openapiOperation, operationId);
 
@@ -163,9 +163,9 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private Optional<AsyncapiOperationView> findAsyncOperation(
         String path,
-        Openapi openapi,
+        OpenapiView openapi,
         AsyncapiView asyncapi,
-        OpenapiOperation openapiOperation,
+        OpenapiOperationView openapiOperation,
         String operationId)
     {
         Optional<AsyncapiOperationView> operation = findAsyncOperationByOperationId(asyncapi.operations, operationId);
@@ -193,7 +193,7 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private Optional<String> findOpenapiOperationIdByFormat(
         String format,
-        Openapi openapi)
+        OpenapiView openapi)
     {
         String operationId = null;
         correlated:
@@ -201,21 +201,21 @@ public final class OpenapiAsyncNamespaceGenerator
         {
             if (!item.equals(format))
             {
-                OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
-                for (String method : path.methods().keySet())
+                OpenapiPathView path = openapi.paths.get(item);
+                for (String method : path.methods.keySet())
                 {
-                    final OpenapiOperation openapiOperation = path.methods().get(method);
+                    final OpenapiOperationView openapiOperation = path.methods.get(method);
                     boolean formatMatched = openapiOperation.responses.entrySet().stream()
                         .anyMatch(o ->
                         {
-                            OpenapiResponseByContentType content = o.getValue();
+                            OpenapiResponseView content = o.getValue();
                             return "202".equals(o.getKey()) && content.headers.entrySet().stream()
                                 .anyMatch(c -> matchFormat(format, c.getValue()));
                         });
 
                     if (formatMatched)
                     {
-                        operationId = path.methods().get(method).operationId;
+                        operationId = path.methods.get(method).id;
                         break correlated;
                     }
                 }
@@ -226,12 +226,12 @@ public final class OpenapiAsyncNamespaceGenerator
     }
 
     private boolean isOpenapiOperationAsync(
-        OpenapiOperation openapiOperation)
+        OpenapiOperationView openapiOperation)
     {
         return openapiOperation.responses.entrySet().stream()
             .anyMatch(o ->
             {
-                OpenapiResponseByContentType content = o.getValue();
+                OpenapiResponseView content = o.getValue();
                 return "202".equals(o.getKey()) && content.headers.entrySet().stream()
                     .anyMatch(c -> hasCorrelationId(c.getValue()));
             });
@@ -251,8 +251,8 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
         RouteConfigBuilder<C> route,
-        Openapi openapi,
-        OpenapiOperation httpOperation,
+        OpenapiView openapi,
+        OpenapiOperationView httpOperation,
         AsyncapiOperationView kafkaOperation,
         List<String> paramNames)
     {
@@ -281,16 +281,16 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
         HttpKafkaWithFetchConfigBuilder<C> fetch,
-        Openapi openapi,
-        OpenapiOperation operation,
+        OpenapiView openapi,
+        OpenapiOperationView operation,
         List<String> paramNames)
     {
         merge:
-        for (Map.Entry<String, OpenapiResponseByContentType> response : operation.responses.entrySet())
+        for (Map.Entry<String, OpenapiResponseView> response : operation.responses.entrySet())
         {
             OpenapiSchemaView schema = resolveSchemaForJsonContentType(response.getValue().content, openapi);
 
-            if (schema != null && "array".equals(schema.getType()))
+            if (schema != null && "array".equals(schema.type))
             {
                 fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
                     .contentType("application/json")
@@ -313,7 +313,7 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private <C> HttpKafkaWithProduceConfigBuilder<C> injectHttpKafkaRouteProduceWith(
         HttpKafkaWithProduceConfigBuilder<C> produce,
-        OpenapiOperation openapiOperation,
+        OpenapiOperationView openapiOperation,
         AsyncapiOperationView asyncapiOperation,
         List<String> paramNames)
     {
@@ -322,11 +322,11 @@ public final class OpenapiAsyncNamespaceGenerator
 
         produce.acks("in_sync_replicas").key(key);
 
-        for (Map.Entry<String, OpenapiResponseByContentType> response : openapiOperation.responses.entrySet())
+        for (Map.Entry<String, OpenapiResponseView> response : openapiOperation.responses.entrySet())
         {
             if ("202".equals(response.getKey()))
             {
-                OpenapiResponseByContentType content = response.getValue();
+                OpenapiResponseView content = response.getValue();
                 boolean async = content.headers.entrySet().stream()
                     .anyMatch(e -> hasCorrelationId(e.getValue()));
 
@@ -357,10 +357,10 @@ public final class OpenapiAsyncNamespaceGenerator
     }
 
     private boolean hasCorrelationId(
-        OpenapiHeader header)
+        OpenapiHeaderView header)
     {
         boolean hasCorrelationId = false;
-        OpenapiSchema schema = header.schema;
+        OpenapiSchemaView schema = header.schema;
         if (schema != null &&
             schema.format != null)
         {
@@ -371,10 +371,10 @@ public final class OpenapiAsyncNamespaceGenerator
 
     private boolean matchFormat(
         String format,
-        OpenapiHeader header)
+        OpenapiHeaderView header)
     {
         boolean matched = false;
-        OpenapiSchema schema = header.schema;
+        OpenapiSchemaView schema = header.schema;
         if (schema != null &&
             schema.format != null)
         {
@@ -458,10 +458,10 @@ public final class OpenapiAsyncNamespaceGenerator
     }
 
     private OpenapiSchemaView resolveSchemaForJsonContentType(
-        Map<String, OpenapiResponse> content,
-        Openapi openApi)
+        Map<String, OpenapiMediaTypeView> content,
+        OpenapiView openApi)
     {
-        OpenapiResponse response = null;
+        OpenapiMediaTypeView response = null;
         if (content != null)
         {
             for (String contentType : content.keySet())
@@ -474,6 +474,6 @@ public final class OpenapiAsyncNamespaceGenerator
             }
         }
 
-        return response == null ? null : OpenapiSchemaView.of(openApi.components.schemas, response.schema);
+        return response == null ? null : response.schema;
     }
 }

@@ -19,9 +19,10 @@ import java.util.Map;
 
 public class OpenapiOperation
 {
-    public List<Map<String, List<String>>> security;
     public String operationId;
-    public OpenapiRequestBody requestBody;
     public List<OpenapiParameter> parameters;
-    public Map<String, OpenapiResponseByContentType> responses;
+    public OpenapiRequestBody requestBody;
+    public Map<String, OpenapiResponse> responses;
+    public List<Map<String, List<String>>> security;
+    public List<OpenapiServer> servers;
 }

@@ -17,4 +17,5 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 public class OpenapiMediaType
 {
     public OpenapiSchema schema;
+    public OpenapiEncoding encoding;
 }
