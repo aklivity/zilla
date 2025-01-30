@@ -39,7 +39,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationCo
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -94,9 +94,9 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
 
         OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
         assertThat(options, not(nullValue()));
-        OpenapiConfig openapi = options.specs.openapi.stream().findFirst().get();
-        assertEquals("openapi-id", openapi.apiLabel);
-        assertThat(openapi.apiLabel, not(nullValue()));
+        OpenapiSpecificationConfig openapi = options.specs.openapi.stream().findFirst().get();
+        assertEquals("openapi-id", openapi.label);
+        assertThat(openapi.label, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
         assertEquals("asyncapi-id", asyncapi.label);
         assertThat(asyncapi.label, not(nullValue()));
@@ -109,8 +109,8 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
             "\"version\":\"latest\"}}}},\"asyncapi\":{\"asyncapi-id\":{\"catalog\":" +
             "{\"catalog0\":{\"subject\":\"petstore\",\"version\":\"latest\"}}}}}}";
 
-        Set<OpenapiConfig> openapiConfigs = new HashSet<>();
-        openapiConfigs.add(new OpenapiConfig("openapi-id",
+        Set<OpenapiSpecificationConfig> openapiConfigs = new HashSet<>();
+        openapiConfigs.add(new OpenapiSpecificationConfig("openapi-id",
             List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         Set<AsyncapiSpecificationConfig> asyncapiConfigs = new HashSet<>();

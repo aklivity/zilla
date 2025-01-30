@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class AsyncapiRouteConfig
 {
     public final long id;
-    public final AsyncapiWithConfig with;
     public final List<AsyncapiConditionConfig> when;
+    public final AsyncapiWithConfig with;
 
     private final LongPredicate authorized;
 

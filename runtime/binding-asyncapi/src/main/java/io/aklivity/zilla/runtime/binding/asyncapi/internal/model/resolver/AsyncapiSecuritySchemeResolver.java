@@ -30,6 +30,6 @@ public final class AsyncapiSecuritySchemeResolver extends AbstractAsyncapiResolv
             Optional.ofNullable(model.components)
                 .map(c -> c.securitySchemes)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components.securitySchemes/(.+)"));
+            Pattern.compile("#/components/securitySchemes/(.+)"));
     }
 }

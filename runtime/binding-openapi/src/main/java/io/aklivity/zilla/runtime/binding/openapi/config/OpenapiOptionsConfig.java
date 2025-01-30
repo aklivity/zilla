@@ -28,7 +28,7 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
-    public final List<OpenapiConfig> openapis;
+    public final List<OpenapiSpecificationConfig> specs;
 
     public static OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> builder()
     {
@@ -46,12 +46,12 @@ public final class OpenapiOptionsConfig extends OptionsConfig
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
-        List<OpenapiConfig> openapis)
+        List<OpenapiSpecificationConfig> specs)
     {
         this.servers = servers;
         this.tcp = tcp;
         this.tls = tls;
         this.http = http;
-        this.openapis = openapis;
+        this.specs = specs;
     }
 }

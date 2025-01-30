@@ -28,22 +28,22 @@ write zilla:begin.ext ${openapi:beginEx()
                                   .header(":path", "/prod/pets")
                                   .header(":authority", "localhost:9090")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "39")
+                                  .header("content-length", "41")
                                   .build())
                              .build()}
 connected
 
-write "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
+write "{\"id\": 1, \"name\": \"rocky\", \"tag\": \"test\"}"
 write close
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
                              .operationId("createPets")
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "application/json")
-                              .header("content-length", "34")
+                              .header("content-length", "31")
                               .build())
                              .build()}
 

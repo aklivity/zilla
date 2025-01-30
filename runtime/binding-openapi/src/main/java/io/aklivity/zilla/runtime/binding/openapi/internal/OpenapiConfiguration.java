@@ -18,13 +18,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class OpenapiConfiguration extends Configuration
 {
-    public static final LongPropertyDef OPENAPI_TARGET_ROUTE_ID;
+    public static final LongPropertyDef OPENAPI_COMPOSITE_ROUTE_ID;
     private static final ConfigurationDef OPENAPI_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.openapi");
-        OPENAPI_TARGET_ROUTE_ID = config.property("target.route.id", -1L);
+        OPENAPI_COMPOSITE_ROUTE_ID = config.property("composite.route.id", -1L);
         OPENAPI_CONFIG = config;
     }
 
@@ -34,8 +34,8 @@ public class OpenapiConfiguration extends Configuration
         super(OPENAPI_CONFIG, config);
     }
 
-    public long targetRouteId()
+    public long compositeRouteId()
     {
-        return OPENAPI_TARGET_ROUTE_ID.getAsLong(this);
+        return OPENAPI_COMPOSITE_ROUTE_ID.getAsLong(this);
     }
 }

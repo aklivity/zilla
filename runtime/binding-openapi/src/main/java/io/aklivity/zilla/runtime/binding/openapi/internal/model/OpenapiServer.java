@@ -19,5 +19,5 @@ import java.util.Map;
 public class OpenapiServer
 {
     public String url;
-    public Map<String, OpenapiVariable> variables;
+    public Map<String, OpenapiServerVariable> variables;
 }

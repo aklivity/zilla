@@ -19,14 +19,29 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
-public class OpenapiSchema
+public class OpenapiSchema extends AbstractOpenapiResolvable
 {
     public String type;
-    public String format;
     public OpenapiSchema items;
-    public Map<String, OpenapiItem> properties;
+    public Map<String, OpenapiSchema> properties;
     public List<String> required;
-
-    @JsonbProperty("$ref")
-    public String ref;
+    public String format;
+    public String description;
+    @JsonbProperty("enum")
+    public List<String> values;
+    public String title;
+    public Integer multipleOf;
+    public Integer maximum;
+    public Boolean exclusiveMaximum;
+    public Integer minimum;
+    public Boolean exclusiveMinimum;
+    public Integer maxLength;
+    public Integer minLength;
+    public String pattern;
+    public Integer maxItems;
+    public Integer minItems;
+    public Boolean uniqueItems;
+    public Integer maxProperties;
+    public Integer minProperties;
+    public OpenapiSchema schema;
 }

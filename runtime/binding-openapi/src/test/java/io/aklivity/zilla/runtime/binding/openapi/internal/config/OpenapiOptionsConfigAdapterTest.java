@@ -35,8 +35,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -129,7 +129,7 @@ public class OpenapiOptionsConfigAdapterTest
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
             .tcp(tcp)
             .tls(tls)
-            .openapi(new OpenapiConfig("test",
+            .spec(new OpenapiSpecificationConfig("test",
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
             .build();
 

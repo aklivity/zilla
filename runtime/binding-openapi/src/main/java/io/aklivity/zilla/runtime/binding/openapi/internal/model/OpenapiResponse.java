@@ -14,7 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiResponse
+import java.util.Map;
+
+public class OpenapiResponse extends AbstractOpenapiResolvable
 {
+    public Map<String, OpenapiHeader> headers;
+    public Map<String, OpenapiMediaType> content;
+    public Map<String, OpenapiLink> links;
+
     public OpenapiSchema schema;
 }

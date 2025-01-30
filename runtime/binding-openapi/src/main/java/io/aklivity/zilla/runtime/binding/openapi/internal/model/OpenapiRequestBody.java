@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
 import java.util.Map;
 
-public class OpenapiRequestBody
+public class OpenapiRequestBody extends AbstractOpenapiResolvable
 {
     public Map<String, OpenapiMediaType> content;
+    public boolean required;
 }

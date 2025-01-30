@@ -31,8 +31,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public final class AsyncapiServerView
 {
-    private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
-
     public final String name;
     public final String url;
     public final String host;
@@ -85,6 +83,8 @@ public final class AsyncapiServerView
 
     public static final class VariableMatcher
     {
+        private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
+
         private final Matcher matcher;
         private final String defaultValue;
 

@@ -19,9 +19,9 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiVariable;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServerVariable;
 
-public final class AsyncapiServerVariableResolver extends AbstractAsyncapiResolver<AsyncapiVariable>
+public final class AsyncapiServerVariableResolver extends AbstractAsyncapiResolver<AsyncapiServerVariable>
 {
     public AsyncapiServerVariableResolver(
         Asyncapi model)

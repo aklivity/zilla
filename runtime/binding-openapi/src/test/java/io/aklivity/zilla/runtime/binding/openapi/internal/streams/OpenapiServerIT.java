@@ -25,14 +25,15 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class OpenapiServerIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/openapi/streams/http")
-        .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/streams/openapi");
+        .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/streams/openapi")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -40,6 +41,8 @@ public class OpenapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config")
+        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
         .external("openapi0")
         .clean();
 
@@ -49,7 +52,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/create.pet/client",
         "${openapi}/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
@@ -60,7 +63,7 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.multiple.specs.yaml")
     @Specification({
-        "${http}/create.pet.and.item/client",
+        "${composite}/create.pet.and.item/client",
         "${openapi}/create.pet.and.item/server"
     })
     public void shouldCreatePetAndItem() throws Exception
@@ -69,9 +72,9 @@ public class OpenapiServerIT
     }
 
     @Test
-    @Configuration("server-secure.yaml")
+    @Configuration("server.secure.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/create.pet/client",
         "${openapi}/create.pet/server"
     })
     public void shouldCreateSecurePet() throws Exception
@@ -80,12 +83,12 @@ public class OpenapiServerIT
     }
 
     @Test
-    @Configuration("server-prod.yaml")
+    @Configuration("server.env.prod.yaml")
     @Specification({
-        "${http}/create.pet/client",
-        "${openapi}/create.pet/server"
+        "${composite}/create.pet.prod/client",
+        "${openapi}/create.pet.prod/server"
     })
-    public void shouldCreatePetInProdEnv() throws Exception
+    public void shouldCreatePetWithProductionServer() throws Exception
     {
         k3po.finish();
     }
@@ -93,9 +96,10 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${http}/reject.non.composite.origin/client"
+        "${composite}/create.pet.invalid/client",
+        "${openapi}/create.pet.invalid/server"
     })
-    public void shouldRejectNonCompositeOrigin() throws Exception
+    public void shouldNotCreatePetWhenInvalidType() throws Exception
     {
         k3po.finish();
     }

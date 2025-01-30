@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenapiParameter
+public class OpenapiParameter extends AbstractOpenapiResolvable
 {
     public String name;
     public String in;

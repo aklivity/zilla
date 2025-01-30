@@ -20,7 +20,7 @@ catalogs:
   catalog0:
     type: test
     options:
-      id: 0
+      id: 1
       subject: petstore
       schema: |
         openapi: "3.0.0"
@@ -146,7 +146,7 @@ catalogs:
   catalog1:
     type: test
     options:
-      id: 1
+      id: 2
       subject: itemstore
       schema: |
         openapi: "3.0.0"

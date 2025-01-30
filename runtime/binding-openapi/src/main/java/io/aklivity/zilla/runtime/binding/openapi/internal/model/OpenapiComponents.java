@@ -18,6 +18,11 @@ import java.util.Map;
 
 public class OpenapiComponents
 {
-    public Map<String, OpenapiSecurityScheme> securitySchemes;
     public Map<String, OpenapiSchema> schemas;
+    public Map<String, OpenapiParameter> parameters;
+    public Map<String, OpenapiHeader> headers;
+    public Map<String, OpenapiRequestBody> requestBodies;
+    public Map<String, OpenapiResponse> responses;
+    public Map<String, OpenapiSecurityScheme> securitySchemes;
+    public Map<String, OpenapiLink> links;
 }
