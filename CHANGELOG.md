@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.123...HEAD)
+
+**Merged pull requests:**
+
+- Use `OpenapiView` to generate composite namespaces [\#1388](https://github.com/aklivity/zilla/pull/1388) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.123](https://github.com/aklivity/zilla/tree/0.9.123) (2025-01-29)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.122...0.9.123)
