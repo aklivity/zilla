@@ -66,4 +66,14 @@ public class OpenapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${openapi}/create.pet.invalid/client",
+        "${openapi}/create.pet.invalid/server"
+    })
+    public void shouldNotCreatePetWhenInvalid() throws Exception
+    {
+        k3po.finish();
+    }
 }

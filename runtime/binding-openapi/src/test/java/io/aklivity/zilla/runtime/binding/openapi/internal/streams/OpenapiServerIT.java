@@ -92,4 +92,15 @@ public class OpenapiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${composite}/create.pet.invalid/client",
+        "${openapi}/create.pet.invalid/server"
+    })
+    public void shouldNotCreatePetWhenInvalidType() throws Exception
+    {
+        k3po.finish();
+    }
 }

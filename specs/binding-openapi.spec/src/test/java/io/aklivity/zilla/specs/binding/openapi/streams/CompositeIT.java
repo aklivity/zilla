@@ -66,4 +66,14 @@ public class CompositeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${composite}/create.pet.invalid/client",
+        "${composite}/create.pet.invalid/server"
+    })
+    public void shouldNotCreatePetWhenInvalid() throws Exception
+    {
+        k3po.finish();
+    }
 }
