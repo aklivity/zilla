@@ -18,14 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
-import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
-@JsonbPropertyOrder({
-    "type",
-    "items",
-    "properties",
-    "required"
-})
 public class OpenapiSchema extends AbstractOpenapiResolvable
 {
     public String type;
@@ -34,9 +27,21 @@ public class OpenapiSchema extends AbstractOpenapiResolvable
     public List<String> required;
     public String format;
     public String description;
-    public Integer minimum;
-    public Integer maximum;
     @JsonbProperty("enum")
     public List<String> values;
+    public String title;
+    public Integer multipleOf;
+    public Integer maximum;
+    public Boolean exclusiveMaximum;
+    public Integer minimum;
+    public Boolean exclusiveMinimum;
+    public Integer maxLength;
+    public Integer minLength;
+    public String pattern;
+    public Integer maxItems;
+    public Integer minItems;
+    public Boolean uniqueItems;
+    public Integer maxProperties;
+    public Integer minProperties;
     public OpenapiSchema schema;
 }

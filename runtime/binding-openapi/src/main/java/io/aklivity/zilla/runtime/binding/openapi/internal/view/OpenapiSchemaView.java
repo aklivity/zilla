@@ -18,6 +18,10 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import jakarta.json.bind.annotation.JsonbProperty;
+import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
@@ -25,7 +29,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.Openapi
 public final class OpenapiSchemaView
 {
     public final String name;
-    public final OpenapiSchema model;
+    public final OpenapiJsonSchema model;
 
     public final String type;
     public final OpenapiSchemaView items;
@@ -51,7 +55,7 @@ public final class OpenapiSchemaView
         OpenapiResolver resolver)
     {
         this.name = name;
-        this.model = resolved;
+        this.model = OpenapiJsonSchema.of(resolved);
 
         this.type = resolved.type;
         this.items = resolved.items != null
@@ -70,5 +74,89 @@ public final class OpenapiSchemaView
         this.schema = resolved.schema != null
             ? new OpenapiSchemaView(resolver, resolved.schema)
             : null;
+    }
+
+    @JsonbPropertyOrder({
+        "type",
+        "items",
+        "properties",
+        "required",
+        "format",
+        "description",
+        "enum",
+        "title",
+        "multipleOf",
+        "maximum",
+        "exclusiveMaximum",
+        "minimum",
+        "exclusiveMinimum",
+        "maxLength",
+        "minLength",
+        "pattern",
+        "maxItems",
+        "minItems",
+        "uniqueItems",
+        "maxProperties",
+        "minProperties",
+        "schema"
+    })
+    public static final class OpenapiJsonSchema
+    {
+        public String type;
+        public OpenapiSchema items;
+        public Map<String, OpenapiJsonSchema> properties;
+        public List<String> required;
+        public String format;
+        public String description;
+        @JsonbProperty("enum")
+        public List<String> values;
+        public String title;
+        public Integer multipleOf;
+        public Integer maximum;
+        public Integer exclusiveMaximum;
+        public Integer minimum;
+        public Integer exclusiveMinimum;
+        public Integer maxLength;
+        public Integer minLength;
+        public String pattern;
+        public Integer maxItems;
+        public Integer minItems;
+        public Boolean uniqueItems;
+        public Integer maxProperties;
+        public Integer minProperties;
+        public OpenapiJsonSchema schema;
+
+        public static OpenapiJsonSchema of(
+            OpenapiSchema model)
+        {
+            OpenapiJsonSchema json = new OpenapiJsonSchema();
+            json.type = model.type;
+            json.items = model.items;
+            json.properties = model.properties != null
+                   ? model.properties.entrySet().stream()
+                       .collect(Collectors.toMap(Map.Entry::getKey, e -> of(e.getValue())))
+                   : null;
+            json.required = model.required;
+            json.format = model.format;
+            json.description = model.description;
+            json.values = model.values;
+            json.title = model.title;
+            json.multipleOf = model.multipleOf;
+            json.maximum = Boolean.TRUE.equals(model.exclusiveMaximum) ? null : model.maximum;
+            json.exclusiveMaximum = Boolean.TRUE.equals(model.exclusiveMaximum) ? model.maximum : null;
+            json.minimum = Boolean.TRUE.equals(model.exclusiveMinimum) ? null : model.minimum;
+            json.exclusiveMinimum = Boolean.TRUE.equals(model.exclusiveMinimum) ? model.minimum : null;
+            json.maxLength = model.maxLength;
+            json.minLength = model.minLength;
+            json.pattern = model.pattern;
+            json.maxItems = model.maxItems;
+            json.minItems = model.minItems;
+            json.uniqueItems = model.uniqueItems;
+            json.maxProperties = model.maxProperties;
+            json.minProperties = model.minProperties;
+            json.schema = model.schema != null ? of(model.schema) : null;
+
+            return json;
+        }
     }
 }

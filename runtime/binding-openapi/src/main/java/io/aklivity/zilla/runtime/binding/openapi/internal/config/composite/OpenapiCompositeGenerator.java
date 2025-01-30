@@ -40,7 +40,6 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
@@ -379,7 +378,7 @@ public abstract class OpenapiCompositeGenerator
 
             protected final String toSchemaJson(
                 Jsonb jsonb,
-                OpenapiSchema schema)
+                OpenapiSchemaView.OpenapiJsonSchema schema)
             {
                 String schemaJson = jsonb.toJson(schema);
 
