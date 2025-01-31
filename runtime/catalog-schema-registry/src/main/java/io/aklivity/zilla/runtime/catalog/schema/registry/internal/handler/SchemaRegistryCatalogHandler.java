@@ -24,7 +24,6 @@ import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -59,10 +58,10 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {
-    private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
-    private static final String REGISTER_SUBJECT_PATH = "/subjects/{0}/versions";
-    private static final String UNREGISTER_SUBJECT_PATH = "/subjects/{0}";
-    private static final String SCHEMA_PATH = "/schemas/ids/{0}";
+    private static final String SUBJECT_VERSION_PATH = "/subjects/%s/versions/%s";
+    private static final String REGISTER_SUBJECT_PATH = "/subjects/%s/versions";
+    private static final String UNREGISTER_SUBJECT_PATH = "/subjects/%s";
+    private static final String SCHEMA_PATH = "/schemas/ids/%d";
     private static final String HTTPS = "https://";
 
     private static final int MAX_PADDING_LENGTH = 5;
@@ -154,7 +153,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         int versionId = NO_VERSION_ID;
 
-        String response = sendPostHttpRequest(MessageFormat.format(REGISTER_SUBJECT_PATH, subject), schema);
+        String response = sendPostHttpRequest(REGISTER_SUBJECT_PATH.formatted(subject), schema);
         if (response != null)
         {
             versionId = registerRequest.resolveResponse(response);
@@ -169,7 +168,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         int[] versions = NO_VERSIONS;
 
-        String response = sendDeleteHttpRequest(MessageFormat.format(UNREGISTER_SUBJECT_PATH, subject));
+        String response = sendDeleteHttpRequest(UNREGISTER_SUBJECT_PATH.formatted(subject));
         if (response != null)
         {
             versions = unregisterRequest.resolveResponse(response);
@@ -215,7 +214,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                 {
                     try
                     {
-                        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+                        String response = sendHttpRequest(SCHEMA_PATH.formatted(schemaId));
                         if (response == null)
                         {
                             if (retryAttempts.getAndIncrement() == 0)
@@ -297,7 +296,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             {
                 try
                 {
-                    String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+                    String response = sendHttpRequest(SUBJECT_VERSION_PATH.formatted(subject, version));
                     if (response == null)
                     {
                         if (retryAttempts.getAndIncrement() == 0)
