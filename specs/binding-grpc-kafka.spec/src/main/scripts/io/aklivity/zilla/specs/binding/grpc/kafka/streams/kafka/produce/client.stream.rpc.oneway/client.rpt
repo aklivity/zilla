@@ -37,8 +37,6 @@ write zilla:data.ext ${kafka:dataEx()
                                      .partition(-1, -1)
                                      .key("test")
                                      .header("zilla:identity", "test")
-                                     .header("zilla:service", "example.OnewayService")
-                                     .header("zilla:method", "OnewayClientStream")
                                      .build()
                                  .build()}
 write ${grpc:protobuf()
@@ -54,28 +52,11 @@ write zilla:data.ext ${kafka:dataEx()
                                      .partition(-1, -1)
                                      .key("test")
                                      .header("zilla:identity", "test")
-                                     .header("zilla:service", "example.OnewayService")
-                                     .header("zilla:method", "OnewayClientStream")
                                      .build()
                                  .build()}
 write ${grpc:protobuf()
             .string(1, "Hello World2")
             .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                              .produce()
-                                .deferred(0)
-                                .partition(-1, -1)
-                                .key("test")
-                                .header("zilla:identity", "test")
-                                .header("zilla:service", "example.OnewayService")
-                                .header("zilla:method", "OnewayClientStream")
-                                .build()
-                            .build()}
-
 write flush
 
 write close

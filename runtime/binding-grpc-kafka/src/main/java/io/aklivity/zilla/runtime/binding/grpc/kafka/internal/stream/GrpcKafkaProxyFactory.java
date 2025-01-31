@@ -242,7 +242,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final GrpcKafkaWithProduceResult result =
                     route.with.resolveProduce(authorization, grpcBeginEx);
 
-                if (result.replyTo() != null && result.replyTo().value() != null)
+                if (result.hasReplyTo())
                 {
                     newStream = new GrpcProduceProxy(
                         grpc,

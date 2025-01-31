@@ -39,28 +39,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .partition(-1, -1)
                                .key("test")
                                .header("zilla:identity", "test")
-                               .header("zilla:service", "example.OnewayService")
-                               .header("zilla:method", "OnewayUnary")
                                .build()
                            .build()}
 
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("test")
-                               .header("zilla:identity", "test")
-                               .header("zilla:service", "example.OnewayService")
-                               .header("zilla:method", "OnewayUnary")
-                               .build()
-                           .build()}
-read zilla:data.null
 
 read closed
 write close
