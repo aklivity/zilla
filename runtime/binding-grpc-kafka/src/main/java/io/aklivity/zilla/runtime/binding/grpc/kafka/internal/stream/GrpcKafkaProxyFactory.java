@@ -91,7 +91,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
     private final Varuint32FW.Builder lenRW =
-        new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
+        new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -1287,7 +1287,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            producer.doKafkaEnd(traceId, authorization);
+            producer.doKafkaEnd(traceId, authorization, true);
         }
 
         private void onGrpcAbort(
@@ -1470,7 +1470,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 if (GrpcKafkaState.initialClosed(state))
                 {
-                    producer.doKafkaEnd(traceId, authorization);
+                    producer.doKafkaEnd(traceId, authorization, true);
                     correlater.doKafkaEnd(traceId, authorization);
                 }
             }
@@ -1785,7 +1785,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doKafkaEnd(traceId, authorization);
+            delegate.doKafkaEnd(traceId, authorization, false);
 
             if (!GrpcKafkaState.replyOpening(state))
             {
@@ -1913,41 +1913,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             OctetsFW payload,
             KafkaDataExFW kafkaDataEx)
         {
-            if (!GrpcKafkaState.replyOpening(state))
-            {
-                doGrpcBegin(traceId, authorization);
-            }
-
-            if (GrpcKafkaState.replyClosing(state))
-            {
-                replySeq += reserved;
-            }
-            else
-            {
-                if (payload == null)
-                {
-                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().fetch().headers()
-                        .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_STATUS.value().equals(h.name().value()));
-
-                    if (grpcStatus != null &&
-                        !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
-                    {
-                        OctetsFW value = grpcStatus.value();
-                        String16FW status = statusRW
-                            .set(value.buffer(), value.offset(), value.sizeof())
-                            .build();
-                        doGrpcAbort(traceId, authorization, status);
-                    }
-                    else
-                    {
-                        doGrpcEnd(traceId, traceId);
-                    }
-                }
-                else if (GrpcKafkaState.replyOpening(state))
-                {
-                    doGrpcData(traceId, authorization);
-                }
-            }
         }
 
         @Override
@@ -1957,7 +1922,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         {
             if (GrpcKafkaState.initialClosed(state))
             {
-                delegate.doKafkaEnd(traceId, authorization);
+                delegate.doKafkaEnd(traceId, authorization, false);
             }
         }
 
@@ -2008,7 +1973,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 .build();
 
             doData(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0L, DATA_FLAG_COMPLETE, 0,  null, dataEx);
+                traceId, authorization, 0L, DATA_FLAG_COMPLETE, 0,  emptyRO, dataEx);
 
             assert replySeq <= replyAck + replyMax;
         }
@@ -2151,7 +2116,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void doKafkaEnd(
             long traceId,
-            long authorization)
+            long authorization,
+            boolean tombstone)
         {
             if (!GrpcKafkaState.initialClosed(state))
             {
@@ -2160,7 +2126,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = GrpcKafkaState.closeInitial(state);
 
-                doKafkaDataNull(traceId, authorization);
+                if (tombstone)
+                {
+                    doKafkaDataNull(traceId, authorization);
+                }
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -2306,7 +2275,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         {
             if (GrpcKafkaState.initialClosing(state) && initialSeq == initialAck)
             {
-                doKafkaEnd(traceId, authorization);
+                doKafkaEnd(traceId, authorization, true);
             }
         }
 
