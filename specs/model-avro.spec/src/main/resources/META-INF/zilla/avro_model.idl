@@ -23,7 +23,7 @@ scope avro_model
 
         struct AvroModelValidationFailedEx extends core::stream::Extension
         {
-            string8 error;
+            varstring error;
         }
 
         union AvroModelEventEx switch (AvroModelEventType)

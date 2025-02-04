@@ -23,7 +23,7 @@ scope json_model
 
         struct JsonModelValidationFailedEx extends core::stream::Extension
         {
-            string8 error;
+            varstring error;
         }
 
         union JsonModelEventEx switch (JsonModelEventType)

@@ -23,7 +23,7 @@ scope core_model
 
         struct CoreModelValidationFailedEx extends core::stream::Extension
         {
-            string8 error;
+            varstring error;
         }
 
         union CoreModelEventEx switch (CoreModelEventType)
