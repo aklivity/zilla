@@ -1651,7 +1651,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private final class GrpcProduceNoReplyProxy extends GrpcProxy
     {
-        private final KafkaProduceNoReplyProxy delegate;
+        private final KafkaProduceProxy delegate;
         private final long resolvedId;
 
         private GrpcProduceNoReplyProxy(
