@@ -12,16 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka;
 
-import java.util.List;
 import java.util.Map;
 
-public class Openapi
+public class OpenapiHttpKafkaFilter
 {
-    public String openapi;
-    public List<OpenapiServer> servers;
-    public Map<String, OpenapiPath> paths;
-    public List<Map<String, List<String>>> security;
-    public OpenapiComponents components;
+    public String key;
+    public Map<String, String> headers;
 }

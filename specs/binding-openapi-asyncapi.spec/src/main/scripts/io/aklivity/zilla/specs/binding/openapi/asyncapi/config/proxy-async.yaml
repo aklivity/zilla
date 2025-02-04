@@ -19,6 +19,7 @@ catalogs:
   catalog0:
     type: test
     options:
+        id: 1
         subject: petstore
         schema: |
           openapi: "3.0.0"
@@ -28,7 +29,7 @@ catalogs:
             license:
               name: MIT
           servers:
-            - url: http://localhost:8080
+            - url: http://localhost:8080/v1
           paths:
             /customer:
               post:
@@ -60,9 +61,6 @@ catalogs:
                           type: string
                           format: /customer;cid={correlationId}
                         description: Customer verification result location URL
-                security:
-                  - petstore_auth:
-                      - write:all
             /customer;cid={correlationId}:
               get:
                 tags:
@@ -98,9 +96,6 @@ catalogs:
                           type: string
                           format: /customer;cid={correlationId}
                         description: Customer verification result location URL
-                security:
-                  - petstore_auth:
-                      - read:all
           components:
             schemas:
               Customer:
@@ -143,6 +138,7 @@ catalogs:
   catalog1:
     type: test
     options:
+      id: 2
       subject: petstore
       schema: |
         asyncapi: 3.0.0

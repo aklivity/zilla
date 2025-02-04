@@ -63,6 +63,7 @@ public class OpenapiViewTest
         Openapi model = new Openapi();
         model.servers = List.of(server);
         model.paths = Map.of("/", path);
+        model.security = List.of(Map.of("OAuth2", List.of("read", "write")));
 
         OpenapiServerConfig config = OpenapiServerConfig.builder()
             .url("http://localhost/path")
@@ -70,6 +71,7 @@ public class OpenapiViewTest
 
         OpenapiView view = OpenapiView.of(model, List.of(config));
         OpenapiServerView serverView = view.servers.get(0);
+        List<OpenapiSecurityRequirementView> securityView = view.security.get(0);
         OpenapiPathView pathView = view.paths.get("/");
         OpenapiOperationView operationView = pathView.methods.get("GET");
         OpenapiRequestBodyView requestBodyView = operationView.requestBody;
@@ -77,6 +79,9 @@ public class OpenapiViewTest
         OpenapiSchemaView schemaView = mediaTypeView.schema;
 
         assertEquals(URI.create("http://localhost:80/path"), serverView.url);
+        assertEquals(1, securityView.size());
+        assertEquals("OAuth2", securityView.get(0).name);
+        assertEquals(List.of("read", "write"), securityView.get(0).scopes);
         assertNull(schemaView.model.exclusiveMinimum);
         assertEquals(0, schemaView.model.minimum.intValue());
         assertEquals(100, schemaView.model.exclusiveMaximum.intValue());

@@ -248,16 +248,14 @@ public abstract class OpenapiCompositeGenerator
                 {
                     Stream.of(schema)
                         .map(s -> s.openapi)
-                        .flatMap(v -> v.paths.values().stream())
-                        .flatMap(p -> p.methods.values().stream())
+                        .flatMap(v -> v.operations.values().stream())
                         .map(o -> o.requestBody)
                         .filter(Objects::nonNull)
                         .forEach(m -> injectInlineRequest(jsonb, options, m));
 
                     Stream.of(schema)
                         .map(s -> s.openapi)
-                        .flatMap(v -> v.paths.values().stream())
-                        .flatMap(p -> p.methods.values().stream())
+                        .flatMap(v -> v.operations.values().stream())
                         .filter(o -> o.parameters != null)
                         .flatMap(c -> c.parameters.stream())
                         .filter(p -> p.schema != null) // TODO: runtime expressions
@@ -327,8 +325,7 @@ public abstract class OpenapiCompositeGenerator
                 {
                     Stream.of(schema)
                         .map(s -> s.openapi)
-                        .flatMap(v -> v.paths.values().stream())
-                        .flatMap(p -> p.methods.values().stream())
+                        .flatMap(v -> v.operations.values().stream())
                         .filter(OpenapiOperationView::hasResponses)
                         .flatMap(o -> o.responses.values().stream())
                         .forEach(o -> injectInlineResponse(jsonb, options, o));

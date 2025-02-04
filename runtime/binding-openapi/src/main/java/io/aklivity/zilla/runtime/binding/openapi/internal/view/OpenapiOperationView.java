@@ -19,10 +19,10 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
@@ -38,8 +38,9 @@ public final class OpenapiOperationView
     public final List<OpenapiParameterView> parameters;
     public final OpenapiRequestBodyView requestBody;
     public final Map<String, OpenapiResponseView> responses;
-    public final List<Map<String, List<String>>> security;
+    public final List<List<OpenapiSecurityRequirementView>> security;
     public final List<OpenapiServerView> servers;
+    public final OpenapiHttpKafkaOperationExtension httpKafka;
 
     OpenapiOperationView(
         OpenapiView specification,
@@ -55,7 +56,7 @@ public final class OpenapiOperationView
         this.method = method;
         this.path = path;
 
-        this.id = Objects.requireNonNull(model.operationId);
+        this.id = model.operationId;
 
         this.parameters = model.parameters != null
                 ? model.parameters.stream()
@@ -73,13 +74,21 @@ public final class OpenapiOperationView
                     .collect(toMap(c -> c.status, identity()))
                 : null;
 
-        this.security = model.security;
+        this.security = model.security != null
+                ? model.security.stream()
+                    .map(s -> s.entrySet().stream()
+                        .map(e -> new OpenapiSecurityRequirementView(e.getKey(), e.getValue()))
+                        .toList())
+                    .toList()
+                : specification.security;
 
         this.servers = model.servers != null
                 ? model.servers.stream()
                     .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
                 : specification.servers;
+
+        this.httpKafka = model.httpKafka;
     }
 
     public boolean hasRequestBodyOrParameters()
@@ -102,13 +111,8 @@ public final class OpenapiOperationView
         return responses != null;
     }
 
-    public String requestPath(
-        OpenapiServerView server)
+    public boolean hasExtensionHttpKafka()
     {
-        String serverPath = server.url.getPath();
-
-        return serverPath != null
-            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
-            : path;
+        return httpKafka != null;
     }
 }
