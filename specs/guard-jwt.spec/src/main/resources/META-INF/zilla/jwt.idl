@@ -24,7 +24,7 @@ scope jwt
         struct JwtAuthorizationFailedEx extends core::stream::Extension
         {
             string8 identity;
-            varstring reason;
+            string16 reason;
         }
 
         union JwtEventEx switch (JwtEventType)

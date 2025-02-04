@@ -23,7 +23,7 @@ scope protobuf_model
 
         struct ProtobufModelValidationFailedEx extends core::stream::Extension
         {
-            varstring error;
+            string16 error;
         }
 
         union ProtobufModelEventEx switch (ProtobufModelEventType)

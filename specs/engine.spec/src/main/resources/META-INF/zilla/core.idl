@@ -120,7 +120,7 @@ scope core
 
         struct EngineConfigWatcherFailedEx extends core::stream::Extension
         {
-            varstring reason;
+            string16 reason;
         }
 
         union EngineEventEx switch (EngineEventType)
