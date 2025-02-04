@@ -65,6 +65,15 @@ public class KafkaProduceIT
 
     @Test
     @Specification({
+        "${kafka}/client.stream.rpc.oneway/client",
+        "${kafka}/client.stream.rpc.oneway/server"})
+    public void shouldSendMessageInClientStreamOneway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/client.stream.rpc.write.abort/client",
         "${kafka}/client.stream.rpc.write.abort/server"})
     public void shouldNotProduceClientStreamMessageOnWriteAbort() throws Exception
@@ -95,6 +104,15 @@ public class KafkaProduceIT
         "${kafka}/unary.rpc/client",
         "${kafka}/unary.rpc/server"})
     public void shouldExchangeMessageInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.oneway/client",
+        "${kafka}/unary.rpc.oneway/server"})
+    public void shouldSendMessageInUnaryOneway() throws Exception
     {
         k3po.finish();
     }
