@@ -22,7 +22,6 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
@@ -37,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.ResetFW;
