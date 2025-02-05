@@ -59,6 +59,17 @@ public final class OpenapiServerView
                 : null;
     }
 
+
+    public String requestPath(
+        String path)
+    {
+        String serverPath = url.getPath();
+
+        return serverPath != null && path != null
+            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
+            : path;
+    }
+
     public static final class VariableMatcher
     {
         private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");

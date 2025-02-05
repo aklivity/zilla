@@ -20,13 +20,13 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("createCustomer")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/customer")
+                                  .header(":path", "/v1/customer")
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
                                   .header("content-length", "155")
@@ -41,13 +41,13 @@ read closed
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("createCustomer")
                              .extension(http:beginEx()
                                    .typeId(zilla:id("http"))
                                    .header(":status", "202")
                                    .header("content-length", "0")
-                                   .header("Location", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                   .header("Location", "/v1/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-29854217b0ba4ea8370d777b2f0f187a")
                                   .build())
                              .build()}
 write flush
@@ -58,14 +58,14 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "GET")
                                   .header(":scheme", "http")
                                   .header(":authority", "localhost:8080")
-                                  .header(":path", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                  .header(":path", "/v1/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-29854217b0ba4ea8370d777b2f0f187a")
                                   .header("prefer", "respond-async")
                                   .build())
                              .build()}
@@ -75,7 +75,7 @@ read closed
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))

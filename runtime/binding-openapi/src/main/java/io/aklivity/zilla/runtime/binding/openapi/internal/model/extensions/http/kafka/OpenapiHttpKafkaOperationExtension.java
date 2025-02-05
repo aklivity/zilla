@@ -12,24 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka;
 
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
-
-public class OpenapiOperation
+public class OpenapiHttpKafkaOperationExtension
 {
-    public String operationId;
-    public List<OpenapiParameter> parameters;
-    public OpenapiRequestBody requestBody;
-    public Map<String, OpenapiResponse> responses;
-    public List<Map<String, List<String>>> security;
-    public List<OpenapiServer> servers;
+    public String key;
+    public Map<String, String> overrides;
 
-    @JsonbProperty("x-zilla-http-kafka")
-    public OpenapiHttpKafkaOperationExtension httpKafka;
+    public List<OpenapiHttpKafkaFilter> filters;
 }

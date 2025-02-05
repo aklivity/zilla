@@ -37,4 +37,9 @@ public final class OpenapiHeaderView
         this.allowEmptyValue = resolved.allowEmptyValue;
         this.schema = new OpenapiSchemaView(resolver, model.schema);
     }
+
+    public boolean hasSchemaFormat()
+    {
+        return schema != null && schema.format != null;
+    }
 }

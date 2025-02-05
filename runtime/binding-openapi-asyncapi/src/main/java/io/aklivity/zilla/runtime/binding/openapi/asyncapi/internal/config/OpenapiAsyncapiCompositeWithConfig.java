@@ -14,38 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-
-public class OpenapiAsyncapiConditionConfig extends ConditionConfig
+public class OpenapiAsyncapiCompositeWithConfig
 {
-    public final String apiId;
+    public final long apiId;
     public final String operationId;
 
-    public OpenapiAsyncapiConditionConfig(
-        String apiId,
+    public OpenapiAsyncapiCompositeWithConfig(
+        long apiId,
         String operationId)
     {
         this.apiId = apiId;
         this.operationId = operationId;
-    }
-
-    public boolean matches(
-        String apiId,
-        String operationId)
-    {
-        return matchesApiId(apiId) &&
-            matchesOperationId(operationId);
-    }
-
-    private boolean matchesApiId(
-        String apiId)
-    {
-        return this.apiId == null || this.apiId.equals(apiId);
-    }
-
-    private boolean matchesOperationId(
-        String operationId)
-    {
-        return this.operationId == null || this.operationId.equals(operationId);
     }
 }

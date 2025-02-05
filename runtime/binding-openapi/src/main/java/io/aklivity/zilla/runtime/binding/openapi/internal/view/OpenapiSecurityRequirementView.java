@@ -12,16 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import java.util.List;
-import java.util.Map;
 
-public class Openapi
+public final class OpenapiSecurityRequirementView
 {
-    public String openapi;
-    public List<OpenapiServer> servers;
-    public Map<String, OpenapiPath> paths;
-    public List<Map<String, List<String>>> security;
-    public OpenapiComponents components;
+    public final String name;
+    public final List<String> scopes;
+
+    OpenapiSecurityRequirementView(
+        String name,
+        List<String> scopes)
+    {
+        this.name = name;
+        this.scopes = scopes;
+    }
 }
