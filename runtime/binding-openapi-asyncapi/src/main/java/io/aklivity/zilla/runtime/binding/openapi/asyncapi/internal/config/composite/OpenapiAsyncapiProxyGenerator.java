@@ -326,7 +326,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                     .path(httpServer.requestPath(httpOp.path))
                                     .build()
                                 .inject(r -> injectHttpKafkaRouteWith(r, httpServer, httpOp, kafkaOp))
-                                .inject(r -> injectHttpServerRouteGuarded(r, httpOp))
+                                //.inject(r -> injectHttpServerRouteGuarded(r, httpOp))
                                 .build();
                     }
 
