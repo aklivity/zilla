@@ -25,6 +25,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -41,6 +42,8 @@ public class OpenapiAsyncapiIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/asyncapi/config")
         .external("asyncapi_client0")
+        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
         .clean();
 
     @Rule

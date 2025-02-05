@@ -59,6 +59,16 @@ public class GrpcKafkaProduceProxyIT
     }
 
     @Test
+    @Configuration("produce.proxy.rpc.oneway.yaml")
+    @Specification({
+        "${grpc}/unary.rpc.oneway/client",
+        "${kafka}/unary.rpc.oneway/server"})
+    public void shouldSendMessageWithUnaryRpcOneway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/unary.rpc.message.value.100k/client",
@@ -104,6 +114,16 @@ public class GrpcKafkaProduceProxyIT
         "${grpc}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageWithClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("produce.proxy.rpc.oneway.yaml")
+    @Specification({
+        "${grpc}/client.stream.rpc.oneway/client",
+        "${kafka}/client.stream.rpc.oneway/server"})
+    public void shouldSendMessageWithClientStreamRpcOneway() throws Exception
     {
         k3po.finish();
     }

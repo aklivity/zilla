@@ -22,6 +22,6 @@ public class Openapi
     public String openapi;
     public List<OpenapiServer> servers;
     public Map<String, OpenapiPath> paths;
-    public Map<String, List<String>> security;
+    public List<Map<String, List<String>>> security;
     public OpenapiComponents components;
 }

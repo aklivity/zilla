@@ -89,12 +89,15 @@ public class GrpcKafkaWithProduceResult
         this.nameBuffer = new ExpandableDirectByteBuffer();
         this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
 
-        hash.updateHash(correlation.service.value());
-        hash.updateHash(service.value());
-        hash.updateHash(correlation.method.value());
-        hash.updateHash(method.value());
-        hash.updateHash(correlation.replyTo.value());
-        hash.updateHash(replyTo.value());
+        if (hasReplyTo())
+        {
+            hash.updateHash(correlation.service.value());
+            hash.updateHash(service.value());
+            hash.updateHash(correlation.method.value());
+            hash.updateHash(method.value());
+            hash.updateHash(correlation.replyTo.value());
+            hash.updateHash(replyTo.value());
+        }
 
         if (overrides != null)
         {
@@ -153,10 +156,14 @@ public class GrpcKafkaWithProduceResult
             overrides.forEach(o -> builder.item(o::header));
         }
 
-        builder.item(this::service);
-        builder.item(this::method);
-        builder.item(this::replyTo);
-        builder.item(this::correlationId);
+        if (hasReplyTo())
+        {
+            builder.item(this::service);
+            builder.item(this::method);
+            builder.item(this::replyTo);
+            builder.item(this::correlationId);
+        }
+
         metadata.forEach(m -> builder.item(i -> metadata(i, m)));
     }
 
@@ -240,5 +247,10 @@ public class GrpcKafkaWithProduceResult
                     .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
                     .valueLen(hashCorrelationId.sizeof())
                     .value(hashCorrelationId.value(), 0, hashCorrelationId.sizeof()))));
+    }
+
+    public boolean hasReplyTo()
+    {
+        return replyTo != null && replyTo.value() != null;
     }
 }

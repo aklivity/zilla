@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongSupplier;
+import java.util.stream.Stream;
 
 import org.agrona.collections.MutableInteger;
 
@@ -36,6 +37,8 @@ public final class OpenapiView
     public final OpenapiComponentsView components;
     public final Map<String, OpenapiPathView> paths;
     public final List<OpenapiServerView> servers;
+    public final Map<String, OpenapiOperationView> operations;
+    public final List<List<OpenapiSecurityRequirementView>> security;
 
     public static OpenapiView of(
         Openapi model)
@@ -72,8 +75,22 @@ public final class OpenapiView
 
         this.servers = model.servers != null
             ? model.servers.stream()
-                .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                .flatMap(s -> configs.isEmpty()
+                    ? Stream.of(new OpenapiServerView(resolver, s, null))
+                    : configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                 .toList()
+            : null;
+
+        this.security = model.security != null
+            ? model.security.stream()
+                .map(s -> s.entrySet().stream()
+                    .map(e -> new OpenapiSecurityRequirementView(e.getKey(), e.getValue()))
+                    .toList())
+                .toList()
+            : null;
+
+        this.components = model.components != null
+            ? new OpenapiComponentsView(resolver, model.components)
             : null;
 
         MutableInteger opIndex = new MutableInteger(1);
@@ -84,8 +101,11 @@ public final class OpenapiView
                 .collect(toMap(c -> c.path, identity()))
             : null;
 
-        this.components = model.components != null
-            ? new OpenapiComponentsView(resolver, model.components)
+        this.operations = this.paths != null
+            ? this.paths.values().stream()
+                .flatMap(p -> p.methods.values().stream())
+                .filter(o -> o.id != null)
+                .collect(toMap(o -> o.id, identity()))
             : null;
     }
 }

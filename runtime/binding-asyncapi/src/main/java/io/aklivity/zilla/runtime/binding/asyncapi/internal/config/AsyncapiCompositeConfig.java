@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
-import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -35,7 +34,6 @@ public final class AsyncapiCompositeConfig
     public final List<AsyncapiCompositeRouteConfig> routes;
     public final List<NamespaceConfig> namespaces;
 
-    private final LongFunction<String> resolveLabel;
     private final ToLongFunction<String> resolveSchemaId;
 
     private Long2ObjectHashMap<AsyncapiOperationView> operationsById;
@@ -55,10 +53,6 @@ public final class AsyncapiCompositeConfig
     {
         this.routes = routes;
         this.namespaces = namespaces;
-
-        final Long2ObjectHashMap<String> labelsBySchemaId = new Long2ObjectHashMap<>();
-        schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.apiLabel));
-        this.resolveLabel = labelsBySchemaId::get;
 
         final Object2LongHashMap<String> schemaIdsByLabel = new Object2LongHashMap<>(NO_SCHEMA_ID);
         schemas.forEach(s -> schemaIdsByLabel.put(s.apiLabel, s.schemaId));
@@ -91,12 +85,6 @@ public final class AsyncapiCompositeConfig
                 .filter(r -> r.matches(apiId, operationTypeId))
                 .findFirst()
                 .orElse(null);
-    }
-
-    public String resolveApiId(
-        long apiId)
-    {
-        return resolveLabel.apply(apiId);
     }
 
     public long resolveApiId(

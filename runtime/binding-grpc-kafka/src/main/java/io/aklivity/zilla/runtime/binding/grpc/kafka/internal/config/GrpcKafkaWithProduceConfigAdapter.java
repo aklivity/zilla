@@ -101,7 +101,11 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
             }
         }
 
-        String newReplyTo = object.getString(REPLY_TO_NAME);
+        String newReplyTo = null;
+        if (object.containsKey(REPLY_TO_NAME))
+        {
+            newReplyTo = object.getString(REPLY_TO_NAME);
+        }
 
         return new GrpcKafkaWithConfig(
             new GrpcKafkaWithProduceConfig(newTopic, newProduceAcks, newProduceKey, newOverrides, newReplyTo));

@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecurityRequirementView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -261,8 +262,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.openapi)
-                    .flatMap(v -> v.paths.values().stream())
-                    .flatMap(v -> v.methods.values().stream())
+                    .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
                     {
@@ -270,7 +270,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         {
                             options
                                 .request()
-                                    .path(operation.requestPath(server))
+                                    .path(server.requestPath(operation.path))
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
@@ -375,8 +375,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.openapi)
-                    .flatMap(v -> v.paths.values().stream())
-                    .flatMap(p -> p.methods.values().stream())
+                    .flatMap(v -> v.operations.values().stream())
                     .filter(o -> o.servers != null)
                     .forEach(operation ->
                         operation.servers.forEach(server ->
@@ -384,7 +383,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                                 .route()
                                 .exit(config.qname)
                                 .when(HttpConditionConfig::builder)
-                                    .header(":path", operation.requestPath(server).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                    .header(":path", server.requestPath(operation.path).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
                                     .header(":method", operation.method)
                                     .build()
                                 .with(HttpWithConfig::builder)
@@ -401,19 +400,19 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 OpenapiOperationView operation)
             {
                 Map<String, OpenapiSecuritySchemeView> securitySchemes = operation.specification.components.securitySchemes;
-                final List<Map<String, List<String>>> security = operation.security;
+                final List<List<OpenapiSecurityRequirementView>> security = operation.security;
 
                 if (security != null)
                 {
                     security.stream()
-                        .flatMap(s -> s.entrySet().stream())
-                        .filter(e -> securitySchemes.containsKey(e.getKey()))
-                        .filter(e -> "jwt".equalsIgnoreCase(securitySchemes.get(e.getKey()).bearerFormat))
-                        .forEach(e ->
+                        .flatMap(s -> s.stream())
+                        .filter(r -> securitySchemes.containsKey(r.name))
+                        .filter(r -> "jwt".equalsIgnoreCase(securitySchemes.get(r.name).bearerFormat))
+                        .forEach(r ->
                             route
                                 .guarded()
                                     .name(config.options.http.authorization.qname)
-                                    .inject(guarded -> injectGuardedRoles(guarded, e.getValue()))
+                                    .inject(guarded -> injectGuardedRoles(guarded, r.scopes))
                                     .build());
                 }
 

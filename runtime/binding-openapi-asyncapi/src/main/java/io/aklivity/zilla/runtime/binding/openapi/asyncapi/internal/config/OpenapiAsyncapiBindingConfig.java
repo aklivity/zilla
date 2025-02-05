@@ -16,193 +16,67 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
-import org.agrona.collections.Long2LongHashMap;
-import org.agrona.collections.Object2LongHashMap;
-import org.agrona.collections.Object2ObjectHashMap;
-
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiAsyncapiBindingConfig
 {
     public final long id;
-    public final String name;
+    public final String namespace;
+    public final String qname;
     public final KindConfig kind;
     public final OpenapiAsyncapiOptionsConfig options;
     public final List<OpenapiAsyncapiRouteConfig> routes;
+    public final List<MetricRefConfig> metricRefs;
 
-    private final OpenapiAsyncNamespaceGenerator namespaceGenerator;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-    private final ToLongFunction<String> resolvedIds;
-    private final Long2LongHashMap compositeResolvedIds;
-    private final Object2LongHashMap<String> openapiSchemaIdsByApiId;
-    private final Object2LongHashMap<String> asyncapiSchemaIdsByApiId;
-    private final AsyncapiParser asyncapiParser;
-    private final OpenapiParser openapiParser;
-    private final Consumer<NamespaceConfig> attach;
-    private final Consumer<NamespaceConfig> detach;
+    public final ToLongFunction<String> resolveId;
+    public final LongFunction<CatalogHandler> supplyCatalog;
+    public final ToIntFunction<String> supplyTypeId;
+    public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
 
-    private NamespaceConfig composite;
-    private int httpKafkaOrigin;
+    public transient OpenapiAsyncapiCompositeConfig composite;
 
     public OpenapiAsyncapiBindingConfig(
-        BindingConfig binding,
-        OpenapiAsyncNamespaceGenerator namespaceGenerator,
-        LongFunction<CatalogHandler> supplyCatalog,
-        Consumer<NamespaceConfig> attachComposite,
-        Consumer<NamespaceConfig> detachComposite)
+        EngineContext context,
+        BindingConfig binding)
     {
         this.id = binding.id;
-        this.name = binding.name;
+        this.namespace = binding.namespace;
+        this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = (OpenapiAsyncapiOptionsConfig) binding.options;
-        this.resolvedIds = binding.resolveId;
-        this.attach = attachComposite;
-        this.detach = detachComposite;
-        this.openapiSchemaIdsByApiId = new Object2LongHashMap<>(-1);
-        this.asyncapiSchemaIdsByApiId = new Object2LongHashMap<>(-1);
-        this.compositeResolvedIds = new Long2LongHashMap(-1);
-        this.openapiParser = new OpenapiParser();
-        this.asyncapiParser = new AsyncapiParser();
-
         this.routes = binding.routes.stream()
-            .map(r -> new OpenapiAsyncapiRouteConfig(r, openapiSchemaIdsByApiId::get))
+            .map(OpenapiAsyncapiRouteConfig::new)
             .collect(toList());
-        this.namespaceGenerator = namespaceGenerator;
-        this.supplyCatalog = supplyCatalog;
-    }
-
-    public boolean isCompositeOriginId(
-        long originId)
-    {
-        return httpKafkaOrigin == NamespacedId.namespaceId(originId);
-    }
-
-    public long resolveResolvedId(
-        long apiId)
-    {
-        return compositeResolvedIds.get(apiId);
-    }
-
-    public long resolveAsyncapiApiId(
-        String apiId)
-    {
-        return asyncapiSchemaIdsByApiId.get(apiId);
+        this.metricRefs =
+            binding.telemetryRef != null && binding.telemetryRef.metricRefs != null
+                ? binding.telemetryRef.metricRefs
+                : List.of();
+        this.resolveId = binding.resolveId;
+        this.supplyCatalog = context::supplyCatalog;
+        this.supplyTypeId = context::supplyTypeId;
+        this.supplyBindingId = context::supplyBindingId;
     }
 
     public OpenapiAsyncapiRouteConfig resolve(
         long authorization,
-        long apiId)
+        String apiId,
+        String operationId)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId))
+            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
             .findFirst()
             .orElse(null);
-    }
-
-    public void attach(
-        BindingConfig binding)
-    {
-        final List<OpenapiSchemaConfig> openapiConfigs = convertToOpenapi(options.specs.openapi);
-        final List<AsyncapiSchemaConfig> asyncapiConfigs = convertToAsyncapi(options.specs.asyncapi);
-
-        final Map<String, OpenapiView> openapis = openapiConfigs.stream()
-            .collect(Collectors.toMap(
-                c -> c.apiLabel,
-                c -> c.openapi,
-                (e, n) -> e,
-                Object2ObjectHashMap::new));
-
-        final Map<String, AsyncapiView> asyncapis = asyncapiConfigs.stream()
-            .collect(Collectors.toMap(
-                    c -> c.apiLabel,
-                    c -> c.asyncapi,
-                    (e, n) -> e,
-                    Object2ObjectHashMap::new));
-
-        this.composite = namespaceGenerator.generate(binding, openapis, asyncapis, openapiSchemaIdsByApiId::get);
-        attach.accept(this.composite);
-
-        BindingConfig mappingBinding = composite.bindings.stream()
-            .filter(b -> b.type.equals("http-kafka")).findFirst().get();
-
-        httpKafkaOrigin = NamespacedId.namespaceId(mappingBinding.id);
-
-        openapiConfigs.forEach(o ->
-        {
-            compositeResolvedIds.put(o.schemaId, mappingBinding.id);
-            openapiSchemaIdsByApiId.put(o.apiLabel, o.schemaId);
-        });
-        asyncapiConfigs.forEach(a -> asyncapiSchemaIdsByApiId.put(a.apiLabel, a.schemaId));
-    }
-
-    public void detach()
-    {
-        detach.accept(composite);
-    }
-
-    private List<AsyncapiSchemaConfig> convertToAsyncapi(
-        Set<AsyncapiSpecificationConfig> configs)
-    {
-        final List<AsyncapiSchemaConfig> asyncapiConfigs = new ArrayList<>();
-        for (AsyncapiSpecificationConfig config : configs)
-        {
-            for (AsyncapiCatalogConfig catalog : config.catalogs)
-            {
-                final long catalogId = resolvedIds.applyAsLong(catalog.name);
-                final CatalogHandler handler = supplyCatalog.apply(catalogId);
-                final int schemaId = handler.resolve(catalog.subject, catalog.version);
-                final String payload = handler.resolve(schemaId);
-                final Asyncapi model = asyncapiParser.parse(payload);
-                final AsyncapiView asyncapi = AsyncapiView.of(model);
-                asyncapiConfigs.add(new AsyncapiSchemaConfig(config.label, schemaId, asyncapi));
-            }
-        }
-        return asyncapiConfigs;
-    }
-
-    private List<OpenapiSchemaConfig> convertToOpenapi(
-        Set<OpenapiSpecificationConfig> configs)
-    {
-        final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
-        for (OpenapiSpecificationConfig config : configs)
-        {
-            for (OpenapiCatalogConfig catalog : config.catalogs)
-            {
-                final long catalogId = resolvedIds.applyAsLong(catalog.name);
-                final CatalogHandler handler = supplyCatalog.apply(catalogId);
-                final int schemaId = handler.resolve(catalog.subject, catalog.version);
-                final String payload = handler.resolve(schemaId);
-                final Openapi model = openapiParser.parse(payload);
-                final OpenapiView openapi = OpenapiView.of(model);
-                openapiConfigs.add(new OpenapiSchemaConfig(config.label, schemaId, openapi));
-            }
-        }
-        return openapiConfigs;
     }
 }

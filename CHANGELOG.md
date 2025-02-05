@@ -2,7 +2,29 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.123...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.124...HEAD)
+
+**Implemented enhancements:**
+
+- Support gRPC client streaming to Kafka directly [\#642](https://github.com/aklivity/zilla/issues/642)
+
+**Fixed bugs:**
+
+- Zilla Crashes on invalid request payload [\#1394](https://github.com/aklivity/zilla/issues/1394)
+- Schema Retrieval Failure Causes Validation Error in Zilla [\#1391](https://github.com/aklivity/zilla/issues/1391)
+- Connection refused for MQTT Kafka broker after setting up TLS on the Kafka client [\#1389](https://github.com/aklivity/zilla/issues/1389)
+- Zilla Validation not working correctly [\#1385](https://github.com/aklivity/zilla/issues/1385)
+
+**Merged pull requests:**
+
+- Use `OpenapiView` and `AsyncapiView` to generate composite namespaces [\#1396](https://github.com/aklivity/zilla/pull/1396) ([jfallows](https://github.com/jfallows))
+- fix: Zilla Crashes on invalid request payload [\#1395](https://github.com/aklivity/zilla/pull/1395) ([ankitk-me](https://github.com/ankitk-me))
+- fix: locale-specific formatting due to `MessageFormat.format()` [\#1390](https://github.com/aklivity/zilla/pull/1390) ([ankitk-me](https://github.com/ankitk-me))
+- Support gRPC client stream/unary oneway [\#1384](https://github.com/aklivity/zilla/pull/1384) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.124](https://github.com/aklivity/zilla/tree/0.9.124) (2025-01-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.123...0.9.124)
 
 **Merged pull requests:**
 

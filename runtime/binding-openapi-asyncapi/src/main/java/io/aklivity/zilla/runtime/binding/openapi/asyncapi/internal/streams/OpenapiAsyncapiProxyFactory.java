@@ -14,22 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 
-import java.util.function.Consumer;
-import java.util.function.LongFunction;
-import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiConfiguration;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite.OpenapiAsyncapiCompositeGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite.OpenapiAsyncapiProxyGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.AbortFW;
@@ -37,22 +36,20 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamFactory
 {
-    private static final int UNKNOWN_COMPOSITE_RESOLVED_ID = -1;
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -71,26 +68,24 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
+    private final ExtensionFW extensionRO = new ExtensionFW();
+
     private final AsyncapiBeginExFW asyncapiBeginExRO = new AsyncapiBeginExFW();
     private final OpenapiBeginExFW openapiBeginExRO = new OpenapiBeginExFW();
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
     private final OpenapiBeginExFW.Builder openapiBeginExRW = new OpenapiBeginExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final BufferPool bufferPool;
+    private final EngineContext context;
+
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongSupplier supplyTraceId;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-    private final Consumer<NamespaceConfig> attachComposite;
-    private final Consumer<NamespaceConfig> detachComposite;
+    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
+
     private final Long2ObjectHashMap<OpenapiAsyncapiBindingConfig> bindings;
-    private final Long2LongHashMap apiIds;
-    private final OpenapiAsyncapiConfiguration config;
-    private final OpenapiAsyncNamespaceGenerator namespaceGenerator;
+    private final OpenapiAsyncapiCompositeGenerator generator;
     private final int openapiTypeId;
     private final int asyncapiTypeId;
 
@@ -98,20 +93,14 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         OpenapiAsyncapiConfiguration config,
         EngineContext context)
     {
-        this.config = config;
-        this.namespaceGenerator = new OpenapiAsyncNamespaceGenerator();
+        this.generator = new OpenapiAsyncapiProxyGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.bufferPool = context.bufferPool();
+        this.context = context;
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyTraceId = context::supplyTraceId;
-        this.supplyCatalog = context::supplyCatalog;
-        this.attachComposite = context::attachComposite;
-        this.detachComposite = context::detachComposite;
         this.bindings = new Long2ObjectHashMap<>();
-        this.apiIds = new Long2LongHashMap(-1);
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
     }
@@ -127,19 +116,30 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     public void attach(
         BindingConfig binding)
     {
-        OpenapiAsyncapiBindingConfig apiBinding = new OpenapiAsyncapiBindingConfig(binding,
-            namespaceGenerator, supplyCatalog, attachComposite, detachComposite);
-        bindings.put(binding.id, apiBinding);
+        OpenapiAsyncapiBindingConfig attached = new OpenapiAsyncapiBindingConfig(context, binding);
+        bindings.put(binding.id, attached);
 
-        apiBinding.attach(binding);
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(attached);
+        assert composite != null;
+        // TODO: schedule generate retry if null
+
+        composite.namespaces.forEach(context::attachComposite);
+        attached.composite = composite;
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        OpenapiAsyncapiBindingConfig apiBinding = bindings.remove(bindingId);
-        apiBinding.detach();
+        OpenapiAsyncapiBindingConfig binding = bindings.remove(bindingId);
+        OpenapiAsyncapiCompositeConfig composite = binding.composite;
+
+        if (composite != null)
+        {
+            composite.namespaces.forEach(context::detachComposite);
+        }
+
+        // TODO: cancel generate retry if scheduled
     }
 
     @Override
@@ -159,52 +159,69 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         final OctetsFW extension = begin.extension();
 
         final OpenapiAsyncapiBindingConfig binding = bindings.get(routedId);
+        final OpenapiAsyncapiCompositeConfig composite = binding != null ? binding.composite : null;
 
         MessageConsumer newStream = null;
 
-        if (binding != null)
+        if (binding != null && composite != null)
         {
-            if (!binding.isCompositeOriginId(originId))
+            if (composite.hasBindingId(originId))
             {
-                final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
-                final long apiId = openapiBeginEx.apiId();
-                final String operationId = openapiBeginEx.operationId().asString();
+                final ExtensionFW extensionEx = extension.get(extensionRO::wrap);
+                final long compositeId = extensionEx.compositeId();
+                final OpenapiOperationView operation = composite.resolveOperation(compositeId);
 
-                final long compositeResolvedId = binding.resolveResolvedId(apiId);
-                apiIds.put(apiId, apiId);
-
-                if (compositeResolvedId != UNKNOWN_COMPOSITE_RESOLVED_ID)
+                if (operation != null)
                 {
+                    final String apiId = operation.specification.label;
+                    final String operationId = operation.id;
+                    final OpenapiAsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+
+                    if (route != null)
+                    {
+                        final long resolvedId = route.id;
+                        final long resolvedApiId = composite.resolveApiId(route.with.apiId);
+                        final String resolvedOperationId = route.with.operationId != null
+                            ? route.with.operationId
+                            : operationId;
+
+                        newStream = new CompositeClientStream(
+                            receiver,
+                            originId,
+                            routedId,
+                            initialId,
+                            authorization,
+                            affinity,
+                            resolvedId,
+                            resolvedApiId,
+                            resolvedOperationId)::onCompositeClientMessage;
+                    }
+                }
+            }
+            else
+            {
+                final OpenapiBeginExFW beginEx = extension.get(openapiBeginExRO::tryWrap);
+                final long apiId = beginEx.apiId();
+                final String operationId = beginEx.operationId().asString();
+                final ExtensionFW extensionEx = beginEx.extension().get(extensionRO::tryWrap);
+                final int operationTypeId = extensionEx.typeId();
+
+                final OpenapiAsyncapiCompositeRouteConfig route = composite.resolve(authorization, apiId, operationTypeId);
+
+                if (route != null)
+                {
+                    final long resolvedId = route.id;
+
                     newStream = new OpenapiStream(
                         receiver,
                         originId,
                         routedId,
                         initialId,
-                        apiId,
                         authorization,
-                        compositeResolvedId,
-                        operationId)::onOpenapiMessage;
-                }
-            }
-            else
-            {
-                final long apiId = apiIds.get(affinity);
-                final OpenapiAsyncapiRouteConfig route = binding.resolve(authorization, apiId);
-
-                if (route != null)
-                {
-                    final long clientApiId = binding.resolveAsyncapiApiId(route.with.apiId);
-                    final String operationId = route.with.operationId;
-                    newStream = new CompositeClientStream(
-                        receiver,
-                        originId,
-                        routedId,
-                        initialId,
-                        authorization,
-                        route.id,
                         affinity,
-                        clientApiId,
-                        operationId)::onCompositeClientMessage;
+                        resolvedId,
+                        apiId,
+                        operationId)::onOpenapiMessage;
                 }
             }
         }
@@ -241,13 +258,14 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long originId,
             long routedId,
             long initialId,
-            long affinity,
             long authorization,
-            long compositeResolvedId,
+            long affinity,
+            long resolvedId,
+            long apiId,
             String operationId)
         {
             this.delegate =
-                new CompositeServerStream(this, compositeResolvedId, compositeResolvedId, authorization, operationId);
+                new CompositeServerStream(this, routedId, resolvedId, authorization, apiId, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -545,6 +563,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
     final class CompositeServerStream
     {
+        private final long apiId;
         private final String operationId;
         private final long originId;
         private final long routedId;
@@ -569,16 +588,18 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         private CompositeServerStream(
             OpenapiStream delegate,
+            long originId,
             long routedId,
-            long compositeResolvedId,
             long authorization,
+            long apiId,
             String operationId)
         {
             this.delegate = delegate;
-            this.originId = routedId;
-            this.routedId = compositeResolvedId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
+            this.apiId = apiId;
             this.operationId = operationId;
         }
 
@@ -634,7 +655,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             final OpenapiBeginExFW openapiBeginEx = openapiBeginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(openapiTypeId)
-                    .apiId(delegate.affinity)
+                    .apiId(apiId)
                     .operationId(operationId)
                     .extension(extension)
                     .build();
@@ -900,8 +921,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long routedId,
             long initialId,
             long authorization,
-            long resolvedId,
             long affinity,
+            long resolvedId,
             long apiId,
             String operationId)
         {

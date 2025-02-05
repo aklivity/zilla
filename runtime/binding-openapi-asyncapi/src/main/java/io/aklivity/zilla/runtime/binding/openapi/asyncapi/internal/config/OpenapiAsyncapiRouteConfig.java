@@ -18,7 +18,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.LongPredicate;
-import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -28,12 +27,10 @@ public final class OpenapiAsyncapiRouteConfig
     public final OpenapiAsyncapiWithConfig with;
     public final List<OpenapiAsyncapiConditionConfig> when;
 
-    private final ToLongFunction<String> supplyApiId;
     private final LongPredicate authorized;
 
     public OpenapiAsyncapiRouteConfig(
-        RouteConfig route,
-        ToLongFunction<String> supplyApiId)
+        RouteConfig route)
     {
         this.id = route.id;
         this.authorized = route.authorized;
@@ -41,7 +38,6 @@ public final class OpenapiAsyncapiRouteConfig
             .map(OpenapiAsyncapiConditionConfig.class::cast)
             .collect(toList());
         this.with = (OpenapiAsyncapiWithConfig) route.with;
-        this.supplyApiId = supplyApiId;
     }
 
     boolean authorized(
@@ -51,8 +47,9 @@ public final class OpenapiAsyncapiRouteConfig
     }
 
     boolean matches(
-        long apiId)
+        String apiId,
+        String operationId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, supplyApiId));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
     }
 }
