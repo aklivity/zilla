@@ -127,6 +127,17 @@ public abstract class OpenapiAsyncapiCompositeGenerator
         protected abstract <C> NamespaceConfigBuilder<C> injectComponents(
             NamespaceConfigBuilder<C> namespace);
 
+        protected final String resolveIdentity(
+            String value)
+        {
+            if ("{identity}".equals(value))
+            {
+                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+            }
+
+            return value;
+        }
+
         private <C> NamespaceConfigBuilder<C> injectName(
             NamespaceConfigBuilder<C> namespace)
         {
@@ -184,17 +195,6 @@ public abstract class OpenapiAsyncapiCompositeGenerator
             }
 
             return namespace;
-        }
-
-        protected final String resolveIdentity(
-            String value)
-        {
-            if ("{identity}".equals(value))
-            {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
-            }
-
-            return value;
         }
 
         protected abstract class BindingsHelper

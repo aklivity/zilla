@@ -42,8 +42,8 @@ public class OpenapiAsyncapiIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/asyncapi/config")
         .external("asyncapi_client0")
-        .configure(EngineConfiguration.ENGINE_VERBOSE, true)
-        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, true)
+        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
         .clean();
 
     @Rule
