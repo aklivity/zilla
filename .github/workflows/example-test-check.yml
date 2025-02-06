@@ -1,0 +1,67 @@
+name: Examples test Checker
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 22
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            !~/.m2/repository/io/aklivity/zilla
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build with Maven
+        run: ./mvnw -B -U -nsu -Ddocker.logStdout -Ddocker.verbose -DskipTests install jacoco:report-aggregate
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Create container tar
+        run: docker save ghcr.io/aklivity/zilla:develop-SNAPSHOT > /tmp/zilla-image.tar
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zilla-image
+          path: /tmp/zilla-image.tar
+
+  get-example-dirs:
+    runs-on: ubuntu-latest
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
+    steps:
+      - name: Checkout examples repo
+        uses: actions/checkout@v4
+        with:
+          repository: aklivity/zilla-examples
+          ref: refs/heads/example-startup-compose # change to main
+      - id: dirs
+        run: echo "dirs=$(ls -d */ | sed 's#/##'  | jq --raw-input --slurp --compact-output 'split("\n")[:-1]')" >> ${GITHUB_OUTPUT}
+
+  testing:
+    if: ${{ needs.get-example-dirs.outputs.dirs != '' }}
+    strategy:
+      matrix:
+        dir: ${{ fromJson(needs.get-example-dirs.outputs.dirs) }}
+      fail-fast: false
+    needs:
+      - build-image
+      - get-example-dirs
+    uses: ./.github/workflows/reusable_test_runner.yaml
+    with:
+      example-dir: ${{ matrix.dir }}
+      zilla-image-tag: develop-SNAPSHOT
+      zilla-image-artifact-name: zilla-image
