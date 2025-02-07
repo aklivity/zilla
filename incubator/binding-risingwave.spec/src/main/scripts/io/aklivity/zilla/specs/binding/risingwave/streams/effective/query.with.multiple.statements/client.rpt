@@ -64,7 +64,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view AS SELECT * FROM cities_source;"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS zb_catalog.cities_view AS SELECT * FROM cities_source;"
       [0x00]
 write flush
 
@@ -134,7 +134,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM cities_view;"
+write "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM zb_catalog.cities_view;"
      [0x00]
 write flush
 
