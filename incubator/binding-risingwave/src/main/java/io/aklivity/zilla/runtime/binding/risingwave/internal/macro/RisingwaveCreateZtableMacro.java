@@ -282,7 +282,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
                 select = fieldBuilder.toString();
             }
 
-            String sqlQuery = String.format(sqlFormat, "%s_view".formatted(name),
+            String sqlQuery = String.format(sqlFormat, "%s.%s_view".formatted(systemSchema, name),
                 "SELECT %s FROM %s_source".formatted(select, name));
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
@@ -404,7 +404,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
     private final class CreateSinkIntoState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s.%s_view_sink INTO %s FROM %s_view;\u0000""";
+            CREATE SINK %s.%s_view_sink INTO %s FROM %s.%s_view;\u0000""";
 
         @Override
         public void onStarted(
@@ -412,7 +412,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             long authorization)
         {
             String name = command.name();
-            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, name);
+            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, systemSchema, name);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
