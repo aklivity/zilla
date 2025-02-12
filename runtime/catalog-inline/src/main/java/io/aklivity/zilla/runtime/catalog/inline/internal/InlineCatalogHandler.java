@@ -63,14 +63,18 @@ public class InlineCatalogHandler implements CatalogHandler
         return (int) crc32c.getValue();
     }
 
-    private void registerSchema(List<InlineSchemaConfig> configs)
+    private void registerSchema(
+        List<InlineSchemaConfig> configs)
     {
-        for (InlineSchemaConfig config : configs)
+        if (configs != null)
         {
-            String schema = config.schema;
-            int schemaId = generateCRC32C(schema);
-            schemas.put(schemaId, schema);
-            schemaIds.put(config.subject + config.version, schemaId);
+            for (InlineSchemaConfig config : configs)
+            {
+                String schema = config.schema;
+                int schemaId = generateCRC32C(schema);
+                schemas.put(schemaId, schema);
+                schemaIds.put(config.subject + config.version, schemaId);
+            }
         }
     }
 }
