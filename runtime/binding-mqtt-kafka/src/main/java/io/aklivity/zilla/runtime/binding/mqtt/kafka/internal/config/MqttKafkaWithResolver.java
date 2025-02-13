@@ -72,4 +72,9 @@ public class MqttKafkaWithResolver
         }
         return topic == null ? options.topics.messages : new String16FW(topic);
     }
+
+    public long compositeId()
+    {
+        return with.compositeId;
+    }
 }

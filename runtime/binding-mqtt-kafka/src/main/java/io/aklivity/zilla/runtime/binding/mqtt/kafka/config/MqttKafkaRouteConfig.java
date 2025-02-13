@@ -78,4 +78,9 @@ public class MqttKafkaRouteConfig
             .filter(m -> m.kind == kind)
             .anyMatch(m -> m.matches(topic));
     }
+
+    public long compositeId()
+    {
+        return with.compositeId();
+    }
 }

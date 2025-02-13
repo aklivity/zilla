@@ -357,11 +357,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            long compositeId = resolved.compositeId();
             final String16FW sessionTopic = binding.sessionsTopic();
 
             final MqttQoS publishQosMax = MqttQoS.valueOf(Math.min(binding.publishQosMax().value(), this.publishQosMax.value()));
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, sessionTopic, publishQosMax);
+                binding.id, affinity, compositeId, sessionTopic, publishQosMax);
             newStream = proxy::onMqttMessage;
         }
 
@@ -411,6 +412,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final long affinity;
+        private final long compositeId;
         private final String16FW sessionId;
         private final String16FW sessionsTopic;
         private final List<KafkaMetaStream> metas;
@@ -466,6 +469,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long initialId,
             long resolvedId,
             long bindingId,
+            long affinity,
+            long compositeId,
             String16FW sessionsTopic,
             MqttQoS publishQosMax)
         {
@@ -475,7 +480,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.resolvedId = resolvedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.session = new KafkaFetchWillSignalStream(originId, resolvedId, this);
+            this.affinity = affinity;
+            this.compositeId = compositeId;
+            this.session = new KafkaFetchWillSignalStream(routedId, resolvedId, this);
             this.sessionsTopic = sessionsTopic;
             this.sessionId = new String16FW(sessionIds.get(bindingId));
             this.leaderEpochs = new Long2LongHashMap(-2);
@@ -570,8 +577,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
-                final long routedId = session.routedId;
-                session = new KafkaSessionSignalStream(originId, routedId, this);
+                session = new KafkaSessionSignalStream(routedId, resolvedId, this);
             }
             if (isSetWillFlag(sessionFlags))
             {
@@ -1200,7 +1206,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     final long routedId = session.routedId;
                     session = new KafkaSessionStateProxy(originId, routedId, this);
-                    session.doKafkaBeginIfNecessary(traceId, authorization, 0);
+                    session.doKafkaBeginIfNecessary(traceId, authorization, affinity);
                 }
                 else
                 {
@@ -1268,7 +1274,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 final long routedId = session.routedId;
                 producerInit = new KafkaInitProducerStream(originId, routedId, this);
-                producerInit.doKafkaBegin(traceId, authorization, 0);
+                producerInit.doKafkaBegin(traceId, authorization, affinity);
             }
             else if (unfetchedKafkaTopics == 0)
             {
@@ -3368,7 +3374,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final long routedId = delegate.session.routedId;
 
                 delegate.group = new KafkaGroupStream(originId, routedId, delegate);
-                delegate.group.doKafkaBegin(traceId, authorization, 0);
+                delegate.group.doKafkaBegin(traceId, authorization, delegate.affinity, delegate.compositeId);
 
                 sendMigrateSignal(traceId, authorization);
             }
@@ -3389,8 +3395,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             final String server = delegate.redirect ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.sessionsTopic, null, delegate.clientIdMigrate,
-                delegate.sessionId, server, KafkaCapabilities.PRODUCE_AND_FETCH);
+                traceId, authorization, affinity, delegate.compositeId, delegate.sessionsTopic, null,
+                delegate.clientIdMigrate, delegate.sessionId, server, KafkaCapabilities.PRODUCE_AND_FETCH);
         }
 
         @Override
@@ -3627,8 +3633,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 KafkaCapabilities.PRODUCE_ONLY : KafkaCapabilities.PRODUCE_AND_FETCH;
             final String server = delegate.redirect ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
-                delegate.sessionId, server, capabilities);
+                traceId, authorization, affinity, delegate.compositeId, delegate.sessionsTopic, delegate.clientId,
+                delegate.clientIdMigrate, delegate.sessionId, server, capabilities);
         }
 
         private void doKafkaWindow(
@@ -3985,7 +3991,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void doKafkaBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            long compositeId)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -3993,7 +4000,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newGroupStream(this::onGroupMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, delegate.clientId, delegate.sessionExpiryMillis);
+                traceId, authorization, affinity, compositeId, delegate.clientId, delegate.sessionExpiryMillis);
         }
 
         private void doKafkaFlush(
@@ -4261,7 +4268,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newMetaStream(this::onMetaMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, topic);
+                initialMax, traceId, authorization, affinity, delegate.compositeId, topic);
         }
 
         private void doKafkaEnd(
@@ -4507,7 +4514,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newOffsetFetchStream(this::onOffsetFetchMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, delegate.clientId, host, port, topic, partitions);
+                initialMax, traceId, authorization, affinity, delegate.compositeId, delegate.clientId,
+                host, port, topic, partitions);
         }
 
         private void doKafkaEnd(
@@ -4720,7 +4728,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newInitProducerStream(this::onInitProducerMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity);
+                initialMax, traceId, authorization, affinity, delegate.compositeId);
         }
 
         private void doKafkaEnd(
@@ -5000,8 +5008,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newOffsetCommitStream(this::onOffsetCommitMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, delegate.clientId, delegate.memberId, delegate.groupInstanceId,
-                delegate.groupHost, delegate.groupPort);
+                initialMax, traceId, authorization, affinity, delegate.compositeId, delegate.clientId, delegate.memberId,
+                delegate.groupInstanceId, delegate.groupHost, delegate.groupPort);
         }
 
         private void doKafkaEnd(
@@ -5228,6 +5236,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW sessionsTopicName,
         String16FW clientId,
         String16FW clientIdMigrate,
@@ -5237,6 +5246,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .merged(m ->
                 {
@@ -5515,6 +5525,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW clientId,
         int sessionExpiryMs)
     {
@@ -5524,6 +5535,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .group(g -> g.groupId(groupId).protocol(GROUP_PROTOCOL).timeout(timeout))
                 .build();
@@ -5560,10 +5572,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW topic)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .meta(m -> m
                     .topic(topic))
@@ -5601,6 +5615,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW clientId,
         String host,
         int port,
@@ -5611,6 +5626,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .offsetFetch(o -> o
                     .groupId(groupId)
@@ -5651,10 +5667,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        long affinity)
+        long affinity,
+        long compositeId)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .initProducerId(p -> p
                     .producerId(0)
@@ -5693,6 +5711,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW clientId,
         String memberId,
         String instanceId,
@@ -5703,6 +5722,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(kafkaTypeId)
                 .offsetCommit(o -> o
                     .groupId(groupId)
