@@ -475,7 +475,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.resolvedId = resolvedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.session = new KafkaFetchWillSignalStream(originId, resolvedId, this);
+            this.session = new KafkaFetchWillSignalStream(routedId, resolvedId, this);
             this.sessionsTopic = sessionsTopic;
             this.sessionId = new String16FW(sessionIds.get(bindingId));
             this.leaderEpochs = new Long2LongHashMap(-2);
@@ -570,8 +570,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
-                final long routedId = session.routedId;
-                session = new KafkaSessionSignalStream(originId, routedId, this);
+                //final long routedId = session.routedId;
+                session = new KafkaSessionSignalStream(routedId, resolvedId, this);
             }
             if (isSetWillFlag(sessionFlags))
             {
@@ -1145,13 +1145,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             messagesTopics.forEach(t ->
             {
                 final KafkaMetaStream meta =
-                    new KafkaMetaStream(originId, resolvedId, this, t, false);
+                    new KafkaMetaStream(routedId, resolvedId, this, t, false);
                 metas.add(meta);
                 meta.doKafkaBegin(traceId, authorization, 0);
             });
 
             final KafkaMetaStream retainedMeta =
-                new KafkaMetaStream(originId, resolvedId, this, retainedTopic, true);
+                new KafkaMetaStream(routedId, resolvedId, this, retainedTopic, true);
             metas.add(retainedMeta);
             retainedMeta.doKafkaBegin(traceId, authorization, 0);
         }
@@ -1198,8 +1198,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 if (publishQosMax < 2)
                 {
-                    final long routedId = session.routedId;
-                    session = new KafkaSessionStateProxy(originId, routedId, this);
+                    //final long routedId = session.routedId;
+                    session = new KafkaSessionStateProxy(routedId, resolvedId, this);
                     session.doKafkaBeginIfNecessary(traceId, authorization, 0);
                 }
                 else
@@ -1266,8 +1266,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (unfetchedKafkaTopics == 0 && initProducer)
             {
-                final long routedId = session.routedId;
-                producerInit = new KafkaInitProducerStream(originId, routedId, this);
+                //final long routedId = session.routedId;
+                producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
                 producerInit.doKafkaBegin(traceId, authorization, 0);
             }
             else if (unfetchedKafkaTopics == 0)
@@ -1308,8 +1308,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            final long routedId = session.routedId;
-            offsetCommit = new KafkaOffsetCommitStream(originId, routedId, this, groupHost, groupPort);
+            //final long routedId = session.routedId;
+            offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this, groupHost, groupPort);
             offsetCommit.doKafkaBegin(traceId, authorization, 0);
         }
 
@@ -1388,7 +1388,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final String topic0 = topic.asString();
 
             final KafkaOffsetFetchStream offsetFetch =
-                new KafkaOffsetFetchStream(originId, resolvedId, this, groupHost, groupPort, topic0, partitions);
+                new KafkaOffsetFetchStream(routedId, resolvedId, this, groupHost, groupPort, topic0, partitions);
             offsetFetches.add(offsetFetch);
             offsetFetch.doKafkaBegin(traceId, authorization, 0);
         }
@@ -1473,7 +1473,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }).build();
 
             doMqttBegin(traceId, authorization, 0, mqttBeginEx);
-            session = new KafkaSessionStateProxy(originId, resolvedId, this);
+            session = new KafkaSessionStateProxy(routedId, resolvedId, this);
             session.doKafkaBeginIfNecessary(traceId, authorization, 0);
         }
     }

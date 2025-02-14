@@ -192,7 +192,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                 }
                 else
                 {
-                    // JRF: can we remove this? current used by will stream which arrives proactively, so no affinity
+                    // JRF: can we remove this? current used by will stream which arrives proactively, so no compositeId
                     Optional<AsyncapiRouteConfig> routeRef = binding.routes.stream().findFirst();
                     final long resolvedId = routeRef.map(r -> r.id).orElse(0L);
                     final long resolvedApiId = routeRef.map(r -> composite.resolveApiId(r.with.apiId)).orElse(0L);
