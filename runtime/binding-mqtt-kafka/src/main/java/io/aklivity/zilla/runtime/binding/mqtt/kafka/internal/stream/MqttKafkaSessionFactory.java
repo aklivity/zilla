@@ -570,7 +570,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
-                //final long routedId = session.routedId;
                 session = new KafkaSessionSignalStream(routedId, resolvedId, this);
             }
             if (isSetWillFlag(sessionFlags))
@@ -1198,7 +1197,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 if (publishQosMax < 2)
                 {
-                    //final long routedId = session.routedId;
                     session = new KafkaSessionStateProxy(routedId, resolvedId, this);
                     session.doKafkaBeginIfNecessary(traceId, authorization, 0);
                 }
@@ -1266,7 +1264,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (unfetchedKafkaTopics == 0 && initProducer)
             {
-                //final long routedId = session.routedId;
                 producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
                 producerInit.doKafkaBegin(traceId, authorization, 0);
             }
@@ -1308,7 +1305,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            //final long routedId = session.routedId;
             offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this, groupHost, groupPort);
             offsetCommit.doKafkaBegin(traceId, authorization, 0);
         }
