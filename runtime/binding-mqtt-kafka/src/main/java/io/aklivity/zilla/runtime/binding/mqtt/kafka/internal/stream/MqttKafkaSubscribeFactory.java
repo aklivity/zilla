@@ -337,12 +337,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.messages = new Long2ObjectHashMap<>();
             routes.forEach(r ->
             {
-                KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(originId, r, this);
+                KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(routedId, r, this);
                 messages.put(r.order, messagesProxy);
                 messagesPerTopicKey.put(messagesProxy.topicKey, r.order);
             });
             final MqttKafkaRouteConfig retainedRoute = routes.get(0);
-            this.retained = new KafkaRetainedProxy(originId, retainedRoute.id, retainedRoute.retained, this);
+            this.retained = new KafkaRetainedProxy(routedId, retainedRoute.id, retainedRoute.retained, this);
         }
 
         private void onMqttMessage(
@@ -533,7 +533,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     final long routeOrder = r.order;
                     if (!messages.containsKey(routeOrder))
                     {
-                        KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(originId, r, this);
+                        KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(routedId, r, this);
                         messages.put(routeOrder, messagesProxy);
                         messagesPerTopicKey.put(messagesProxy.topicKey, r.order);
                         messagesProxy.doKafkaBegin(traceId, authorization, 0, filters);
