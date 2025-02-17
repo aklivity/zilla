@@ -184,7 +184,7 @@ public class EngineRegistry
         return namespacesById.values();
     }
 
-    private NamespaceRegistry findNamespace(
+    public NamespaceRegistry findNamespace(
         int namespaceId)
     {
         return namespacesById.get(namespaceId);
@@ -196,7 +196,7 @@ public class EngineRegistry
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
                     metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
-                    supplyMetricRecorder, detachBinding, collector);
+                    supplyMetricRecorder, detachBinding, collector, this::findNamespace);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
