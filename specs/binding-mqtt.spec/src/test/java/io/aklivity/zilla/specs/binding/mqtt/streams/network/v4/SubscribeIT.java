@@ -316,4 +316,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.guarded.identity.param/client",
+        "${net}/subscribe.topic.guarded.identity.param/server"})
+    public void shouldFilterGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.invalid.topic.guarded.identity.param/client",
+        "${net}/subscribe.invalid.topic.guarded.identity.param/server"})
+    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
 }
