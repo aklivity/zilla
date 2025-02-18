@@ -79,6 +79,7 @@ public class NamespaceRegistry
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
+        IntFunction<NamespaceRegistry> findNamespace,
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
@@ -91,10 +92,10 @@ public class NamespaceRegistry
         LongConsumer exporterDetached,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
-        Collector collector,
-        IntFunction<NamespaceRegistry> findNamespace)
+        Collector collector)
     {
         this.namespace = namespace;
+        this.findNamespace = findNamespace;
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
@@ -115,7 +116,6 @@ public class NamespaceRegistry
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
         this.collector = collector;
-        this.findNamespace = findNamespace;
     }
 
     public int namespaceId()
