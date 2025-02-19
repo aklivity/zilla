@@ -26,7 +26,8 @@ module io.aklivity.zilla.runtime.model.core
             io.aklivity.zilla.runtime.model.core.internal.config.StringModelConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
-        with io.aklivity.zilla.runtime.model.core.internal.DoubleModelFactorySpi,
+        with io.aklivity.zilla.runtime.model.core.internal.BooleanModelFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.DoubleModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.FloatModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.Int64ModelFactorySpi,
