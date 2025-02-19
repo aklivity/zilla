@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -350,6 +351,15 @@ public class EchoWorker implements EngineContext
         long exporterId)
     {
 
+    }
+
+    @Override
+    public LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        long metricId)
+    {
+        return null;
     }
 
     @Override

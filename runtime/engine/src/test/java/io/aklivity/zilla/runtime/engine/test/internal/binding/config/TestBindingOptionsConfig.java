@@ -30,6 +30,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final TestAuthorizationConfig authorization;
     public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
+    public final List<Metric> metrics;
     public final List<CatalogAssertions> catalogAssertions;
     public final VaultAssertion vaultAssertion;
 
@@ -51,6 +52,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         TestAuthorizationConfig authorization,
         List<CatalogedConfig> cataloged,
         List<Event> events,
+        List<Metric> metrics,
         List<CatalogAssertions> catalogAssertions,
         VaultAssertion vaultAssertion)
     {
@@ -61,6 +63,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.authorization = authorization;
         this.cataloged = cataloged;
         this.events = events;
+        this.metrics = metrics;
         this.catalogAssertions = catalogAssertions;
         this.vaultAssertion = vaultAssertion;
     }
@@ -76,6 +79,23 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         {
             this.timestamp = timestamp;
             this.message = message;
+        }
+    }
+
+    public static final class Metric
+    {
+        public final String name;
+        public final String kind;
+        public final long[] values;
+
+        public Metric(
+            String name,
+            String kind,
+            long[] values)
+        {
+            this.name = name;
+            this.kind = kind;
+            this.values = values;
         }
     }
 

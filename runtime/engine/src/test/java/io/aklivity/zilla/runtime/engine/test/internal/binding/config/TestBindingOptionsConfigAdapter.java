@@ -21,6 +21,7 @@ import java.util.List;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -53,6 +54,10 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String VAULT_KEY_NAME = "key";
     private static final String VAULT_SIGNER_NAME = "signer";
     private static final String VAULT_TRUST_NAME = "trust";
+    private static final String METRICS_NAME = "metrics";
+    private static final String NAME_NAME = "name";
+    private static final String KIND_NAME = "kind";
+    private static final String VALUES_NAME = "values";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -267,6 +272,21 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     {
                         testOptions.event(e0.getInt(TIMESTAMP_NAME), e0.getString(MESSAGE_NAME));
                     }
+                }
+            }
+
+            if (object.containsKey(METRICS_NAME))
+            {
+                JsonArray metrics = object.getJsonArray(METRICS_NAME);
+                for (JsonValue m : metrics)
+                {
+                    JsonObject m0 = m.asJsonObject();
+
+                    long[] values = m0.getJsonArray(VALUES_NAME).stream()
+                        .mapToLong(v -> ((JsonNumber) v).longValue())
+                        .toArray();
+
+                    testOptions.metric(m0.getString(NAME_NAME), m0.getString(KIND_NAME), values);
                 }
             }
         }

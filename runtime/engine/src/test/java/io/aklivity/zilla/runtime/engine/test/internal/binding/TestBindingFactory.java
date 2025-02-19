@@ -21,6 +21,7 @@ import java.security.KeyStore;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
@@ -113,6 +115,8 @@ final class TestBindingFactory implements BindingHandler
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
         {
+            int namespaceId = NamespacedId.namespaceId(binding.id);
+
             if (options.value != null)
             {
                 this.valueType = context.supplyWriteConverter(options.value);
@@ -126,7 +130,6 @@ final class TestBindingFactory implements BindingHandler
                 this.catalogs = new LinkedList<>();
                 for (CatalogedConfig catalog : options.cataloged)
                 {
-                    int namespaceId = context.supplyTypeId(binding.namespace);
                     int catalogId = context.supplyTypeId(catalog.name);
                     final CatalogHandler handler = context.supplyCatalog(NamespacedId.id(namespaceId, catalogId));
                     catalogs.add(handler);
@@ -137,7 +140,6 @@ final class TestBindingFactory implements BindingHandler
 
             if (options.authorization != null)
             {
-                int namespaceId = context.supplyTypeId(binding.namespace);
                 int guardId = context.supplyTypeId(options.authorization.name);
                 this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
                 this.credentials = options.authorization.credentials;
@@ -150,6 +152,20 @@ final class TestBindingFactory implements BindingHandler
                 this.vault = context.supplyVault(binding.vaultId);
                 this.vaultAssertion = options.vaultAssertion;
             }
+
+            if (options.metrics != null && !options.metrics.isEmpty())
+            {
+                for (TestBindingOptionsConfig.Metric metric : options.metrics)
+                {
+                    long metricId = NamespacedId.id(namespaceId, context.supplyTypeId(metric.name));
+
+                    LongConsumer writer = context.supplyMetricWriter(Metric.Kind.valueOf(metric.kind.toUpperCase()),
+                        binding.id, metricId);
+
+                    writer.accept(metric.values[context.index()]);
+                }
+            }
+
         }
     }
 
