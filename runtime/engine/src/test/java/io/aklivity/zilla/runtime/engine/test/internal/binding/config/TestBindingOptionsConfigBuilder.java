@@ -35,6 +35,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private TestAuthorizationConfig authorization;
     private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
+    private List<TestBindingOptionsConfig.Metric> metrics;
     private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
     private VaultAssertion vaultAssertion;
 
@@ -99,6 +100,19 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> metric(
+        String name,
+        String kind,
+        long[] values)
+    {
+        if (this.metrics == null)
+        {
+            this.metrics = new LinkedList<>();
+        }
+        this.metrics.add(new TestBindingOptionsConfig.Metric(name, kind, values));
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> catalogAssertions(
         String name,
         List<TestBindingOptionsConfig.CatalogAssertion> assertions)
@@ -122,6 +136,6 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     public T build()
     {
         return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                catalogAssertions, vaultAssertion));
+                metrics, catalogAssertions, vaultAssertion));
     }
 }

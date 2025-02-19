@@ -16,12 +16,44 @@
 ---
 name: test
 telemetry:
-    attributes:
-        service.namespace: example
     metrics:
         - test.counter
         - test.gauge
         - test.histogram
+bindings:
+    net0:
+        type: test
+        kind: server
+        options:
+            metrics:
+                - name: test.counter
+                  kind: counter
+                  values:
+                      - 42
+                      - 21
+                      - 14
+                - name: test.gauge
+                  kind: gauge
+                  values:
+                      - 11
+                      - 22
+                      - 33
+                - name: test.histogram
+                  kind: histogram
+                  values:
+                      - 1
+                      - 17
+                      - 18
+        exit: app0
+        telemetry:
+            metrics:
+                - test.*
+
+---
+name: telemetry
+telemetry:
+    attributes:
+        service.namespace: example
     exporters:
         test0:
             type: otlp
@@ -33,11 +65,3 @@ telemetry:
                     location: http://localhost:4318
                     overrides:
                         metrics: /v1/metrics
-bindings:
-    net0:
-        type: test
-        kind: server
-        exit: app0
-        telemetry:
-            metrics:
-                - test.*
