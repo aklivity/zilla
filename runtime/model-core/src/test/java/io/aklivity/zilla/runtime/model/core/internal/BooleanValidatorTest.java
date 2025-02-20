@@ -14,14 +14,19 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -30,7 +35,7 @@ public class BooleanValidatorTest
     private final EngineContext context = mock(EngineContext.class);
 
     @Test
-    public void shouldVerifyValidBooleanMessage()
+    public void shouldValidateBooleanMessage()
     {
         BooleanValidatorHandler handler = new BooleanValidatorHandler(context);
         DirectBuffer data = new UnsafeBuffer();
@@ -39,5 +44,19 @@ public class BooleanValidatorTest
 
         data.wrap(bytes);
         assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldRejectBooleanMessage()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        BooleanValidatorHandler handler = new BooleanValidatorHandler(context);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {127, -17, 94, -95, -120, 23, -78, 63};
+
+        data.wrap(bytes);
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

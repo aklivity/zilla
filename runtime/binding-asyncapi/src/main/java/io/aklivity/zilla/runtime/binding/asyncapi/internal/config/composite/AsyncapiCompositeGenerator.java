@@ -74,6 +74,17 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 public abstract class AsyncapiCompositeGenerator
 {
     public static final Map<String, ModelConfig> MODELS = Map.ofEntries(
+        entry("boolean", BooleanModelConfig.builder().build()),
+        entry("integer", Int32ModelConfig.builder().build()),
+        entry("integer:%s".formatted(Int32ModelConfig.INT_32),
+            Int32ModelConfig.builder().build()),
+        entry("integer:%s".formatted(Int64ModelConfig.INT_64),
+            Int64ModelConfig.builder().build()),
+        entry("number", FloatModelConfig.builder().build()),
+        entry("number:%s".formatted(FloatModelConfig.FLOAT),
+            FloatModelConfig.builder().build()),
+        entry("number:%s".formatted(DoubleModelConfig.DOUBLE),
+            DoubleModelConfig.builder().build()),
         entry("string", StringModelConfig.builder().build()),
         entry("string:%s".formatted(StringPattern.DATE.format),
             StringModelConfig.builder()
@@ -86,18 +97,7 @@ public abstract class AsyncapiCompositeGenerator
         entry("string:%s".formatted(StringPattern.EMAIL.format),
             StringModelConfig.builder()
                 .pattern(StringPattern.EMAIL.pattern)
-                .build()),
-        entry("integer", Int32ModelConfig.builder().build()),
-        entry("integer:%s".formatted(Int32ModelConfig.INT_32),
-            Int32ModelConfig.builder().build()),
-        entry("integer:%s".formatted(Int64ModelConfig.INT_64),
-            Int64ModelConfig.builder().build()),
-        entry("number", FloatModelConfig.builder().build()),
-        entry("number:%s".formatted(FloatModelConfig.FLOAT),
-            FloatModelConfig.builder().build()),
-        entry("number:%s".formatted(DoubleModelConfig.DOUBLE),
-            DoubleModelConfig.builder().build()),
-        entry("boolean", BooleanModelConfig.builder().build())
+                .build())
     );
 
     public final AsyncapiCompositeConfig generate(

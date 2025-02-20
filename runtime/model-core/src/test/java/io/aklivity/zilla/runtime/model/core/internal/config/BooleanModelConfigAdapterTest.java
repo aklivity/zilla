@@ -61,15 +61,15 @@ public class BooleanModelConfigAdapterTest
     public void shouldWriteDefault()
     {
         // GIVEN
-        String expectedJson = "\"boolean\"";
+        String expected = "\"boolean\"";
 
         BooleanModelConfig model = BooleanModelConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(model);
+        String actual = jsonb.toJson(model);
 
         // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
+        assertThat(actual, not(nullValue()));
+        assertThat(actual, equalTo(expected));
     }
 }
