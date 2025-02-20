@@ -14,48 +14,30 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
-public class BooleanValidatorHandler implements ValidatorHandler
+public class BooleanValidatorTest
 {
-    private static final byte TRUE = 0x01;
-    private static final byte FALSE = 0x00;
+    private final EngineContext context = mock(EngineContext.class);
 
-    private final CoreModelEventContext event;
-
-    public BooleanValidatorHandler(
-        EngineContext context)
+    @Test
+    public void shouldVerifyValidBooleanMessage()
     {
-        this.event = new CoreModelEventContext(context);
-    }
+        BooleanValidatorHandler handler = new BooleanValidatorHandler(context);
+        DirectBuffer data = new UnsafeBuffer();
 
-    @Override
-    public boolean validate(
-        long traceId,
-        long bindingId,
-        int flags,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        boolean valid = false;
+        byte[] bytes = {1};
 
-        if (length == 1 && (flags & FLAGS_COMPLETE) != 0x00)
-        {
-            byte value = data.getByte(index);
-            valid = value == TRUE || value == FALSE;
-        }
-
-        if (!valid)
-        {
-            event.validationFailure(traceId, bindingId, BooleanModel.NAME);
-        }
-
-        return valid;
+        data.wrap(bytes);
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

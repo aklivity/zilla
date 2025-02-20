@@ -19,7 +19,8 @@ module io.aklivity.zilla.runtime.model.core
     exports io.aklivity.zilla.runtime.model.core.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.core.internal.config.DoubleModelConfigAdapter,
+        with io.aklivity.zilla.runtime.model.core.internal.config.BooleanModelConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.DoubleModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.FloatModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.Int32ModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.Int64ModelConfigAdapter,

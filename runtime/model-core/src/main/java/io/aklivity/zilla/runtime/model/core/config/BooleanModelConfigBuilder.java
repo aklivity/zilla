@@ -12,34 +12,32 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.core.internal;
+package io.aklivity.zilla.runtime.model.core.config;
 
-import static io.aklivity.zilla.runtime.model.core.internal.BooleanModel.NAME;
+import java.util.function.Function;
 
-import java.net.URL;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
-
-public class BooleanModelFactorySpi implements ModelFactorySpi
+public class BooleanModelConfigBuilder<T> extends ConfigBuilder<T, BooleanModelConfigBuilder<T>>
 {
-    @Override
-    public String type()
+    private final Function<BooleanModelConfig, T> mapper;
+
+    BooleanModelConfigBuilder(
+        Function<BooleanModelConfig, T> mapper)
     {
-        return NAME;
+        this.mapper = mapper;
     }
 
     @Override
-    public URL schema()
+    @SuppressWarnings("unchecked")
+    protected Class<BooleanModelConfigBuilder<T>> thisType()
     {
-        return getClass().getResource("schema/boolean.schema.patch.json");
+        return (Class<BooleanModelConfigBuilder<T>>) getClass();
     }
 
     @Override
-    public Model create(
-        Configuration config)
+    public T build()
     {
-        return new BooleanModel();
+        return mapper.apply(new BooleanModelConfig());
     }
 }
