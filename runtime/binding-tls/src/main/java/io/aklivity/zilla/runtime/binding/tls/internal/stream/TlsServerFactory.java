@@ -1565,7 +1565,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (TlsState.replyClosing(state))
+                if (TlsState.replyClosing(state) &&
+                    tlsEngine.isOutboundDone())
                 {
                     doNetEnd(traceId);
                 }
@@ -1618,7 +1619,11 @@ public final class TlsServerFactory implements TlsStreamFactory
                     if (!stream.isPresent())
                     {
                         doEncodeCloseOutbound(traceId, budgetId);
-                        doNetEnd(traceId);
+
+                        if (tlsEngine.isOutboundDone())
+                        {
+                            doNetEnd(traceId);
+                        }
                     }
 
                     decoder = decodeIgnoreAll;
