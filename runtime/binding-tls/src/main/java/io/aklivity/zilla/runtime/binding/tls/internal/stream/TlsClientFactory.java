@@ -2154,6 +2154,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 catch (SSLException ex)
                 {
                     cleanupNet(traceId);
+                    client.decoder = decodeIgnoreAll;
                 }
             }
 
