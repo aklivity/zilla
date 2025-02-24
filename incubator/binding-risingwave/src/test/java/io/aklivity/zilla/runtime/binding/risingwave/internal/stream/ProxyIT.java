@@ -60,6 +60,16 @@ public class ProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${pgsql}/create.ztable.with.double.quote.name/client",
+        "${effective}/create.ztable.with.double.quote.name/server" })
+    public void shouldCreateZtableWithDoubleQuoteName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.tables.with.newline/client",

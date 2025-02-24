@@ -39,8 +39,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZfunction;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Operation;
@@ -1692,7 +1692,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         if (server.macroState == null)
         {
-            final CreateTable command = parser.parseCreateTable(statement);
+            final CreateZtable command = parser.parseCreateTable(statement);
 
             RisingwaveBindingConfig binding = server.binding;
             RisingwaveCreateZtableMacro machine = new RisingwaveCreateZtableMacro(

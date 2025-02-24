@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.binding.pgsql.parser.model;
 
 import java.util.List;
+import java.util.Set;
 
-public record TableColumn(
+public record CreateZtable(
+    String schema,
     String name,
-    String type,
-    List<String> constraints)
+    List<ZtableColumn> columns,
+    Set<String> primaryKeys)
 {
 }
