@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.125...HEAD)
+
+**Implemented enhancements:**
+
+- Type boolean possible in schema [\#1408](https://github.com/aklivity/zilla/issues/1408)
+
+**Fixed bugs:**
+
+- Java Agent Error while sending Data to Open Telemetry Endpoint \(OTEL Endpoint\) [\#1406](https://github.com/aklivity/zilla/issues/1406)
+- Handle double quote when defining the table name in risingwave [\#1379](https://github.com/aklivity/zilla/issues/1379)
+
+**Merged pull requests:**
+
+- Handle double quote in z prefix resources [\#1412](https://github.com/aklivity/zilla/pull/1412) ([akrambek](https://github.com/akrambek))
+- Handle TLS Alert.USER\_CANCELED then deferred Alert.CLOSE\_NOTIFY [\#1411](https://github.com/aklivity/zilla/pull/1411) ([jfallows](https://github.com/jfallows))
+- support boolean model [\#1409](https://github.com/aklivity/zilla/pull/1409) ([ankitk-me](https://github.com/ankitk-me))
+- fix: resolveKind flow for composite binding [\#1407](https://github.com/aklivity/zilla/pull/1407) ([ankitk-me](https://github.com/ankitk-me))
+- fix: MQTT subscribe routing [\#1403](https://github.com/aklivity/zilla/pull/1403) ([ankitk-me](https://github.com/ankitk-me))
+- fix: mqtt-kafka routing fix [\#1402](https://github.com/aklivity/zilla/pull/1402) ([ankitk-me](https://github.com/ankitk-me))
+- fix: NPE due to empty Inline Catalog [\#1399](https://github.com/aklivity/zilla/pull/1399) ([ankitk-me](https://github.com/ankitk-me))
+- Append missing system schema to avoid exposing view in show command [\#1398](https://github.com/aklivity/zilla/pull/1398) ([akrambek](https://github.com/akrambek))
+- Bump lycheeverse/lychee-action from 2.2.0 to 2.3.0 [\#1397](https://github.com/aklivity/zilla/pull/1397) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20240808 to jammy-20250126 in /cloud/docker-image/src/main/docker [\#1393](https://github.com/aklivity/zilla/pull/1393) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.21.0 to 3.21.2 in /cloud/docker-image/src/main/docker [\#1367](https://github.com/aklivity/zilla/pull/1367) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.125](https://github.com/aklivity/zilla/tree/0.9.125) (2025-02-05)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.124...0.9.125)
