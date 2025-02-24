@@ -48,6 +48,15 @@ public class EffectiveIT
 
     @Test
     @Specification({
+        "${app}/create.ztable.with.double.quote.name/client",
+        "${app}/create.ztable.with.double.quote.name/server" })
+    public void shouldCreateZtableWithDoubleQuoteName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.zview/client",
         "${app}/create.zview/server"
     })

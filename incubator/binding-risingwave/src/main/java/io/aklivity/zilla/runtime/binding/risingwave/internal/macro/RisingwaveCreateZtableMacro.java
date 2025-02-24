@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ZtableColumn;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
@@ -47,7 +47,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
     private final StringBuilder includeBuilder;
     private final String systemSchema;
     private final String user;
-    private final CreateTable command;
+    private final CreateZtable command;
 
     public RisingwaveCreateZtableMacro(
         String bootstrapServer,
@@ -56,7 +56,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
         String systemSchema,
         String user,
         String sql,
-        CreateTable command,
+        CreateZtable command,
         RisingwaveMacroHandler handler)
     {
         super(sql, handler);
@@ -163,7 +163,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             String table = command.name();
 
             includeBuilder.setLength(0);
-            List<TableColumn> includes = command.columns().stream()
+            List<ZtableColumn> includes = command.columns().stream()
                 .filter(column -> column.constraints().stream()
                     .anyMatch(ZILLA_MAPPINGS::containsKey))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -239,7 +239,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             String name = command.name();
 
             String select = "*";
-            List<TableColumn> includes = command.columns().stream()
+            List<ZtableColumn> includes = command.columns().stream()
                 .filter(column -> column.constraints().stream()
                     .anyMatch(ZILLA_MAPPINGS::containsKey))
                 .collect(Collectors.toCollection(ArrayList::new));

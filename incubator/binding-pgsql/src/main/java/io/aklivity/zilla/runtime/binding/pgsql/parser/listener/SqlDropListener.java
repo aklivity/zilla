@@ -50,7 +50,7 @@ public class SqlDropListener extends PostgreSqlParserBaseListener
     {
         ctx.any_name_list().any_name().forEach(n ->
         {
-            String text = n.getText();
+            String text = n.getText().replace("\"", "");
             String[] split = text.split(SCHEMA_PATTERN);
             String schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
             String name = split.length > 1 ? split[1] : text;

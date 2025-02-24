@@ -61,7 +61,7 @@ public class SqlAlterZtableTopicListener extends PostgreSqlParserBaseListener
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        String text = ctx.getText();
+        String text = ctx.getText().replace("\"", "");
         String[] split = text.split(SCHEMA_PATTERN);
         schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;

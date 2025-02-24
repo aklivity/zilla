@@ -99,7 +99,7 @@ public class SqlCreateZfunctionListener extends PostgreSqlParserBaseListener
     public void enterCreatezfunctionstmt(
         PostgreSqlParser.CreatezfunctionstmtContext ctx)
     {
-        String text = ctx.func_name().getText();
+        String text = ctx.func_name().getText().replace("\"", "");
         String[] split = text.split(SCHEMA_PATTERN);
         schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;

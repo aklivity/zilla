@@ -55,7 +55,7 @@ public class SqlCreateZviewListener extends PostgreSqlParserBaseListener
     public void enterCreatezviewstmt(
         PostgreSqlParser.CreatezviewstmtContext ctx)
     {
-        String text = ctx.create_mv_target().qualified_name().getText();
+        String text = ctx.create_mv_target().qualified_name().getText().replace("\"", "");
         String[] split = text.split(SCHEMA_PATTERN);
         schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
