@@ -124,7 +124,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP MATERIALIZED VIEW weather_view;"
+write "DROP MATERIALIZED VIEW zb_catalog.weather_view;"
       [0x00]
 write flush
 

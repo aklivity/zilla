@@ -23,15 +23,15 @@ import org.antlr.v4.runtime.TokenStream;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ZtableColumn;
 
 public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
 {
     private static final String PUBLIC_SCHEMA_NAME = "public";
     private static final String SCHEMA_PATTERN = "\\.";
 
-    private final List<TableColumn> columns;
+    private final List<ZtableColumn> columns;
     private final Set<String> primaryKeys;
     private final TokenStream tokens;
 
@@ -46,9 +46,9 @@ public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
         this.tokens = tokens;
     }
 
-    public CreateTable table()
+    public CreateZtable table()
     {
-        return new CreateTable(schema, name, columns, primaryKeys);
+        return new CreateZtable(schema, name, columns, primaryKeys);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
     public void enterQualified_name(
         PostgreSqlParser.Qualified_nameContext ctx)
     {
-        String text = ctx.getText();
+        String text = ctx.getText().replace("\"", "");
         String[] split = text.split(SCHEMA_PATTERN);
         schema = split.length > 1 ? split[0] : PUBLIC_SCHEMA_NAME;
         name = split.length > 1 ? split[1] : text;
@@ -112,7 +112,7 @@ public class SqlCreateZtableTopicListener extends PostgreSqlParserBaseListener
                 constraints.add(tokens.getText(constraint.colconstraintelem()).toUpperCase());
             }
         }
-        columns.add(new TableColumn(columnName, dataType, constraints));
+        columns.add(new ZtableColumn(columnName, dataType, constraints));
     }
 
     private void addPrimaryKey(

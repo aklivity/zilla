@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
+import static java.util.Map.entry;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -60,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
@@ -71,30 +73,31 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public abstract class AsyncapiCompositeGenerator
 {
-    public static final Map<String, ModelConfig> MODELS = Map.of(
-        "string", StringModelConfig.builder().build(),
-        "string:%s".formatted(StringPattern.DATE.format),
+    public static final Map<String, ModelConfig> MODELS = Map.ofEntries(
+        entry("boolean", BooleanModelConfig.builder().build()),
+        entry("integer", Int32ModelConfig.builder().build()),
+        entry("integer:%s".formatted(Int32ModelConfig.INT_32),
+            Int32ModelConfig.builder().build()),
+        entry("integer:%s".formatted(Int64ModelConfig.INT_64),
+            Int64ModelConfig.builder().build()),
+        entry("number", FloatModelConfig.builder().build()),
+        entry("number:%s".formatted(FloatModelConfig.FLOAT),
+            FloatModelConfig.builder().build()),
+        entry("number:%s".formatted(DoubleModelConfig.DOUBLE),
+            DoubleModelConfig.builder().build()),
+        entry("string", StringModelConfig.builder().build()),
+        entry("string:%s".formatted(StringPattern.DATE.format),
             StringModelConfig.builder()
                 .pattern(StringPattern.DATE.pattern)
-                .build(),
-        "string:%s".formatted(StringPattern.DATE_TIME.format),
+                .build()),
+        entry("string:%s".formatted(StringPattern.DATE_TIME.format),
             StringModelConfig.builder()
                 .pattern(StringPattern.DATE_TIME.pattern)
-                .build(),
-        "string:%s".formatted(StringPattern.EMAIL.format),
+                .build()),
+        entry("string:%s".formatted(StringPattern.EMAIL.format),
             StringModelConfig.builder()
                 .pattern(StringPattern.EMAIL.pattern)
-                .build(),
-        "integer", Int32ModelConfig.builder().build(),
-        "integer:%s".formatted(Int32ModelConfig.INT_32),
-            Int32ModelConfig.builder().build(),
-        "integer:%s".formatted(Int64ModelConfig.INT_64),
-            Int64ModelConfig.builder().build(),
-        "number", FloatModelConfig.builder().build(),
-        "number:%s".formatted(FloatModelConfig.FLOAT),
-            FloatModelConfig.builder().build(),
-        "number:%s".formatted(DoubleModelConfig.DOUBLE),
-            DoubleModelConfig.builder().build()
+                .build())
     );
 
     public final AsyncapiCompositeConfig generate(

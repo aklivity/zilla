@@ -190,6 +190,34 @@
                                         }
                                     }
                                 }
+                            },
+                            "metrics":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "kind":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "values":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "number"
+                                            }
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false

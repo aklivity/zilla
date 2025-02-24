@@ -37,6 +37,20 @@ bindings:
     net0:
         type: test
         kind: server
+        options:
+            metrics:
+                - name: test.counter
+                  kind: counter
+                  values:
+                      - 42
+                      - 21
+                      - 14
+                - name: test.gauge
+                  kind: gauge
+                  values:
+                      - 11
+                      - 22
+                      - 33
         exit: app0
         telemetry:
             metrics:

@@ -66,7 +66,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE MATERIALIZED VIEW IF NOT EXISTS cities_view"
+write "CREATE MATERIALIZED VIEW IF NOT EXISTS zb_catalog.cities_view"
       " AS SELECT id, name, description,"
       " COALESCE(owner_id, owner_id_header::varchar) as owner_id,"
       " COALESCE(created_at, created_at_timestamp::timestamp) as created_at"
@@ -142,7 +142,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM cities_view;"
+write "CREATE SINK zb_catalog.cities_view_sink INTO cities FROM zb_catalog.cities_view;"
       [0x00]
 write flush
 

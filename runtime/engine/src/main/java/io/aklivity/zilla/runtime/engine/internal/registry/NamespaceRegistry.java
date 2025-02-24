@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.S
 
 import java.util.Collection;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
@@ -74,9 +75,11 @@ public class NamespaceRegistry
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
+    private final IntFunction<NamespaceRegistry> findNamespace;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
+        IntFunction<NamespaceRegistry> findNamespace,
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
@@ -92,6 +95,7 @@ public class NamespaceRegistry
         Collector collector)
     {
         this.namespace = namespace;
+        this.findNamespace = findNamespace;
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
@@ -370,10 +374,12 @@ public class NamespaceRegistry
     }
 
     public KindConfig resolveKind(
-        long namespacedBindingId)
+        long bindingId)
     {
-        int bindingId = NamespacedId.localId(namespacedBindingId);
-        BindingRegistry binding = findBinding(bindingId);
+        int namespaceId = NamespacedId.namespaceId(bindingId);
+        NamespaceRegistry namespace = findNamespace.apply(namespaceId);
+        int localId = NamespacedId.localId(bindingId);
+        BindingRegistry binding = namespace.findBinding(localId);
         return binding == null ? null : binding.kind();
     }
 

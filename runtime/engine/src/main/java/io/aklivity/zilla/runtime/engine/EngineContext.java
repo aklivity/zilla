@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -171,6 +172,11 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
+
+    LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        long metricId);
 
     MessageConsumer supplyEventWriter();
 

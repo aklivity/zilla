@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateTable;
-import io.aklivity.zilla.runtime.binding.pgsql.parser.model.TableColumn;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
+import io.aklivity.zilla.runtime.binding.pgsql.parser.model.ZtableColumn;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
@@ -47,7 +47,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
     private final StringBuilder includeBuilder;
     private final String systemSchema;
     private final String user;
-    private final CreateTable command;
+    private final CreateZtable command;
 
     public RisingwaveCreateZtableMacro(
         String bootstrapServer,
@@ -56,7 +56,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
         String systemSchema,
         String user,
         String sql,
-        CreateTable command,
+        CreateZtable command,
         RisingwaveMacroHandler handler)
     {
         super(sql, handler);
@@ -163,7 +163,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             String table = command.name();
 
             includeBuilder.setLength(0);
-            List<TableColumn> includes = command.columns().stream()
+            List<ZtableColumn> includes = command.columns().stream()
                 .filter(column -> column.constraints().stream()
                     .anyMatch(ZILLA_MAPPINGS::containsKey))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -239,7 +239,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             String name = command.name();
 
             String select = "*";
-            List<TableColumn> includes = command.columns().stream()
+            List<ZtableColumn> includes = command.columns().stream()
                 .filter(column -> column.constraints().stream()
                     .anyMatch(ZILLA_MAPPINGS::containsKey))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -282,7 +282,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
                 select = fieldBuilder.toString();
             }
 
-            String sqlQuery = String.format(sqlFormat, "%s_view".formatted(name),
+            String sqlQuery = String.format(sqlFormat, "%s.%s_view".formatted(systemSchema, name),
                 "SELECT %s FROM %s_source".formatted(select, name));
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
@@ -404,7 +404,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
     private final class CreateSinkIntoState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            CREATE SINK %s.%s_view_sink INTO %s FROM %s_view;\u0000""";
+            CREATE SINK %s.%s_view_sink INTO %s FROM %s.%s_view;\u0000""";
 
         @Override
         public void onStarted(
@@ -412,7 +412,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
             long authorization)
         {
             String name = command.name();
-            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, name);
+            String sqlQuery = String.format(sqlFormat, systemSchema, name, name, systemSchema, name);
 
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }

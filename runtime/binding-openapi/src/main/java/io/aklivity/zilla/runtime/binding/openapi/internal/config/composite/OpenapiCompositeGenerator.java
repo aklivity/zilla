@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
@@ -487,6 +488,7 @@ public abstract class OpenapiCompositeGenerator
             }
 
             private static final Map<String, ModelConfig> MODELS = Map.of(
+                "boolean", BooleanModelConfig.builder().build(),
                 "integer", Int32ModelConfig.builder().build(),
                 "integer:int32", Int32ModelConfig.builder().build(),
                 "integer:int64", Int64ModelConfig.builder().build(),

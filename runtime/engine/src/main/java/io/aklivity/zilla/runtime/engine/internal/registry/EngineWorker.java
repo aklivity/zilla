@@ -1757,6 +1757,15 @@ public class EngineWorker implements EngineContext, Agent
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
+    @Override
+    public LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        long metricId)
+    {
+        return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
+    }
+
     public EventsLayout.EventAccessor createEventAccessor()
     {
         return eventsLayout.createEventAccessor();
@@ -1788,14 +1797,6 @@ public class EngineWorker implements EngineContext, Agent
         int index)
     {
         return targetsByIndex.computeIfAbsent(index, newTarget);
-    }
-
-    private LongConsumer supplyMetricWriter(
-        Metric.Kind kind,
-        long bindingId,
-        long metricId)
-    {
-        return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
     private MessageConsumer supplyMetricRecorder(

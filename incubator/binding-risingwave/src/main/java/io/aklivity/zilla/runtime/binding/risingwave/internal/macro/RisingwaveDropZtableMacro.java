@@ -228,14 +228,14 @@ public class RisingwaveDropZtableMacro extends RisingwaveMacroBase
     private final class DropMaterializedViewState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DROP MATERIALIZED VIEW %s_view;\u0000""";
+            DROP MATERIALIZED VIEW %s.%s_view;\u0000""";
 
         @Override
         public void onStarted(
             long traceId,
             long authorization)
         {
-            String sqlQuery = String.format(sqlFormat, command.name());
+            String sqlQuery = String.format(sqlFormat, systemSchema, command.name());
             handler.doExecuteSystemClient(traceId, authorization, sqlQuery);
         }
 

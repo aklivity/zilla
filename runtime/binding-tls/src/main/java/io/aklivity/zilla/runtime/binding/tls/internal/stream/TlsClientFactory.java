@@ -1911,7 +1911,8 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     cleanupEncodeSlot();
 
-                    if (TlsState.initialClosing(state))
+                    if (TlsState.initialClosing(state) &&
+                        tlsEngine.isOutboundDone())
                     {
                         doNetEnd(traceId);
                     }
@@ -1964,7 +1965,11 @@ public final class TlsClientFactory implements TlsStreamFactory
                         if (!stream.isPresent())
                         {
                             doEncodeCloseOutbound(traceId, budgetId);
-                            doNetEnd(traceId);
+
+                            if (tlsEngine.isOutboundDone())
+                            {
+                                doNetEnd(traceId);
+                            }
                         }
 
                         decoder = decodeIgnoreAll;
@@ -2107,7 +2112,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                             case CLOSED:
                                 assert bytesProduced > 0;
                                 doAppReset(traceId);
-                                state = TlsState.closingReply(state);
+                                state = TlsState.closingInitial(state);
                                 break loop;
                             case OK:
                                 assert bytesProduced > 0 || tlsEngine.isInboundDone();
