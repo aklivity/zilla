@@ -145,6 +145,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private static final String SERVER_KIND = KindConfig.SERVER.name().toLowerCase();
     private static final String CLIENT_KIND = KindConfig.CLIENT.name().toLowerCase();
+    private static final String PROXY_KIND = KindConfig.PROXY.name().toLowerCase();
     private static final String UNKNOWN_LABEL = "??";
     private static final byte[] EMPTY_BYTES = new byte[0];
 
@@ -778,23 +779,25 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             int protocolTypeLabelId = 0;
 
-            long[] routed = lookupBindingInfo.apply(routedId);
-            if (routed != null)
+            long[] routedInfo = lookupBindingInfo.apply(routedId);
+            if (routedInfo != null)
             {
-                String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
-                if (SERVER_KIND.equals(routedBindingKind))
+                String routedKind = lookupLabel.apply(localId(routedInfo[KIND_ID_INDEX]));
+                if (SERVER_KIND.equals(routedKind) ||
+                    PROXY_KIND.equals(routedKind))
                 {
-                    protocolTypeLabelId = localId(routed[ROUTED_TYPE_ID_INDEX]);
+                    protocolTypeLabelId = localId(routedInfo[ROUTED_TYPE_ID_INDEX]);
                 }
             }
 
-            long[] origin = lookupBindingInfo.apply(originId);
-            if (origin != null)
+            long[] originInfo = lookupBindingInfo.apply(originId);
+            if (originInfo != null && protocolTypeLabelId == 0)
             {
-                String originBindingKind = lookupLabel.apply(localId(origin[KIND_ID_INDEX]));
-                if (protocolTypeLabelId == 0 && CLIENT_KIND.equals(originBindingKind))
+                String originKind = lookupLabel.apply(localId(originInfo[KIND_ID_INDEX]));
+                if (CLIENT_KIND.equals(originKind) ||
+                    PROXY_KIND.equals(originKind))
                 {
-                    protocolTypeLabelId = localId(origin[ORIGIN_TYPE_ID_INDEX]);
+                    protocolTypeLabelId = localId(originInfo[ORIGIN_TYPE_ID_INDEX]);
                 }
             }
 
