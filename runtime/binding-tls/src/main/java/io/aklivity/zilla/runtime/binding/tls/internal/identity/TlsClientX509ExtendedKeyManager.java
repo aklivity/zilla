@@ -96,13 +96,13 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         SSLSession session = engine.getSession();
         String subjectCN = (String) session.getValue(COMMON_NAME_KEY);
 
+        alias:
         if (subjectCN == null)
         {
             alias = delegate.chooseEngineClientAlias(keyTypes, issuers, engine);
         }
         else if (keyTypes != null)
         {
-            outer:
             for (String keyType : keyTypes)
             {
                 String[] candidates = delegate.getClientAliases(keyType, issuers);
@@ -120,12 +120,13 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                                 subjectCN.equals(matchCN.group("cn")))
                             {
                                 alias = candidate;
-                                break outer;
+                                break alias;
                             }
                         }
                     }
                 }
             }
+
             if (debug)
             {
                 System.out.printf("[binding-tls] No match found for Subject CN [%s], Key Types [%s], Issuers [%s] \n",
