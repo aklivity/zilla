@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.126...HEAD)
+
+**Fixed bugs:**
+
+- Zilla crashes with NPE in asyncapi.mqtt.kafka.proxy example [\#1415](https://github.com/aklivity/zilla/issues/1415)
+- zilla crashes with `java.lang.NoClassDefFoundError: com/google/gson/JsonElement` [\#1413](https://github.com/aklivity/zilla/issues/1413)
+
+**Merged pull requests:**
+
+- Allow binding kind proxy to contribute to zilla dump dissector protocol [\#1421](https://github.com/aklivity/zilla/pull/1421) ([jfallows](https://github.com/jfallows))
+- fix: NoClassDefFoundError: com/google/gson/JsonElement [\#1414](https://github.com/aklivity/zilla/pull/1414) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.126](https://github.com/aklivity/zilla/tree/0.9.126) (2025-02-24)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.125...0.9.126)
