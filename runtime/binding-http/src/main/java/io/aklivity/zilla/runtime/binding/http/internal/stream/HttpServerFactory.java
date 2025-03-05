@@ -1493,7 +1493,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 flags |= FLAG_FIN;
             }
 
-            progress = server.onDecodeBody(traceId, authorization, budgetId, FLAG_COM,
+            progress = server.onDecodeBody(traceId, authorization, budgetId, flags,
                 buffer, offset, offset + length, EMPTY_OCTETS);
             server.decodableContentLength -= progress - offset;
         }
