@@ -73,7 +73,7 @@ public class ProxyIT
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.tables.with.newline/client",
-        "${effective}/show.tables.with.newline/server" })
+        "${effective}/show.tables/server" })
     public void shouldShowTablesWithNewline() throws Exception
     {
         k3po.finish();

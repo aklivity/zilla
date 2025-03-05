@@ -24,7 +24,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 
 public class RisingwaveShowCommandMacro extends RisingwaveMacroBase
@@ -34,7 +33,7 @@ public class RisingwaveShowCommandMacro extends RisingwaveMacroBase
     private final Map<String, String> showCommandMappings;
     {
         Map<String, String> showCommandMappings = new Object2ObjectHashMap<>();
-        showCommandMappings.put("tables", "zb_tables");
+        showCommandMappings.put("tables", "ztables");
         showCommandMappings.put("materialized views", "zviews");
         this.showCommandMappings = showCommandMappings;
     }

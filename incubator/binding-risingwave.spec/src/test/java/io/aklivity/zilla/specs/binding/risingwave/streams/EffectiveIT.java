@@ -144,9 +144,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/show.tables.with.newline/client",
-        "${app}/show.tables.with.newline/server" })
-    public void shouldShowTablesWithNewline() throws Exception
+        "${app}/show.tables/client",
+        "${app}/show.tables/server" })
+    public void shouldShowTables() throws Exception
     {
         k3po.finish();
     }
