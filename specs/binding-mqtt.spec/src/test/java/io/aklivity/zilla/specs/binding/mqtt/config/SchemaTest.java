@@ -157,4 +157,12 @@ public class SchemaTest
     {
         schema.validate("server.when.subscribe.topic.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateServerWithGuardedIdentityTopicParam()
+    {
+        JsonObject config = schema.validate("server.when.topic.params.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
