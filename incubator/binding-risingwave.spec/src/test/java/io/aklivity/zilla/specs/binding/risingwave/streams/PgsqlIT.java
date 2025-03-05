@@ -241,4 +241,13 @@ public class PgsqlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/show.materialized.views/client",
+        "${app}/show.materialized.views/server" })
+    public void shouldShowMaterializedViews() throws Exception
+    {
+        k3po.finish();
+    }
 }

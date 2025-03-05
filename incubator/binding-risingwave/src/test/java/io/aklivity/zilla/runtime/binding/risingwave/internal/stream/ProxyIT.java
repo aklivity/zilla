@@ -281,4 +281,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.materialized.views/client",
+        "${effective}/show.materialized.views/server" })
+    public void shouldShowMaterializedViews() throws Exception
+    {
+        k3po.finish();
+    }
 }

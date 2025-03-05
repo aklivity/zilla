@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveDro
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroHandler;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveMacroState;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowCommandMacro;
+import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowZcommandMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveShowZfunctionCommandMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.macro.RisingwaveUnknownMacro;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.Flyweight;
@@ -168,8 +169,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         clientTransforms.put(RisingwaveCommandType.DROP_ZTABLE_COMMAND, this::decodeDropZtableCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZVIEW_COMMAND, this::decodeDropZviewCommand);
         clientTransforms.put(RisingwaveCommandType.DROP_ZFUNCTION_COMMAND, this::decodeDropZfunctionCommand);
-        clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowCommand);
-        clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowCommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_ZTABLES_COMMAND, this::decodeShowZcommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_ZVIEWS_COMMAND, this::decodeShowZcommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_TABLES_COMMAND, this::decodeShowCommand);
+        clientTransforms.put(RisingwaveCommandType.SHOW_MATERIALIZED_VIEWS_COMMAND, this::decodeShowCommand);
         clientTransforms.put(RisingwaveCommandType.SHOW_ZFUNCTIONS_COMMAND, this::decodeShowZfunctionCommand);
         clientTransforms.put(RisingwaveCommandType.UNKNOWN_COMMAND, this::decodeUnknownCommand);
         this.clientTransforms = clientTransforms;
@@ -1892,6 +1895,26 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             RisingwaveDropZfunctionMacro machine = new RisingwaveDropZfunctionMacro(
                 RisingwaveBindingConfig.INTERNAL_SCHEMA,
+                statement,
+                command,
+                server.macroHandler);
+            server.macroState = machine.start();
+        }
+
+        server.macroState.onStarted(traceId, authorization);
+    }
+
+    private void decodeShowZcommand(
+        PgsqlServer server,
+        long traceId,
+        long authorization,
+        String statement)
+    {
+        if (server.macroState == null)
+        {
+            final String command = parser.parseShow(statement);
+
+            RisingwaveShowZcommandMacro machine = new RisingwaveShowZcommandMacro(
                 statement,
                 command,
                 server.macroHandler);
