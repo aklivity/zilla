@@ -1062,6 +1062,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         doAppBegin(traceId, currentTag);
                         doAppEnd(traceId);
                     }
+
+                    initialAck += reserved;
                     doAppWindow(traceId);
                 }
                 catch (Exception ex)
