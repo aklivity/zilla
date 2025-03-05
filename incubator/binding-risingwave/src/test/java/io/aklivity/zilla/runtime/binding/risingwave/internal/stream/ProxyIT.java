@@ -73,7 +73,7 @@ public class ProxyIT
     @Configuration("proxy.risingwave.yaml")
     @Specification({
         "${pgsql}/show.tables.with.newline/client",
-        "${effective}/show.tables.with.newline/server" })
+        "${effective}/show.tables/server" })
     public void shouldShowTablesWithNewline() throws Exception
     {
         k3po.finish();
@@ -278,6 +278,16 @@ public class ProxyIT
         "${pgsql}/show.zfunctions/client",
         "${effective}/show.zfunctions/server" })
     public void shouldShowZfunctions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.risingwave.yaml")
+    @Specification({
+        "${pgsql}/show.materialized.views/client",
+        "${effective}/show.materialized.views/server" })
+    public void shouldShowMaterializedViews() throws Exception
     {
         k3po.finish();
     }

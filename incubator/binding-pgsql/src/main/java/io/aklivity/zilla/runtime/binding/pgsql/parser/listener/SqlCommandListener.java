@@ -75,7 +75,7 @@ public class SqlCommandListener extends PostgreSqlParserBaseListener
     public void enterShowstmt(
         PostgreSqlParser.ShowstmtContext ctx)
     {
-        String type = ctx.show_object_type_name().getText();
+        String type = tokens.getText(ctx.show_object_type_name());
         command = "SHOW %s".formatted(type.toUpperCase());
     }
 
