@@ -55,7 +55,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DROP SINK zb_catalog.weather_view_sink;"
+write "DROP SINK zb_catalog.weather_view_sink; FLUSH;"
       [0x00]
 write flush
 
