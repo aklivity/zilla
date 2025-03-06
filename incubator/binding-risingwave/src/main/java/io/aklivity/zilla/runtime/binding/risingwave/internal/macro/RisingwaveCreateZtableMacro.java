@@ -499,7 +499,7 @@ public class RisingwaveCreateZtableMacro extends RisingwaveMacroBase
         private final class InsertIntoCatalogState implements RisingwaveMacroState
         {
             private final String sqlFormat = """
-                INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s');\u0000""";
+                INSERT INTO %s.%s (name, sql) VALUES ('%s', '%s'); FLUSH;\u0000""";
 
             @Override
             public void onStarted(

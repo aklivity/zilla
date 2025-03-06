@@ -32,7 +32,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DELETE FROM zb_catalog.zfunctions WHERE name = 'send_payment';"
+write "DELETE FROM zb_catalog.zfunctions WHERE name = 'send_payment'; FLUSH;"
       [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()

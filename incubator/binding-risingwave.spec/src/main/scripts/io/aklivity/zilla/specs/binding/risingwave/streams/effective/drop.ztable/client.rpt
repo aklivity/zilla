@@ -101,7 +101,7 @@ write zilla:data.ext ${pgsql:dataEx()
                               .query()
                                 .build()
                               .build()}
-write "DELETE FROM zb_catalog.ztables WHERE name = 'weather';"
+write "DELETE FROM zb_catalog.ztables WHERE name = 'weather'; FLUSH;"
       [0x00]
 write flush
 
