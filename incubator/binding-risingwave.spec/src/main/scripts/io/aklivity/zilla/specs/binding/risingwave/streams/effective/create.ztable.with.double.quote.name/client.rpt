@@ -190,7 +190,8 @@ write zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 write "INSERT INTO zb_catalog.ztables (name, sql) VALUES "
-     "('cities', 'CREATE ZTABLE IF NOT EXISTS \"cities\" (id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));');"
+     "('cities', 'CREATE ZTABLE IF NOT EXISTS \"cities\" (id VARCHAR, name VARCHAR, description VARCHAR, PRIMARY KEY (id));'); "
+     "FLUSH;"
       [0x00]
 write flush
 

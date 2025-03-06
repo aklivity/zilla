@@ -202,7 +202,8 @@ write "INSERT INTO zb_catalog.ztables (name, sql) VALUES "
       "(id VARCHAR, name VARCHAR, description VARCHAR, "
       "owner_id VARCHAR GENERATED ALWAYS AS IDENTITY, "
       "created_at TIMESTAMP GENERATED ALWAYS AS NOW, "
-      "PRIMARY KEY (id));');"
+      "PRIMARY KEY (id));'); "
+      "FLUSH;"
       [0x00]
 
 
