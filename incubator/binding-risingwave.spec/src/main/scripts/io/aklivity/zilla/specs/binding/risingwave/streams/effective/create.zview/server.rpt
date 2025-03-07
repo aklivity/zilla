@@ -208,7 +208,8 @@ read zilla:data.ext ${pgsql:dataEx()
                                 .build()
                               .build()}
 read "INSERT INTO zb_catalog.zviews (name, sql) VALUES "
-      "('distinct_cities', 'CREATE ZVIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;');"
+      "('distinct_cities', 'CREATE ZVIEW IF NOT EXISTS distinct_cities AS SELECT id, city FROM weather GROUP BY city;'); "
+      "FLUSH;"
      [0x00]
 
 write advise zilla:flush ${pgsql:flushEx()

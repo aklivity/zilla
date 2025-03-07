@@ -78,7 +78,7 @@ public final class PgsqlParser
         this.createZfunctionListener = new SqlCreateZfunctionListener(tokens);
         this.createMaterializedViewListener = new SqlCreateZviewListener(tokens);
         this.dropListener = new SqlDropListener();
-        this.showListener = new SqlShowListener();
+        this.showListener = new SqlShowListener(tokens);
     }
 
     public String parseCommand(

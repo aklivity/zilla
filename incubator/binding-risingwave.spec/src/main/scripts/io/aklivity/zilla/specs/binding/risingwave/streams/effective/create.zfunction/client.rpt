@@ -178,7 +178,8 @@ write "INSERT INTO zb_catalog.zfunctions (name, sql) VALUES ('send_payment', 'CR
       "$$\n"
       "WITH (\n"
       " EVENTS = ''app_events''\n"
-      ");');"
+      ");'); "
+      "FLUSH;"
       [0x00]
 
 read advised zilla:flush ${pgsql:flushEx()

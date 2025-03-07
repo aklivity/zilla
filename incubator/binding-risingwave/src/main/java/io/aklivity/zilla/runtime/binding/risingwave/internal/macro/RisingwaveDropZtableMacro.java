@@ -191,7 +191,7 @@ public class RisingwaveDropZtableMacro extends RisingwaveMacroBase
     private final class DeleteFromCatalogState implements RisingwaveMacroState
     {
         private final String sqlFormat = """
-            DELETE FROM %s.ztables WHERE name = '%s';\u0000""";
+            DELETE FROM %s.ztables WHERE name = '%s'; FLUSH;\u0000""";
 
         @Override
         public void onStarted(

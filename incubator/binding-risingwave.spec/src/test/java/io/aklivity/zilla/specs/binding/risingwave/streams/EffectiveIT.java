@@ -144,9 +144,9 @@ public class EffectiveIT
 
     @Test
     @Specification({
-        "${app}/show.tables.with.newline/client",
-        "${app}/show.tables.with.newline/server" })
-    public void shouldShowTablesWithNewline() throws Exception
+        "${app}/show.tables/client",
+        "${app}/show.tables/server" })
+    public void shouldShowTables() throws Exception
     {
         k3po.finish();
     }
@@ -229,6 +229,15 @@ public class EffectiveIT
         "${app}/show.zfunctions/client",
         "${app}/show.zfunctions/server" })
     public void shouldShowZfunctions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/show.materialized.views/client",
+        "${app}/show.materialized.views/server" })
+    public void shouldShowMaterializedViews() throws Exception
     {
         k3po.finish();
     }

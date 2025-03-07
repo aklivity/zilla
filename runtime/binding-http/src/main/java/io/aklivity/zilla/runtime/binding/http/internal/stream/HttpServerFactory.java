@@ -155,6 +155,11 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int DELEGATE_SIGNAL = 1;
     private static final int EXPIRING_SIGNAL = 2;
 
+    private static final int FLAG_FIN = 0x01;
+    private static final int FLAG_INIT = 0x02;
+    private static final int FLAG_COM = 0x03;
+    private static final int FLAG_CON = 0x00;
+
     private static final int PADDING_CHUNKED = 10;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
     private static final long NO_REQUEST_ID = -1;
@@ -782,6 +787,43 @@ public final class HttpServerFactory implements HttpStreamFactory
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        DirectBuffer buffer,
+        int index,
+        int length,
+        Flyweight extension)
+    {
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(buffer, index, length)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
     private void doEnd(
         MessageConsumer receiver,
         long originId,
@@ -1237,6 +1279,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int contentLength = parseInt(value);
                     if (contentLength > 0)
                     {
+                        server.contentLength = contentLength;
                         server.decodableContentLength = contentLength;
                         server.decoder = decodeContent;
                     }
@@ -1380,7 +1423,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int progress = offset;
         if (decodableBytes > 0)
         {
-            progress = server.onDecodeBody(traceId, authorization, budgetId,
+            progress = server.onDecodeBody(traceId, authorization, budgetId, FLAG_COM,
                                            buffer, offset, offset + decodableBytes, EMPTY_OCTETS);
             server.decodableChunkSize -= progress - offset;
 
@@ -1436,7 +1479,22 @@ public final class HttpServerFactory implements HttpStreamFactory
         int progress = offset;
         if (length > 0)
         {
-            progress = server.onDecodeBody(traceId, authorization, budgetId, buffer, offset, offset + length, EMPTY_OCTETS);
+            int flags = 0;
+            if (server.decodableContentLength == server.contentLength)
+            {
+                flags = FLAG_INIT;
+            }
+            if (server.decodableContentLength != length)
+            {
+                flags |= FLAG_CON;
+            }
+            if (server.decodableContentLength == length)
+            {
+                flags |= FLAG_FIN;
+            }
+
+            progress = server.onDecodeBody(traceId, authorization, budgetId, flags,
+                buffer, offset, offset + length, EMPTY_OCTETS);
             server.decodableContentLength -= progress - offset;
         }
 
@@ -1444,6 +1502,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         if (server.decodableContentLength == 0)
         {
+            server.contentLength = 0;
             server.onDecodeTrailers(traceId, authorization, EMPTY_OCTETS);
             server.decoder = decodeEmptyLines;
         }
@@ -1521,7 +1580,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return server.onDecodeBody(traceId, authorization, budgetId, buffer, offset, limit, EMPTY_OCTETS);
+        return server.onDecodeBody(traceId, authorization, budgetId, FLAG_COM, buffer, offset, limit, EMPTY_OCTETS);
     }
 
     private int decodeIgnore(
@@ -1589,6 +1648,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private HttpServerDecoder decoder;
         private String16FW decodeScheme;
         private int decodableChunkSize;
+        private int contentLength;
         private int decodableContentLength;
 
         private HttpExchange exchange;
@@ -2305,6 +2365,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization,
             long budgetId,
+            int flags,
             DirectBuffer buffer,
             int offset,
             int limit,
@@ -2314,7 +2375,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int result;
             if (contentValid)
             {
-                result = exchange.doRequestData(traceId, budgetId, buffer, offset, limit, extension);
+                result = exchange.doRequestData(traceId, budgetId, flags, buffer, offset, limit, extension);
             }
             else
             {
@@ -2822,6 +2883,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private int doRequestData(
                 long traceId,
                 long budgetId,
+                int flags,
                 DirectBuffer buffer,
                 int offset,
                 int limit,
@@ -2835,7 +2897,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int reserved = length + requestPad;
 
                     doData(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                        traceId, sessionId, budgetId, reserved, buffer, offset, length, extension);
+                        traceId, sessionId, budgetId, reserved, flags, buffer, offset, length, extension);
 
                     requestSeq += reserved;
                     assert requestSeq <= requestAck + requestMax;

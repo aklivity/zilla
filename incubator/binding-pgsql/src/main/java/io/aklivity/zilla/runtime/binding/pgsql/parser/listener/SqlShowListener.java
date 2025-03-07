@@ -14,12 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.parser.listener;
 
+import org.antlr.v4.runtime.TokenStream;
+
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PostgreSqlParserBaseListener;
 
 public class SqlShowListener extends PostgreSqlParserBaseListener
 {
+    private final TokenStream tokens;
+
     private String type;
+
+    public SqlShowListener(
+        TokenStream tokens)
+    {
+        this.tokens = tokens;
+    }
 
     public String type()
     {
@@ -37,6 +47,6 @@ public class SqlShowListener extends PostgreSqlParserBaseListener
     public void enterShowstmt(
         PostgreSqlParser.ShowstmtContext ctx)
     {
-        this.type = ctx.show_object_type_name().getText();
+        this.type = tokens.getText(ctx.show_object_type_name());
     }
 }
