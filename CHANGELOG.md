@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.128](https://github.com/aklivity/zilla/tree/0.9.128) (2025-03-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.127...0.9.128)
+
+**Fixed bugs:**
+
+- Do not include ztables and zviews into show materialized view and tables command [\#1423](https://github.com/aklivity/zilla/issues/1423)
+- Uploading more than 40k size file into filesystem doesn't get fully uploaded [\#1420](https://github.com/aklivity/zilla/issues/1420)
+
+**Merged pull requests:**
+
+- FLUSH after insert to make SHOW command predictable [\#1427](https://github.com/aklivity/zilla/pull/1427) ([akrambek](https://github.com/akrambek))
+- Fix data fragmentation in http/1.1 and flowcontrol issue in filesystem [\#1426](https://github.com/aklivity/zilla/pull/1426) ([akrambek](https://github.com/akrambek))
+- Ignore ztable and zmaterialized views from relavent non z show commands [\#1424](https://github.com/aklivity/zilla/pull/1424) ([akrambek](https://github.com/akrambek))
+- fix: TLS Client debug logging [\#1422](https://github.com/aklivity/zilla/pull/1422) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.127](https://github.com/aklivity/zilla/tree/0.9.127) (2025-03-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.126...0.9.127)
