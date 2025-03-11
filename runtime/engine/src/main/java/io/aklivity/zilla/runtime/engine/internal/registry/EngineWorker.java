@@ -163,6 +163,7 @@ public class EngineWorker implements EngineContext, Agent
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final EndFW endRO = new EndFW();
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final SignalFW signalRO = new SignalFW();
@@ -1375,6 +1376,9 @@ public class EngineWorker implements EngineContext, Agent
         case DataFW.TYPE_ID:
             handleDroppedReadData(msgTypeId, buffer, index, length);
             break;
+        case EndFW.TYPE_ID:
+            handleDroppedReadEnd(msgTypeId, buffer, index, length);
+            break;
         }
     }
 
@@ -1388,6 +1392,9 @@ public class EngineWorker implements EngineContext, Agent
         {
         case DataFW.TYPE_ID:
             handleDroppedReadData(msgTypeId, buffer, index, length);
+            break;
+        case EndFW.TYPE_ID:
+            handleDroppedReadEnd(msgTypeId, buffer, index, length);
             break;
         }
     }
@@ -1404,6 +1411,22 @@ public class EngineWorker implements EngineContext, Agent
         final long traceId = data.traceId();
         final long budgetId = data.budgetId();
         final int reserved = data.reserved();
+
+        doSystemWindowIfNecessary(traceId, budgetId, reserved);
+    }
+
+    private void handleDroppedReadEnd(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        assert msgTypeId == DataFW.TYPE_ID;
+
+        final EndFW end = endRO.wrap(buffer, index, index + length);
+        final long traceId = end.traceId();
+        final long budgetId = end.budgetId();
+        final int reserved = end.reserved();
 
         doSystemWindowIfNecessary(traceId, budgetId, reserved);
     }
@@ -1543,6 +1566,10 @@ public class EngineWorker implements EngineContext, Agent
         else if (msgTypeId == DataFW.TYPE_ID)
         {
             handleDroppedReadData(msgTypeId, buffer, index, length);
+        }
+        else if (msgTypeId == EndFW.TYPE_ID)
+        {
+            handleDroppedReadEnd(msgTypeId, buffer, index, length);
         }
         else if (msgTypeId == FlushFW.TYPE_ID)
         {

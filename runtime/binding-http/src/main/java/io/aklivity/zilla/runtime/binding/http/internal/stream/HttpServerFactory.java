@@ -539,6 +539,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<GuardHandler> supplyGuard;
+    private final MessageConsumer droppedHandler;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
@@ -569,6 +570,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyGuard = context::supplyGuard;
+        this.droppedHandler = context.droppedFrameHandler();
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -6236,6 +6238,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseEnd(
                 EndFW end)
             {
+                final int reserved = end.reserved();
+
+                if (reserved > 0)
+                {
+                    droppedHandler.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+                }
+
                 setResponseClosed();
 
                 if (responseContentLength != responseContentObserved)
