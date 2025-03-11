@@ -6240,10 +6240,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final int reserved = end.reserved();
 
-                if (reserved > 0)
-                {
-                    droppedHandler.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-                }
+                responseSeq = end.sequence() + reserved;
+
+                responseSharedBudget -= reserved;
+
+                assert responseSharedBudget >= 0;
 
                 setResponseClosed();
 
