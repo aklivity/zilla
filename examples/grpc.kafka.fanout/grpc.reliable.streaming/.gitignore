@@ -4,7 +4,6 @@ node_modules
 /dist
 .idea
 
-
 # local env files
 .env.local
 .env.*.local

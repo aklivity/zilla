@@ -1,210 +1,110 @@
 # http.kafka.sync
 
-Listens on http port `7114` or https port `7143` and will correlate requests and responses over the `items-requests`
+Listens on http port `7114` to correlate requests and responses over the `items-requests`
 and `items-responses` topics in Kafka, synchronously.
 
-### Requirements
+## Setup
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
-- kcat
-
-### Install kcat client
-
-Requires Kafka client, such as `kcat`.
+Start this example by running this command from the example directory.
 
 ```bash
-brew install kcat
+docker compose up -d
 ```
 
-### Setup
+This will:
 
-The `setup.sh` script:
+- Install Zilla and Kafka
+- Create the `items-requests` and `items-responses` topics in Kafka
+- To restart Zilla to update the deployment run
 
-- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
-- creates the `items-requests` and `items-responses` topics in Kafka
-- starts port forwarding
+  ```bash
+  docker compose up -d --force-recreate --no-deps zilla
+  ```
 
-```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-http-kafka-sync oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-sync --create-namespace --wait
-NAME: zilla-http-kafka-sync
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-sync
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ helm upgrade --install zilla-http-kafka-sync-kafka chart --namespace zilla-http-kafka-sync --create-namespace --wait
-NAME: zilla-http-kafka-sync-kafka
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-sync
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-http-kafka-sync --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-1234567890-abcde
-+ kubectl exec --namespace zilla-http-kafka-sync pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-requests --if-not-exists
-Created topic items-requests.
-+ kubectl exec --namespace zilla-http-kafka-sync pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-responses --if-not-exists
-Created topic items-responses.
-+ kubectl port-forward --namespace zilla-http-kafka-sync service/zilla 7114 7143
-+ nc -z localhost 7114
-+ kubectl port-forward --namespace zilla-http-kafka-sync service/kafka 9092 29092
-+ sleep 1
-+ nc -z localhost 7114
-Connection to localhost port 7114 [tcp/http-alt] succeeded!
-+ nc -z localhost 9092
-Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
-```
-
-### Verify behavior
+## Verify behavior
 
 Send a `PUT` request for a specific item.
-Note that the response will not return until you complete the following step to produce the response with `kcat`.
+Note that the response will not return until you complete the following step to produce the response with `kafkacat`.
 
 ```bash
 curl -v \
-       -X "PUT" http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
-       -H "Idempotency-Key: 1" \
-       -H "Content-Type: application/json" \
-       -d "{\"greeting\":\"Hello, world\"}"
+  -X "PUT" http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
+  -H "Idempotency-Key: 1" \
+  -H "Content-Type: application/json" \
+  -d "{\"greeting\":\"Hello, world\"}"
 ```
-
-output:
 
 ```text
 ...
+*   Trying 127.0.0.1:7114...
+* Connected to localhost (127.0.0.1) port 7114 (#0)
 > PUT /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
+> Host: localhost:7114
+> User-Agent: curl/7.86.0
+> Accept: */*
 > Idempotency-Key: 1
 > Content-Type: application/json
-...
-< HTTP/1.1 200 OK
-...
-{"greeting":"Hello, world ..."}
+> Content-Length: 27
+>
 ```
 
-Verify the request, then send the correlated response via the kafka `items-responses` topic.
+Fetch the request message, then send the correlated response via the Kafka UI [items-requests](http://localhost:8080/ui/clusters/local/all-topics/items-requests) topic.
+
+- or from the command line
+
+  ```bash
+  docker compose -p zilla-http-kafka-sync exec kafkacat \
+    kafkacat -b kafka.examples.dev:29092 -C -f 'Key:Message | %k:%s\n Headers | %h \n\n' -t items-requests
+  ```
+
+  ```text
+  Key:Message | 5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07:{"greeting":"Hello, world"}
+   Headers | :scheme=http,:method=PUT,:path=/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07,:authority=localhost:7114,user-agent=curl/7.86.0,accept=*/*,idempotency-key=1,content-type=application/json,zilla:reply-to=items-responses,zilla:correlation-id=1-b664e68dd5c49716688e3ec1c8c68bb6
+  ```
+
+Produce the the correlated response message via the Kafka UI [items-responses](http://localhost:8080/ui/clusters/local/all-topics/items-responses) topic.
+
+Make sure to propagate the request message `zilla:correlation-id` header, found in the request message, verbatim as a response message `zilla:correlation-id` header.
 
 ```bash
-kcat -C -b localhost:9092 -t items-requests -J -u | jq .
-```
-
-output:
-
-```json
-{
-  "topic": "items-requests",
-  "partition": 0,
-  "offset": 0,
-  "tstype": "create",
-  "ts": 1652465273281,
-  "broker": 1001,
-  "headers": [
-    ":scheme",
-    "http",
-    ":method",
-    "PUT",
-    ":path",
-    "/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
-    ":authority",
-    "localhost:7114",
-    "user-agent",
-    "curl/7.79.1",
-    "accept",
-    "*/*",
-    "idempotency-key",
-    "1",
-    "content-type",
-    "application/json",
-    "zilla:reply-to",
-    "items-responses",
-    "zilla:correlation-id",
-    "1-e75a4e507cc0dc66a28f5a9617392fe8"
-  ],
-  "key": "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
-  "payload": "{\"greeting\":\"Hello, world\"}"
-}
-% Reached end of topic items-requests [0] at offset 1
-```
-
-Make sure to propagate the request message `zilla:correlation-id` header verbatim as a response message `zilla:correlation-id` header.
-
-```bash
-echo "{\"greeting\":\"Hello, world `date`\"}" | \
-    kcat -P \
-         -b localhost:9092 \
-         -t items-responses \
-         -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
-         -H ":status=200" \
-         -H "zilla:correlation-id=1-e75a4e507cc0dc66a28f5a9617392fe8"
+echo "{\"greeting\":\"Hello, world `date`\"}" | docker compose -p zilla-http-kafka-sync exec -T kafkacat \
+  kafkacat -P \
+  -b kafka.examples.dev:29092 \
+  -t items-responses \
+  -k "6cf7a1d5-3772-49ef-86e7-ba6f2c7d7d0" \
+  -H ":status=200" \
+  -H "zilla:correlation-id=1-f8f1c788ba786f691823098ee0505a1b"
 ```
 
 The previous `PUT` request will complete.
 
 ```text
+* Mark bundle as not supporting multiuse
 < HTTP/1.1 200 OK
 < Content-Length: 56
 <
 * Connection #0 to host localhost left intact
-{"greeting":"Hello, world Thu Oct 26 13:18:18 EDT 2023"}% 
+{"greeting":"Hello, world Thu Sep 19 15:30:48 EDT 2024"}%
 ```
 
-Verify the response via the kafka `items-responses` topic.
+Verify the response via the Kafka UI [items-responses](http://localhost:8080/ui/clusters/local/all-topics/items-responses) topic.
+
+- or from the command line
+
+  ```bash
+  docker compose -p zilla-http-kafka-sync exec kafkacat \
+    kafkacat -b kafka.examples.dev:29092 -C -f 'Key:Message | %k:%s\n Headers | %h \n\n' -t items-responses
+  ```
+
+  ```text
+  Key:Message | 6cf7a1d5-3772-49ef-86e7-ba6f2c7d7d0:{"greeting":"Hello, world Thu Sep 19 15:30:48 EDT 2024"}
+   Headers | :status=200,zilla:correlation-id=1-f8f1c788ba786f691823098ee0505a1b
+  ```
+
+## Teardown
+
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-kcat -C -b localhost:9092 -t items-responses -J -u | jq .
-```
-
-output:
-
-```json
-{
-  "topic": "items-responses",
-  "partition": 0,
-  "offset": 0,
-  "tstype": "create",
-  "ts": 1698334635176,
-  "broker": 1,
-  "headers": [
-    ":status",
-    "200",
-    "zilla:correlation-id",
-    "1-e75a4e507cc0dc66a28f5a9617392fe8"
-  ],
-  "key": "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
-  "payload": "{\"greeting\":\"Hello, world Thu Oct 26 13:18:18 EDT 2023\"}"
-}
-% Reached end of topic items-responses [0] at offset 1
-```
-
-### Teardown
-
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
-
-```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-99998
-+ killall kubectl
-+ helm uninstall zilla-http-kafka-sync zilla-http-kafka-sync-kafka --namespace zilla-http-kafka-sync
-release "zilla-http-kafka-sync" uninstalled
-release "zilla-http-kafka-sync-kafka" uninstalled
-+ kubectl delete namespace zilla-http-kafka-sync
-namespace "zilla-http-kafka-sync" deleted
+docker compose down
 ```

@@ -3,63 +3,22 @@
 This simple http.kafka.crud example illustrates how to configure zilla to expose a REST API that just creates, updates,
 deletes and reads messages in `items-snapshots` log-compacted Kafka topic acting as a table.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- docker compose
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
-- creates the `items-snapshots` topic in Kafka with the `cleanup.policy=compact` topic configuration
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-http-kafka-crud oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-crud --create-namespace --wait [...]
-NAME: zilla-http-kafka-crud
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-crud
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ helm upgrade --install zilla-http-kafka-crud-kafka chart --namespace zilla-http-kafka-crud --create-namespace --wait
-NAME: zilla-http-kafka-crud-kafka
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-crud
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-http-kafka-crud --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-1234567890-abcde
-+ kubectl exec --namespace zilla-http-kafka-crud pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-snapshots --config cleanup.policy=compact --if-not-exists
-Created topic items-snapshots.
-+ kubectl port-forward --namespace zilla-http-kafka-crud service/zilla 7114 7143
-+ nc -z localhost 7114
-+ kubectl port-forward --namespace zilla-http-kafka-crud service/kafka 9092 29092
-+ sleep 1
-+ nc -z localhost 7114
-Connection to localhost port 7114 [tcp/http-alt] succeeded!
-+ nc -z localhost 9092
-Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
+docker compose up -d
 ```
 
 ### Endpoints
 
 | Protocol | Method | Endpoint    | Topic           | Description             |
-|----------|--------|-------------|-----------------|-------------------------|
+| -------- | ------ | ----------- | --------------- | ----------------------- |
 | HTTP     | POST   | /items      | items-snapshots | Create an item.         |
 | HTTP     | PUT    | /items/{id} | items-snapshots | Update item by the key. |
 | HTTP     | DELETE | /items/{id} | items-snapshots | Delete item by the key. |
@@ -73,7 +32,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Note: You can remove `-H 'Idempotency-Key: 1'` to generate random key.
 
 ```bash
-curl -k -v -X POST https://localhost:7143/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
+curl -k -v -X POST http://localhost:7114/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"greeting":"Hello, world1"}'
 ```
 
 output:
@@ -81,7 +40,7 @@ output:
 ```text
 ...
 POST /items HTTP/2
-Host: localhost:7143
+Host: localhost:7114
 user-agent: curl/7.85.0
 accept: */*
 idempotency-key: 2
@@ -95,7 +54,7 @@ HTTP/2 204
 `GET` request to fetch specific item.
 
 ```bash
-curl -k -v https://localhost:7143/items/1
+curl -k -v http://localhost:7114/items/1
 ```
 
 output:
@@ -115,7 +74,7 @@ output:
 `PUT` request to update specific item.
 
 ```bash
-curl -k -v -X PUT https://localhost:7143/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
+curl -k -v -X PUT http://localhost:7114/items/1 -H 'Content-Type: application/json' -d '{"greeting":"Hello, world2"}'
 ```
 
 output:
@@ -123,7 +82,7 @@ output:
 ```text
 ...
 PUT /items/1 HTTP/2
-Host: localhost:7143
+Host: localhost:7114
 user-agent: curl/7.85.0
 accept: */*
 idempotency-key: 2
@@ -137,7 +96,7 @@ HTTP/2 204
 `DELETE` request to delete specific item.
 
 ```bash
-curl -k -v -X DELETE https://localhost:7143/items/1
+curl -k -v -X DELETE http://localhost:7114/items/1
 ```
 
 output:
@@ -145,7 +104,7 @@ output:
 ```text
 ...
 > DELETE /items/1 HTTP/2
-> Host: localhost:7143
+> Host: localhost:7114
 > user-agent: curl/7.85.0
 > accept: */*
 >
@@ -153,24 +112,10 @@ output:
 < HTTP/2 204
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99998
-99999
-+ killall kubectl
-+ helm uninstall zilla-http-kafka-crud --namespace zilla-http-kafka-crud
-release "zilla-http-kafka-crud" uninstalled
-release "zilla-http-kafka-crud-kafka" uninstalled
-+ kubectl delete namespace zilla-http-kafka-crud-kafka
-namespace "zilla-http-kafka-crud" deleted
+docker compose down
 ```

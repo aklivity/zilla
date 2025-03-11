@@ -1,31 +1,23 @@
 # asyncapi.http.kafka.proxy
 
-In this guide, you create Kafka topics and use Zilla to implement the common Petstore example where requests are proxied to Kafka. Zilla is implementing the REST endpoints 
-defined in an AsyncAPI 3.x spec and proxying them onto Kafka topics defined in an AsyncAPI 3.x spec based on the operations defined in each spec.
+In this guide, you create Kafka topics and use Zilla to implement the common Petstore example where requests are proxied to Kafka. Zilla is implementing the REST endpoints defined in an AsyncAPI 3.x spec and proxying them onto Kafka topics defined in an AsyncAPI 3.x spec based on the operations defined in each spec.
 
-## Running locally
+## Setup
 
-This example can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./docker/compose) and [helm](./k8s/helm) folders respectively and work the same way.
-
-You will need a running kafka broker. To start one locally you will find instructions in the [kafka.broker](../kafka.broker) folder. Alternatively you can use the [redpanda.broker](../redpanda.broker) folder.
-
-### Setup
-
-Whether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
-
-- create the necessary kafka topics
-- create the Petstore API at `http://localhost:7114`
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
+docker compose up -d
 ```
 
 ### Using this example
 
 #### Synchronous APIs
+
 The `/pet` endpoint proxies to Kafka synchronously meaning they will behave like a normal rest endpoint where the message persists on a kafka topics.
 
 Create a pet using the `/pets` endpoint in the implemented API.
+
 ```bash
 curl -v --location 'http://localhost:7114/pets' \
 --header 'Content-Type: application/json' \
@@ -53,6 +45,7 @@ output:
 ```
 
 List all the pets using `GET` request for the `/pets` endpoint
+
 ```bash
 curl -v --location 'http://localhost:7114/pets' \
 --header 'Accept: application/json'
@@ -89,6 +82,7 @@ The `/customer` endpoint is an asynchronous endpoint meaning it will success wit
 - The [petstore-verified-customers](http://localhost:8080/ui/clusters/localhost/all-topics/petstore-pets/messages) Kafka topic will have all the verified customers and will need to include a matching `zilla:correlation-id` header to align with the message on the initial topic.
 
 Create a non-verified customer using a `POST` request for the `/customer` endpoint
+
 ```bash
 curl -v --location --globoff 'http://localhost:7114/customer' \
 --header 'Prefer: respond-async' \
@@ -130,7 +124,7 @@ output:
 ```
 
 Copy the location, and create a `GET` async request using the location as the path.
-Note that the response will not return until you complete the following step to produce the response with `kcat`.
+Note that the response will not return until you complete the following step to produce the response with `kafkacat`.
 
 ```bash
 curl -v --location 'http://localhost:7114/customer;cid={correlationId}' \
@@ -139,6 +133,7 @@ curl -v --location 'http://localhost:7114/customer;cid={correlationId}' \
 ```
 
 output:
+
 ```
 *   Trying 127.0.0.1:7114...
 * Connected to localhost (127.0.0.1) port 7114 (#0)
@@ -155,22 +150,22 @@ output:
 {"id":200000,"username":"fehguy","status":"approved","address":[{"street":"437 Lytton","city":"Palo Alto","state":"CA","zip":"94301"}]}%
 ```
 
-Using `kcat` and the copied `correlation-id` produce the correlated message:
+Using `kafkacat` and the copied `correlation-id` produce the correlated message:
 
 ```sh
-echo '{"id":200000,"username":"fehguy","status":"approved","address":[{"street":"437 Lytton","city":"Palo Alto","state":"CA","zip":"94301"}]}' | \
-    kcat -P \
-         -b localhost:29092 \
-         -k "c234d09b-2fdf-4538-9d31-27c8e2912d4e" \
-         -t petstore-verified-customers \
-         -H "zilla:correlation-id={correlationId}"
+echo '{"id":200000,"username":"fehguy","status":"approved","address":[{"street":"437 Lytton","city":"Palo Alto","state":"CA","zip":"94301"}]}' | docker compose -p zilla-asyncapi-http-kafka-proxy exec -T kafkacat \
+  kafkacat -P \
+    -b kafka.examples.dev:29092 \
+    -k "c234d09b-2fdf-4538-9d31-27c8e2912d4e" \
+    -t petstore-verified-customers \
+    -H "zilla:correlation-id={correlationId}"
 ```
 
+## Teardown
 
-### Teardown
-
-The `teardown.sh` script will remove any resources created.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
+docker compose down
 ```
+

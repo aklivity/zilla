@@ -1,60 +1,19 @@
 # grpc.kafka.proxy
 
-Listens on https port `7153` and uses kafka as proxy to talk to `grpc-echo` on tcp port `50051`.
+Listens on https port `7151` and uses kafka as proxy to talk to `grpc-echo` on tcp port `50051`.
 
 ## Requirements
 
-- bash, jq, nc, grpcurl
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- jq
+- docker compose
+- [grpcurl](https://github.com/fullstorydev/grpcurl)
 
 ## Setup
 
-The `setup.sh` script:
-
-- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
-NAME: zilla-grpc-kafka-proxy
-LAST [...]
-NAMESPACE: zilla-grpc-kafka-proxy
-STATUS: deployed
-REVISION: 1
-Zilla has been installed.
-[...]
-+ helm upgrade --install zilla-grpc-kafka-proxy-kafka chart --namespace zilla-grpc-kafka-proxy --create-namespace --wait --timeout 2m
-NAME: zilla-grpc-kafka-proxy-kafka
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-grpc-kafka-proxy
-STATUS: deployed
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-grpc-kafka-proxy --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/kafka-74675fbb8-7knvx
-+ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-7knvx -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-requests --if-not-exists
-Created topic echo-requests.
-+ kubectl exec --namespace zilla-grpc-kafka-proxy pod/kafka-74675fbb8-7knvx -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic echo-responses --if-not-exists
-Created topic echo-responses.
-+ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/zilla 7153
-+ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/kafka 9092 29092
-+ nc -z localhost 7153
-+ kubectl port-forward --namespace zilla-grpc-kafka-proxy service/grpc-echo 8080
-+ sleep 1
-+ nc -z localhost 7153
-Connection to localhost port 7153 [tcp/websm] succeeded!
-+ nc -z localhost 9092
-Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
-+ nc -z localhost 8080
-Connection to localhost port 8080 [tcp/http-alt] succeeded!
+docker compose up -d
 ```
 
 ## Verify behavior
@@ -64,7 +23,8 @@ Connection to localhost port 8080 [tcp/http-alt] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 grpc.examples.echo.Echo.UnaryEcho
+grpcurl -plaintext -proto ./etc/protos/echo.proto -d '{"message":"Hello World"}' \
+    localhost:7151 grpc.examples.echo.Echo.UnaryEcho
 ```
 
 output:
@@ -78,7 +38,8 @@ output:
 Verify the message payload, followed by a tombstone to mark the end of the request.
 
 ```bash
-kcat -C -b localhost:9092 -t echo-requests -J -u | jq .
+docker compose -p zilla-grpc-kafka-proxy exec kafkacat \
+  kafkacat -C -b kafka.examples.dev:29092 -t echo-requests -J -u | jq .
 ```
 
 output:
@@ -132,7 +93,8 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 grpc.examples.echo.Echo.BidirectionalStreamingEcho <<EOM
+grpcurl -plaintext -proto ./etc/protos/echo.proto -d @ \
+    localhost:7151 grpc.examples.echo.Echo.BidirectionalStreamingEcho <<EOM
 {"message":"Hello World, first"}
 {"message":"Hello World, stream"}
 {"message":"Hello World, stream"}
@@ -164,7 +126,8 @@ output:
 Verify the message payloads arrived in order, followed by a tombstone to mark the end of the response.
 
 ```bash
-kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
+docker compose -p zilla-grpc-kafka-proxy exec kafkacat \
+  kafkacat -C -b kafka.examples.dev:29092 -t echo-responses -J -u | jq .
 ```
 
 output:
@@ -261,23 +224,8 @@ output:
 
 ## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99997
-99998
-99999
-+ killall kubectl
-+ helm uninstall zilla-grpc-kafka-proxy zilla-grpc-kafka-proxy-kafka --namespace zilla-grpc-kafka-proxy
-release "zilla-grpc-kafka-proxy" uninstalled
-release "zilla-grpc-kafka-proxy-kafka" uninstalled
-+ kubectl delete namespace zilla-grpc-kafka-proxy
-namespace "zilla-grpc-kafka-proxy" deleted
+docker compose down
 ```

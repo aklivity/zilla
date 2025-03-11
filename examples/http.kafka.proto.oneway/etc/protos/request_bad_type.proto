@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message Request {
+  string message = 1;
+  string count = 2;
+}

@@ -1,0 +1,47 @@
+name: ${NAMESPACE:-zilla-asyncapi-mqtt-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7183:7183
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7183"]
+    environment:
+      MOSQUITTO_BROKER_HOST: mosquitto
+      MOSQUITTO_BROKER_PORT: 1883
+    volumes:
+      - ./etc:/etc/zilla
+      - ./mqtt-asyncapi.yaml:/etc/zilla/specs/mqtt-asyncapi.yaml
+    command: start -v -e
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+    configs:
+      - source: mosquitto.conf
+        target: /mosquitto/config/mosquitto.conf
+
+  mosquitto-cli:
+    image: eclipse-mosquitto:2.0
+    command: "/bin/sh"
+    stdin_open: true
+    tty: true
+
+configs:
+  mosquitto.conf:
+    content: |
+      # DO NOT USE IN PRODUCTION
+      allow_anonymous true
+      listener 1883
+      protocol mqtt
+
+networks:
+  default:
+    driver: bridge

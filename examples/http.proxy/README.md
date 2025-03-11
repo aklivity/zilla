@@ -2,12 +2,9 @@
 
 Listens on https port `7143` and will response back whatever is hosted in `nginx` on that path.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- docker compose
 - [nghttp2](https://nghttp2.org/)
 
 ### Install nghttp2 client
@@ -18,48 +15,12 @@ nghttp2 is an implementation of HTTP/2 client.
 brew install nghttp2
 ```
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla and Nginx to the Kubernetes cluster with helm and waits for the pods to start up
-- copies the web contents to the Nginx pod
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-http-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-proxy --create-namespace --wait [...]
-NAME: zilla-http-proxy
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-proxy
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ helm upgrade --install zilla-http-proxy-nginx chart --namespace zilla-http-proxy --create-namespace --wait
-NAME: zilla-http-proxy-nginx
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-proxy
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-http-proxy --selector app.kubernetes.io/instance=nginx -o json
-++ jq -r '.items[0].metadata.name'
-+ NGINX_POD=nginx-1234567890-abcde
-+ kubectl cp --namespace zilla-http-proxy www/demo.html nginx-1234567890-abcde:/usr/share/nginx/html
-+ kubectl cp --namespace zilla-http-proxy www/style.css nginx-1234567890-abcde:/usr/share/nginx/html
-+ nc -z localhost 7143
-+ kubectl port-forward --namespace zilla-http-proxy service/zilla 7143
-+ sleep 1
-+ nc -z localhost 7143
-Connection to localhost port 7143 [tcp/websm] succeeded!
+docker compose up -d
 ```
 
 ### Verify behavior
@@ -96,23 +57,10 @@ id  responseEnd requestStart  process code size request path
 
 you get `/style.css` response as push promise that nginx is configured with.
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and Nginx and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-+ killall kubectl
-+ helm uninstall zilla-http-proxy zilla-http-proxy-nginx --namespace zilla-http-proxy
-release "zilla-http-proxy" uninstalled
-release "zilla-http-proxy-nginx" uninstalled
-+ kubectl delete namespace zilla-http-proxy
-namespace "zilla-http-proxy" deleted
+docker compose down
 ```

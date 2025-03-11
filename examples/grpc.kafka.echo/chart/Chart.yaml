@@ -1,6 +1,0 @@
-apiVersion: v2
-name: zilla
-description: zilla grpc.kafka.echo example
-type: application
-version: 0.1.0
-appVersion: "latest"

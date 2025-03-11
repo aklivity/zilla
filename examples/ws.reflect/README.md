@@ -1,45 +1,18 @@
 # ws.reflect
 
 Listens on ws port `7114` and will echo back whatever is sent to the server, broadcasting to all clients.
-Listens on wss port `7143` and will echo back whatever is sent to the server, broadcasting to all clients.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- docker compose
 - wscat
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-ws-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-ws-reflect --create-namespace --wait [...]
-NAME: zilla-ws-reflect
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-ws-reflect
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ nc -z localhost 7114
-+ kubectl port-forward --namespace zilla-ws-reflect service/zilla 7114 7143
-+ sleep 1
-+ nc -z localhost 7114
-Connection to localhost port 7114 [tcp/http-alt] succeeded!
+docker compose up -d
 ```
 
 ### Verify behavior
@@ -62,7 +35,7 @@ Connected (press CTRL+C to quit)
 ```
 
 ```bash
-wscat -c wss://localhost:7143/ --ca test-ca.crt -s echo
+wscat -c wss://localhost:7114/ --ca test-ca.crt -s echo
 ```
 
 Type a `Hello, two` message and press `enter`.
@@ -76,22 +49,10 @@ Connected (press CTRL+C to quit)
 < Hello, two
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-+ killall kubectl
-+ helm uninstall zilla-ws-reflect --namespace zilla-ws-reflect
-release "zilla-ws-reflect" uninstalled
-+ kubectl delete namespace zilla-ws-reflect
-namespace "zilla-ws-reflect" deleted
+docker compose down
 ```

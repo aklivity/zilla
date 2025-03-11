@@ -3,43 +3,17 @@
 Listens on amqp port `7172` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 Listens on amqps port `7171` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- docker compose
 - cli-rhea
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-amqp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-amqp-reflect --create-namespace --wait [...]
-NAME: zilla-amqp-reflect
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-amqp-reflect
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ nc -z localhost 7171
-+ kubectl port-forward --namespace zilla-amqp-reflect service/zilla 7171 7172
-+ sleep 1
-+ nc -z localhost 7171
-Connection to localhost port 7171 [tcp/*] succeeded!
+docker compose up -d
 ```
 
 ### Install amqp client
@@ -55,7 +29,7 @@ npm install cli-rhea -g
 Connect two receiving clients first, then send `Hello, world` from sending client.
 
 ```bash
-cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:7171 --conn-ssl-trust-store test-ca.crt
+cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:7172
 ```
 
 output:
@@ -157,22 +131,10 @@ output:
   rhea:events [efd09fe2-4090-4141-91e6-5ce5223d1dbc] Container got event: sendable +0ms
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-+ killall kubectl
-+ helm uninstall zilla-amqp-echo --namespace zilla-amqp-echo
-release "zilla-amqp-echo" uninstalled
-+ kubectl delete namespace zilla-amqp-echo
-namespace "zilla-amqp-echo" deleted
+docker compose down
 ```

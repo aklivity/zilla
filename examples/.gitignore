@@ -31,3 +31,4 @@ release.properties
 target/
 zilla
 zilla.yaml.generated
+*.out

@@ -1,29 +1,25 @@
 # openapi.proxy
-## Running locally
 
-This example runs using Docker compose. You will find the setup scripts in the [compose](./docker/compose) folder.
+This example demonstrates creating an HTTP request proxy where the available endpoints are defined in an OpenAPI schema [petstore-openapi.yaml](./petstore-openapi.yaml).
 
-### Setup
+## Setup
 
-The `setup.sh` script will:
-
-- Configured Zilla instance
-- Start openapi-mock
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./compose/setup.sh
+docker compose up -d
 ```
 
-### Test
+## Test
 
 ```bash
-curl --location 'http://localhost:7114/pets' --header 'Accept: application/json'
+curl 'http://localhost:7114/pets' --header 'Accept: application/json'
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script will remove any resources created.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./compose/teardown.sh
+docker compose down
 ```

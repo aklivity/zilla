@@ -5,93 +5,41 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-tcp-echo:
+  get-examples-with-changes:
     runs-on: ubuntu-latest
+    outputs:
+      changed_directories: ${{ steps.set-output.outputs.changed_directories }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1
-      - name: Setup
-        working-directory: tcp.echo
-        run: ./setup.sh
-      - name: Execute Test
-        working-directory: tcp.echo
-        run: |
-          set -o pipefail
-          ./test.sh | tee $GITHUB_STEP_SUMMARY
-      - name: Teardown
-        if: always()
-        working-directory: tcp.echo
-        run: ./teardown.sh
-
-  test-tls-echo:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1
-      - name: Setup
-        working-directory: tls.echo
-        run: ./setup.sh
-      - name: Execute Test
-        working-directory: tls.echo
-        run: |
-          set -o pipefail
-          ./test.sh | tee $GITHUB_STEP_SUMMARY
-      - name: Teardown
-        if: always()
-        working-directory: tls.echo
-        run: ./teardown.sh
-
-  test-http-kafka-sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install apt packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - uses: actions/checkout@v4
         with:
-          packages: librdkafka-dev libyajl-dev
-          version: 1.0
-      - name: Install kcat
-        working-directory: /tmp
-        run: |
-          set -x
-          curl -L -o kcat https://github.com/attilakreiner/kcat/releases/download/1.7.1/kcat-linux-$(arch)
-          chmod +x kcat
-          sudo mv kcat /usr/local/bin
-          kcat 2>&1 | grep "Version 1.7.1"
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1
-      - name: Setup
-        working-directory: http.kafka.sync
-        run: ./setup.sh
-      - name: Execute Test
-        working-directory: http.kafka.sync
-        run: |
-          set -o pipefail
-          ./test.sh | tee $GITHUB_STEP_SUMMARY
-      - name: Teardown
-        if: always()
-        working-directory: http.kafka.sync
-        run: ./teardown.sh
+          fetch-depth: 0
 
-  test-openapi-proxy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup
-        working-directory: openapi.proxy/docker/compose
-        run: ./setup.sh
-      - name: Execute Test
-        working-directory: openapi.proxy
-        run: |
-          set -o pipefail
-          ./test.sh | tee $GITHUB_STEP_SUMMARY
-      - name: Teardown
-        if: always()
-        working-directory: openapi.proxy/docker/compose
-        run: ./teardown.sh
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v45.0.3
+        with:
+          # only get the top level example dirs that have changes
+          dir_names: true
+          dir_names_max_depth: 1
+          dir_names_exclude_current_dir: true
+          exclude_submodules: true
+          files_ignore: |
+            *.md
+            .github/**/*
+          json: true
+          quotepath: false
+
+      - name: "Set output in the matrix format"
+        id: set-output
+        run: echo "changed_directories={\"dir\":${{ steps.changed-files.outputs.all_changed_files }}}" >> "$GITHUB_OUTPUT"
+
+  testing:
+    if: ${{ needs.get-examples-with-changes.outputs.changed_directories != '' }}
+    strategy:
+      matrix: ${{fromJson(needs.get-examples-with-changes.outputs.changed_directories)}}
+      fail-fast: false
+    needs:
+      - get-examples-with-changes
+    uses: ./.github/workflows/reusable_test_runner.yaml
+    with:
+      example-dir: ${{ matrix.dir }}

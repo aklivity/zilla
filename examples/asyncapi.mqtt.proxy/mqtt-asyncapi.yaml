@@ -16,18 +16,18 @@ channels:
     title: MQTT Topic to produce & consume topic.
     messages:
       item:
-        $ref: '#/components/messages/item'
+        $ref: "#/components/messages/item"
 
 operations:
   sendEvents:
     action: send
     channel:
-      $ref: '#/channels/smartylighting'
+      $ref: "#/channels/smartylighting"
 
   receiveEvents:
     action: receive
     channel:
-      $ref: '#/channels/smartylighting'
+      $ref: "#/channels/smartylighting"
 
 components:
   messages:

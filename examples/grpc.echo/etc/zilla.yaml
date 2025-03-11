@@ -1,0 +1,46 @@
+name: example
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        echo:
+          path: protos/echo.proto
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7151
+    routes:
+      - when:
+          - port: 7151
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      access-control:
+        policy: cross-origin
+    exit: north_grpc_server
+  north_grpc_server:
+    type: grpc
+    kind: server
+    catalog:
+      host_filesystem:
+        - subject: echo
+    routes:
+      - when:
+          - method: example.EchoService/*
+        exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

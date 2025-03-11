@@ -1,0 +1,20 @@
+name: ${NAMESPACE:-zilla-tcp-echo}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 12345:12345
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/12345"]
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge

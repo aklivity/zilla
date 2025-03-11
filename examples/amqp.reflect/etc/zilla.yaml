@@ -1,0 +1,32 @@
+---
+name: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7172
+    routes:
+      - when:
+          - port: 7172
+        exit: north_amqp_server
+  north_amqp_server:
+    type: amqp
+    kind: server
+    routes:
+      - when:
+          - address: zilla
+        exit: north_fan_server
+  north_fan_server:
+    type: fan
+    kind: server
+    exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

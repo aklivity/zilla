@@ -2,42 +2,17 @@
 
 Listens on tcp port `12345` and will echo back whatever is sent to the server, broadcasting to all clients.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
+- nc
+- docker compose
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-tcp-reflect oci://ghcr.io/aklivity/charts/zilla --namespace zilla-tcp-reflect [...]
-NAME: zilla-tcp-reflect
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-tcp-reflect
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-+ nc -z localhost 12345
-+ kubectl port-forward --namespace zilla-tcp-reflect service/zilla 12345
-+ sleep 1
-+ nc -z localhost 12345
-Connection to localhost port 12345 [tcp/italk] succeeded!
+docker compose up -d
 ```
 
 ### Verify behavior
@@ -72,22 +47,10 @@ Hello, two
 Hello, two
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-+ killall kubectl
-+ helm uninstall zilla-tcp-reflect --namespace zilla-tcp-reflect
-release "zilla-tcp-reflect" uninstalled
-+ kubectl delete namespace zilla-tcp-reflect
-namespace "zilla-tcp-reflect" deleted
+docker compose down
 ```

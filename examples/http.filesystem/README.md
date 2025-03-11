@@ -1,50 +1,17 @@
 # http.filesystem
 
-Listens on http port `7114` and serves files from the pod's `/var/www` subdirectory.
-Listens on https port `7143` and serves files from the pod's `/var/www` subdirectory.
+Listens on http port `7114` and serves files from the Zilla container's `/var/www` subdirectory.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
-- curl
+- docker compose
 
-### Setup
+## Setup
 
-The `setup.sh` script:
-
-- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
-- copies the contents of the www directory to the Zilla pod
-- starts port forwarding
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-http-filesystem oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-filesystem --create-namespace --wait [...]
-NAME: zilla-http-filesystem
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-filesystem
-STATUS: deployed
-REVISION: 1
-NOTES:
-Zilla has been installed.
-[...]
-++ kubectl get pods --namespace zilla-http-filesystem --selector app.kubernetes.io/instance=zilla -o json
-++ jq -r '.items[0].metadata.name'
-+ ZILLA_POD=zilla-1234567890-abcde
-+ kubectl cp --namespace zilla-http-filesystem www zilla-1234567890-abcde:/var/
-+ nc -z localhost 7114
-+ kubectl port-forward --namespace zilla-http-filesystem service/zilla 7114 7143
-+ sleep 1
-+ nc -z localhost 7114
-Connection to localhost port 7114 [tcp/http-alt] succeeded!
+docker compose up -d
 ```
 
 ### Verify behavior
@@ -57,48 +24,19 @@ output:
 
 ```html
 <html>
-<head>
-<title>Welcome to Zilla!</title>
-</head>
-<body>
-<h1>Welcome to Zilla!</h1>
-</body>
+  <head>
+    <title>Welcome to Zilla!</title>
+  </head>
+  <body>
+    <h1>Welcome to Zilla!</h1>
+  </body>
 </html>
 ```
 
-```bash
-curl --cacert test-ca.crt https://localhost:7143/index.html
-```
+## Teardown
 
-output:
-
-```html
-<html>
-<head>
-<title>Welcome to Zilla!</title>
-</head>
-<body>
-<h1>Welcome to Zilla!</h1>
-</body>
-</html>
-```
-
-### Teardown
-
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99999
-+ killall kubectl
-+ helm uninstall zilla-http-filesystem --namespace zilla-http-filesystem
-release "zilla-http-filesystem" uninstalled
-+ kubectl delete namespace zilla-http-filesystem
-namespace "zilla-http-filesystem" deleted
+docker compose down
 ```

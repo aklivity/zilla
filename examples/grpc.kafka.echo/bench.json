@@ -1,7 +1,7 @@
 {
-    "skipTLS": true,
+    "insecure": true,
     "stream-interval": "5ms",
-    "total": 50,
+    "total": 1000,
     "concurrency": 8,
     "data":
     {

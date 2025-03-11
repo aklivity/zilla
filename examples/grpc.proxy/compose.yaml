@@ -1,0 +1,45 @@
+name: ${NAMESPACE:-zilla-grpc-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7151:7151
+      - 7153:7153
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7153"]
+    environment:
+      KEYSTORE_PASSWORD: generated
+      ECHO_SERVER_HOST: grpc-echo
+      ECHO_SERVER_PORT: 50051
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  grpc-echo:
+    image: ghcr.io/aklivity/extras-grpc-echo-server:sha-478b2ce
+    command: ["--port", "50051"]
+    ports:
+      - 50051:50051
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "50051"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grpcurl:
+    image: fullstorydev/grpcurl
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./etc/protos/echo.proto:/echo.proto
+
+networks:
+  default:
+    driver: bridge

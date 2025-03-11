@@ -1,66 +1,17 @@
 # http.kafka.cache
 
-Listens on http port `7114` or https port `7143` and will serve cached responses from the `items-snapshots` topic in Kafka.
+Listens on http port `7114` or https port `7114` and will serve cached responses from the `items-snapshots` topic in Kafka.
 
-### Requirements
+## Requirements
 
-- bash, jq, nc
-- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
-- kubectl
-- helm 3.0+
-- kcat
+- docker compose
 
-### Install kcat client
+## Setup
 
-Requires Kafka client, such as `kcat`.
+To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
 
 ```bash
-brew install kcat
-```
-
-### Setup
-
-The `setup.sh` script:
-
-- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
-- creates the `items-snapshots` topic in Kafka with the `cleanup.policy=compact` topic configuration
-- starts port forwarding
-
-```bash
-./setup.sh
-```
-
-output:
-
-```text
-+ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install zilla-http-kafka-cache oci://ghcr.io/aklivity/charts/zilla --namespace zilla-http-kafka-cache --create-namespace --wait [...]
-NAME: zilla-http-kafka-cache
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-cache
-STATUS: deployed
-REVISION: 1
-Zilla has been installed.
-[...]
-+ helm upgrade --install zilla-http-kafka-cache-kafka chart --namespace zilla-http-kafka-cache --create-namespace --wait
-NAME: zilla-http-kafka-async-kafka
-LAST DEPLOYED: [...]
-NAMESPACE: zilla-http-kafka-async
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-++ kubectl get pods --namespace zilla-http-kafka-cache --selector app.kubernetes.io/instance=kafka -o name
-+ KAFKA_POD=pod/1234567890-abcde
-+ kubectl exec --namespace zilla-http-kafka-cache pod/1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-snapshots --config cleanup.policy=compact --if-not-exists
-Created topic items-snapshots.
-+ kubectl port-forward --namespace zilla-http-kafka-cache service/zilla 7114 7143
-+ nc -z localhost 7114
-+ kubectl port-forward --namespace zilla-http-kafka-cache service/kafka 9092 29092
-+ sleep 1
-+ nc -z localhost 7114
-Connection to localhost port 7114 [tcp/http-alt] succeeded!
-+ nc -z localhost 9092
-Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
+docker compose up -d
 ```
 
 ### Verify behavior
@@ -125,19 +76,19 @@ output:
 Produce an item snapshot to the kafka topic.
 
 ```bash
-echo "{\"greeting\":\"Hello, world `date`\"}" | \
-    kcat -P \
-         -b localhost:9092 \
-         -t items-snapshots \
-         -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
-         -H "content-type=application/json"
+echo "{\"greeting\":\"Hello, world `date`\"}" | docker compose -p zilla-http-kafka-cache exec -T kafkacat \
+  kafkacat -P \
+    -b kafka.examples.dev:29092 \
+    -t items-snapshots \
+    -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
+    -H "content-type=application/json"
 ```
 
 Retrieve a specific item again, now returned.
 
 ```bash
 curl -v http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
-       -H "Prefer: wait=5"
+  -H "Prefer: wait=5"
 ```
 
 output:
@@ -223,12 +174,12 @@ Before the 60 seconds elapses, produce an updated item snapshot to the kafka top
 The prefer wait http request returns the new item snapshot with updated `etag` as shown above.
 
 ```bash
-echo "{\"greeting\":\"Hello, world `date`\"}" | \
-    kcat -P \
-         -b localhost:9092 \
-         -t items-snapshots \
-         -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
-         -H "content-type=application/json"
+echo "{\"greeting\":\"Hello, world `date`\"}" | docker compose -p zilla-http-kafka-cache exec -T kafkacat \
+  kafkacat -P \
+    -b kafka.examples.dev:29092 \
+    -t items-snapshots \
+    -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
+    -H "content-type=application/json"
 ```
 
 Retrieve all the items, returns array with one item.
@@ -250,24 +201,10 @@ output:
 [{"greeting":"Hello, world ..."}]
 ```
 
-### Teardown
+## Teardown
 
-The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+To remove any resources created by the Docker Compose stack, use:
 
 ```bash
-./teardown.sh
-```
-
-output:
-
-```text
-+ pgrep kubectl
-99998
-99999
-+ killall kubectl
-+ helm uninstall zilla-http-kafka-cache zilla-http-kafka-cache-kafka --namespace zilla-http-kafka-cache
-release "zilla-http-kafka-cache" uninstalled
-release "zilla-http-kafka-cache-kafka" uninstalled
-+ kubectl delete namespace zilla-http-kafka-cache
-namespace "zilla-http-kafka-cache" deleted
+docker compose down
 ```

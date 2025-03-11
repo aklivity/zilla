@@ -1,0 +1,25 @@
+name: ${NAMESPACE:-zilla-ws-echo}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  websocat:
+    image: solsson/websocat
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 3600; done"]
+
+networks:
+  default:
+    driver: bridge

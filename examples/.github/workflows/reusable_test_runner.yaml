@@ -1,0 +1,88 @@
+name: Reusable Workflow for running tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      example-dir:
+        required: true
+        description: Directory name for the example to test
+        type: string
+      zilla-image-tag:
+        default: latest
+        description: Zilla Image tag
+        type: string
+      zilla-image-artifact-name:
+        default: zilla-image-artifact
+        description: Artifact name for a Zilla Image
+        type: string
+
+  workflow_call:
+    inputs:
+      example-dir:
+        required: true
+        type: string
+      zilla-image-tag:
+        type: string
+      zilla-image-artifact-name:
+        type: string
+
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    env:
+      ZILLA_VERSION: ${{ inputs.zilla-image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: ${{ inputs.example-dir }}
+
+      - name: Cache Docker images.
+        if: ${{ hashFiles(format('{0}/compose.yaml', inputs.example-dir)) != '' }}
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ inputs.example-dir }}-${{ hashFiles(format('{0}/compose.yaml', inputs.example-dir)) }}
+
+      - name: Download artifact
+        if: ${{ inputs.zilla-image-artifact-name != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.zilla-image-artifact-name }}
+          path: /tmp
+
+      - name: Load image
+        if: ${{ inputs.zilla-image-artifact-name != '' }}
+        run: |
+          docker load --input /tmp/${{ inputs.zilla-image-artifact-name }}.tar
+          docker image ls -a
+
+      - name: Start Zilla and wait for it to be healthy
+        working-directory: ${{ inputs.example-dir }}
+        run: docker compose up -d --wait
+
+      - name: Execute Test
+        if: ${{ hashFiles(format('{0}/.github/test.sh', inputs.example-dir)) != '' }}
+        working-directory: ${{ inputs.example-dir }}
+        run: |
+          set -o pipefail
+          ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
+
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v2
+        with:
+          dest: "./logs"
+      - name: Tar logs
+        if: failure()
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.example-dir }}_logs.tgz
+          path: ./logs.tgz
+
+      - name: Teardown
+        if: always() && ${{ hashFiles(format('{0}/teardown.sh', inputs.example-dir)) != '' }}
+        working-directory: ${{ inputs.example-dir }}
+        run: docker compose down --remove-orphans
