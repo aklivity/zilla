@@ -1421,7 +1421,7 @@ public class EngineWorker implements EngineContext, Agent
         int index,
         int length)
     {
-        assert msgTypeId == DataFW.TYPE_ID;
+        assert msgTypeId == EndFW.TYPE_ID;
 
         final EndFW end = endRO.wrap(buffer, index, index + length);
         final long traceId = end.traceId();
