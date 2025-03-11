@@ -328,6 +328,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongFunction<MessageConsumer> supplySender;
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
+    private final MessageConsumer droppedHandler;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
     private final Matcher responseLine;
@@ -365,6 +366,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.supplySender = context::supplySender;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyBudgetId = context::supplyBudgetId;
+        this.droppedHandler = context.droppedFrameHandler();
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.headersMap = new LinkedHashMap<>();
@@ -4749,11 +4751,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long acknowledge = end.acknowledge();
             final long traceId = end.traceId();
             final long authorization = end.authorization();
+            final long budgetId = end.budgetId();
+            final int reserved = end.reserved();
 
             assert acknowledge <= sequence;
             assert sequence >= requestSeq;
 
-            requestSeq = sequence;
+            if (reserved > 0)
+            {
+                droppedHandler.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+            }
+
+            requestSeq = sequence + reserved;
             requestAuth = authorization;
 
             assert requestAck <= requestSeq;
@@ -4765,7 +4774,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
 
-                client.encoder.doEncodeRequestEnd(client, this, traceId, authorization, 0, trailers);
+                client.encoder.doEncodeRequestEnd(client, this, traceId, authorization, budgetId, trailers);
             }
         }
 
