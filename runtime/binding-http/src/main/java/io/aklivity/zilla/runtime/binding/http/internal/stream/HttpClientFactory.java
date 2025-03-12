@@ -4757,15 +4757,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= requestSeq;
 
-            if (reserved > 0)
-            {
-                droppedHandler.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-            }
-
             requestSeq = sequence + reserved;
             requestAuth = authorization;
 
             assert requestAck <= requestSeq;
+
+            assert requestAck <= requestSeq;
+            client.requestSharedBudget -= reserved;
 
             state = HttpState.closeInitial(state);
 
