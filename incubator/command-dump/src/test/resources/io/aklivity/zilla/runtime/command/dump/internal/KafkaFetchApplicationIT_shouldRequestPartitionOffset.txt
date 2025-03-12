@@ -305,10 +305,10 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/8192
 
-Frame 9: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Frame 9: 206 bytes on wire (1648 bits), 206 bytes captured (1648 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 284, Ack: 588, Len: 120
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 284, Ack: 588, Len: 132
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
@@ -332,6 +332,8 @@ Zilla Frame
     Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000009
     Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
 
 Frame 10: 262 bytes on wire (2096 bits), 262 bytes captured (2096 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -343,7 +345,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000003b0
+    Offset: 0x000003b8
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -393,7 +395,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000440
+    Offset: 0x00000448
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -417,17 +419,17 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/8192
 
-Frame 12: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Frame 12: 206 bytes on wire (1648 bits), 206 bytes captured (1648 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 588, Ack: 404, Len: 120
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 588, Ack: 416, Len: 132
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000004a0
+    Offset: 0x000004a8
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -444,18 +446,20 @@ Zilla Frame
     Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000c
     Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
 
-Frame 13: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Frame 13: 206 bytes on wire (1648 bits), 206 bytes captured (1648 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 325, Ack: 326, Len: 120
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 325, Ack: 326, Len: 132
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000004f0
+    Offset: 0x00000500
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -472,18 +476,20 @@ Zilla Frame
     Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000d
     Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
 
-Frame 14: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Frame 14: 206 bytes on wire (1648 bits), 206 bytes captured (1648 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 326, Ack: 445, Len: 120
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 326, Ack: 457, Len: 132
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000540
+    Offset: 0x00000558
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -500,4 +506,6 @@ Zilla Frame
     Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000e
     Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
 
