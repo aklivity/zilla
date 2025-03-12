@@ -288,8 +288,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         protected long replySeq;
         protected long replyAck;
         protected int replyMax;
-        protected long replyBudgetId;
-        protected int replyPadding;
+        protected long replyBud;
+        protected int replyPad;
         protected int replyCap;
 
         private GrpcProxy(
@@ -538,8 +538,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            replyBudgetId = budgetId;
-            replyPadding = padding;
+            replyBud = budgetId;
+            replyPad = padding;
             replyCap = capabilities;
             state = GrpcKafkaState.openReply(state);
 
@@ -759,7 +759,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, replyPadding);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -1353,8 +1353,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            replyBudgetId = budgetId;
-            replyPadding = padding;
+            replyBud = budgetId;
+            replyPad = padding;
             replyCap = capabilities;
             state = GrpcKafkaState.openReply(state);
 
@@ -1612,7 +1612,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, replyPadding);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -1861,8 +1861,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            replyBudgetId = budgetId;
-            replyPadding = padding;
+            replyBud = budgetId;
+            replyPad = padding;
             replyCap = capabilities;
             state = GrpcKafkaState.openReply(state);
 
@@ -1996,7 +1996,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, replyPadding);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -2307,8 +2307,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 replyAck = delegate.replyAck;
                 replyMax = delegate.replyMax;
-                replyBud = delegate.replyBudgetId;
-                replyPad = delegate.replyPadding;
+                replyBud = delegate.replyBud;
+                replyPad = delegate.replyPad;
                 replyCap = delegate.replyCap;
 
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2382,8 +2382,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private long replySeq;
         private long replyAck;
         private int replyMax;
-        private long replyBudgetId;
-        private int replyPadding;
+        private long replyBud;
+        private int replyPad;
         private int replyCap;
 
         private KafkaCorrelateProxy(
@@ -2657,12 +2657,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 replyAck = delegate.replyAck;
                 replyMax = delegate.replyMax;
-                replyBudgetId = delegate.replyBudgetId;
-                replyPadding = delegate.replyPadding;
+                replyBud = delegate.replyBud;
+                replyPad = delegate.replyPad;
                 replyCap = delegate.replyCap;
 
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, replyBudgetId, replyPadding, replyCap);
+                        traceId, authorization, replyBud, replyPad, replyCap);
             }
         }
     }
