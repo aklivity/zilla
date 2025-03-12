@@ -26,6 +26,7 @@ jobs:
           files_ignore: |
             *.md
             .github/**/*
+            .assets/**/*
           json: true
           quotepath: false
 
