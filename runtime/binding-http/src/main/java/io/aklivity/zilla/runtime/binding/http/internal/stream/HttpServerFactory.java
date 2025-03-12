@@ -539,7 +539,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<GuardHandler> supplyGuard;
-    private final MessageConsumer droppedHandler;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
@@ -570,7 +569,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyGuard = context::supplyGuard;
-        this.droppedHandler = context.droppedFrameHandler();
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -3146,7 +3144,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert sequence >= responseSeq;
                 assert acknowledge <= responseAck;
 
-                responseSeq = end.sequence() + reserved;
+                responseSeq = sequence + reserved;
 
                 final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
@@ -6239,9 +6237,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseEnd(
                 EndFW end)
             {
+                final long sequence = end.sequence();
                 final int reserved = end.reserved();
 
-                responseSeq = end.sequence() + reserved;
+                responseSeq = sequence + reserved;
 
                 responseSharedBudget -= reserved;
 
