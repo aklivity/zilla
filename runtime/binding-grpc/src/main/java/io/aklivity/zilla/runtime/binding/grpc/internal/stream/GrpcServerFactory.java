@@ -172,7 +172,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 long authorization,
                 String16FW status)
             {
-                server.doGrpcNetStatus(traceId, authorization, server.replyPadding, status);
+                server.doGrpcNetStatus(traceId, authorization, 0, status);
             }
 
             @Override
