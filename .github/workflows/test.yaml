@@ -81,7 +81,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: examples/${{ matrix.dir }}_logs.tgz
+          name: ${{ matrix.dir }}_logs.tgz
           path: ./logs.tgz
 
       - name: Teardown
