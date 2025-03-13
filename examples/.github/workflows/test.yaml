@@ -3,44 +3,88 @@ name: Test Examples
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      zilla-image-tag:
+        default: latest
+        description: Zilla Image tag
+        type: string
+
+  workflow_call:
+    inputs:
+      zilla-image-tag:
+        type: string
 
 jobs:
-  get-examples-with-changes:
+  get-examples-dirs:
     runs-on: ubuntu-latest
     outputs:
-      changed_directories: ${{ steps.set-output.outputs.changed_directories }}
+      all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v45.0.3
+      - name: Get examples dirs
+        id: all-files
+        uses: Drafteame/list-folders-action@main
         with:
-          # only get the top level example dirs that have changes
-          dir_names: true
-          dir_names_max_depth: 1
-          dir_names_exclude_current_dir: true
-          exclude_submodules: true
-          files_ignore: |
-            *.md
-            .github/**/*
-            .assets/**/*
-          json: true
-          quotepath: false
-
-      - name: "Set output in the matrix format"
-        id: set-output
-        run: echo "changed_directories={\"dir\":${{ steps.changed-files.outputs.all_changed_files }}}" >> "$GITHUB_OUTPUT"
+          paths: |
+            .
+          omit: |
+            ^\.github$
+            ^\.assets$
+            ^\.git$
+            ^\.vscode$
 
   testing:
-    if: ${{ needs.get-examples-with-changes.outputs.changed_directories != '' }}
     strategy:
-      matrix: ${{fromJson(needs.get-examples-with-changes.outputs.changed_directories)}}
+      matrix:
+        dir: ${{ fromJson(needs.get-examples-dirs.outputs.all_directories) }}
       fail-fast: false
     needs:
-      - get-examples-with-changes
-    uses: ./.github/workflows/reusable_test_runner.yaml
-    with:
-      example-dir: ${{ matrix.dir }}
+      - get-examples-dirs
+    runs-on: ubuntu-latest
+    env:
+      ZILLA_VERSION: ${{ inputs.zilla-image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: ${{ matrix.dir }}
+
+      - name: Cache Docker images
+        if: ${{ hashFiles(format('{0}/compose.yaml', matrix.dir)) != '' }}
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('{0}/compose.yaml', matrix.dir)) }}
+
+      - name: Start Zilla and wait for it to be healthy
+        working-directory: ${{ matrix.dir }}
+        run: docker compose up -d --wait
+
+      - name: Execute Test
+        if: ${{ hashFiles(format('{0}/.github/test.sh', matrix.dir)) != '' }}
+        working-directory: ${{ matrix.dir }}
+        run: |
+          set -o pipefail
+          ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
+
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v2
+        with:
+          dest: "./logs"
+      - name: Tar logs
+        if: failure()
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}_logs.tgz
+          path: ./logs.tgz
+
+      - name: Teardown
+        if: always() && ${{ hashFiles(format('{0}/teardown.sh', matrix.dir)) != '' }}
+        working-directory: ${{ matrix.dir }}
+        run: docker compose down --remove-orphans
