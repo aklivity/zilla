@@ -1,0 +1,67 @@
+asyncapi: 3.0.0
+info:
+  title: Eventstore Kafka API
+  version: 1.0.0
+defaultContentType: application/json
+servers:
+  plain:
+    host: kafka.examples.dev:29092
+    protocol: kafka
+channels:
+  events:
+    address: "events"
+    messages:
+      event:
+        $ref: "#/components/messages/event"
+    description: The topic on which event values may be produced and consumed.
+operations:
+  receiveEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    summary: >-
+      List all events.
+    traits:
+      - $ref: "#/components/operationTraits/kafka"
+    messages:
+      - $ref: "#/channels/eventstore/messages/event"
+components:
+  messages:
+    event:
+      name: Event
+      title: Event
+      summary: >-
+        Inform about Event.
+      contentType: application/json
+      traits:
+        - $ref: "#/components/messageTraits/commonHeaders"
+      payload:
+        $ref: "#/components/schemas/eventPayload"
+  schemas:
+    eventPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          description: Event id.
+        name:
+          type: string
+          description: Event name.
+  messageTraits:
+    commonHeaders:
+      headers:
+        type: object
+        properties:
+          my-app-header:
+            type: integer
+            minimum: 0
+            maximum: 100
+  operationTraits:
+    kafka:
+      bindings:
+        kafka:
+          clientId:
+            type: string
+            enum:
+              - my-app-id

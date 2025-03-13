@@ -1,0 +1,29 @@
+name: ${NAMESPACE:-zilla-openapi-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    volumes:
+      - ./petstore-openapi.yaml:/etc/zilla/specs/petstore-openapi.yaml
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  openapi-mock:
+    image: jormaechea/open-api-mocker:2.0.0
+    volumes:
+      - ./petstore-openapi.yaml:/app/petstore-openapi.yaml
+    ports:
+      - "8000:5000"
+    command: open-api-mocker -s /app/petstore-openapi.yaml
+
+networks:
+  default:
+    driver: bridge

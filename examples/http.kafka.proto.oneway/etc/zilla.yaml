@@ -1,0 +1,69 @@
+---
+name: example
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        my_proto_subject:
+          path: protos/request.proto
+
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    exit: north_http_kafka_mapping
+  north_http_kafka_mapping:
+    type: http-kafka
+    kind: proxy
+    routes:
+      - when:
+          - method: POST
+            path: /requests
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: my-requests
+          key: ${idempotencyKey}
+  north_kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    options:
+      topics:
+        - name: my-requests
+          value:
+            model: protobuf
+            catalog:
+              host_filesystem:
+                - subject: my_proto_subject
+                  record: Request
+    exit: south_kafka_cache_server
+  south_kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    exit: south_kafka_client
+  south_kafka_client:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

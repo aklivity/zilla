@@ -1,0 +1,22 @@
+name: ${NAMESPACE:-zilla-tls-reflect}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 23456:23456
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/23456"]
+    environment:
+      KEYSTORE_PASSWORD: generated
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge

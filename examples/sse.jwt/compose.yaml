@@ -1,0 +1,47 @@
+name: ${NAMESPACE:-zilla-sse-proxy-jwt}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7143:7143
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7143"]
+    environment:
+      KEYSTORE_PASSWORD: generated
+    volumes:
+      - ./etc:/etc/zilla
+      - ./www:/var/www/
+    command: start -v -e
+
+  sse-server:
+    image: ghcr.io/aklivity/extras-sse-server:sha-42ad67e
+    restart: unless-stopped
+    ports:
+      - 8001:8001
+      - 7001:7001
+    stdin_open: true
+    tty: true
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: netstat -an | grep 8001 > /dev/null; if [ 0 != $? ]; then exit 1; fi;
+    command: -v -p 8001 -i 7001
+
+  jwt-cli:
+    image: bitnami/jwt-cli
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./private.pem:/private.pem
+
+networks:
+  default:
+    driver: bridge

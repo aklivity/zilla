@@ -1,0 +1,36 @@
+---
+name: zilla-mqtt-kafka-broker
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        smartylighting:
+          path: specs/mqtt-asyncapi.yaml
+bindings:
+  mqtt_proxy_server:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        my-asyncapi-spec:
+          catalog:
+            host_filesystem:
+              subject: smartylighting
+    exit: mqtt_proxy_client
+  mqtt_proxy_client:
+    type: asyncapi
+    kind: client
+    options:
+      specs:
+        my-asyncapi-spec:
+          catalog:
+            host_filesystem:
+              subject: smartylighting
+      tcp:
+        host: ${{env.MOSQUITTO_BROKER_HOST}}
+        port: ${{env.MOSQUITTO_BROKER_PORT}}
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

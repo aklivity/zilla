@@ -1,0 +1,15 @@
+{
+    "insecure": true,
+    "stream-interval": "5ms",
+    "total": 1000,
+    "concurrency": 8,
+    "data":
+    {
+        "message": "Hello, world"
+    },
+    "metadata":
+    {
+        "trace_id": "{{.RequestNumber}}",
+        "timestamp": "{{.TimestampUnix}}"
+    }
+}

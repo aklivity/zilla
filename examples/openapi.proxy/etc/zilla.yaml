@@ -1,0 +1,37 @@
+---
+name: zilla-openapi-proxy
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        petstore:
+          path: specs/petstore-openapi.yaml
+bindings:
+  north_openapi_server:
+    type: openapi
+    kind: server
+    options:
+      specs:
+        my-openapi-spec:
+          catalog:
+            host_filesystem:
+              subject: petstore
+    exit: south_openapi_client
+  south_openapi_client:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        my-openapi-spec:
+          catalog:
+            host_filesystem:
+              subject: petstore
+      tcp:
+        host: openapi-mock
+        port:
+          - 5000
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

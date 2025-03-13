@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package example;
+
+import "google/protobuf/empty.proto";
+
+service FanoutService
+{
+  rpc FanoutServerStream(google.protobuf.Empty) returns (stream FanoutMessage);
+}
+
+message FanoutMessage
+{
+  string message = 1;
+}

@@ -1,0 +1,29 @@
+name: ${NAMESPACE:-zilla-http-json-schema}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  nginx:
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./www:/usr/share/nginx/html
+
+networks:
+  default:
+    driver: bridge

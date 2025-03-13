@@ -1,0 +1,29 @@
+name: ${NAMESPACE:-zilla-grpc-echo}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7151:7151
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7151"]
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  grpcurl:
+    image: fullstorydev/grpcurl
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./etc/protos/echo.proto:/echo.proto
+
+networks:
+  default:
+    driver: bridge
