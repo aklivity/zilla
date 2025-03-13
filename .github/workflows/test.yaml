@@ -67,7 +67,7 @@ jobs:
         working-directory: examples/${{ matrix.dir }}
         run: |
           set -o pipefail
-          ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
+          examples/.github/test.sh | tee $GITHUB_STEP_SUMMARY
 
       - name: Collect docker logs on failure
         if: failure()
