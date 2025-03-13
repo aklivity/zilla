@@ -63,11 +63,11 @@ jobs:
         run: docker compose up -d --wait
 
       - name: Execute Test
-        if: ${{ hashFiles(format('examples/{0}/.github/test.sh', matrix.dir)) != '' }}
+        #if: ${{ hashFiles(format('examples/{0}/.github/test.sh', matrix.dir)) != '' }}
         working-directory: examples/${{ matrix.dir }}
         run: |
           set -o pipefail
-          examples/.github/test.sh | tee $GITHUB_STEP_SUMMARY
+          ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
 
       - name: Collect docker logs on failure
         if: failure()
