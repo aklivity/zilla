@@ -15,7 +15,7 @@ on:
         type: string
 
 jobs:
-  get-examples-dirs:
+  setup-examples:
     runs-on: ubuntu-latest
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
@@ -39,10 +39,10 @@ jobs:
   testing:
     strategy:
       matrix:
-        dir: ${{ fromJson(needs.get-examples-dirs.outputs.all_directories) }}
+        dir: ${{ fromJson(needs.setup-examples.outputs.all_directories) }}
       fail-fast: false
     needs:
-      - get-examples-dirs
+      - setup-examples
     runs-on: ubuntu-latest
     env:
       ZILLA_VERSION: ${{ inputs.zilla-image-tag }}
@@ -50,21 +50,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          sparse-checkout: ${{ matrix.dir }}
+          sparse-checkout: examples/${{ matrix.dir }}
 
       - name: Cache Docker images
-        if: ${{ hashFiles(format('{0}/compose.yaml', matrix.dir)) != '' }}
+        if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
         uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('{0}/compose.yaml', matrix.dir)) }}
+          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) }}
 
       - name: Start Zilla and wait for it to be healthy
-        working-directory: ${{ matrix.dir }}
+        working-directory: examples/${{ matrix.dir }}
         run: docker compose up -d --wait
 
       - name: Execute Test
-        if: ${{ hashFiles(format('{0}/.github/test.sh', matrix.dir)) != '' }}
-        working-directory: ${{ matrix.dir }}
+        if: ${{ hashFiles(format('examples/{0}/.github/test.sh', matrix.dir)) != '' }}
+        working-directory: examples/${{ matrix.dir }}
         run: |
           set -o pipefail
           ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
@@ -81,10 +81,10 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.dir }}_logs.tgz
+          name: examples/${{ matrix.dir }}_logs.tgz
           path: ./logs.tgz
 
       - name: Teardown
-        if: always() && ${{ hashFiles(format('{0}/teardown.sh', matrix.dir)) != '' }}
-        working-directory: ${{ matrix.dir }}
+        if: always() && ${{ hashFiles(format('examples/{0}/teardown.sh', matrix.dir)) != '' }}
+        working-directory: examples/${{ matrix.dir }}
         run: docker compose down --remove-orphans
