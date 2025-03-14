@@ -16,31 +16,44 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.LongObjPredicate;
+
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicParamConfig;
 
 public final class MqttConditionMatcher
 {
+    private static final Pattern IDENTITY_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
+
+    private final Matcher identityMatcher = IDENTITY_PATTERN.matcher("");
+
     private final List<Matcher> sessionMatchers;
-    private final List<Matcher> subscribeMatchers;
-    private final List<Matcher> publishMatchers;
+    private final List<TopicMatcher> subscribeMatchers;
+    private final List<TopicMatcher> publishMatchers;
 
     public MqttConditionMatcher(
+        Function<String, LongFunction<String>> identities,
         MqttConditionConfig condition)
     {
-        this.sessionMatchers =
-            condition.sessions != null && !condition.sessions.isEmpty() ?
-                asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList())) : null;
-        this.subscribeMatchers =
-            condition.subscribes != null && !condition.subscribes.isEmpty() ?
-                asTopicMatcher(condition.subscribes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
-        this.publishMatchers =
-            condition.publishes != null && !condition.publishes.isEmpty() ?
-                asTopicMatcher(condition.publishes.stream().map(s -> s.topic).collect(Collectors.toList())) : null;
+        this.sessionMatchers = condition.sessions != null && !condition.sessions.isEmpty()
+            ? asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList()))
+            : null;
+        this.subscribeMatchers = condition.subscribes != null && !condition.subscribes.isEmpty()
+            ? condition.subscribes.stream().map(s -> new TopicMatcher(identities, s.topic, s.params)).toList()
+            : null;
+        this.publishMatchers = condition.publishes != null && !condition.publishes.isEmpty()
+            ? condition.publishes.stream().map(p -> new TopicMatcher(identities, p.topic, p.params)).toList()
+            : null;
     }
 
     public boolean matchesSession(
@@ -62,14 +75,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesSubscribe(
+        long authorization,
         String topic)
     {
         boolean match = false;
         if (subscribeMatchers != null)
         {
-            for (Matcher matcher : subscribeMatchers)
+            for (TopicMatcher matcher : subscribeMatchers)
             {
-                match = matcher.reset(topic).matches();
+                match = matcher.matches(authorization, topic);
                 if (match)
                 {
                     break;
@@ -80,14 +94,15 @@ public final class MqttConditionMatcher
     }
 
     public boolean matchesPublish(
+        long authorization,
         String topic)
     {
         boolean match = false;
         if (publishMatchers != null)
         {
-            for (Matcher matcher : publishMatchers)
+            for (TopicMatcher matcher : publishMatchers)
             {
-                match = matcher.reset(topic).matches();
+                match = matcher.matches(authorization, topic);
                 if (match)
                 {
                     break;
@@ -116,19 +131,86 @@ public final class MqttConditionMatcher
         return matchers;
     }
 
-    private static List<Matcher> asTopicMatcher(
-        List<String> wildcards)
+    private final class TopicMatcher
     {
-        List<Matcher> matchers = new ArrayList<>();
-        for (String wildcard : wildcards)
+        private final Matcher matchTopic;
+        private final Map<String, LongObjPredicate<String>> matchParams;
+
+        private TopicMatcher(
+            Function<String, LongFunction<String>> identities,
+            String wildcard,
+            List<MqttTopicParamConfig> params)
         {
-            matchers.add(Pattern.compile(wildcard
+            this.matchTopic = Pattern.compile(wildcard
                 .replace(".", "\\.")
                 .replace("$", "\\$")
                 .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher(""));
+                .replace("#", ".*")
+                .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>[^/]+)")).matcher("");
+            this.matchParams = params != null
+                ? params.stream().collect(Collectors.toMap(
+                    p -> p.name,
+                    p -> asTopicParamMatcher(identities, p.value)))
+                : null;
 
+            Collection<String> topicParams = matchTopic.namedGroups().keySet();
+            topicParams.stream()
+                .filter(tp -> params == null || params.stream().noneMatch(p -> p.name.equals(tp)))
+                .forEach(tp -> System.out.format("Unconstrained param for MQTT topic %s: %s\n", wildcard, tp));
+            if (params != null)
+            {
+                params.stream()
+                    .filter(p -> !topicParams.contains(p.name))
+                    .forEach(p -> System.out.printf("Undefined param constraint for MQTT topic %s: %s\n", wildcard, p.name));
+            }
         }
-        return matchers;
+
+        private boolean matches(
+            long authorization,
+            String topic)
+        {
+            return matchTopic.reset(topic).matches() &&
+                matchParams(name ->
+                {
+                    try
+                    {
+                        return matchTopic.group(name);
+                    }
+                    catch (IllegalArgumentException e)
+                    {
+                        return null;
+                    }
+                }, authorization);
+        }
+
+        private boolean matchParams(
+            Function<String, String> valuesByName,
+            long authorization)
+        {
+            return matchParams == null ||
+                matchParams.entrySet().stream()
+                    .allMatch(e -> e.getValue().test(authorization, valuesByName.apply(e.getKey())));
+        }
+
+        private LongObjPredicate<String> asTopicParamMatcher(
+            Function<String, LongFunction<String>> identities,
+            String value)
+        {
+            return (identityMatcher.reset(value).matches())
+                ? asTopicParamIdentityMatcher(identities.apply(identityMatcher.group(1)))
+                : asTopicParamValueMatcher(value);
+        }
+
+        private static LongObjPredicate<String> asTopicParamIdentityMatcher(
+            LongFunction<String> identity)
+        {
+            return (a, v) -> v != null && identity != null && v.equals(identity.apply(a));
+        }
+
+        private static LongObjPredicate<String> asTopicParamValueMatcher(
+            String expected)
+        {
+            return (a, v) -> v != null && v.equals(expected);
+        }
     }
 }

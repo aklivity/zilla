@@ -15,59 +15,48 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public class MqttPublishConfigBuilder<T> extends ConfigBuilder<T, MqttPublishConfigBuilder<T>>
+public class MqttTopicParamConfigBuilder<T> extends ConfigBuilder<T, MqttTopicParamConfigBuilder<T>>
 {
-    private final Function<MqttPublishConfig, T> mapper;
+    private final Function<MqttTopicParamConfig, T> mapper;
 
-    private String topic;
+    private String name;
 
-    private List<MqttTopicParamConfig> params;
+    private String value;
 
-    MqttPublishConfigBuilder(
-        Function<MqttPublishConfig, T> mapper)
+    MqttTopicParamConfigBuilder(
+        Function<MqttTopicParamConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<MqttPublishConfigBuilder<T>> thisType()
+    protected Class<MqttTopicParamConfigBuilder<T>> thisType()
     {
-        return (Class<MqttPublishConfigBuilder<T>>) getClass();
+        return (Class<MqttTopicParamConfigBuilder<T>>) getClass();
     }
 
-    public MqttPublishConfigBuilder<T> topic(
-        String topic)
+    public MqttTopicParamConfigBuilder<T> name(
+        String name)
     {
-        this.topic = topic;
+        this.name = name;
         return this;
     }
 
-    public MqttPublishConfigBuilder<T> param(
-        MqttTopicParamConfig param)
+    public MqttTopicParamConfigBuilder<T> value(
+        String value)
     {
-        if (this.params == null)
-        {
-            this.params = new ArrayList<>();
-        }
-        this.params.add(param);
+        this.value = value;
         return this;
-    }
-
-    public MqttTopicParamConfigBuilder<MqttPublishConfigBuilder<T>> param()
-    {
-        return new MqttTopicParamConfigBuilder<>(this::param);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new MqttPublishConfig(topic, params));
+        return mapper.apply(new MqttTopicParamConfig(name, value));
     }
 }

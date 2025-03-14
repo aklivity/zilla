@@ -528,6 +528,26 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.when.topic.params.yaml")
+    @Specification({
+        "${net}/subscribe.topic.guarded.identity.param/client",
+        "${app}/subscribe.topic.guarded.identity.param/server"})
+    public void shouldFilterGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.topic.params.yaml")
+    @Specification({
+        "${net}/subscribe.invalid.topic.guarded.identity.param/client",
+        "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
+    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static int subscriptionId = 0;
     public static int supplySubscriptionId()
     {
