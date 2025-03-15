@@ -106,11 +106,11 @@ public class PrometheusMetricsPrinterTest
         String expectedOutput =
             "# HELP counter1_total description for counter1\n" +
                 "# TYPE counter1_total counter\n" +
-                "counter1_total{namespace=\"ns1\",binding=\"binding1\"} 42.000000\n" +
+                "counter1_total{namespace=\"ns1\",binding=\"binding1\"} 42.0\n" +
                 "\n" +
                 "# HELP gauge1 description for gauge1\n" +
                 "# TYPE gauge1 gauge\n" +
-                "gauge1{namespace=\"ns1\",binding=\"binding1\"} 77.000000\n" +
+                "gauge1{namespace=\"ns1\",binding=\"binding1\"} 77.0\n" +
                 "\n" +
                 "# HELP histogram1 description for histogram1\n" +
                 "# TYPE histogram1 histogram\n" +
