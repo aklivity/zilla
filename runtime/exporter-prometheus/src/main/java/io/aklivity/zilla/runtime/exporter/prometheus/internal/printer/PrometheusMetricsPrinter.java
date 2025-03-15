@@ -84,7 +84,7 @@ public class PrometheusMetricsPrinter
         String msFormat =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
-            "%s{namespace=\"%s\",binding=\"%s\"} %f";
+            "%s{namespace=\"%s\",binding=\"%s\"} %s";
         return milliseconds ?
             String.format(msFormat, extName, description, extName, kind, extName,
                 record.namespace(), record.binding(), record.millisecondsValueReader().getAsDouble()) :
