@@ -33,13 +33,13 @@ Use **Zilla** as a:
 
 | Zilla Use Case | Description |
 | -------- | ------- |
-| [Data broadcasting (Kafka fan-out) →](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Broadcast real-time updates to end users at web-scale. Power live data feeds such as stock tickers, betting odds, travel updates, and auction prices. |
+| [Data broadcasting (Kafka fan-out) →](examples/sse.kafka.fanout) | Broadcast real-time updates to end users at web-scale. Power live data feeds such as stock tickers, betting odds, travel updates, and auction prices. |
 | [IoT Kafka ingestion →](https://vordimous.github.io/zilla-docs/next/how-tos/mqtt/mqtt.kafka.broker.html) | Ingest and process IoT data in real-time by turning Kafka into a fully-fledged MQTT broker. |
-| [Async workflows for sync microservices →](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
+| [Async workflows for sync microservices →](examples/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
-| [Secure a Server Sent Event (SSE) API →](https://github.com/aklivity/zilla-examples/tree/main/sse.proxy.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
-| [Validate MQTT via AsyncAPI →](https://github.com/aklivity/zilla-examples/tree/main/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
-| **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](https://github.com/aklivity/zilla-examples). |
+| [Secure a Server Sent Event (SSE) API →](examples/sse.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
+| [Validate MQTT via AsyncAPI →](examples/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
+| **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](examples). |
 
 ## Get started in 60 seconds
 
@@ -86,7 +86,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 
 - **[Zilla Documentation](https://docs.aklivity.io/zilla/latest):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
-- **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A collection of pre-canned Zilla feature demos.
+- **[Zilla Examples](examples)**: A collection of pre-canned Zilla feature demos.
 - **[Eventful Petstore Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** See Zilla make the OpenAPI/Swagger Petstore service event-driven by mapping it onto Kafka in just a few lines of YAML.
 - **[Taxi Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** A demo of a taxi-based IoT deployment with Zilla, Kafka, OpenAPIs and AsyncAPIs.
 
