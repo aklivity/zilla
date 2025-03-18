@@ -15,8 +15,6 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     volumes:
       - ./etc:/etc/zilla
-      - ./http-asyncapi.yaml:/etc/zilla/specs/http-asyncapi.yaml
-      - ./kafka-asyncapi.yaml:/etc/zilla/specs/kafka-asyncapi.yaml
     command: start -v -e
 
   kafka:
