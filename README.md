@@ -37,7 +37,7 @@ Use **Zilla** as a:
 | [IoT Kafka ingestion →](https://vordimous.github.io/zilla-docs/next/how-tos/mqtt/mqtt.kafka.broker.html) | Ingest and process IoT data in real-time by turning Kafka into a fully-fledged MQTT broker. |
 | [Async workflows for sync microservices →](examples/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
-| [Secure a Server Sent Event (SSE) API →](examples/sse.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
+| [Secure a Server Sent Event (SSE) API →](examples/sse.proxy.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
 | [Validate MQTT via AsyncAPI →](examples/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
 | **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](examples). |
 

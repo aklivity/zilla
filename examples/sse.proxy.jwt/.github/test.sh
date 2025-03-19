@@ -7,7 +7,7 @@ STREAM_URL="https://localhost:$PORT/events"
 NC_PORT="7001"
 MESSAGE="Hello, world"
 
-echo \# Testing sse.jwt
+echo \# Testing sse.proxy.jwt
 echo "PORT=$PORT"
 echo "STREAM_URL=$STREAM_URL"
 echo "NC_PORT=$NC_PORT"

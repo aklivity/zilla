@@ -1,4 +1,4 @@
-# sse.jwt
+# sse.proxy.jwt
 
 Listens on https port `7143` and will stream back whatever is published to `sse_server` on tcp port `7001`.
 
