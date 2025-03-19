@@ -84,7 +84,7 @@ jobs:
       - setup-examples
     runs-on: ubuntu-latest
     env:
-      ZILLA_VERSION: ${{ inputs.zilla-image-tag }}
+      ZILLA_VERSION: develop-SNAPSHOT
     steps:
       - name: Checkout
         uses: actions/checkout@v4
