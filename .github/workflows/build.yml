@@ -52,10 +52,10 @@ jobs:
           **/target/zilla-itests/
           **/target/failsafe-reports/
 
-  test:
-    name: Test Examples
-    needs: build
+  setup-examples:
     runs-on: ubuntu-latest
+    needs:
+      - build
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
@@ -85,7 +85,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ZILLA_VERSION: ${{ inputs.zilla-image-tag }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
