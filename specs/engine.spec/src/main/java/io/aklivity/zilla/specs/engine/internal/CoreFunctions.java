@@ -146,21 +146,37 @@ public final class CoreFunctions
     public static byte[] varstring(
         String text)
     {
+        return varstringp(text, 0);
+    }
+
+    @Function
+    public static byte[] varstringp(
+        String text,
+        int padding)
+    {
         byte[] bytes = text != null ? text.getBytes(UTF_8) : null;
-        return varbytes(bytes);
+        return varbytesp(bytes, padding);
     }
 
     @Function
     public static byte[] varbytes(
         byte[] bytes)
     {
+        return varbytesp(bytes, 0);
+    }
+
+    @Function
+    public static byte[] varbytesp(
+        byte[] bytes,
+        int padding)
+    {
         if (bytes == null)
         {
-            return varuintn(-1L);
+            return varuintnp(-1L, padding);
         }
         else
         {
-            byte[] length = varuintn(bytes.length);
+            byte[] length = varuintnp(bytes.length, padding);
 
             byte[] varbytes = new byte[length.length + bytes.length];
             System.arraycopy(length, 0, varbytes, 0, length.length);
@@ -174,23 +190,69 @@ public final class CoreFunctions
     public static byte[] varuintn(
         long nvalue)
     {
-        return varuint(nvalue + 1);
+        return varuintnp(nvalue, 0);
+    }
+
+    @Function
+    public static byte[] varuintnp(
+        long nvalue,
+        int padding)
+    {
+        return varuintp(nvalue + 1, padding);
     }
 
     @Function
     public static byte[] varuint(
         long value)
     {
-        return varbits(value);
+        return varuintp(value, 0);
+    }
+
+    @Function
+    public static byte[] varuintp(
+        long value,
+        int padding)
+    {
+        return varbits(value, padding);
     }
 
     @Function
     public static byte[] varint(
         long value)
     {
+        return varintp(value, 0);
+    }
+
+    @Function
+    public static byte[] varintp(
+        long value,
+        int padding)
+    {
         final long bits = (value << 1) ^ (value >> 63);
 
-        return varbits(bits);
+        return varbits(bits, padding);
+    }
+
+    private static byte[] varbits(
+        long bits,
+        int padding)
+    {
+        byte[] varbits = varbits(bits);
+
+        if (padding != 0)
+        {
+            byte[] padded = new byte[varbits.length + padding];
+            System.arraycopy(varbits, 0, padded, 0, varbits.length);
+
+            for (int index = varbits.length - 1; index < padded.length - 1; index++)
+            {
+                padded[index] |= 0x80;
+            }
+
+            varbits = padded;
+        }
+
+        return varbits;
     }
 
     private static byte[] varbits(
