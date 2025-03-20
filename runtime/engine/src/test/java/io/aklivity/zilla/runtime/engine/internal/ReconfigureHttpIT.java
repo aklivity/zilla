@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ReconfigureHttpIT
 {
     public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
-    public static final String ENGINE_CONFIG_WORKERS_CAPACITY = "zilla.engine.worker.capacity";
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
@@ -69,7 +68,6 @@ public class ReconfigureHttpIT
 
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
-    @Configure(name = ENGINE_CONFIG_WORKERS_CAPACITY, value = "64")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.create.via.http/server",
@@ -85,7 +83,6 @@ public class ReconfigureHttpIT
 
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
-    @Configure(name = ENGINE_CONFIG_WORKERS_CAPACITY, value = "64")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.delete.via.http/server",
@@ -101,7 +98,6 @@ public class ReconfigureHttpIT
 
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
-    @Configure(name = ENGINE_CONFIG_WORKERS_CAPACITY, value = "64")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.modify.via.http/server",
@@ -118,7 +114,6 @@ public class ReconfigureHttpIT
 
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
-    @Configure(name = ENGINE_CONFIG_WORKERS_CAPACITY, value = "64")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.modify.no.etag.via.http/server",
@@ -135,7 +130,6 @@ public class ReconfigureHttpIT
 
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
-    @Configure(name = ENGINE_CONFIG_WORKERS_CAPACITY, value = "64")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.server.error.via.http/server",
