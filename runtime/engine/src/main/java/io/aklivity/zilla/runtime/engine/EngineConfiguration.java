@@ -59,6 +59,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
     public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
+    public static final DoublePropertyDef ENGINE_MEMORY_PERCENTAGE;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
     public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
@@ -105,6 +106,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
+        ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.75);
         ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
@@ -363,7 +365,7 @@ public class EngineConfiguration extends Configuration
     private static int defaultEventsBufferCapacity(
         Configuration config)
     {
-        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
+        return 4 * ENGINE_BUFFER_SLOT_CAPACITY.get(config);
     }
 
     private static int defaultBudgetsBufferCapacity(
@@ -382,15 +384,16 @@ public class EngineConfiguration extends Configuration
         final int numberOfCores = osBean.getAvailableProcessors();
         final long totalMemorySize = osBean.getTotalMemorySize();
 
-        int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+        final int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+        final double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
 
-        double fractionOfMemory = 0.25;
-        long maxAllowedForBuffers = (long) (fractionOfMemory * totalMemorySize);
+        long maxAllowedForBuffers = (long) (percentMemory * totalMemorySize);
 
-        // Streams + Pool + Events
-        long bufferCapacity = slotCapacity + slotCapacity + slotCapacity;
+        // Streams + Pool
+        long bufferCapacity = slotCapacity + slotCapacity;
+        long eventsBufferCapacity = ENGINE_EVENTS_BUFFER_CAPACITY.get(config);
         long budgetBufferCapacity = BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512L;
-        long totalBufferCapacity = numberOfCores * (bufferCapacity + budgetBufferCapacity);
+        long totalBufferCapacity = numberOfCores * (bufferCapacity + budgetBufferCapacity + eventsBufferCapacity);
         int newWorkersCapacity = (int) (maxAllowedForBuffers / totalBufferCapacity);
 
         newWorkersCapacity = findNextPositivePowerOfTwo(newWorkersCapacity);
