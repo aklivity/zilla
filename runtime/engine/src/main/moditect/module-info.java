@@ -52,6 +52,8 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.unsupported;
     requires java.net.http;
     requires org.slf4j;
+    requires java.management;
+    requires jdk.management;
     requires io.aklivity.zilla.runtime.common;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

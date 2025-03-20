@@ -18,11 +18,13 @@ package io.aklivity.zilla.runtime.engine;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.agrona.BitUtil.findNextPositivePowerOfTwo;
 
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -36,6 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.agrona.LangUtil;
+
+import com.sun.management.OperatingSystemMXBean;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 
@@ -101,7 +105,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
-        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", 64);
+        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
@@ -367,6 +371,31 @@ public class EngineConfiguration extends Configuration
     {
         // more consistent with original defaults
         return BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512 * ENGINE_WORKER_CAPACITY.getAsInt(config);
+    }
+
+    private static int defaultWorkersCapacity(
+        Configuration config)
+    {
+        OperatingSystemMXBean osBean =
+            (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+
+        final int numberOfCores = osBean.getAvailableProcessors();
+        final long totalMemorySize = osBean.getTotalMemorySize();
+
+        int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+
+        double fractionOfMemory = 0.25;
+        long maxAllowedForBuffers = (long) (fractionOfMemory * totalMemorySize);
+
+        // Streams + Pool + Events
+        long bufferCapacity = slotCapacity + slotCapacity + slotCapacity;
+        long budgetBufferCapacity = BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512L;
+        long totalBufferCapacity = numberOfCores * (bufferCapacity + budgetBufferCapacity);
+        int newWorkersCapacity = (int) (maxAllowedForBuffers / totalBufferCapacity);
+
+        newWorkersCapacity = findNextPositivePowerOfTwo(newWorkersCapacity);
+
+        return newWorkersCapacity;
     }
 
     private static URL configURL(

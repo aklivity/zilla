@@ -716,6 +716,9 @@ public final class ZpmInstall extends ZpmCommand
             extraModuleNames.add("java.instrument");
         }
 
+        extraModuleNames.add("java.management");
+        extraModuleNames.add("jdk.management");
+
         Stream<String> moduleNames = Stream.concat(modules.stream().map(m -> m.name), extraModuleNames.stream());
 
         List<String> args = new ArrayList<>(Arrays.asList(
