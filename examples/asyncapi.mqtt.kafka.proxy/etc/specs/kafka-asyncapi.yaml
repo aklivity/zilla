@@ -1,0 +1,50 @@
+asyncapi: 3.0.0
+info:
+  title: Zilla Kafka Proxy
+  version: 1.0.0
+  license:
+    name: Aklivity Community License
+servers:
+  plain:
+    host: kafka.examples.dev:29092
+    protocol: kafka
+
+operations:
+  onStreetlightData:
+    action: receive
+    channel:
+      $ref: "#/channels/streetlightData"
+  toStreetlightData:
+    action: send
+    channel:
+      $ref: "#/channels/streetlightData"
+
+channels:
+  streetlightData:
+    description: This channel contains a message for streetlights.
+    address: streetlights
+    messages:
+      streetlightData:
+        $ref: "#/components/messages/streetlightData"
+  mqttSessions:
+    description: This channel contains MQTT sessions.
+    address: mqtt-sessions
+  mqttMessages:
+    description: This channel contains MQTT messages.
+    address: mqtt-messages
+  mqttRetained:
+    description: This channel contains MQTT retained messages.
+    address: mqtt-retained
+
+components:
+  messages:
+    streetlightData:
+      payload:
+        type: object
+        properties:
+          streetlightId:
+            type: integer
+            description: This property describes the id of the streetlight
+          message:
+            type: string
+            description: This property describes message of the streetlight

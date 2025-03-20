@@ -1,0 +1,51 @@
+---
+name: example
+guards:
+  authn_jwt:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==
+          e: AQAB
+          alg: RS256
+          kid: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      authorization:
+        authn_jwt:
+          credentials:
+            headers:
+              authorization: Bearer {credentials}
+    routes:
+      - guarded:
+          authn_jwt:
+            - echo:stream
+        when:
+          - headers:
+              :scheme: http
+
+        exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

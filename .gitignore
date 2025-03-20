@@ -34,3 +34,4 @@ hs_err_pid*.log
 *.interp
 *.tokens
 gen/
+examples/grpc-clicker.json

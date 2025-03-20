@@ -1,0 +1,89 @@
+---
+name: zilla-mqtt-kafka-broker
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        mqtt:
+          path: specs/mqtt-asyncapi.yaml
+        kafka:
+          path: specs/kafka-asyncapi.yaml
+bindings:
+  north_mqtt_server:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        mqtt_api:
+          catalog:
+            host_filesystem:
+              subject: mqtt
+    exit: south_kafka_proxy
+  south_kafka_proxy:
+    type: asyncapi
+    kind: proxy
+    options:
+      specs:
+        mqtt_api:
+          catalog:
+            host_filesystem:
+              subject: mqtt
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+      mqtt-kafka:
+        channels:
+          sessions: mqttSessions
+          retained: mqttRetained
+          messages: mqttMessages
+    routes:
+      - when:
+          - api-id: mqtt_api
+            operation-id: turnOn
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: toStreetlightData
+      - when:
+          - api-id: mqtt_api
+            operation-id: receiveLightMeasurement
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: onStreetlightData
+      - when:
+          - api-id: mqtt_api
+            operation-id: sendLightMeasurement
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: toStreetlightData
+      - when:
+          - api-id: mqtt_api
+            operation-id: turnOff
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: toStreetlightData
+      - when:
+          - api-id: mqtt_api
+            operation-id: dimLight
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: toStreetlightData
+  south_kafka_client:
+    type: asyncapi
+    kind: client
+    options:
+      specs:
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

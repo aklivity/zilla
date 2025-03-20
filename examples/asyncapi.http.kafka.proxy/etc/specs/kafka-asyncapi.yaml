@@ -1,0 +1,307 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+asyncapi: 3.0.0
+info:
+  title: Zilla Petstore Kafka API
+  version: 2.0.0
+  description: >
+    This Petstore specification illustrates how Zilla can proxy synchronous and asynchronous
+    REST APIs using an AsyncAPI 3.0 spec to document and generate them.
+  license:
+    name: Aklivity Community License
+    url: https://github.com/aklivity/zilla/blob/main/LICENSE
+  contact:
+    name: Aklivity Community
+    url: https://www.aklivity.io/slack
+  externalDocs:
+    description: Demo Repo
+    url: https://github.com/aklivity/zilla-demos/tree/main/petstore#readme
+  tags:
+    - name: pet
+      description: Everything about your Pets
+    - name: store
+      description: Access to Petstore orders
+    - name: customer
+      description: Operations for a customer
+defaultContentType: application/json
+servers:
+  plain:
+    host: kafka.examples.dev:29092
+    protocol: kafka
+channels:
+  pets:
+    address: "petstore-pets"
+    messages:
+      pet:
+        $ref: "#/components/messages/pet"
+      empty:
+        $ref: "#/components/messages/empty"
+    description: The topic on which pet values may be produced and consumed.
+  orders:
+    address: "petstore-orders"
+    messages:
+      order:
+        $ref: "#/components/messages/order"
+      empty:
+        $ref: "#/components/messages/empty"
+    description: The topic on which order values may be produced and consumed.
+  customers:
+    address: "petstore-customers"
+    messages:
+      customer:
+        $ref: "#/components/messages/customer"
+      empty:
+        $ref: "#/components/messages/empty"
+    description: The topic on which customer values may be produced and consumed.
+  verifiedCustomers:
+    address: "petstore-verified-customers"
+    messages:
+      customer:
+        $ref: "#/components/messages/customer"
+      empty:
+        $ref: "#/components/messages/empty"
+    description: The topic on which verified customers values may be produced and consumed.
+operations:
+  listPets:
+    action: receive
+    channel:
+      $ref: "#/channels/pets"
+    summary: >-
+      List all pets.
+    messages:
+      - $ref: "#/channels/pets/messages/pet"
+  addPet:
+    action: send
+    channel:
+      $ref: "#/channels/pets"
+    summary: >-
+      Add a pet.
+    messages:
+      - $ref: "#/channels/pets/messages/pet"
+  getPet:
+    action: receive
+    channel:
+      $ref: "#/channels/pets"
+    summary: >-
+      Get a pet.
+    messages:
+      - $ref: "#/channels/pets/messages/pet"
+  updatePet:
+    action: send
+    channel:
+      $ref: "#/channels/pets"
+    summary: >-
+      Update an existing Pet.
+    messages:
+      - $ref: "#/channels/pets/messages/pet"
+  deletePet:
+    action: send
+    channel:
+      $ref: "#/channels/pets"
+    summary: >-
+      Deletes a pet.
+    messages:
+      - $ref: "#/channels/pets/messages/empty"
+  createCustomer:
+    action: send
+    channel:
+      $ref: "#/channels/customers"
+    reply:
+      channel:
+        $ref: "#/channels/verifiedCustomers"
+    summary: >-
+      Add a customer.
+    messages:
+      - $ref: "#/channels/customers/messages/customer"
+  getVerifiedCustomer:
+    action: send
+    channel:
+      $ref: "#/channels/verifiedCustomers"
+    reply:
+      channel:
+        $ref: "#/channels/verifiedCustomers"
+    summary: >-
+      Get a customer.
+    messages:
+      - $ref: "#/channels/verifiedCustomers/messages/customer"
+  deleteCustomer:
+    action: send
+    channel:
+      $ref: "#/channels/customers"
+    summary: >-
+      Deletes a customer.
+    messages:
+      - $ref: "#/channels/customers/messages/empty"
+  placeOrder:
+    action: send
+    channel:
+      $ref: "#/channels/orders"
+    summary: >-
+      Add an order.
+    messages:
+      - $ref: "#/channels/orders/messages/order"
+  getOrder:
+    action: receive
+    channel:
+      $ref: "#/channels/orders"
+    summary: >-
+      Get an order.
+    messages:
+      - $ref: "#/channels/orders/messages/order"
+  deleteOrder:
+    action: send
+    channel:
+      $ref: "#/channels/orders"
+    summary: >-
+      Deletes an order.
+    messages:
+      - $ref: "#/channels/orders/messages/empty"
+components:
+  correlationIds:
+    customerVerifyCorrelationId:
+      description: >
+        This correlation ID is used for message tracing and messages
+        correlation. This correlation ID is generated at runtime.
+      location: $message.header#/zilla:correlation-id
+  messages:
+    empty:
+      name: EmptyMessage
+      payload:
+        type: "null"
+    pet:
+      name: Pet
+      title: Pet
+      summary: Inform about Pet.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/Pet"
+    pets:
+      name: Pets
+      title: Pets
+      summary: A list of Pets.
+      contentType: application/json
+      payload:
+        type: array
+        items:
+          $ref: "#/components/schemas/Pet"
+    order:
+      name: Order
+      title: Order
+      summary: Details for an Order.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/Order"
+    customer:
+      name: Customer
+      title: Customer
+      summary: Information about a Customer.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/Customer"
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        petId:
+          type: integer
+          format: int64
+          example: 198772
+        quantity:
+          type: integer
+          format: int32
+          example: 7
+        shipDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Order Status
+          example: approved
+          enum:
+            - placed
+            - approved
+            - delivered
+        complete:
+          type: boolean
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 100000
+        username:
+          type: string
+          example: fehguy
+        status:
+          type: string
+          description: Verification Status
+          example: approved
+          enum:
+            - pending
+            - approved
+            - denied
+        address:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: 437 Lytton
+        city:
+          type: string
+          example: Palo Alto
+        state:
+          type: string
+          example: CA
+        zip:
+          type: string
+          example: "94301"
+    Category:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Dogs
+    Pet:
+      required:
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: doggie
+        category:
+          $ref: "#/components/schemas/Category"
+        status:
+          type: string
+          description: pet status in the store
+          enum:
+            - available
+            - pending
+            - sold

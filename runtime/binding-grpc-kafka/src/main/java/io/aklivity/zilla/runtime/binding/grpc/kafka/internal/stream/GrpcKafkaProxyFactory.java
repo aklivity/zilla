@@ -759,7 +759,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -859,7 +859,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization);
+                    traceId, authorization, 0L, 0);
             }
         }
 
@@ -1341,6 +1341,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
             final int capabilities = window.capabilities();
@@ -1359,7 +1360,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            correlater.doKafkaWindow(traceId);
+            correlater.doKafkaWindow(traceId, authorization);
         }
 
         @Override
@@ -1424,7 +1425,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 replySeq += reserved;
 
-                correlater.doKafkaWindow(traceId);
+                correlater.doKafkaWindow(traceId, authorization);
             }
             else
             {
@@ -1611,7 +1612,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -1995,7 +1996,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, replyBud, replyPad);
             }
         }
 
@@ -2116,7 +2117,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doKafkaDataNull(traceId, authorization);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization);
+                        traceId, authorization,  0L, 0);
             }
         }
 
@@ -2357,7 +2358,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization);
+                    traceId, authorization, 0L, 0);
             }
         }
     }
@@ -2410,7 +2411,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             kafka = newKafkaCorrelater(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, result);
 
-            doKafkaWindow(traceId);
+            doKafkaWindow(traceId, authorization);
         }
 
         private void doKafkaEnd(
@@ -2425,7 +2426,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization);
+                        traceId, authorization, 0L, 0);
             }
         }
 
@@ -2490,6 +2491,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -2501,7 +2503,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            doKafkaWindow(traceId);
+            doKafkaWindow(traceId, authorization);
         }
 
         private void onKafkaData(
@@ -2648,7 +2650,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         }
 
         private void doKafkaWindow(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (kafka != null)
             {
@@ -2659,7 +2662,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 replyCap = delegate.replyCap;
 
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, 0L, replyBud, replyPad, replyCap);
+                        traceId, authorization, replyBud, replyPad, replyCap);
             }
         }
     }
@@ -2774,7 +2777,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        long budgetId,
+        int reserved)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2785,6 +2790,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
                 .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package example;
+
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+option java_package = "io.aklivity.zilla.example.grpc.reliable.streaming";
+option java_outer_classname = "FanoutProto";
+
+service FanoutService
+{
+  rpc FanoutServerStream(google.protobuf.Empty) returns (stream FanoutMessage);
+}
+
+message FanoutMessage
+{
+  string message = 1;
+}

@@ -859,11 +859,13 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
         handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
     elseif frame_type_id == FLUSH_ID then
         handle_flush_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == END_ID then
+        handle_end_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == WINDOW_ID then
         handle_window_frame(buffer, next_offset, subtree, sequence, acknowledge, maximum, pinfo, info)
     elseif frame_type_id == SIGNAL_ID then
         handle_signal_frame(buffer, next_offset, subtree, pinfo, info)
-    elseif frame_type_id == END_ID or frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
+    elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
         handle_extension(buffer, subtree, pinfo, info, next_offset, frame_type_id)
     end
 end
@@ -917,6 +919,14 @@ function handle_flush_frame(buffer, offset, subtree, pinfo, info)
     subtree:add_le(fields.budget_id, slice_budget_id)
     subtree:add_le(fields.reserved, slice_reserved)
     handle_extension(buffer, subtree, pinfo, info, offset + 12, FLUSH_ID)
+end
+
+function handle_end_frame(buffer, offset, subtree, pinfo, info)
+    local slice_budget_id = buffer(offset, 8)
+    local slice_reserved = buffer(offset + 8, 4)
+    subtree:add_le(fields.budget_id, slice_budget_id)
+    subtree:add_le(fields.reserved, slice_reserved)
+    handle_extension(buffer, subtree, pinfo, info, offset + 12, END_ID)
 end
 
 function handle_window_frame(buffer, offset, subtree, sequence, acknowledge, maximum, pinfo, info)

@@ -3137,13 +3137,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long acknowledge = end.acknowledge();
                 final long traceId = end.traceId();
                 final long authorization = end.authorization();
-                final long budgetId = 0L; // TODO
+                final long budgetId = end.budgetId();
+                final int reserved = end.reserved();
 
                 assert acknowledge <= sequence;
                 assert sequence >= responseSeq;
                 assert acknowledge <= responseAck;
 
-                responseSeq = sequence;
+                responseSeq = sequence + reserved;
 
                 final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
@@ -6236,6 +6237,15 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseEnd(
                 EndFW end)
             {
+                final long sequence = end.sequence();
+                final int reserved = end.reserved();
+
+                responseSeq = sequence + reserved;
+
+                responseSharedBudget -= reserved;
+
+                assert responseSharedBudget >= 0;
+
                 setResponseClosed();
 
                 if (responseContentLength != responseContentObserved)

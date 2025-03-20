@@ -59,6 +59,8 @@ scope core
 
         struct End extends Frame [0x00000003]
         {
+            int64 budgetId = 0;
+            int32 reserved = 0;
             octets extension;
         }
 

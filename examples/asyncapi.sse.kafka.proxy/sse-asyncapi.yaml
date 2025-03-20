@@ -1,0 +1,49 @@
+asyncapi: 3.0.0
+info:
+  title: AsyncAPI Eventstore
+  license:
+    name: MIT
+  version: 1.0.0
+servers:
+  plain_sse:
+    host: localhost:7114
+    protocol: sse
+defaultContentType: application/json
+
+channels:
+  events:
+    address: /events
+    messages:
+      event:
+        $ref: "#/components/messages/event"
+
+operations:
+  receiveEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+
+components:
+  schemas:
+    eventPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          description: Event id.
+        name:
+          type: string
+          description: Event name.
+        tag:
+          type: string
+          description: Tag.
+  messages:
+    event:
+      name: Event
+      title: Event
+      summary: >-
+        Inform about Event.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/eventPayload"

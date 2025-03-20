@@ -2,7 +2,22 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.127...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.128...HEAD)
+
+**Implemented enhancements:**
+
+- Support inline definition of schemas in asyncapi generation. [\#1103](https://github.com/aklivity/zilla/issues/1103)
+
+**Merged pull requests:**
+
+- Enhance core test functions to support padded length varstring [\#1439](https://github.com/aklivity/zilla/pull/1439) ([jfallows](https://github.com/jfallows))
+- rename: `sse.jwt` example to `sse.proxy.jwt` [\#1435](https://github.com/aklivity/zilla/pull/1435) ([ankitk-me](https://github.com/ankitk-me))
+- Handle reserved budget in HTTP end frame [\#1430](https://github.com/aklivity/zilla/pull/1430) ([akrambek](https://github.com/akrambek))
+- Fix failing test when JVM default locale is not US [\#1359](https://github.com/aklivity/zilla/pull/1359) ([epieffe](https://github.com/epieffe))
+
+## [0.9.128](https://github.com/aklivity/zilla/tree/0.9.128) (2025-03-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.127...0.9.128)
 
 **Fixed bugs:**
 

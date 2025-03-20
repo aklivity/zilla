@@ -1,0 +1,110 @@
+name: ${NAMESPACE:-zilla-http-kafka-oneway}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KEYSTORE_PASSWORD: generated
+      SASL_USERNAME: alice
+      SASL_PASSWORD: alice-secret
+    volumes:
+      - ./etc:/etc/zilla
+      - ./truststore:/etc/zilla/tls
+    command: start -v -e
+
+  kafka:
+    image: bitnami/kafka:3.5
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/bitnami/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      # KRaft
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=SASL_SSL://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:SASL_PLAINTEXT,SASL_SSL:SASL_SSL,INTERNAL:PLAINTEXT
+      - KAFKA_CFG_ADVERTISED_LISTENERS=SASL_SSL://kafka:9092,INTERNAL://kafka:29092
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=SASL_SSL
+      - KAFKA_CLIENT_LISTENER_NAME=SASL_SSL
+      # SASL
+      - KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+      - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+      - KAFKA_CONTROLLER_USER=controller_user
+      - KAFKA_CONTROLLER_PASSWORD=controller_password
+      - KAFKA_INTER_BROKER_USER=interbroker_user
+      - KAFKA_INTER_BROKER_PASSWORD=interbroker_password
+      - KAFKA_CLIENT_USERS=user
+      - KAFKA_CLIENT_PASSWORDS=password
+      # SSL
+      - KAFKA_TLS_TYPE=JKS
+      - KAFKA_CERTIFICATE_PASSWORD=generated
+    volumes:
+      - './keystore/kafka.keystore.jks:/opt/bitnami/kafka/config/certs/kafka.keystore.jks:ro'
+      - './truststore/kafka.truststore.jks:/opt/bitnami/kafka/config/certs/kafka.truststore.jks:ro'
+
+  kafka-init:
+    image: bitnami/kafka:3.5
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo -e "Creating kafka topic";
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic events
+        echo -e "Successfully created the following topics:";
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list;
+        echo -e "Creating user";
+        /opt/bitnami/kafka/bin/kafka-configs.sh \
+        --bootstrap-server kafka:29092 \
+        --alter \
+        --add-config 'SCRAM-SHA-512=[iterations=4096,password=alice-secret]' \
+        --entity-type users \
+        --entity-name alice;
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  kafkacat:
+    image: confluentinc/cp-kafkacat:7.1.9
+    command: "bash"
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge

@@ -1,0 +1,38 @@
+name: ${NAMESPACE:-zilla-http-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7143:7143
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7143"]
+    environment:
+      KEYSTORE_PASSWORD: generated
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  nginx:
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - 443:443
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+      - ./www:/usr/share/nginx/html
+
+  nghttp:
+    image: dajobe/nghttpx
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge

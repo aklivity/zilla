@@ -1,0 +1,109 @@
+---
+name: example
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        echo:
+          path: protos/echo.proto
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7151
+    routes:
+      - when:
+          - port: 7151
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      access-control:
+        policy: cross-origin
+    exit: north_grpc_server
+  north_grpc_server:
+    type: grpc
+    kind: server
+    catalog:
+      host_filesystem:
+        - subject: echo
+    routes:
+      - when:
+          - method: grpc.examples.echo.Echo/*
+        exit: north_grpc_kafka_mapping
+  north_grpc_kafka_mapping:
+    type: grpc-kafka
+    kind: proxy
+    routes:
+      - when:
+          - method: grpc.examples.echo.Echo/*
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: echo-requests
+          acks: leader_only
+          reply-to: echo-responses
+  north_kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    exit: south_kafka_cache_server
+  south_kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    exit: south_kafka_client
+  south_kafka_client:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+  west_kafka_grpc_remote_server:
+    type: kafka-grpc
+    kind: remote_server
+    entry: north_kafka_cache_client
+    options:
+      acks: leader_only
+    routes:
+      - exit: west_grpc_client
+        when:
+          - topic: echo-requests
+            reply-to: echo-responses
+            method: grpc.examples.echo.Echo/*
+        with:
+          scheme: http
+          authority: ${{env.ECHO_SERVER_HOST}}:${{env.ECHO_SERVER_PORT}}
+  west_grpc_client:
+    type: grpc
+    kind: client
+    routes:
+      - exit: west_http_client
+        when:
+          - method: grpc.examples.echo.Echo/*
+  west_http_client:
+    type: http
+    kind: client
+    options:
+      versions:
+        - h2
+    exit: west_tcp_client
+  west_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: ${{env.ECHO_SERVER_HOST}}
+      port: ${{env.ECHO_SERVER_PORT}}
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
