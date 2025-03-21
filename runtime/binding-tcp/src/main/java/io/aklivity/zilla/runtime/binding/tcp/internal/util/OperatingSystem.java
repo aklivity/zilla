@@ -15,14 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.util;
 
-public final class OperationSystem
+public final class OperatingSystem
 {
     public enum OS
     {
         MACOS, LINUX, UNKNOWN
     }
 
-    private OperationSystem()
+    private OperatingSystem()
     {
         // no instances
     }
