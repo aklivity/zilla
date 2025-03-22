@@ -112,8 +112,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
                 EngineConfiguration::defaultStreamsBufferCapacity);
-        ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity",
-                EngineConfiguration::defaultEventsBufferCapacity);
+        ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity", 4 * 64 * 1024);
         ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity",
                 EngineConfiguration::defaultBudgetsBufferCapacity);
         ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
@@ -360,12 +359,6 @@ public class EngineConfiguration extends Configuration
         Configuration config)
     {
         return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
-    }
-
-    private static int defaultEventsBufferCapacity(
-        Configuration config)
-    {
-        return 4 * ENGINE_BUFFER_SLOT_CAPACITY.get(config);
     }
 
     private static int defaultBudgetsBufferCapacity(
