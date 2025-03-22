@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
+import io.aklivity.zilla.runtime.binding.tcp.internal.util.OperatingSystem;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -62,6 +63,8 @@ public final class TcpBinding implements Binding
     private TcpServerBindingConfig supplyServer(
         long bindingId)
     {
-        return servers.computeIfAbsent(bindingId, TcpServerBindingConfig::new);
+        return OperatingSystem.detect() == OperatingSystem.OS.MACOS
+            ? servers.computeIfAbsent(bindingId, TcpServerBindingConfig::new)
+            : new TcpServerBindingConfig(bindingId);
     }
 }

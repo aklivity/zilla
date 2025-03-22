@@ -18,11 +18,13 @@ package io.aklivity.zilla.runtime.engine;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.agrona.BitUtil.findNextPositivePowerOfTwo;
 
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -36,6 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.agrona.LangUtil;
+
+import com.sun.management.OperatingSystemMXBean;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 
@@ -55,6 +59,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
     public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
+    public static final DoublePropertyDef ENGINE_MEMORY_PERCENTAGE;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
     public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
@@ -101,13 +106,13 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
-        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", 64);
+        ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.75);
+        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
                 EngineConfiguration::defaultStreamsBufferCapacity);
-        ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity",
-                EngineConfiguration::defaultEventsBufferCapacity);
+        ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity", 4 * 64 * 1024);
         ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity",
                 EngineConfiguration::defaultBudgetsBufferCapacity);
         ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
@@ -356,17 +361,37 @@ public class EngineConfiguration extends Configuration
         return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
-    private static int defaultEventsBufferCapacity(
-        Configuration config)
-    {
-        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
-    }
-
     private static int defaultBudgetsBufferCapacity(
         Configuration config)
     {
         // more consistent with original defaults
         return BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512 * ENGINE_WORKER_CAPACITY.getAsInt(config);
+    }
+
+    private static int defaultWorkersCapacity(
+        Configuration config)
+    {
+        OperatingSystemMXBean osBean =
+            (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+
+        final int numberOfCores = osBean.getAvailableProcessors();
+        final long totalMemorySize = osBean.getTotalMemorySize();
+
+        final int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+        final double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
+
+        long maxAllowedForBuffers = (long) (percentMemory * totalMemorySize);
+
+        // Streams + Pool
+        long bufferCapacity = slotCapacity + slotCapacity;
+        long eventsBufferCapacity = ENGINE_EVENTS_BUFFER_CAPACITY.get(config);
+        long budgetBufferCapacity = BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512L;
+        long totalBufferCapacity = numberOfCores * (bufferCapacity + budgetBufferCapacity + eventsBufferCapacity);
+        int newWorkersCapacity = (int) (maxAllowedForBuffers / totalBufferCapacity);
+
+        newWorkersCapacity = findNextPositivePowerOfTwo(newWorkersCapacity);
+
+        return newWorkersCapacity;
     }
 
     private static URL configURL(
