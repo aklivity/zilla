@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.128...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.129...HEAD)
+
+**Merged pull requests:**
+
+- Verify varuint32\(n\) unpadded size [\#1440](https://github.com/aklivity/zilla/pull/1440) ([jfallows](https://github.com/jfallows))
+
+## [0.9.129](https://github.com/aklivity/zilla/tree/0.9.129) (2025-03-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.128...0.9.129)
 
 **Implemented enhancements:**
 

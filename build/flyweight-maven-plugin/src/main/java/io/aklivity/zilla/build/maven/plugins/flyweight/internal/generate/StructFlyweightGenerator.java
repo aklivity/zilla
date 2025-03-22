@@ -2808,6 +2808,31 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                             .addCode(code.build())
                             .build());
 
+                    if (isVaruint32Type(className))
+                    {
+                        code = CodeBlock.builder();
+                        if (priorFieldIfDefaulted != null)
+                        {
+                            code.beginControlFlow("if (lastFieldSet < $L)", index(priorFieldIfDefaulted));
+                            defaultPriorField.accept(code);
+                            code.endControlFlow();
+                        }
+                        code.addStatement("assert lastFieldSet == $L - 1", index(name))
+                            .addStatement("$T $LRW = this.$LRW.wrap(buffer(), limit(), maxLimit())", builderType, name, name)
+                            .addStatement("$LRW.set($L, padding)", name, parameterName)
+                            .addStatement("limit($LRW.build().limit())", name)
+                            .addStatement("lastFieldSet = $L", index(name))
+                            .addStatement("return this");
+
+                        builder.addMethod(methodBuilder(methodName(name))
+                                .addModifiers(PUBLIC)
+                                .returns(thisType)
+                                .addParameter(parameterType, parameterName)
+                                .addParameter(int.class, "padding")
+                                .addCode(code.build())
+                                .build());
+                    }
+
                     code = CodeBlock.builder();
                     if (priorFieldIfDefaulted != null)
                     {
