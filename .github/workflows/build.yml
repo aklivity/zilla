@@ -41,6 +41,20 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Save Docker image
+      if: success()
+      run: |
+        mkdir -p ~/docker-cache
+        docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
+
+    - name: Cache Docker image
+      uses: actions/cache@v4
+      if: success()
+      with:
+        path: ~/docker-cache/docker.tar
+        key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v4
       if: failure()
@@ -74,6 +88,16 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
+
+      - name: Restore cached Docker images
+        uses: actions/cache@v4
+        with:
+          path: ~/docker-cache/docker.tar
+          key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+
+      - name: Load cached Docker image
+        run: |
+          docker load -i ~/docker-cache/docker.tar
 
   testing:
     strategy:
