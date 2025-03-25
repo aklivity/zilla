@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.130...HEAD)
+
+**Implemented enhancements:**
+
+- Auto discover available host resources and dynamically set internal limits [\#984](https://github.com/aklivity/zilla/issues/984)
+
+**Merged pull requests:**
+
+- Auto discover available host resources and dynamically set internal limits [\#1438](https://github.com/aklivity/zilla/pull/1438) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.130](https://github.com/aklivity/zilla/tree/0.9.130) (2025-03-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.129...0.9.130)
