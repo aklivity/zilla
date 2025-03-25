@@ -6,6 +6,7 @@ Listens on https port `7143` and will response back whatever is hosted in `nginx
 
 - docker compose
 - [nghttp2](https://nghttp2.org/)
+- [k6](https://k6.io/)
 
 ### Install nghttp2 client
 
@@ -56,6 +57,18 @@ id  responseEnd requestStart  process code size request path
 ```
 
 you get `/style.css` response as push promise that nginx is configured with.
+
+### Install k6
+
+```bash
+brew install k6
+```
+
+## Performance Test
+
+```bash
+k6 run k6-test.js
+```
 
 ## Teardown
 
