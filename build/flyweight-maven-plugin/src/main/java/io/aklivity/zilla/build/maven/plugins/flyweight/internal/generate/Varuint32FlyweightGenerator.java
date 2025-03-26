@@ -56,6 +56,7 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                            .addMethod(wrapMethod())
                            .addMethod(toStringMethod())
                            .addMethod(length0Method())
+                           .addMethod(unpaddedMethod())
                            .addType(builderClassBuilder.build())
                            .build();
     }
@@ -113,7 +114,7 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                     .addStatement("return null")
                 .endControlFlow()
                 .addStatement("size = length0()")
-                .beginControlFlow("if (size < 0 || size > 5 || limit() > maxLimit)")
+                .beginControlFlow("if (size < 0 || unpadded(size) > 5 || limit() > maxLimit)")
                     .addStatement("return null")
                 .endControlFlow()
                 .addStatement("return this")
@@ -132,7 +133,7 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                 .addStatement("super.wrap(buffer, offset, maxLimit)")
                 .addStatement("checkLimit(offset + 1, maxLimit)")
                 .addStatement("size = length0()")
-                .beginControlFlow("if (size < 0 || size > 5)")
+                .beginControlFlow("if (size < 0 || unpadded(size) > 5)")
                     .addStatement("throw new $T(String.format($S, offset))", IllegalArgumentException.class,
                             "varuint32 value at offset %d exceeds 32 bits")
                 .endControlFlow()
@@ -158,13 +159,34 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                 .returns(int.class)
                 .addStatement("final DirectBuffer buffer = buffer()")
                 .addStatement("final int offset = offset()")
-                .addStatement("final int maxPos = Math.min(offset + 5,  maxLimit())")
+                .addStatement("final int maxPos = maxLimit()")
                 .addStatement("int index = 0")
                 .beginControlFlow("while (index + offset < maxPos && (buffer.getByte(index + offset) & 0x80) != 0)")
                     .addStatement("index++")
                 .endControlFlow()
                 .addStatement("int size = 1 + index")
                 .addStatement("return size")
+                .build();
+    }
+
+    private MethodSpec unpaddedMethod()
+    {
+        return methodBuilder("unpadded")
+                .addModifiers(PRIVATE)
+                .addParameter(int.class, "size")
+                .returns(int.class)
+                .addStatement("final DirectBuffer buffer = buffer()")
+                .addStatement("final int offset = offset()")
+                .addStatement("final int maxPos = maxLimit()")
+                .addStatement("int index = size - 1")
+                .beginControlFlow("while (" +
+                    "index + offset > offset && " +
+                    "index + offset < maxPos && " +
+                    "(buffer.getByte(index + offset) & 0x7f) == 0)")
+                    .addStatement("index--")
+                .endControlFlow()
+                .addStatement("int unpadded = 1 + index")
+                .addStatement("return unpadded")
                 .build();
     }
 
@@ -193,6 +215,7 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                     .addMethod(constructor())
                     .addMethod(wrapMethod())
                     .addMethod(setMethod())
+                    .addMethod(setpMethod())
                     .addMethod(buildMethod())
                     .build();
         }
@@ -247,6 +270,35 @@ public final class Varuint32FlyweightGenerator extends ClassSpecGenerator
                         .endControlFlow()
                         .addStatement("buffer.putByte(progress++, (byte) (bits & 0xFF))")
                     .endControlFlow("while (value > 0)")
+                    .addStatement("int newLimit = progress")
+                    .addStatement("checkLimit(newLimit, maxLimit())")
+                    .addStatement("limit(newLimit)")
+                    .addStatement("valueSet = true")
+                    .addStatement("return this")
+                    .build();
+        }
+
+        private MethodSpec setpMethod()
+        {
+            return methodBuilder("set")
+                    .addModifiers(PUBLIC)
+                    .returns(flyweightType.nestedClass("Builder"))
+                    .addParameter(int.class, "value")
+                    .addParameter(int.class, "padding")
+                    .beginControlFlow("if (value < 0)")
+                        .addStatement("throw new $T(String.format($S, value))", IllegalArgumentException.class,
+                                "Input value %d is negative")
+                    .endControlFlow()
+                    .addStatement("final MutableDirectBuffer buffer = buffer()")
+                    .addStatement("int progress = offset()")
+                    .beginControlFlow("do")
+                        .addStatement("int bits = value & 0x7F")
+                        .addStatement("value >>= 7")
+                        .beginControlFlow("if (value != 0 || padding > 0)")
+                            .addStatement("bits |= 0x80")
+                        .endControlFlow()
+                        .addStatement("buffer.putByte(progress++, (byte) (bits & 0xFF))")
+                    .endControlFlow("while (value > 0 || padding-- > 0)")
                     .addStatement("int newLimit = progress")
                     .addStatement("checkLimit(newLimit, maxLimit())")
                     .addStatement("limit(newLimit)")

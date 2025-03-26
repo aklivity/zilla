@@ -49,7 +49,9 @@ module io.aklivity.zilla.runtime.engine
     requires org.leadpony.justify;
     requires com.fasterxml.jackson.dataformat.yaml;
     requires com.fasterxml.jackson.databind;
+    requires jdk.management;
     requires jdk.unsupported;
+    requires java.management;
     requires java.net.http;
     requires org.slf4j;
     requires io.aklivity.zilla.runtime.common;
