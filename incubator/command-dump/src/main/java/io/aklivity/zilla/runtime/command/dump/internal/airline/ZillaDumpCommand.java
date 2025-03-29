@@ -138,7 +138,6 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int ZILLA_HEADER_SIZE = 16;
     private static final int ZILLA_HEADER_LIMIT = ZILLA_HEADER_OFFSET + ZILLA_HEADER_SIZE;
 
-    private static final int TYPE_ID_INDEX = 0;
     private static final int KIND_ID_INDEX = 1;
     private static final int ORIGIN_TYPE_ID_INDEX = 2;
     private static final int ROUTED_TYPE_ID_INDEX = 3;
@@ -150,10 +149,14 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final byte[] EMPTY_BYTES = new byte[0];
 
     private static final short TCP_DEST_PORT = 7114;
-    private static final short TCP_SRC_PORT = 0;
+    private static final short TCP_SRC_PORT = 37114 - 65536;
+
+    private static final short SYN = (short) TcpFlag.SYN.value();
+    private static final short SYN_ACK = (short) (TcpFlag.SYN.value() | TcpFlag.ACK.value());
     private static final short PSH_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
-    private static final short PSH_ACK_SYN = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value() | TcpFlag.SYN.value());
-    private static final short PSH_ACK_FIN = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value() | TcpFlag.FIN.value());
+
+    private static final short PSH_FIN_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.FIN.value() | TcpFlag.ACK.value());
+    private static final short PSH_RST = (short) (TcpFlag.PSH.value() | TcpFlag.RST.value());
 
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
@@ -571,10 +574,18 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final ExtensionFW extension = newBegin.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
-                final boolean initial = begin.streamId() % 2 != 0;
-                short tcpFlags = initial ? PSH_ACK_SYN : PSH_ACK;
-                writeFrame(BeginFW.TYPE_ID, worker, offset, newBegin.originId(), newBegin.routedId(), newBegin.streamId(),
-                    newBegin.timestamp(), newBegin, tcpFlags);
+                final boolean initial = (begin.streamId() & 0x01) != 0;
+                long streamId = newBegin.streamId();
+                long timestamp = newBegin.timestamp();
+
+                if (initial)
+                {
+                    writeEmptyFrame(streamId, timestamp, SYN);
+                    writeEmptyFrame(streamId ^ 1L, timestamp, SYN_ACK);
+                }
+
+                writeFrame(BeginFW.TYPE_ID, worker, offset, newBegin.originId(), newBegin.routedId(), streamId,
+                    timestamp, newBegin, PSH_ACK);
             }
         }
 
@@ -605,7 +616,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 patchExtension(patchBuffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
                 writeFrame(EndFW.TYPE_ID, worker, offset, newEnd.originId(), newEnd.routedId(), newEnd.streamId(),
-                    newEnd.timestamp(), newEnd, PSH_ACK_FIN);
+                    newEnd.timestamp(), newEnd, PSH_FIN_ACK);
             }
         }
 
@@ -620,7 +631,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 patchExtension(patchBuffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
                 writeFrame(AbortFW.TYPE_ID, worker, offset, newAbort.originId(), newAbort.routedId(), newAbort.streamId(),
-                    newAbort.timestamp(), newAbort, PSH_ACK_FIN);
+                    newAbort.timestamp(), newAbort, PSH_RST);
             }
         }
 
@@ -646,7 +657,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 patchExtension(patchBuffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
                 writeFrame(ResetFW.TYPE_ID, worker, offset, newReset.originId(), newReset.routedId(), newReset.streamId(),
-                    newReset.timestamp(), newReset, PSH_ACK_FIN);
+                    newReset.timestamp(), newReset, PSH_RST);
             }
         }
 
@@ -736,6 +747,25 @@ public final class ZillaDumpCommand extends ZillaCommand
             }
             return result;
         }
+
+        private void writeEmptyFrame(
+            long streamId,
+            long timestamp,
+            short tcpFlags)
+        {
+            final int ipv6Length = TCP_HEADER_SIZE;
+            final int pcapLength = ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + ipv6Length;
+
+            encodePcapHeader(writeBuffer, pcapLength, timestamp);
+            encodeEtherHeader(writeBuffer);
+            encodeIpv6Header(writeBuffer, false, streamId ^ 1L, streamId, ipv6Length);
+
+            final boolean initial = streamId % 2 != 0;
+            encodeTcpHeader(writeBuffer, 0, initial, 0, 0, tcpFlags);
+
+            writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, 0);
+        }
+
 
         private void writeFrame(
             int frameTypeId,
