@@ -85,7 +85,7 @@ public final class TcpClientRouter
 
         try
         {
-            if (beginEx == null)
+            if (beginEx == null || port > 0)
             {
                 InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
                 resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
