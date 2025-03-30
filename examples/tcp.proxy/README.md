@@ -1,4 +1,4 @@
-# tcp.proxy.iperf
+# tcp.proxy
 
 Listens on tcp port `12345` and will proxy iperf traffic to iperf server.
 

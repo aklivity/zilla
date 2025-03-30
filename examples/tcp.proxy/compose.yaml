@@ -1,4 +1,4 @@
-name: ${NAMESPACE:-zilla-tcp-proxy-iperf}
+name: ${NAMESPACE:-zilla-tcp-proxy}
 services:
   iperf-server:
     image: networkstatic/iperf3
