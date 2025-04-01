@@ -41,19 +41,16 @@ public final class TcpServerRouter
     private final ToIntFunction<PollerKey> acceptHandler;
     private final Function<SelectableChannel, PollerKey> supplyPollerKey;
     private final LongFunction<TcpServerBindingConfig> lookupServer;
-    private final int index;
 
     private int remainingConnections;
     private boolean unbound;
 
     public TcpServerRouter(
-        int index,
         TcpConfiguration config,
         EngineContext context,
         ToIntFunction<PollerKey> acceptHandler,
         LongFunction<TcpServerBindingConfig> lookupServer)
     {
-        this.index = index;
         this.remainingConnections = config.maxConnections();
         this.bindings = new Long2ObjectHashMap<>();
         this.supplyPollerKey = context::supplyPollerKey;
@@ -133,7 +130,7 @@ public final class TcpServerRouter
     private void register(
         TcpBindingConfig binding)
     {
-        TcpServerBindingConfig server = lookupServer.apply(index);
+        TcpServerBindingConfig server = lookupServer.apply(binding.id);
         ServerSocketChannel[] channels = server.bind(binding.options);
 
         PollerKey[] acceptKeys = new PollerKey[channels.length];
@@ -161,7 +158,7 @@ public final class TcpServerRouter
             }
         }
 
-        TcpServerBindingConfig server = lookupServer.apply(index);
+        TcpServerBindingConfig server = lookupServer.apply(binding.id);
         server.unbind();
     }
 }

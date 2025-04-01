@@ -40,9 +40,9 @@ public final class TcpServerBindingConfig
     private volatile ServerSocketChannel[] channels;
 
     public TcpServerBindingConfig(
-        long index)
+        long bindingId)
     {
-        this.id = index;
+        this.id = bindingId;
         this.binds = new AtomicInteger();
     }
 

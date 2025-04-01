@@ -99,7 +99,6 @@ public class TcpServerFactory implements TcpStreamFactory
     private final int replyMax;
     private final int windowThreshold;
     private final int proxyTypeId;
-    private final int index;
     private final BindingHandler streamFactory;
 
     public TcpServerFactory(
@@ -107,7 +106,7 @@ public class TcpServerFactory implements TcpStreamFactory
         EngineContext context,
         LongFunction<TcpServerBindingConfig> servers)
     {
-        this.router = new TcpServerRouter(context.index(), config, context, this::handleAccept, servers);
+        this.router = new TcpServerRouter(config, context, this::handleAccept, servers);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
@@ -117,7 +116,6 @@ public class TcpServerFactory implements TcpStreamFactory
         this.supplyPollerKey = context::supplyPollerKey;
         this.streamFactory = context.streamFactory();
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.index = context.index();
 
         final int readBufferSize = writeBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
         this.readByteBuffer = ByteBuffer.allocateDirect(readBufferSize).order(nativeOrder());

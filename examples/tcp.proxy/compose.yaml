@@ -16,6 +16,11 @@ services:
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e -Pzilla.engine.maximum.messages.per.read=10
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/12345"]
     depends_on:
       - iperf-server
 
@@ -25,7 +30,6 @@ services:
     entrypoint: >
       sh -c "sleep 10 &&
            iperf3 -c zilla.examples.dev -p 12345 -P 50 -t 20"
-
 networks:
   default:
     driver: bridge
