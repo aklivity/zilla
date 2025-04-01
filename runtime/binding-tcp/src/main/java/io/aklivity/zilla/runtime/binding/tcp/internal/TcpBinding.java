@@ -16,11 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
 import java.net.URL;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.util.OperatingSystem;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -32,13 +28,11 @@ public final class TcpBinding implements Binding
     public static final int WRITE_SPIN_COUNT = 16;
 
     private final TcpConfiguration config;
-    private final ConcurrentMap<Long, TcpServerBindingConfig> servers;
 
     TcpBinding(
         TcpConfiguration config)
     {
         this.config = config;
-        this.servers = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -57,14 +51,6 @@ public final class TcpBinding implements Binding
     public BindingContext supply(
         EngineContext context)
     {
-        return new TcpBindingContext(config, context, this::supplyServer);
-    }
-
-    private TcpServerBindingConfig supplyServer(
-        long bindingId)
-    {
-        return OperatingSystem.detect() == OperatingSystem.OS.MACOS
-            ? servers.computeIfAbsent(bindingId, TcpServerBindingConfig::new)
-            : new TcpServerBindingConfig(bindingId);
+        return new TcpBindingContext(config, context);
     }
 }
