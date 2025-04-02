@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.131...HEAD)
+
+**Merged pull requests:**
+
+- Bind server socket per core [\#1446](https://github.com/aklivity/zilla/pull/1446) ([akrambek](https://github.com/akrambek))
+- Increase task.parallelism by default to match workers [\#1445](https://github.com/aklivity/zilla/pull/1445) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.131](https://github.com/aklivity/zilla/tree/0.9.131) (2025-03-25)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.130...0.9.131)
