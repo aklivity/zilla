@@ -36,6 +36,20 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Save Docker image
+      if: success()
+      run: |
+        mkdir -p ~/docker-cache
+        docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
+
+    - name: Cache Docker image
+      uses: actions/cache@v4
+      if: success()
+      with:
+        path: ~/docker-cache/docker.tar
+        key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v4
       if: failure()
@@ -46,3 +60,88 @@ jobs:
           **/target/surefire-reports/
           **/target/zilla-itests/
           **/target/failsafe-reports/
+
+  setup-examples:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    outputs:
+      all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get examples dirs
+        id: all-files
+        uses: Drafteame/list-folders-action@main
+        with:
+          paths: |
+            examples
+          omit: |
+            ^\.github$
+            ^\.assets$
+            ^\.git$
+            ^\.vscode$
+
+  testing:
+    strategy:
+      matrix:
+        dir: ${{ fromJson(needs.setup-examples.outputs.all_directories) }}
+      fail-fast: false
+    needs:
+      - setup-examples
+    runs-on: ubuntu-latest
+    env:
+      ZILLA_VERSION: develop-SNAPSHOT
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: examples/${{ matrix.dir }}
+
+      - name: Restore cached Docker images
+        uses: actions/cache@v4
+        with:
+          path: ~/docker-cache/docker.tar
+          key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+
+      - name: Load cached Docker image
+        run: |
+          docker load -i ~/docker-cache/docker.tar
+
+      - name: Cache Docker images
+        if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) }}
+
+      - name: Start Zilla and wait for it to be healthy
+        working-directory: examples/${{ matrix.dir }}
+        run: docker compose up -d --wait
+
+      - name: Execute Test
+        working-directory: examples/${{ matrix.dir }}
+        run: |
+          set -o pipefail
+          ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
+
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v2
+        with:
+          dest: "./logs"
+      - name: Tar logs
+        if: failure()
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}_logs.tgz
+          path: ./logs.tgz
+
+      - name: Teardown
+        if: always() && ${{ hashFiles(format('examples/{0}/teardown.sh', matrix.dir)) != '' }}
+        working-directory: examples/${{ matrix.dir }}
+        run: docker compose down --remove-orphans
