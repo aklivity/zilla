@@ -89,16 +89,6 @@ jobs:
             ^\.git$
             ^\.vscode$
 
-      - name: Restore cached Docker images
-        uses: actions/cache@v4
-        with:
-          path: ~/docker-cache/docker.tar
-          key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
-
-      - name: Load cached Docker image
-        run: |
-          docker load -i ~/docker-cache/docker.tar
-
   testing:
     strategy:
       matrix:
@@ -114,6 +104,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: examples/${{ matrix.dir }}
+
+      - name: Restore cached Docker images
+        uses: actions/cache@v4
+        with:
+          path: ~/docker-cache/docker.tar
+          key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+
+      - name: Load cached Docker image
+        run: |
+          docker load -i ~/docker-cache/docker.tar
 
       - name: Cache Docker images
         if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
