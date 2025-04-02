@@ -16,7 +16,7 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Docs</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/latest/how-tos/quickstart/"><b>Quickstart</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/latest/getting-started/quickstart/"><b>Quickstart</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
@@ -34,7 +34,7 @@ Use **Zilla** as a:
 | Zilla Use Case | Description |
 | -------- | ------- |
 | [Data broadcasting (Kafka fan-out) →](examples/sse.kafka.fanout) | Broadcast real-time updates to end users at web-scale. Power live data feeds such as stock tickers, betting odds, travel updates, and auction prices. |
-| [IoT Kafka ingestion →](https://vordimous.github.io/zilla-docs/next/how-tos/mqtt/mqtt.kafka.broker.html) | Ingest and process IoT data in real-time by turning Kafka into a fully-fledged MQTT broker. |
+| [IoT Kafka ingestion →](https://docs.aklivity.io/zilla/latest/concepts/proxy/mqtt/kafka) | Ingest and process IoT data in real-time by turning Kafka into a fully-fledged MQTT broker. |
 | [Async workflows for sync microservices →](examples/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
 | [Secure a Server Sent Event (SSE) API →](examples/sse.proxy.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
@@ -43,7 +43,7 @@ Use **Zilla** as a:
 
 ## Get started in 60 seconds
 
-**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the hosted [**Quickstart**](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/).
+**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [**Quickstart**](https://docs.aklivity.io/zilla/latest/getting-started/quickstart).
 
 ## Install options
 
@@ -92,6 +92,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 
 ### 📝 Check out blog posts
 
+- **[The Why & How of Centralized Data Governance in Zilla Across Protocols](https://www.aklivity.io/post/the-why-how-of-centralized-data-governance-in-zilla-across-protocols):** Data Governance in Zilla in context of different protocols like HTTP, MQTT & of course, Kafka.
 - **[Bring your own REST APIs for Apache Kafka](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka):** Zilla enables application-specific REST APIs. See how it's not just another Kafka-REST proxy.
 - **[Modern Eventing with CQRS, Redpanda and Zilla](https://www.aklivity.io/post/modern-eventing-with-cqrs-redpanda-and-zilla):** Learn about the event-driven nature of CQRS, common challenges while implementing it, and how Zilla solves them with Redpanda.
 - **[End-to-end Streaming Between gRPC Services via Kafka](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka):** Learn how to integrate gRPC with Kafka event streaming; securely, reliably and scalably.

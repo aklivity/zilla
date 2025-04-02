@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
-import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -42,7 +42,7 @@ public class ServerRoutingIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(TCP_MAX_CONNECTIONS, 3)
+        .configure(ENGINE_WORKER_CAPACITY, 2)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/tcp/config")
         .external("app0")

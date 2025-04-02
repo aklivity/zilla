@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
-import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -53,7 +53,7 @@ public class ServerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(TCP_MAX_CONNECTIONS, 3)
+        .configure(ENGINE_WORKER_CAPACITY, 4)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/tcp/config")
         .external("app0")
@@ -393,14 +393,18 @@ public class ServerIT
         SocketChannel channel3 = SocketChannel.open();
         channel3.connect(new InetSocketAddress("127.0.0.1", 12345));
 
+        SocketChannel channel4 = SocketChannel.open();
+        channel4.connect(new InetSocketAddress("127.0.0.1", 12345));
+
         k3po.awaitBarrier("CONNECTION_ACCEPTED_1");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
 
-        SocketChannel channel4 = SocketChannel.open();
+        SocketChannel channel5 = SocketChannel.open();
         try
         {
-            channel4.connect(new InetSocketAddress("127.0.0.1", 12345));
+            channel5.connect(new InetSocketAddress("127.0.0.1", 12345));
             fail("4th connect shouldn't succeed as max.connections = 3");
         }
         catch (IOException ioe)
@@ -409,20 +413,21 @@ public class ServerIT
         }
 
         channel1.close();
-        channel4.close();
+        channel5.close();
 
         k3po.awaitBarrier("CLOSED");
 
         // sleep so that rebind happens
         Thread.sleep(200);
 
-        SocketChannel channel5 = SocketChannel.open();
-        channel5.connect(new InetSocketAddress("127.0.0.1", 12345));
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
+        SocketChannel channel6 = SocketChannel.open();
+        channel6.connect(new InetSocketAddress("127.0.0.1", 12345));
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_5");
 
         channel2.close();
         channel3.close();
-        channel5.close();
+        channel4.close();
+        channel6.close();
         Thread.sleep(500);
 
         k3po.finish();

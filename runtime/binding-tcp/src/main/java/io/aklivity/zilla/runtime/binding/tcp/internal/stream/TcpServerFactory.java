@@ -33,7 +33,6 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -47,7 +46,6 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.AbortFW;
@@ -103,10 +101,9 @@ public class TcpServerFactory implements TcpStreamFactory
 
     public TcpServerFactory(
         TcpConfiguration config,
-        EngineContext context,
-        LongFunction<TcpServerBindingConfig> servers)
+        EngineContext context)
     {
-        this.router = new TcpServerRouter(config, context, this::handleAccept, servers);
+        this.router = new TcpServerRouter(config, context, this::handleAccept);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
