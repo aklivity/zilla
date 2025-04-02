@@ -119,7 +119,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_TIMESTAMPS = config.property("timestamps", true);
         ENGINE_MAXIMUM_MESSAGES_PER_READ = config.property("maximum.messages.per.read", Integer.MAX_VALUE);
         ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL = config.property("maximum.expirations.per.poll", Integer.MAX_VALUE);
-        ENGINE_TASK_PARALLELISM = config.property("task.parallelism", 1);
+        ENGINE_TASK_PARALLELISM = config.property("task.parallelism", EngineConfiguration::defaultTaskParallelism);
         ENGINE_BACKOFF_MAX_SPINS = config.property("backoff.idle.strategy.max.spins", 64L);
         ENGINE_BACKOFF_MAX_YIELDS = config.property("backoff.idle.strategy.max.yields", 64L);
         ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.min.park.nanos", NANOSECONDS.toNanos(64L));
@@ -347,6 +347,12 @@ public class EngineConfiguration extends Configuration
     public Function<String, InetAddress[]> hostResolver()
     {
         return ENGINE_HOST_RESOLVER.get(this)::resolve;
+    }
+
+    private static int defaultTaskParallelism(
+        Configuration config)
+    {
+        return ENGINE_WORKERS.getAsInt(config);
     }
 
     private static int defaultBufferPoolCapacity(
