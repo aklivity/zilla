@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [ develop, 'feature/**' ]
   workflow_dispatch:
-    inputs:
-      zilla-image-tag:
-        default: develop-SNAPSHOT
-        description: Zilla Image tag
-        type: string
 
 jobs:
   build:
