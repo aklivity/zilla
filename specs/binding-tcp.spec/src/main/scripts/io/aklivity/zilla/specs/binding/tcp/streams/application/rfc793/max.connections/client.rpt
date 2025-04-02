@@ -45,3 +45,11 @@ connected
 write await CONNECTION_ACCEPTED_4
 write close
 read closed
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write await CONNECTION_ACCEPTED_5
+write close
+read closed

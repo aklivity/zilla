@@ -20,9 +20,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpStreamFactory;
@@ -38,11 +36,10 @@ final class TcpBindingContext implements BindingContext
 
     TcpBindingContext(
         TcpConfiguration config,
-        EngineContext context,
-        LongFunction<TcpServerBindingConfig> servers)
+        EngineContext context)
     {
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new TcpServerFactory(config, context, servers));
+        factories.put(SERVER, new TcpServerFactory(config, context));
         factories.put(CLIENT, new TcpClientFactory(config, context));
 
         this.factories = factories;
