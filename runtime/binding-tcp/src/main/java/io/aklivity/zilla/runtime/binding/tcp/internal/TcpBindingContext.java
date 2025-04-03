@@ -15,11 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory;
@@ -33,14 +35,16 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 final class TcpBindingContext implements BindingContext
 {
     private final Map<KindConfig, TcpStreamFactory> factories;
+    private final AtomicInteger capacity;
 
     TcpBindingContext(
         TcpConfiguration config,
         EngineContext context)
     {
+        this.capacity = new AtomicInteger(ENGINE_WORKER_CAPACITY.getAsInt(config));
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new TcpServerFactory(config, context));
-        factories.put(CLIENT, new TcpClientFactory(config, context));
+        factories.put(SERVER, new TcpServerFactory(config, context, this.capacity));
+        factories.put(CLIENT, new TcpClientFactory(config, context, this.capacity));
 
         this.factories = factories;
     }

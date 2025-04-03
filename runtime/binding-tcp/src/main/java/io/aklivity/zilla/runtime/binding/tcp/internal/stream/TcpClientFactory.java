@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.UnresolvedAddressException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -98,9 +99,10 @@ public class TcpClientFactory implements TcpStreamFactory
 
     public TcpClientFactory(
         TcpConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        AtomicInteger capacity)
     {
-        this.router = new TcpClientRouter(context);
+        this.router = new TcpClientRouter(context, capacity);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
@@ -207,6 +209,7 @@ public class TcpClientFactory implements TcpStreamFactory
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
+        router.close();
     }
 
     private final class TcpClient

@@ -23,6 +23,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -49,13 +50,16 @@ public final class TcpClientRouter
     private final byte[] ipv6ros = new byte[16];
 
     private final Function<String, InetAddress[]> resolveHost;
+    private final AtomicInteger capacity;
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
     private final TcpEventContext event;
 
     public TcpClientRouter(
-        EngineContext context)
+        EngineContext context,
+        AtomicInteger capacity)
     {
         this.resolveHost = context::resolveHost;
+        this.capacity = capacity;
         this.bindings = new Long2ObjectHashMap<>();
         this.event = new TcpEventContext(context);
     }
@@ -85,7 +89,11 @@ public final class TcpClientRouter
 
         try
         {
-            if (beginEx == null)
+            if (capacity.get() <= 0)
+            {
+                //No capacity
+            }
+            else if (beginEx == null)
             {
                 InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
                 resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
@@ -113,7 +121,7 @@ public final class TcpClientRouter
                         final List<InetSocketAddress> authorities = Arrays
                             .stream(resolveHost(authorityInfo.authority().asString()))
                             .map(a -> new InetSocketAddress(a, port))
-                            .collect(Collectors.toList());
+                            .toList();
 
                         for (InetSocketAddress authority : authorities)
                         {
@@ -144,7 +152,7 @@ public final class TcpClientRouter
                     final List<InetSocketAddress> host = Arrays
                         .stream(resolveHost(options.host))
                         .map(a -> new InetSocketAddress(a, port))
-                        .collect(Collectors.toList());
+                        .toList();
 
                     for (TcpRouteConfig route : binding.routes)
                     {
@@ -167,7 +175,30 @@ public final class TcpClientRouter
         {
             event.dnsFailed(traceId, binding.id, ex.hostname);
         }
+
+        if (resolved != null)
+        {
+            capacity.incrementAndGet();
+        }
+
         return resolved;
+    }
+
+    public void detach(
+        long bindingId)
+    {
+        bindings.remove(bindingId);
+    }
+
+    public void close()
+    {
+        capacity.decrementAndGet();
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s %s", getClass().getSimpleName(), bindings);
     }
 
     private InetAddress[] resolveHost(
@@ -181,18 +212,6 @@ public final class TcpClientRouter
         {
             throw new TcpDnsFailedException(ex, hostname);
         }
-    }
-
-    public void detach(
-        long bindingId)
-    {
-        bindings.remove(bindingId);
-    }
-
-    @Override
-    public String toString()
-    {
-        return String.format("%s %s", getClass().getSimpleName(), bindings);
     }
 
     private InetSocketAddress resolve(
