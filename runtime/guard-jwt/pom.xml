@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.132</version>
+    <version>0.9.133</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -158,6 +158,34 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>org.bitbucket.b_c:jose4j</include>
+                </includes>
+              </artifactSet>
+              <relocations>
+                <relocation>
+                  <pattern>org.jose4j</pattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.guard.jwt.internal.jose4j</shadedPattern>
+                </relocation>
+              </relocations>
+              <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
+              <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
+              <minimizeJar>true</minimizeJar>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
       <plugin>
@@ -206,6 +234,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/guard/jwt/internal/types/**/*.class</exclude>
+            <exclude>org/jose4j/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
