@@ -40,6 +40,7 @@ import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -101,9 +102,10 @@ public class TcpServerFactory implements TcpStreamFactory
 
     public TcpServerFactory(
         TcpConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        MutableInteger capacity)
     {
-        this.router = new TcpServerRouter(config, context, this::handleAccept);
+        this.router = new TcpServerRouter(context, this::handleAccept, capacity);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();

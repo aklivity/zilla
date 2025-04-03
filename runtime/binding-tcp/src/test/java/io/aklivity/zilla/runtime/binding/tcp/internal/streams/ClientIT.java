@@ -342,6 +342,35 @@ public class ClientIT
         }
     }
 
+    @Test
+    @Configuration("client.host.yaml")
+    @Specification({
+        "${app}/max.connections.reset/client"
+    })
+    @Configure(
+        name = "zilla.engine.worker.capacity",
+        value = "2")
+    public void shouldResetWhenConnectionsExceeded() throws Exception
+    {
+        try (ServerSocketChannel server = ServerSocketChannel.open())
+        {
+            server.setOption(SO_REUSEADDR, true);
+            server.bind(new InetSocketAddress("127.0.0.1", 12345));
+
+            k3po.start();
+
+            for (int i = 1; i < 3; i++)
+            {
+                try (SocketChannel channel = server.accept())
+                {
+                    k3po.notifyBarrier("CONNECTION_ACCEPTED_" + i);
+                }
+            }
+
+            k3po.finish();
+        }
+    }
+
     public static InetAddress[] resolveHost(
         String host) throws UnknownHostException
     {

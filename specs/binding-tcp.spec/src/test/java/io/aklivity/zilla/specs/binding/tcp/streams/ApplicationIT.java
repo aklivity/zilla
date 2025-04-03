@@ -214,6 +214,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/max.connections.reset/client",
+        "${app}/max.connections.reset/server" })
+    public void maxConnectionsReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/connection.established/client",
         "${app}/connection.established/server" })
     public void shouldEstablishConnection() throws Exception
