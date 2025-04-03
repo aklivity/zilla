@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.133](https://github.com/aklivity/zilla/tree/0.9.133) (2025-04-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.132...0.9.133)
+
+**Implemented enhancements:**
+
+- Add a GH action to build the head of `develop` and run example tests [\#1263](https://github.com/aklivity/zilla/issues/1263)
+
+**Merged pull requests:**
+
+- Enforce worker capacity limit across both client and server tcp connections [\#1448](https://github.com/aklivity/zilla/pull/1448) ([akrambek](https://github.com/akrambek))
+- shade jose4j in guard-jwt [\#1447](https://github.com/aklivity/zilla/pull/1447) ([ankitk-me](https://github.com/ankitk-me))
+- Update workflow to run test on PRs & use `develop-SNAPSHOT` image [\#1436](https://github.com/aklivity/zilla/pull/1436) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.132](https://github.com/aklivity/zilla/tree/0.9.132) (2025-04-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.131...0.9.132)
