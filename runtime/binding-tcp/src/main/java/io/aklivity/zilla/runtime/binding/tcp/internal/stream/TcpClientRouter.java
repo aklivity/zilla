@@ -93,7 +93,8 @@ public final class TcpClientRouter
             {
                 break resolve;
             }
-            else if (beginEx == null)
+
+            if (beginEx == null)
             {
                 InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
                 resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
