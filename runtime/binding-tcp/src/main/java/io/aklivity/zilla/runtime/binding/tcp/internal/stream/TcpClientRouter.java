@@ -28,6 +28,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
@@ -49,13 +50,13 @@ public final class TcpClientRouter
     private final byte[] ipv6ros = new byte[16];
 
     private final Function<String, InetAddress[]> resolveHost;
-    private final AtomicInteger capacity;
+    private final MutableInteger capacity;
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
     private final TcpEventContext event;
 
     public TcpClientRouter(
         EngineContext context,
-        AtomicInteger capacity)
+        MutableInteger capacity)
     {
         this.resolveHost = context::resolveHost;
         this.capacity = capacity;
@@ -86,11 +87,12 @@ public final class TcpClientRouter
 
         InetSocketAddress resolved = null;
 
+        resolve:
         try
         {
             if (capacity.get() <= 0)
             {
-                //No capacity
+                break resolve;
             }
             else if (beginEx == null)
             {
