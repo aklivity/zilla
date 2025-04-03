@@ -177,7 +177,7 @@ public final class TcpClientRouter
 
         if (resolved != null)
         {
-            capacity.incrementAndGet();
+            capacity.decrementAndGet();
         }
 
         return resolved;
