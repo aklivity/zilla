@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigu
 import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_FRAME_SIZE_NAME;
 import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_MESSAGE_SIZE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -50,6 +51,7 @@ public class AmqpServerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configure(AMQP_CONTAINER_ID, "server")
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(AMQP_CLOSE_EXCHANGE_TIMEOUT, 500)

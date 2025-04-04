@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.ws.internal.streams.server;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -44,6 +45,7 @@ public class BaseFramingIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
         .external("app0")
         .clean();
