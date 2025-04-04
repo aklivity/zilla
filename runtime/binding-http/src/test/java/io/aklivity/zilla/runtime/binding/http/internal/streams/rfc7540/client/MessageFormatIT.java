@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -45,6 +46,7 @@ public class MessageFormatIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(HTTP_CONCURRENT_STREAMS, 100)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -80,6 +82,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/client.max.frame.size/client",
         "${net}/client.max.frame.size/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSize() throws Exception
     {
