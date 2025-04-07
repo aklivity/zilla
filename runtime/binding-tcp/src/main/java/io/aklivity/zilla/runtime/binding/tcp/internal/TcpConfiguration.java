@@ -20,7 +20,6 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class TcpConfiguration extends Configuration
 {
     public static final IntPropertyDef TCP_WINDOW_THRESHOLD;
-    public static final IntPropertyDef TCP_MAX_CONNECTIONS;
 
     private static final ConfigurationDef TCP_CONFIG;
 
@@ -28,7 +27,6 @@ public class TcpConfiguration extends Configuration
     {
         ConfigurationDef config = new ConfigurationDef("zilla.binding.tcp");
         TCP_WINDOW_THRESHOLD = config.property("window.threshold", 0);
-        TCP_MAX_CONNECTIONS = config.property("max.connections", Integer.MAX_VALUE);
         TCP_CONFIG = config;
     }
 
@@ -43,10 +41,5 @@ public class TcpConfiguration extends Configuration
         int threshold = TCP_WINDOW_THRESHOLD.getAsInt(this);
         assert threshold >= 0 && threshold <= 100;
         return threshold;
-    }
-
-    public int maxConnections()
-    {
-        return TCP_MAX_CONNECTIONS.getAsInt(this);
     }
 }
