@@ -27,7 +27,7 @@ write [0x10 0xa3 0x50]                                 # CONNECT
       [0x06]                                           # flags = will flag, clean start
       [0x00 0x0a]                                      # keep alive = 10s
       [0x05]                                           # properties
-      [0x27] 66560                                     # maximum packet size = 66560
+      [0x27] 33792                                     # maximum packet size = 33792
       [0x00 0x03] "one"                                # client id
       [0x00]                                           # will properties
       [0x00 0x09] "wills/one"                          # will topic

@@ -30,7 +30,7 @@ write [0x10 0x26]                   # CONNECT
       [0x42]                        # flags = password, clean start
       [0x00 0x3c]                   # keep alive = 60s
       [0x05]                        # properties
-      [0x27] 66560                  # maximum packet size = 66560
+      [0x27] 33792                  # maximum packet size = 33792
       [0x00 0x06] "client"          # client id
       [0x00 0x0c] "Bearer TOKEN"    # password
 
