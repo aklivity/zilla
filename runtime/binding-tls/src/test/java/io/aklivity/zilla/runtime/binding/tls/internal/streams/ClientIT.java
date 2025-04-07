@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_PASS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -48,7 +47,6 @@ public class ClientIT
     private final EngineRule engine = new EngineRule()
             .directory("target/zilla-itests")
             .countersBufferCapacity(8192)
-            .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
             .configurationRoot("io/aklivity/zilla/specs/binding/tls/config")
             .external("net0")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)

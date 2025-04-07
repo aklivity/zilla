@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 

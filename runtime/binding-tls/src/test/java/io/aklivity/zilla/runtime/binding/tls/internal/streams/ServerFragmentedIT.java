@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -44,7 +43,6 @@ public class ServerFragmentedIT
     private final EngineRule engine = new EngineRule()
             .directory("target/zilla-itests")
             .countersBufferCapacity(8192)
-            .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
             .configurationRoot("io/aklivity/zilla/specs/binding/tls/config")
             .external("app0")
             .clean();

@@ -15,7 +15,7 @@
 #
 
 accept "zilla://streams/app0"
-  option zilla:window 81920
+  option zilla:window 8192
   option zilla:padding 0
   option zilla:transmission "duplex"
   option zilla:throttle "message"
