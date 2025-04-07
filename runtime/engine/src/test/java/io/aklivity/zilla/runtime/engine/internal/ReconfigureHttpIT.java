@@ -23,7 +23,6 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -51,6 +50,7 @@ public class ReconfigureHttpIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/runtime/engine/internal")
+        .configure(EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME, "16384")
         .external("app0")
         .external("app1")
         .external("app2")
@@ -114,7 +114,6 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Ignore
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
