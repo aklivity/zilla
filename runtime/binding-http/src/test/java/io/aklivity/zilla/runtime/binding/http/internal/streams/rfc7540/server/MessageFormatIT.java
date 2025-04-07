@@ -30,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class MessageFormatIT
 {
@@ -42,7 +43,6 @@ public class MessageFormatIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
@@ -76,6 +76,7 @@ public class MessageFormatIT
     @Specification({
         "${net}/server.max.frame.size/client",
         "${app}/server.max.frame.size/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void maxFrameSize() throws Exception
     {
         k3po.finish();
