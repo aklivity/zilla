@@ -43,7 +43,6 @@ public class AccessControlIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configure(HTTP_SERVER_HEADER, "Zilla")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
