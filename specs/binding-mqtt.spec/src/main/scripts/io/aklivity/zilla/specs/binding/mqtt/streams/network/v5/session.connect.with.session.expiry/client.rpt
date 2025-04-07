@@ -27,7 +27,7 @@ write [0x10 0x15]                    # CONNECT
       [0x00]                         # flags = none
       [0x00 0x3c]                    # keep alive = 60s
       [0x0a]                         # properties
-      [0x27] 66560                   # maximum packet size = 66560
+      [0x27] 33792                   # maximum packet size = 33792
       [0x11] 1                       # session expiry interval
       [0x00 0x03] "one"              # client id
 

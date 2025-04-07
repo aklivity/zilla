@@ -50,6 +50,7 @@ public class ReconfigureHttpIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/runtime/engine/internal")
+        .configure(EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME, "8192")
         .external("app0")
         .external("app1")
         .external("app2")
