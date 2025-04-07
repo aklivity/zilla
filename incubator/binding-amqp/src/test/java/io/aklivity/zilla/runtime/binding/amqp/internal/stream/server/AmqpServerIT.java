@@ -22,7 +22,10 @@ import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigu
 import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigurationTest.AMQP_INCOMING_LOCALES_NAME;
 import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_FRAME_SIZE_NAME;
 import static io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_MESSAGE_SIZE_NAME;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_POOL_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -1191,11 +1194,11 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.client.when.fragmented/client",
         "${app}/send.to.client.when.fragmented/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldSendToClientWhenFragmented() throws Exception
     {
         k3po.finish();
     }
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -1221,6 +1224,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.client.when.links.interleaved.and.fragmented/client",
         "${app}/send.to.client.when.links.interleaved.and.fragmented/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldSendToClientWhenLinksInterleavedAndFragmented() throws Exception
     {
         k3po.finish();

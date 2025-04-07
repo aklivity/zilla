@@ -64,7 +64,7 @@ write [0x00 0x00 0x00 0x1d]                                       # size = 29
       [0xc0 0x10 0x04]                                            # list type (list8), length = 16, fields = 4
       [0x60 0x00 0x00]                                            # remote-channel = 0
       [0x52 0x01]                                                 # next-outgoing-id = 1
-      [0x70 0x00 0x00 0x80 0x00]                                  # incoming-window = 32768
+      [0x70 0x00 0x01 0x00 0x00]                                  # incoming-window = 65536
       [0x70 0x7f 0xff 0xff 0xff]                                  # outgoing-window = 2147483647
 
 # attach frame exchange for link1

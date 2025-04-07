@@ -147,24 +147,19 @@ write [0x00 0x00 0x00 0x2b]                                      # size = 43
       [0xc0 0x0a 0x01]                                           # list type (list8), length = 10, fields = 1
       [0xa1 0x07] "clients"                                      # address = "clients"
 
-read [0x00 0x00 0x00 0x2a]                                       # size = 50
+read [0x00 0x00 0x00 0x2a]                                       # size = 42
      [0x02]                                                      # doff = 2
      [0x00]                                                      # type = AMQP (0)
      [0x00 0x00]                                                 # channel = 0
-     [0x00 0x53 0x14]                                            # performative = attach (18)
-     [0xc0 0x08 0x05]                                            # list type (list8), length = 37, fields = 10
-     [0x43 0x52] "link2"                                         # name = "link2"
-     [0x52 0x01]                                                 # handle = 1
-     [0x42]                                                      # role = sender
-     [0x50 0x01]                                                 # snd-settle-mode = settled
-     [0x50 0x00]                                                 # rcv-settle-mode = first
-     [0x00 0x53 0x28]                                            # source
-     [0xc0 0x0a 0x01]                                            # list type (list8), length = 10, fields = 1
-     [0xa1 0x07] "clients"                                       # address = "clients"
-     [0x00 0x53 0x29 0x45]                                       # target = empty list
-     [0x40]                                                      # unsettled = null
-     [0x40]                                                      # incomplete-unsettled = null (default = false)
-     [0x43]                                                      # initial-delivery-count = 0
+     [0x00 0x53 0x14]                                            # performative = transfer (20)
+     [0xc0 0x08 0x05]                                            # list type (list8), length = 8, fields = 5
+     [0x43]                                                      # handle = 0
+     [0x52 0x01]                                                 # delivery-id = 2
+     [0xa0 0x00]                                                 # delivery-tag = empty bytes
+     [0x43]                                                      # message-format = 0
+     [0x41]                                                      # settled = true
+     [0x00 0x53 0x77 0xa1 0x10]                                  # message format = amqp-value, str8utf8, size = 16
+     "Text2 from link1"                                          # body = "Text2 from link1"
 
 # flow frame for link2
 write [0x00 0x00 0x00 0x1e]                                      # size = 30
@@ -182,19 +177,24 @@ write [0x00 0x00 0x00 0x1e]                                      # size = 30
       [0x52 0x02]                                                # link-credit = 2
 
 # transfer frame for link2
-read [0x00 0x00 0x00 0x2b]                                       # size = 43
+read [0x00 0x00 0x00 0x32]                                       # size = 43
      [0x02]                                                      # doff = 2
      [0x00]                                                      # type = AMQP (0)
      [0x00 0x00]                                                 # channel = 0
-     [0x00 0x53 0x14]                                            # performative = transfer (20)
-     [0xc0 0x09 0x05]                                            # list type (list8), length = 9, fields = 5
+     [0x00 0x53 0x12]                                            # performative = attach (18)
+     [0xc0 0x25 0x0a]                                            # list type (list8), length = 37, fields = 10
+     [0xa1 0x05] "link2"                                         # name = "link2"
      [0x52 0x01]                                                 # handle = 1
-     [0x52 0x01]                                                 # delivery-id = 1
-     [0xa0 0x00]                                                 # delivery-tag = empty bytes
-     [0x43]                                                      # message-format = 0
-     [0x41]                                                      # settled = true
-     [0x00 0x53 0x77 0xa1 0x10]                                  # message format = amqp-value, str8utf8, size = 16
-     "Text1 from link2"                                          # body = "Text1 from link2"
+     [0x42]                                                      # role = sender
+     [0x50 0x01]                                                 # snd-settle-mode = settled
+     [0x50 0x00]                                                 # rcv-settle-mode = first
+     [0x00 0x53 0x28]                                            # source
+     [0xc0 0x0a 0x01]                                            # list type (list8), length = 10, fields = 1
+     [0xa1 0x07] "clients"                                       # address = "clients"
+     [0x00 0x53 0x29 0x45]                                       # target = empty list
+     [0x40]                                                      # unsettled = null
+     [0x40]                                                      # incomplete-unsettled = null (default = false)
+     [0x43]                                                      # initial-delivery-count = 0
 
 # flow frame for link1
 write [0x00 0x00 0x00 0x1e]                                      # size = 30
@@ -212,19 +212,19 @@ write [0x00 0x00 0x00 0x1e]                                      # size = 30
       [0x52 0x02]                                                # link-credit = 2
 
 # transfer frame for link1
-read [0x00 0x00 0x00 0x2a]                                       # size = 42
+read [0x00 0x00 0x00 0x2b]                                       # size = 43
      [0x02]                                                      # doff = 2
      [0x00]                                                      # type = AMQP (0)
      [0x00 0x00]                                                 # channel = 0
      [0x00 0x53 0x14]                                            # performative = transfer (20)
-     [0xc0 0x08 0x05]                                            # list type (list8), length = 8, fields = 5
-     [0x43]                                                      # handle = 0
-     [0x52 0x02]                                                 # delivery-id = 2
+     [0xc0 0x09 0x05]                                            # list type (list8), length = 9, fields = 5
+     [0x52 0x01]                                                 # handle = 1
+     [0x52 0x02]                                                 # delivery-id = 3
      [0xa0 0x00]                                                 # delivery-tag = empty bytes
      [0x43]                                                      # message-format = 0
      [0x41]                                                      # settled = true
      [0x00 0x53 0x77 0xa1 0x10]                                  # message format = amqp-value, str8utf8, size = 16
-     "Text2 from link1"                                          # body = "Text2 from link1"
+     "Text1 from link2"                                          # body = "Text2 from link2"
 
 # flow frame for link2
 write [0x00 0x00 0x00 0x1f]                                      # size = 31
