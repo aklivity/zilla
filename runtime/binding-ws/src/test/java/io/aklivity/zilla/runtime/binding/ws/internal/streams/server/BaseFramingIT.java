@@ -30,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
@@ -45,7 +46,6 @@ public class BaseFramingIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
         .external("app0")
         .clean();
@@ -119,6 +119,7 @@ public class BaseFramingIT
     @Specification({
         "${net}/echo.binary.payload.length.65535/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.65535/handshake.response.and.frame" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldEchoBinaryFrameWithPayloadLength65535() throws Exception
     {
         k3po.finish();

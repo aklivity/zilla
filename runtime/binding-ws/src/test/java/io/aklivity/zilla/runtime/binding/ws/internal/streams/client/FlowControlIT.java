@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
@@ -44,7 +45,6 @@ public class FlowControlIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY_NAME, "65536")
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
         .external("net0")
         .clean();
@@ -57,6 +57,7 @@ public class FlowControlIT
     @Specification({
         "${app}/echo.payload.with.padding/client",
         "${net}/echo.payload.with.padding/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldEchoPayloadWithPadding() throws Exception
     {
         k3po.finish();
