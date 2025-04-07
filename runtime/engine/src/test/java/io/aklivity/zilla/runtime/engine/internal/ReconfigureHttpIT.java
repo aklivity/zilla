@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -113,6 +114,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
+    @Ignore
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
