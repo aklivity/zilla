@@ -63,7 +63,7 @@ read [0x00 0x00 0x00 0x1d]                                       # size = 29
      [0xc0 0x10 0x04]                                            # list type (list8), length = 16, fields = 4
      [0x60 0x00 0x00]                                            # remote-channel = 0
      [0x52 0x01]                                                 # next-outgoing-id = 1
-     [0x70 0x00 0x01 0x00 0x00]                                  # incoming-window = 65536
+     [0x70 0x00 0x00 0x80 0x00]                                  # incoming-window = 32768
      [0x70 0x7f 0xff 0xff 0xff]                                  # outgoing-window = 2147483647
 
 # attach frame exchange for link1
@@ -147,13 +147,13 @@ write [0x00 0x00 0x00 0x2b]                                      # size = 43
       [0xc0 0x0a 0x01]                                           # list type (list8), length = 10, fields = 1
       [0xa1 0x07] "clients"                                      # address = "clients"
 
-read [0x00 0x00 0x00 0x32]                                       # size = 50
+read [0x00 0x00 0x00 0x2a]                                       # size = 50
      [0x02]                                                      # doff = 2
      [0x00]                                                      # type = AMQP (0)
      [0x00 0x00]                                                 # channel = 0
-     [0x00 0x53 0x12]                                            # performative = attach (18)
-     [0xc0 0x25 0x0a]                                            # list type (list8), length = 37, fields = 10
-     [0xa1 0x05] "link2"                                         # name = "link2"
+     [0x00 0x53 0x14]                                            # performative = attach (18)
+     [0xc0 0x08 0x05]                                            # list type (list8), length = 37, fields = 10
+     [0x43 0x52] "link2"                                         # name = "link2"
      [0x52 0x01]                                                 # handle = 1
      [0x42]                                                      # role = sender
      [0x50 0x01]                                                 # snd-settle-mode = settled
