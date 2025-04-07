@@ -18,7 +18,7 @@ accept "tls://localhost:9090"
   option tls:transport "zilla://streams/net0"
   option tls:keyStoreFile ${core:file('src/test/democa/server/keys')}
   option tls:keyStorePassword "generated"
-  option zilla:window 81920
+  option zilla:window 8192
   option zilla:padding 0
   option zilla:transmission "duplex"
   option zilla:throttle "message"
