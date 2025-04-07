@@ -109,7 +109,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.75);
         ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
-        ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
+        ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 32 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
                 EngineConfiguration::defaultStreamsBufferCapacity);
         ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity", 4 * 64 * 1024);
