@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.134](https://github.com/aklivity/zilla/tree/0.9.134) (2025-04-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.133...0.9.134)
+
+**Merged pull requests:**
+
+- Set default buffer slot capacity to 32K [\#1449](https://github.com/aklivity/zilla/pull/1449) ([akrambek](https://github.com/akrambek))
+- Set TCP flags appropriately to avoid Wireshark TCP dissector errors [\#1442](https://github.com/aklivity/zilla/pull/1442) ([jfallows](https://github.com/jfallows))
+- Bump alpine from 3.21.2 to 3.21.3 in /cloud/docker-image/src/main/docker [\#1404](https://github.com/aklivity/zilla/pull/1404) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.133](https://github.com/aklivity/zilla/tree/0.9.133) (2025-04-03)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.132...0.9.133)
