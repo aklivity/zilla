@@ -31,8 +31,6 @@ jobs:
           !~/.m2/repository/io/aklivity/zilla
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    - name: Set ulimit
-      run: ulimit -c unlimited
     - name: Build with Maven
       run: ./mvnw -B -U -nsu -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
       env:
