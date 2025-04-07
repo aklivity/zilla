@@ -82,9 +82,12 @@ public final class DumpRule implements TestRule
                 writeLabels();
                 writeBindings();
                 base.evaluate();
+
                 DUMP.createPcap(PCAP_PATH);
                 Container.ExecResult result = TSHARK.createTxt(PCAP_PATH);
-                Files.writeString(TXT_PATH, result.getStdout());
+                Path actualPath = ENGINE_PATH.resolve(String.format("actual_%s", resourceName));
+                Files.writeString(actualPath, result.getStdout());
+
                 assertThat(result.getExitCode(), equalTo(0));
                 assert expected0 != null;
                 assertEquals(expected0, result.getStdout());
