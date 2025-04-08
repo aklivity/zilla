@@ -34,6 +34,8 @@ wait "$RECEIVER_PID"
 
 OUTPUT=$(grep -o "$INPUT" "$RECEIVER_LOG" | head -n 1)
 
+rm -f "$RECEIVER_LOG"
+
 echo "OUTPUT=\"$OUTPUT\""
 echo "EXPECTED=\"$EXPECTED\""
 echo
