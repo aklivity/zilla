@@ -13,6 +13,7 @@ services:
       test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/23456"]
     environment:
       KEYSTORE_PASSWORD: generated
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e

@@ -15,6 +15,7 @@ services:
       MOSQUITTO_BROKER_HOST: mosquitto
       MOSQUITTO_BROKER_PORT: 1883
       KEYSTORE_PASSWORD: generated
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
