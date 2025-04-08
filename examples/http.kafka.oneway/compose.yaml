@@ -15,6 +15,7 @@ services:
       KEYSTORE_PASSWORD: generated
       SASL_USERNAME: alice
       SASL_PASSWORD: alice-secret
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
       - ./truststore:/etc/zilla/tls
