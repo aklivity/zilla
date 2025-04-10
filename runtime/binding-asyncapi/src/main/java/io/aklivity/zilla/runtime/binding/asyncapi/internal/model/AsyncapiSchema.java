@@ -32,4 +32,8 @@ public class AsyncapiSchema extends AsyncapiSchemaItem
     @JsonbProperty("enum")
     public List<String> values;
     public AsyncapiSchema schema;
+    public List<AsyncapiSchema> oneOf;
+    public List<AsyncapiSchema> allOf;
+    public List<AsyncapiSchema> anyOf;
+    public Map<String, String> discriminator;
 }
