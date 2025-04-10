@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
@@ -52,6 +53,11 @@ public final class OpenapiSchemaResolver
         {
             resolved.properties = resolved.properties.entrySet().stream()
                 .collect(toMap(Map.Entry::getKey, entry -> resolve(entry.getValue())));
+        }
+
+        if (resolved.oneOf != null)
+        {
+            resolved.oneOf = resolved.oneOf.stream().map(v -> resolve(v)).collect(toList());
         }
 
         return resolved;

@@ -44,4 +44,5 @@ public class OpenapiSchema extends AbstractOpenapiResolvable
     public Integer maxProperties;
     public Integer minProperties;
     public OpenapiSchema schema;
+    public List<OpenapiSchema> oneOf;
 }

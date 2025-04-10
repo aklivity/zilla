@@ -74,7 +74,9 @@ catalogs:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Pet'
+                      oneOf:
+                       - $ref: '#/components/schemas/Pet'
+                       - $ref: '#/components/schemas/AdoptedPet'
                 required: true
               responses:
                 '201':
@@ -113,6 +115,19 @@ catalogs:
                         $ref: "#/components/schemas/Error"
         components:
           schemas:
+            AdoptedPet:
+              type: object
+              required:
+                - adopterId
+                - adopterName
+              properties:
+                adopterId:
+                  type: integer
+                  format: int64
+                adopterName:
+                  type: string
+                tag:
+                  type: string
             Pet:
               type: object
               required:
