@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
@@ -34,6 +35,10 @@ public final class AsyncapiSchemaView extends AsyncapiSchemaItemView
     public final Integer maximum;
     public final List<String> values;
     public final AsyncapiSchemaView schema;
+    public final List<AsyncapiSchemaView> oneOf;
+    public final List<AsyncapiSchemaView> allOf;
+    public final List<AsyncapiSchemaView> anyOf;
+    public final Map<String, String> discriminator;
 
     AsyncapiSchemaView(
         AsyncapiResolver resolver,
@@ -66,5 +71,21 @@ public final class AsyncapiSchemaView extends AsyncapiSchemaItemView
         this.schema = resolved.schema != null
             ? new AsyncapiSchemaView(resolver, resolved.schema)
             : null;
+        this.oneOf = resolved.oneOf != null
+            ? resolved.oneOf.stream()
+            .map(schema -> new AsyncapiSchemaView(resolver, schema))
+            .collect(Collectors.toList())
+            : null;
+        this.allOf = resolved.allOf != null
+            ? resolved.allOf.stream()
+            .map(schema -> new AsyncapiSchemaView(resolver, schema))
+            .collect(Collectors.toList())
+            : null;
+        this.anyOf = resolved.anyOf != null
+            ? resolved.anyOf.stream()
+            .map(schema -> new AsyncapiSchemaView(resolver, schema))
+            .collect(Collectors.toList())
+            : null;
+        this.discriminator = resolved.discriminator;
     }
 }

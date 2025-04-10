@@ -41,6 +41,10 @@ public final class OpenapiSchemaView
     public final Integer maximum;
     public final List<String> values;
     public final OpenapiSchemaView schema;
+    public final List<OpenapiSchemaView> oneOf;
+    public final List<OpenapiSchemaView> allOf;
+    public final List<OpenapiSchemaView> anyOf;
+    public final Map<String, String> discriminator;
 
     OpenapiSchemaView(
         OpenapiResolver resolver,
@@ -74,6 +78,22 @@ public final class OpenapiSchemaView
         this.schema = resolved.schema != null
             ? new OpenapiSchemaView(resolver, resolved.schema)
             : null;
+        this.oneOf = resolved.oneOf != null
+            ? resolved.oneOf.stream()
+                .map(schema -> new OpenapiSchemaView(resolver, schema))
+                .collect(Collectors.toList())
+            : null;
+        this.allOf = resolved.allOf != null
+            ? resolved.allOf.stream()
+            .map(schema -> new OpenapiSchemaView(resolver, schema))
+            .collect(Collectors.toList())
+            : null;
+        this.anyOf = resolved.anyOf != null
+            ? resolved.anyOf.stream()
+            .map(schema -> new OpenapiSchemaView(resolver, schema))
+            .collect(Collectors.toList())
+            : null;
+        this.discriminator = resolved.discriminator;
     }
 
     @JsonbPropertyOrder({
@@ -98,7 +118,11 @@ public final class OpenapiSchemaView
         "uniqueItems",
         "maxProperties",
         "minProperties",
-        "schema"
+        "schema",
+        "oneOf",
+        "allOf",
+        "anyOf",
+        "discriminator"
     })
     public static final class OpenapiJsonSchema
     {
@@ -125,6 +149,10 @@ public final class OpenapiSchemaView
         public Integer maxProperties;
         public Integer minProperties;
         public OpenapiJsonSchema schema;
+        public List<OpenapiSchema> oneOf;
+        public List<OpenapiSchema> allOf;
+        public List<OpenapiSchema> anyOf;
+        public Map<String, String> discriminator;
 
         public static OpenapiJsonSchema of(
             OpenapiSchema model)
@@ -155,7 +183,10 @@ public final class OpenapiSchemaView
             json.maxProperties = model.maxProperties;
             json.minProperties = model.minProperties;
             json.schema = model.schema != null ? of(model.schema) : null;
-
+            json.oneOf = model.oneOf;
+            json.allOf = model.allOf;
+            json.anyOf = model.anyOf;
+            json.discriminator = model.discriminator;
             return json;
         }
     }
