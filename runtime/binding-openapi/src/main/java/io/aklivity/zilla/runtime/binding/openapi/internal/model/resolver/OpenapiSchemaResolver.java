@@ -60,6 +60,16 @@ public final class OpenapiSchemaResolver
             resolved.oneOf = resolved.oneOf.stream().map(v -> resolve(v)).collect(toList());
         }
 
+        if (resolved.allOf != null)
+        {
+            resolved.allOf = resolved.allOf.stream().map(v -> resolve(v)).collect(toList());
+        }
+
+        if (resolved.anyOf != null)
+        {
+            resolved.anyOf = resolved.anyOf.stream().map(v -> resolve(v)).collect(toList());
+        }
+
         return resolved;
     }
 
