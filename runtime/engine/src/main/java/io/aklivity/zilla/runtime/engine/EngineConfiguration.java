@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
+import static java.lang.Math.min;
+import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.agrona.BitUtil.findNextPositivePowerOfTwo;
 
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -379,30 +379,49 @@ public class EngineConfiguration extends Configuration
     private static int defaultWorkersCapacity(
         Configuration config)
     {
-        OperatingSystemMXBean osBean =
-            (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) getOperatingSystemMXBean();
 
-        final int workers = ENGINE_WORKERS.getAsInt(config);
-        final long totalMemorySize = osBean.getTotalMemorySize();
+        long totalMemory = osBean.getTotalMemorySize();
+        double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
+        long availableMemory = (long) (percentMemory * totalMemory);
 
-        final int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-        final double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
-        final int totalEventsBufferCapacity = ENGINE_EVENTS_BUFFER_CAPACITY.get(config) * workers;
-
-        long maxMemoryBufferCapacity = (long) (percentMemory * totalMemorySize) - totalEventsBufferCapacity;
         Path directory = Paths.get(ENGINE_DIRECTORY.get(config));
-        long usableDiskSpace = directory.toFile().getUsableSpace();
-
+        long usableDisk = directory.toFile().getUsableSpace();
         double percentDisk = ENGINE_DISK_PERCENTAGE.get(config);
-        long maxDiskBufferCapacity = (long) (percentDisk * usableDiskSpace);
-        long maxBufferCapacity = Math.min(maxMemoryBufferCapacity, maxDiskBufferCapacity);
+        long availableDisk = (long) (percentDisk * usableDisk);
 
-        long budgetBufferCapacity = Math.min(BudgetsLayout.SIZEOF_BUDGET_ENTRY * workers, Integer.MAX_VALUE);
-        long poolBufferCapacity = Math.min(slotCapacity * workers, Integer.MAX_VALUE);
-        long streamsBufferCapacity = Math.min(slotCapacity * workers, Integer.MAX_VALUE) + RingBufferDescriptor.TRAILER_LENGTH;
-        long totalBufferCapacity = poolBufferCapacity + streamsBufferCapacity + budgetBufferCapacity;
+        long maxMemory = Math.min(availableMemory, availableDisk);
 
-        int newWorkersCapacity = (int) (maxBufferCapacity / totalBufferCapacity);
+        int workers = ENGINE_WORKERS.getAsInt(config);
+        long workerMemory = maxMemory / workers;
+
+        int eventsBufferSize = ENGINE_EVENTS_BUFFER_CAPACITY.get(config);
+        int bufferSlotSize = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+
+        int budgetsEntrySize = BudgetsLayout.SIZEOF_BUDGET_ENTRY;
+        int bufferPoolEntrySize = bufferSlotSize + Long.BYTES;
+        int streamsEntrySize = bufferSlotSize;
+        int aggregateEntrySize = bufferSlotSize + budgetsEntrySize + streamsEntrySize;
+
+        int bufferPoolMetadataSize = Integer.BYTES;
+        int budgetsMetadataSize = 0;
+        int streamsMetadataSize = RingBufferDescriptor.TRAILER_LENGTH;
+        int aggregateMetadataSize = bufferPoolMetadataSize + budgetsMetadataSize + streamsMetadataSize;
+
+        long workerEntriesMemory = workerMemory - eventsBufferSize - aggregateMetadataSize;
+        long workerEntriesCount = workerEntriesMemory / aggregateEntrySize;
+
+        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+
+        assert bufferPoolMaxSize + budgetsMaxSize + streamsMaxSize <= workerEntriesMemory;
+
+        int bufferPoolMaxCapacity = (int) (bufferPoolMaxSize / bufferPoolEntrySize);
+        int budgetsMaxCapacity = (int) (budgetsMaxSize / budgetsEntrySize);
+        int streamsMaxCapacity = (int) (streamsMaxSize / streamsEntrySize);
+
+        int newWorkersCapacity = Integer.highestOneBit(min(min(bufferPoolMaxCapacity, budgetsMaxCapacity), streamsMaxCapacity));
 
         return newWorkersCapacity;
     }
