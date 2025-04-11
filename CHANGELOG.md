@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.135](https://github.com/aklivity/zilla/tree/0.9.135) (2025-04-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.134...0.9.135)
+
+**Fixed bugs:**
+
+- Miscalculating default worker capacity [\#1456](https://github.com/aklivity/zilla/issues/1456)
+- Problem with oneOf ref in schema [\#1418](https://github.com/aklivity/zilla/issues/1418)
+
+**Merged pull requests:**
+
+- Fix default worker capacity [\#1455](https://github.com/aklivity/zilla/pull/1455) ([akrambek](https://github.com/akrambek))
+- support `oneOf` `allOf` & `anyOf` schema in `binding-openapi` & `binding-asyncapi` [\#1454](https://github.com/aklivity/zilla/pull/1454) ([ankitk-me](https://github.com/ankitk-me))
+- Add `test.sh` for `amqp.reflect` & skip fix required examples [\#1452](https://github.com/aklivity/zilla/pull/1452) ([ankitk-me](https://github.com/ankitk-me))
+- enable Incubator features : zilla examples [\#1451](https://github.com/aklivity/zilla/pull/1451) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.134](https://github.com/aklivity/zilla/tree/0.9.134) (2025-04-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.133...0.9.134)
