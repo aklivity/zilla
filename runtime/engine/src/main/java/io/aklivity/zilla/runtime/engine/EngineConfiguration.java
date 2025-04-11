@@ -411,15 +411,15 @@ public class EngineConfiguration extends Configuration
         long workerEntriesMemory = workerMemory - eventsBufferSize - aggregateMetadataSize;
         long workerEntriesCount = workerEntriesMemory / aggregateEntrySize;
 
-        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount, Integer.MAX_VALUE);
-        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
-        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount + bufferPoolMetadataSize, Integer.MAX_VALUE);
+        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount + budgetsMetadataSize, Integer.MAX_VALUE);
+        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount + streamsMetadataSize, Integer.MAX_VALUE);
 
         assert bufferPoolMaxSize + budgetsMaxSize + streamsMaxSize <= workerEntriesMemory;
 
-        int bufferPoolMaxCapacity = (int) (bufferPoolMaxSize / bufferPoolEntrySize);
-        int budgetsMaxCapacity = (int) (budgetsMaxSize / budgetsEntrySize);
-        int streamsMaxCapacity = (int) (streamsMaxSize / streamsEntrySize);
+        int bufferPoolMaxCapacity = (int) ((bufferPoolMaxSize - bufferPoolMetadataSize) / bufferPoolEntrySize);
+        int budgetsMaxCapacity = (int) ((budgetsMaxSize - budgetsMetadataSize) / budgetsEntrySize);
+        int streamsMaxCapacity = (int) ((streamsMaxSize - streamsMetadataSize) / streamsEntrySize);
 
         int newWorkersCapacity = Integer.highestOneBit(min(min(bufferPoolMaxCapacity, budgetsMaxCapacity), streamsMaxCapacity));
 
