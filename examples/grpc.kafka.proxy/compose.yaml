@@ -15,6 +15,7 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
       ECHO_SERVER_HOST: grpc-echo
       ECHO_SERVER_PORT: 50051
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e

@@ -35,6 +35,8 @@ OUTPUT=$(cat output.out)
 COUNT1=$(echo "$OUTPUT" | grep -Fx "$INPUT1" | wc -l)
 COUNT2=$(echo "$OUTPUT" | grep -Fx "$INPUT2" | wc -l)
 
+rm -f output.out
+
 if [ "$RESULT1" -eq 0 ] && [ "$RESULT2" -eq 0 ] && [ "$COUNT1" -eq 2 ] && [ "$COUNT2" -eq 2 ]; then
   echo ✅
 else

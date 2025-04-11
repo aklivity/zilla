@@ -17,6 +17,11 @@ services:
       - ./etc:/etc/zilla
     command: start -v -e
 
+  cli-rhea:
+    image: kornysd/cli-rhea
+    tty: true
+    stdin_open: true
+
 networks:
   default:
     driver: bridge

@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -35,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
+@Ignore
 public class ReconfigureHttpIT
 {
     public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";

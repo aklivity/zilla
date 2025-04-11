@@ -86,6 +86,22 @@ catalogs:
             name:
               type: string
               description: Pet name.
+            Pet:
+              oneOf:
+               - $ref: '#/components/schemas/petPayload'
+               - $ref: '#/components/schemas/adoptedPetPayload'
+            adoptedPetPayload:
+              type: object
+              properties:
+                adopterId:
+                  type: integer
+                  minimum: 0
+                  description: Pet id.
+                adopterName:
+                  $ref: '#/components/schemas/name'
+                tag:
+                  type: string
+                  description: Tag.           
             petPayload:
               type: object
               properties:
@@ -114,7 +130,7 @@ catalogs:
                     type: string
                     format: /pets;cid={correlationId}
               payload:
-                $ref: '#/components/schemas/petPayload'
+                $ref: '#/components/schemas/Pet'
 bindings:
   composite0:
     type: asyncapi

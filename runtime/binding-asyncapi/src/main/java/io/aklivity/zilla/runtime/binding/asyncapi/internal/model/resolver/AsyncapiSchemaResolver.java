@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
@@ -60,6 +61,21 @@ public final class AsyncapiSchemaResolver
         {
             resolved.properties = resolved.properties.entrySet().stream()
                 .collect(toMap(Map.Entry::getKey, entry -> resolve(entry.getValue())));
+        }
+
+        if (resolved.oneOf != null)
+        {
+            resolved.oneOf = resolved.oneOf.stream().map(v -> resolve(v)).collect(toList());
+        }
+
+        if (resolved.allOf != null)
+        {
+            resolved.allOf = resolved.allOf.stream().map(v -> resolve(v)).collect(toList());
+        }
+
+        if (resolved.anyOf != null)
+        {
+            resolved.anyOf = resolved.anyOf.stream().map(v -> resolve(v)).collect(toList());
         }
 
         return resolved;

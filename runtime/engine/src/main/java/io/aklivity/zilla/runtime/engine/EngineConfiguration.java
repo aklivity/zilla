@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
+import static java.lang.Math.min;
+import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.agrona.BitUtil.findNextPositivePowerOfTwo;
 
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -38,6 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.agrona.LangUtil;
+import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import com.sun.management.OperatingSystemMXBean;
 
@@ -60,6 +61,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
     public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
     public static final DoublePropertyDef ENGINE_MEMORY_PERCENTAGE;
+    public static final DoublePropertyDef ENGINE_DISK_PERCENTAGE;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
     public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
@@ -106,7 +108,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
-        ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.75);
+        ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.25);
+        ENGINE_DISK_PERCENTAGE = config.property("disk.percentage", 0.75);
         ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 32 * 1024);
@@ -370,32 +373,55 @@ public class EngineConfiguration extends Configuration
     private static int defaultBudgetsBufferCapacity(
         Configuration config)
     {
-        // more consistent with original defaults
-        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512 * ENGINE_WORKER_CAPACITY.getAsInt(config);
+        return BudgetsLayout.SIZEOF_BUDGET_ENTRY * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
     private static int defaultWorkersCapacity(
         Configuration config)
     {
-        OperatingSystemMXBean osBean =
-            (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) getOperatingSystemMXBean();
 
-        final int numberOfCores = osBean.getAvailableProcessors();
-        final long totalMemorySize = osBean.getTotalMemorySize();
+        long totalMemory = osBean.getTotalMemorySize();
+        double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
+        long availableMemory = (long) (percentMemory * totalMemory);
 
-        final int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-        final double percentMemory = ENGINE_MEMORY_PERCENTAGE.get(config);
+        Path directory = Paths.get(ENGINE_DIRECTORY.get(config));
+        long usableDisk = directory.toFile().getUsableSpace();
+        double percentDisk = ENGINE_DISK_PERCENTAGE.get(config);
+        long availableDisk = (long) (percentDisk * usableDisk);
 
-        long maxAllowedForBuffers = (long) (percentMemory * totalMemorySize);
+        long maxMemory = Math.min(availableMemory, availableDisk);
 
-        // Streams + Pool
-        long bufferCapacity = slotCapacity + slotCapacity;
-        long eventsBufferCapacity = ENGINE_EVENTS_BUFFER_CAPACITY.get(config);
-        long budgetBufferCapacity = BudgetsLayout.SIZEOF_BUDGET_ENTRY * 512L;
-        long totalBufferCapacity = numberOfCores * (bufferCapacity + budgetBufferCapacity + eventsBufferCapacity);
-        int newWorkersCapacity = (int) (maxAllowedForBuffers / totalBufferCapacity);
+        int workers = ENGINE_WORKERS.getAsInt(config);
+        long workerMemory = maxMemory / workers;
 
-        newWorkersCapacity = findNextPositivePowerOfTwo(newWorkersCapacity);
+        int eventsBufferSize = ENGINE_EVENTS_BUFFER_CAPACITY.get(config);
+        int bufferSlotSize = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
+
+        int budgetsEntrySize = BudgetsLayout.SIZEOF_BUDGET_ENTRY;
+        int bufferPoolEntrySize = bufferSlotSize + Long.BYTES;
+        int streamsEntrySize = bufferSlotSize;
+        int aggregateEntrySize = bufferSlotSize + budgetsEntrySize + streamsEntrySize;
+
+        int bufferPoolMetadataSize = Integer.BYTES;
+        int budgetsMetadataSize = 0;
+        int streamsMetadataSize = RingBufferDescriptor.TRAILER_LENGTH;
+        int aggregateMetadataSize = bufferPoolMetadataSize + budgetsMetadataSize + streamsMetadataSize;
+
+        long workerEntriesMemory = workerMemory - eventsBufferSize - aggregateMetadataSize;
+        long workerEntriesCount = workerEntriesMemory / aggregateEntrySize;
+
+        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount + bufferPoolMetadataSize, Integer.MAX_VALUE);
+        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount + budgetsMetadataSize, Integer.MAX_VALUE);
+        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount + streamsMetadataSize, Integer.MAX_VALUE);
+
+        assert bufferPoolMaxSize + budgetsMaxSize + streamsMaxSize <= workerEntriesMemory;
+
+        int bufferPoolMaxCapacity = (int) ((bufferPoolMaxSize - bufferPoolMetadataSize) / bufferPoolEntrySize);
+        int budgetsMaxCapacity = (int) ((budgetsMaxSize - budgetsMetadataSize) / budgetsEntrySize);
+        int streamsMaxCapacity = (int) ((streamsMaxSize - streamsMetadataSize) / streamsEntrySize);
+
+        int newWorkersCapacity = Integer.highestOneBit(min(min(bufferPoolMaxCapacity, budgetsMaxCapacity), streamsMaxCapacity));
 
         return newWorkersCapacity;
     }

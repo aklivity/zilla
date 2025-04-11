@@ -11,6 +11,8 @@ services:
       timeout: 3s
       retries: 5
       test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/12345"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
