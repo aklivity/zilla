@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType.SETTINGS;
+import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting.ENABLE_CONNECT_PROTOCOL;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting.ENABLE_PUSH;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting.HEADER_TABLE_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting.INITIAL_WINDOW_SIZE;
@@ -238,6 +239,13 @@ public class Http2SettingsFW extends Http2FrameFW
             addSetting(x -> x.setting(MAX_HEADER_LIST_SIZE.id(), size));
             return this;
         }
+
+        public Builder enableConnectProtocol()
+        {
+            addSetting(x -> x.setting(ENABLE_CONNECT_PROTOCOL.id(), 1L));
+            return this;
+        }
+
 
         private Builder addSetting(Consumer<Http2SettingFW.Builder> mutator)
         {
