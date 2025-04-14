@@ -17,8 +17,11 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
@@ -32,14 +35,17 @@ public final class MqttRouteConfig
     private final List<MqttConditionMatcher> when;
     private final MqttWithConfig with;
     private final LongPredicate authorized;
+    private final Map<String, LongFunction<String>> identities;
 
     public MqttRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
+        this.identities = route.guarded.stream()
+            .collect(toMap(g -> g.name, g -> g.identity));
         this.when = route.when.stream()
             .map(MqttConditionConfig.class::cast)
-            .map(MqttConditionMatcher::new)
+            .map(c -> new MqttConditionMatcher(this::identity, c))
             .collect(toList());
         this.with = (MqttWithConfig) route.with;
         this.authorized = route.authorized;
@@ -56,6 +62,12 @@ public final class MqttRouteConfig
         return authorized.test(authorization);
     }
 
+    LongFunction<String> identity(
+        String guard)
+    {
+        return identities.get(guard);
+    }
+
     boolean matchesSession(
         String clientId)
     {
@@ -63,14 +75,16 @@ public final class MqttRouteConfig
     }
 
     boolean matchesSubscribe(
+        long authorization,
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(authorization, topic));
     }
 
     boolean matchesPublish(
+        long authorization,
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPublish(authorization, topic));
     }
 }

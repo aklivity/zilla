@@ -436,4 +436,22 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.topic.guarded.identity.param/client",
+        "${net}/publish.topic.guarded.identity.param/server"})
+    public void shouldPublishToTopicWithGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.invalid.topic.guarded.identity.param/client",
+        "${net}/publish.invalid.topic.guarded.identity.param/server"})
+    public void shouldRejectTopicWithInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
 }

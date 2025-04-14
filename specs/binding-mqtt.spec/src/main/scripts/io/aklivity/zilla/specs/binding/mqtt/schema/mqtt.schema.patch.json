@@ -85,6 +85,20 @@
                                                             "title": "Topic",
                                                             "type": "string",
                                                             "pattern": "^(\\/?([\\w{}-]*|\\+)(\\/((?![-_])[\\w{}-]*|\\+))*(\\/#)?|#|\\/|\\$SYS(\\/((?![-_])[\\w{}-]*|\\+))*(\\/#)?)$"
+                                                        },
+                                                        "params":
+                                                        {
+                                                            "title": "Params",
+                                                            "type": "object",
+                                                            "additionalProperties": false,
+                                                            "patternProperties":
+                                                            {
+                                                                "^[a-zA-Z0-9]+$":
+                                                                {
+                                                                    "type": "string",
+                                                                    "pattern": "^[a-zA-Z0-9{}\\[\\]\\.\\$']*$"
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -97,11 +111,27 @@
                                                 {
                                                     "type": "object",
                                                     "additionalProperties": false,
-                                                    "properties": {
-                                                        "topic": {
+                                                    "properties":
+                                                    {
+                                                        "topic":
+                                                        {
                                                             "title": "Topic",
                                                             "type": "string",
                                                             "pattern": "^(\\/?([\\w{}-]*|\\+)(\\/((?![-_])[\\w{}-]*|\\+))*(\\/#)?|#|\\/|\\$SYS(\\/((?![-_])[\\w{}-]*|\\+))*(\\/#)?)$"
+                                                        },
+                                                        "params":
+                                                        {
+                                                            "title": "Params",
+                                                            "type": "object",
+                                                            "additionalProperties": false,
+                                                            "patternProperties":
+                                                            {
+                                                                "^[a-zA-Z0-9]+$":
+                                                                {
+                                                                    "type": "string",
+                                                                    "pattern": "^[a-zA-Z0-9{}\\[\\]\\.\\$']*$"
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
