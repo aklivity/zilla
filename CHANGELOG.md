@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.135...HEAD)
+
+**Implemented enhancements:**
+
+- Support mqtt topics with path parameters required to match guarded identity [\#1382](https://github.com/aklivity/zilla/issues/1382)
+
+**Merged pull requests:**
+
+- Use distinct idle strategy instance per agent [\#1457](https://github.com/aklivity/zilla/pull/1457) ([jfallows](https://github.com/jfallows))
+- Bump ubuntu from jammy-20250126 to jammy-20250404 in /cloud/docker-image/src/main/docker [\#1453](https://github.com/aklivity/zilla/pull/1453) ([dependabot[bot]](https://github.com/apps/dependabot))
+- MQTT topics with path parameters required to match guarded identity [\#1387](https://github.com/aklivity/zilla/pull/1387) ([epieffe](https://github.com/epieffe))
+
 ## [0.9.135](https://github.com/aklivity/zilla/tree/0.9.135) (2025-04-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.134...0.9.135)
