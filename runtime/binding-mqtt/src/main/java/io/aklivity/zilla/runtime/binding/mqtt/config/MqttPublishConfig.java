@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 
 import static java.util.function.Function.identity;
 
+import java.util.List;
 import java.util.function.Function;
 
 public class MqttPublishConfig
 {
     public final String topic;
+
+    public final List<MqttTopicParamConfig> params;
 
     public static MqttPublishConfigBuilder<MqttPublishConfig> builder()
     {
@@ -35,8 +38,10 @@ public class MqttPublishConfig
     }
 
     MqttPublishConfig(
-        String topic)
+        String topic,
+        List<MqttTopicParamConfig> params)
     {
         this.topic = topic;
+        this.params = params;
     }
 }

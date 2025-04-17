@@ -219,7 +219,7 @@ public class EngineWorker implements EngineContext, Agent
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
     private final AgentRunner runner;
-    private final IdleStrategy idleStrategy;
+    private final Supplier<IdleStrategy> supplyIdleStrategy;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
     private final ScalarsLayout countersLayout;
@@ -266,7 +266,7 @@ public class EngineWorker implements EngineContext, Agent
         this.labels = labels;
         this.affinityMask = affinityMask;
 
-        final IdleStrategy idleStrategy = new BackoffIdleStrategy(
+        this.supplyIdleStrategy = () -> new BackoffIdleStrategy(
                 config.maxSpins(),
                 config.maxYields(),
                 config.minParkNanos(),
@@ -320,7 +320,7 @@ public class EngineWorker implements EngineContext, Agent
         this.agentName = String.format("engine/data#%d", index);
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
-        this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
+        this.runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, this);
 
         this.resolveHost = config.hostResolver();
         this.timestamps = config.timestamps();
@@ -452,7 +452,6 @@ public class EngineWorker implements EngineContext, Agent
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
-        this.idleStrategy = idleStrategy;
         this.reporter = config.errorReporter();
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
@@ -979,7 +978,7 @@ public class EngineWorker implements EngineContext, Agent
             ExporterRegistry exporter = registry.resolveExporter(exporterId);
             ExporterHandler handler = exporter.handler();
             ExporterAgent agent = new ExporterAgent(exporterId, handler);
-            AgentRunner runner = new AgentRunner(idleStrategy, errorHandler, null, agent);
+            AgentRunner runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, agent);
             AgentRunner.startOnThread(runner);
             exportersById.put(exporterId, runner);
         }

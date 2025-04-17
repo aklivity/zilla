@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -24,6 +26,8 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
     private final Function<MqttSubscribeConfig, T> mapper;
 
     private String topic;
+
+    private List<MqttTopicParamConfig> params;
 
     MqttSubscribeConfigBuilder(
         Function<MqttSubscribeConfig, T> mapper)
@@ -45,9 +49,25 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
         return this;
     }
 
+    public MqttSubscribeConfigBuilder<T> param(
+        MqttTopicParamConfig param)
+    {
+        if (this.params == null)
+        {
+            this.params = new ArrayList<>();
+        }
+        this.params.add(param);
+        return this;
+    }
+
+    public MqttTopicParamConfigBuilder<MqttSubscribeConfigBuilder<T>> param()
+    {
+        return new MqttTopicParamConfigBuilder<>(this::param);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new MqttSubscribeConfig(topic));
+        return mapper.apply(new MqttSubscribeConfig(topic, params));
     }
 }

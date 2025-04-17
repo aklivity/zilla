@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicParamConfig;
 
 public class MqttConditionConfigAdapterTest
 {
@@ -61,6 +62,12 @@ public class MqttConditionConfigAdapterTest
                     "{" +
                         "\"topic\": \"reply/two\"" +
                     "}," +
+                    "{" +
+                        "\"topic\": \"reply/{id}\"," +
+                        "\"params\": {" +
+                            "\"id\": \"${guarded['jwt'].identity}\"" +
+                        "}" +
+                    "}," +
                 "]," +
                 "\"publish\":" +
                 "[" +
@@ -69,7 +76,13 @@ public class MqttConditionConfigAdapterTest
                     "}," +
                     "{" +
                         "\"topic\": \"command/two\"" +
-                    "}" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"command/{id}\"," +
+                        "\"params\": {" +
+                            "\"id\": \"${guarded['jwt'].identity}\"" +
+                        "}" +
+                    "}," +
                 "]" +
             "}";
 
@@ -81,9 +94,15 @@ public class MqttConditionConfigAdapterTest
         assertThat(condition.subscribes, not(nullValue()));
         assertThat(condition.subscribes.get(0).topic, equalTo("reply/one"));
         assertThat(condition.subscribes.get(1).topic, equalTo("reply/two"));
+        assertThat(condition.subscribes.get(2).topic, equalTo("reply/{id}"));
+        assertThat(condition.subscribes.get(2).params.get(0).name, equalTo("id"));
+        assertThat(condition.subscribes.get(2).params.get(0).value, equalTo("${guarded['jwt'].identity}"));
         assertThat(condition.publishes, not(nullValue()));
         assertThat(condition.publishes.get(0).topic, equalTo("command/one"));
         assertThat(condition.publishes.get(1).topic, equalTo("command/two"));
+        assertThat(condition.publishes.get(2).topic, equalTo("command/{id}"));
+        assertThat(condition.publishes.get(2).params.get(0).name, equalTo("id"));
+        assertThat(condition.publishes.get(2).params.get(0).value, equalTo("${guarded['jwt'].identity}"));
     }
 
     @Test
@@ -100,18 +119,72 @@ public class MqttConditionConfigAdapterTest
             .subscribe()
                 .topic("reply/two")
                 .build()
+            .subscribe()
+                .topic("reply/{id}")
+                .param(MqttTopicParamConfig.builder()
+                    .name("id")
+                    .value("${guarded['jwt'].identity}")
+                    .build())
+                .build()
             .publish()
                 .topic("command/one")
                 .build()
             .publish()
                 .topic("command/two")
                 .build()
+            .publish()
+                .topic("command/{id}")
+                .param(MqttTopicParamConfig.builder()
+                    .name("id")
+                    .value("${guarded['jwt'].identity}")
+                    .build())
+                .build()
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"session\":[{\"client-id\":\"client-1\"}],\"subscribe\":[{\"topic\":\"reply/one\"}," +
-            "{\"topic\":\"reply/two\"}],\"publish\":[{\"topic\":\"command/one\"},{\"topic\":\"command/two\"}]}"));
+        assertThat(text, equalTo("""
+            {
+                "session":
+                [
+                    {
+                        "client-id":"client-1"
+                    }
+                ],
+                "subscribe":
+                [
+                    {
+                        "topic":"reply/one"
+                    },
+                    {
+                        "topic":"reply/two"
+                    },
+                    {
+                        "topic":"reply/{id}",
+                        "params":
+                        {
+                            "id":"${guarded['jwt'].identity}"
+                        }
+                    }
+                ],
+                "publish":
+                [
+                    {
+                        "topic":"command/one"
+                    },
+                    {
+                        "topic":"command/two"
+                    },
+                    {
+                        "topic":"command/{id}",
+                        "params":
+                        {
+                            "id":"${guarded['jwt'].identity}"
+                        }
+                    }
+                ]
+            }
+            """.replaceAll("\\s*\\n\\s*", "")));
     }
 }

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -24,6 +26,8 @@ public class MqttPublishConfigBuilder<T> extends ConfigBuilder<T, MqttPublishCon
     private final Function<MqttPublishConfig, T> mapper;
 
     private String topic;
+
+    private List<MqttTopicParamConfig> params;
 
     MqttPublishConfigBuilder(
         Function<MqttPublishConfig, T> mapper)
@@ -45,9 +49,25 @@ public class MqttPublishConfigBuilder<T> extends ConfigBuilder<T, MqttPublishCon
         return this;
     }
 
+    public MqttPublishConfigBuilder<T> param(
+        MqttTopicParamConfig param)
+    {
+        if (this.params == null)
+        {
+            this.params = new ArrayList<>();
+        }
+        this.params.add(param);
+        return this;
+    }
+
+    public MqttTopicParamConfigBuilder<MqttPublishConfigBuilder<T>> param()
+    {
+        return new MqttTopicParamConfigBuilder<>(this::param);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new MqttPublishConfig(topic));
+        return mapper.apply(new MqttPublishConfig(topic, params));
     }
 }
