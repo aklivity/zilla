@@ -1279,8 +1279,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         {
             assert TlsState.initialOpened(state);
 
-            // TODO: consider encodePool capacity
-            int initialAckMax = (int)(initialSeq - client.initialPendingAck());
+            long initialAckMax = initialSeq - client.initialPendingAck();
             if (initialAckMax > initialAck)
             {
                 initialAck = initialAckMax;
