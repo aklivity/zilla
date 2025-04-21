@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.137](https://github.com/aklivity/zilla/tree/0.9.137) (2025-04-21)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.136...0.9.137)
+
+**Merged pull requests:**
+
+- Use long not int when calculating ack max [\#1458](https://github.com/aklivity/zilla/pull/1458) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.136](https://github.com/aklivity/zilla/tree/0.9.136) (2025-04-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.135...0.9.136)
