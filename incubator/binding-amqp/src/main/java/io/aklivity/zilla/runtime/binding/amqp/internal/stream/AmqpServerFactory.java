@@ -4084,7 +4084,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         final int padding = PAYLOAD_HEADER_SIZE + (TRANSFER_HEADER_SIZE * maxFrameCount);
                         final int replyBudget = linkCredit * encodeMaxFrameSize;
                         final int replyPendingAck = Math.max(replyMax - replyBudget, 0);
-                        final int replyAckMax = (int)(replySeq - replyPendingAck);
+                        final long replyAckMax = replySeq - replyPendingAck;
                         final int replyBudgetMax = replyBudget + replyPendingAck;
 
                         if (replyAckMax > replyAck || replyBudgetMax != replyMax)
