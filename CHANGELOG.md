@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.135...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.136...HEAD)
+
+**Merged pull requests:**
+
+- Use long not int when calculating ack max [\#1458](https://github.com/aklivity/zilla/pull/1458) ([jfallows](https://github.com/jfallows))
+
+## [0.9.136](https://github.com/aklivity/zilla/tree/0.9.136) (2025-04-17)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.135...0.9.136)
 
 **Implemented enhancements:**
 

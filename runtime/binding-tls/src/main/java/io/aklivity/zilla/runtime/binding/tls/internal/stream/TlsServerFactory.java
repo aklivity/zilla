@@ -2353,8 +2353,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void flushAppWindow(
                 long traceId)
             {
-                // TODO: consider encodePool capacity
-                int replyAckMax = (int)(replySeq - TlsServer.this.replyPendingAck());
+                long replyAckMax = replySeq - TlsServer.this.replyPendingAck();
                 if (replyAckMax > replyAck)
                 {
                     replyAck = replyAckMax;
