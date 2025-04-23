@@ -114,7 +114,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
     private final TlsClientDecoder decodeHandshake = this::decodeHandshake;
     private final TlsClientDecoder decodeHandshakeFinished = this::decodeHandshakeFinished;
-    private final TlsClientDecoder decodeHandshakeNeedTask = this::decodeHandshakeNeedTask;
     private final TlsClientDecoder decodeHandshakeNeedUnwrap = this::decodeHandshakeNeedUnwrap;
     private final TlsClientDecoder decodeHandshakeNeedWrap = this::decodeHandshakeNeedWrap;
     private final TlsClientDecoder decodeNotHandshaking = this::decodeNotHandshaking;
@@ -524,7 +523,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             client.decoder = decodeHandshakeFinished;
             break;
         case NEED_TASK:
-            client.decoder = decodeHandshakeNeedTask;
+            client.onDecodeHandshakeNeedTask(traceId);
             break;
         case NEED_WRAP:
             client.decoder = decodeHandshakeNeedWrap;
@@ -746,21 +745,6 @@ public final class TlsClientFactory implements TlsStreamFactory
         int limit)
     {
         client.onDecodeHandshakeFinished(traceId, budgetId);
-        client.decoder = decodeHandshake;
-        return progress;
-    }
-
-    private int decodeHandshakeNeedTask(
-        TlsStream.TlsClient client,
-        long traceId,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        client.onDecodeHandshakeNeedTask(traceId);
         client.decoder = decodeHandshake;
         return progress;
     }
@@ -1928,7 +1912,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             {
                 TlsClientDecoder previous = null;
                 int progress = offset;
-                while (progress <= limit && previous != decoder && handshakeTaskFutureId == NO_CANCEL_ID)
+                while (progress <= limit && previous != decoder)
                 {
                     previous = decoder;
                     progress = decoder.decode(this, traceId, budgetId, reserved, buffer, offset, progress, limit);
