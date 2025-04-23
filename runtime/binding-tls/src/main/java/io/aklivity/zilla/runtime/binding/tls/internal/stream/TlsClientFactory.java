@@ -1520,7 +1520,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     cleanupDecodeSlot();
 
-                    cancelHandshakeTask();
                     cancelHandshakeTimeout();
 
                     doAppAbort(traceId);
@@ -1560,7 +1559,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
 
                 doAppAbort(traceId);
@@ -1586,8 +1584,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert initialAck <= initialSeq;
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
 
                 doAppReset(traceId);
                 doAppAbort(traceId);
@@ -1780,8 +1776,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
             }
 
             private void doNetAbort(
@@ -1795,8 +1789,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
             }
 
             private void doNetFlush(
@@ -1820,7 +1812,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
             }
 
@@ -2207,16 +2198,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     signaler.cancel(handshakeTimeoutFutureId);
                     handshakeTimeoutFutureId = NO_CANCEL_ID;
-                }
-            }
-
-            private void cancelHandshakeTask()
-            {
-                if (TlsState.closed(state) &&
-                    handshakeTaskFutureId != NO_CANCEL_ID)
-                {
-                    signaler.cancel(handshakeTaskFutureId);
-                    handshakeTaskFutureId = NO_CANCEL_ID;
                 }
             }
         }

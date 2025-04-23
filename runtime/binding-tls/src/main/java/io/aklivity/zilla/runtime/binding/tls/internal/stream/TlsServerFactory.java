@@ -1225,7 +1225,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
 
                 stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1263,7 +1262,6 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             cleanupDecodeSlot();
 
-            cancelHandshakeTask();
             cancelHandshakeTimeout();
 
             stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1289,8 +1287,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert replyAck <= replySeq;
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
 
             stream.ifPresent(s -> s.doAppReset(traceId));
             stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1429,8 +1425,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
         }
 
         private void doNetAbort(
@@ -1443,8 +1437,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
         }
 
         private void doNetFlush(
@@ -1469,7 +1461,6 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             cleanupDecodeSlot();
 
-            cancelHandshakeTask();
             cancelHandshakeTimeout();
         }
 
@@ -1855,16 +1846,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 signaler.cancel(handshakeTimeoutFutureId);
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
-            }
-        }
-
-        private void cancelHandshakeTask()
-        {
-            if (TlsState.closed(state) &&
-                handshakeTaskFutureId != NO_CANCEL_ID)
-            {
-                signaler.cancel(handshakeTaskFutureId);
-                handshakeTaskFutureId = NO_CANCEL_ID;
             }
         }
 
