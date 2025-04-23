@@ -1860,7 +1860,8 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         private void cancelHandshakeTask()
         {
-            if (handshakeTaskFutureId != NO_CANCEL_ID)
+            if (TlsState.closed(state) &&
+                handshakeTaskFutureId != NO_CANCEL_ID)
             {
                 signaler.cancel(handshakeTaskFutureId);
                 handshakeTaskFutureId = NO_CANCEL_ID;
