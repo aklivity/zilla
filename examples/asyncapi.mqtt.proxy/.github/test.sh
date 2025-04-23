@@ -5,16 +5,42 @@ EXIT=0
 
 # GIVEN
 PORT="7183"
-INPUT="Hello, Zilla!"
-EXPECTED=""
-echo \# Testing asyncapi.sse.kafka.proxy/
+INPUT='{"id":"1","status":"on"}'
+EXPECTED='{"id":"1","status":"on"}'
+echo \# Testing asyncapi.mqtt.proxy
 echo PORT="$PORT"
 echo INPUT="$INPUT"
 echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(echo "$INPUT" | nc -w 1 localhost $PORT)
+
+for i in $(seq 1 5); do
+  docker compose -p zilla-asyncapi-mqtt-proxy exec -T mosquitto-cli \
+      mosquitto_pub --url mqtt://zilla.examples.dev:"$PORT"/zilla --message "Test"
+
+  if [ $? -eq 0 ]; then
+    echo "✅ Zilla is reachable."
+    break
+  fi
+
+  sleep 2
+done
+
+OUTPUT=$(
+  docker compose -p zilla-asyncapi-mqtt-proxy exec -T mosquitto-cli \
+    timeout 5s mosquitto_sub --url mqtt://zilla.examples.dev:"$PORT"/smartylighting/streetlights/1/0/event/+/lighting/measured &
+
+  SUB_PID=$!
+
+  sleep 1
+
+  docker compose -p zilla-asyncapi-mqtt-proxy exec -T mosquitto-cli \
+    mosquitto_pub --url mqtt://zilla.examples.dev:"$PORT"/smartylighting/streetlights/1/0/event/1/lighting/measured --message "$INPUT"
+
+  wait $SUB_PID
+)
+
 RESULT=$?
 echo RESULT="$RESULT"
 
@@ -28,10 +54,5 @@ else
   echo ❌
   EXIT=1
 fi
-
-# TODO remove once fixed
-echo '❌ Tested on main. and does not work with described instructions'
-echo 'Refer: https://github.com/aklivity/zilla/issues/1416'
-EXIT=1
 
 exit $EXIT
