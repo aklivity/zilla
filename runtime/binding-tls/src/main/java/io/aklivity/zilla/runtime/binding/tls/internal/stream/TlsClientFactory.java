@@ -114,7 +114,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
     private final TlsClientDecoder decodeHandshake = this::decodeHandshake;
     private final TlsClientDecoder decodeHandshakeFinished = this::decodeHandshakeFinished;
-    private final TlsClientDecoder decodeHandshakeNeedTask = this::decodeHandshakeNeedTask;
     private final TlsClientDecoder decodeHandshakeNeedUnwrap = this::decodeHandshakeNeedUnwrap;
     private final TlsClientDecoder decodeHandshakeNeedWrap = this::decodeHandshakeNeedWrap;
     private final TlsClientDecoder decodeNotHandshaking = this::decodeNotHandshaking;
@@ -524,7 +523,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             client.decoder = decodeHandshakeFinished;
             break;
         case NEED_TASK:
-            client.decoder = decodeHandshakeNeedTask;
+            client.onDecodeHandshakeNeedTask(traceId);
             break;
         case NEED_WRAP:
             client.decoder = decodeHandshakeNeedWrap;
@@ -746,21 +745,6 @@ public final class TlsClientFactory implements TlsStreamFactory
         int limit)
     {
         client.onDecodeHandshakeFinished(traceId, budgetId);
-        client.decoder = decodeHandshake;
-        return progress;
-    }
-
-    private int decodeHandshakeNeedTask(
-        TlsStream.TlsClient client,
-        long traceId,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        client.onDecodeHandshakeNeedTask(traceId);
         client.decoder = decodeHandshake;
         return progress;
     }
@@ -1230,8 +1214,13 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (TlsState.replyOpening(state) &&
+            if (!TlsState.replyOpening(state) &&
                 !TlsState.replyClosed(state))
+            {
+                doAppBegin(traceId, 0L, null, null);
+            }
+
+            if (!TlsState.replyClosed(state))
             {
                 state = TlsState.closeReply(state);
                 client.stream = nullIfClosed(state, client.stream);
@@ -1531,7 +1520,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     cleanupDecodeSlot();
 
-                    cancelHandshakeTask();
                     cancelHandshakeTimeout();
 
                     doAppAbort(traceId);
@@ -1571,7 +1559,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
 
                 doAppAbort(traceId);
@@ -1597,8 +1584,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert initialAck <= initialSeq;
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
 
                 doAppReset(traceId);
                 doAppAbort(traceId);
@@ -1791,8 +1776,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
             }
 
             private void doNetAbort(
@@ -1806,8 +1789,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
 
                 cleanupEncodeSlot();
-
-                cancelHandshakeTask();
             }
 
             private void doNetFlush(
@@ -1831,7 +1812,6 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
             }
 
@@ -1928,7 +1908,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             {
                 TlsClientDecoder previous = null;
                 int progress = offset;
-                while (progress <= limit && previous != decoder && handshakeTaskFutureId == NO_CANCEL_ID)
+                while (progress <= limit && previous != decoder)
                 {
                     previous = decoder;
                     progress = decoder.decode(this, traceId, budgetId, reserved, buffer, offset, progress, limit);
@@ -2218,15 +2198,6 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     signaler.cancel(handshakeTimeoutFutureId);
                     handshakeTimeoutFutureId = NO_CANCEL_ID;
-                }
-            }
-
-            private void cancelHandshakeTask()
-            {
-                if (handshakeTaskFutureId != NO_CANCEL_ID)
-                {
-                    signaler.cancel(handshakeTaskFutureId);
-                    handshakeTaskFutureId = NO_CANCEL_ID;
                 }
             }
         }

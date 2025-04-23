@@ -127,7 +127,6 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final TlsServerDecoder decodeHandshake = this::decodeHandshake;
     private final TlsServerDecoder decodeBeforeHandshake = this::decodeBeforeHandshake;
     private final TlsServerDecoder decodeHandshakeFinished = this::decodeHandshakeFinished;
-    private final TlsServerDecoder decodeHandshakeNeedTask = this::decodeHandshakeNeedTask;
     private final TlsServerDecoder decodeHandshakeNeedUnwrap = this::decodeHandshakeNeedUnwrap;
     private final TlsServerDecoder decodeHandshakeNeedWrap = this::decodeHandshakeNeedWrap;
     private final TlsServerDecoder decodeNotHandshaking = this::decodeNotHandshaking;
@@ -589,7 +588,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             server.decoder = decodeHandshakeFinished;
             break;
         case NEED_TASK:
-            server.decoder = decodeHandshakeNeedTask;
+            server.onDecodeHandshakeNeedTask(traceId);
             break;
         case NEED_WRAP:
             server.decoder = decodeHandshakeNeedWrap;
@@ -803,21 +802,6 @@ public final class TlsServerFactory implements TlsStreamFactory
         int limit)
     {
         server.onDecodeHandshakeFinished(traceId, budgetId);
-        server.decoder = decodeHandshake;
-        return progress;
-    }
-
-    private int decodeHandshakeNeedTask(
-        TlsServer server,
-        long traceId,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        server.onDecodeHandshakeNeedTask(traceId);
         server.decoder = decodeHandshake;
         return progress;
     }
@@ -1241,7 +1225,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 cleanupDecodeSlot();
 
-                cancelHandshakeTask();
                 cancelHandshakeTimeout();
 
                 stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1279,7 +1262,6 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             cleanupDecodeSlot();
 
-            cancelHandshakeTask();
             cancelHandshakeTimeout();
 
             stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1305,8 +1287,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert replyAck <= replySeq;
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
 
             stream.ifPresent(s -> s.doAppReset(traceId));
             stream.ifPresent(s -> s.doAppAbort(traceId));
@@ -1445,8 +1425,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
         }
 
         private void doNetAbort(
@@ -1459,8 +1437,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
 
             cleanupEncodeSlot();
-
-            cancelHandshakeTask();
         }
 
         private void doNetFlush(
@@ -1485,7 +1461,6 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             cleanupDecodeSlot();
 
-            cancelHandshakeTask();
             cancelHandshakeTimeout();
         }
 
@@ -1583,7 +1558,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         {
             TlsServerDecoder previous = null;
             int progress = offset;
-            while (progress <= limit && previous != decoder && handshakeTaskFutureId == NO_CANCEL_ID)
+            while (progress <= limit && previous != decoder)
             {
                 previous = decoder;
                 progress = decoder.decode(this, traceId, budgetId, reserved, buffer, offset, progress, limit);
@@ -1871,15 +1846,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 signaler.cancel(handshakeTimeoutFutureId);
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
-            }
-        }
-
-        private void cancelHandshakeTask()
-        {
-            if (handshakeTaskFutureId != NO_CANCEL_ID)
-            {
-                signaler.cancel(handshakeTaskFutureId);
-                handshakeTaskFutureId = NO_CANCEL_ID;
             }
         }
 

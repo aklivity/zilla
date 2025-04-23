@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.136...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.137...HEAD)
+
+**Merged pull requests:**
+
+- Simplify TLS decode loop by inlining decodeHandshakeNeedTask [\#1459](https://github.com/aklivity/zilla/pull/1459) ([jfallows](https://github.com/jfallows))
+
+## [0.9.137](https://github.com/aklivity/zilla/tree/0.9.137) (2025-04-21)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.136...0.9.137)
 
 **Merged pull requests:**
 
