@@ -1768,7 +1768,9 @@ public final class TlsClientFactory implements TlsStreamFactory
             private void doNetEnd(
                 long traceId)
             {
-                if (TlsState.initialOpening(state) && !TlsState.initialClosed(state))
+                if (TlsState.initialOpening(state) &&
+                    !TlsState.initialClosed(state) &&
+                    handshakeTaskFutureId == NO_CANCEL_ID)
                 {
                     doEnd(net, originId, routedId, initialId, initialSeq, initialAck,
                             initialMax, traceId, replyAuth, EMPTY_EXTENSION);
