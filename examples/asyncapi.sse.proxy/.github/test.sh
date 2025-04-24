@@ -20,8 +20,8 @@ echo
 timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events/1" | tee .testoutput &
 
 # push events to sse server
-echo "$INPUT_GOOD" | nc -c localhost 7001
-echo "$INPUT_BAD" | nc -c localhost 7001
+echo "$INPUT_GOOD" | nc -w 1 localhost 7001
+echo "$INPUT_BAD" | nc -w 1 localhost 7001
 
 # fetch the output of zilla request; try 5 times
 for i in $(seq 0 2); do
