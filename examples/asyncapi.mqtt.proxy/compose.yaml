@@ -17,7 +17,6 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-      - ./mqtt-asyncapi.yaml:/etc/zilla/specs/mqtt-asyncapi.yaml
     command: start -v -e
 
   mosquitto:

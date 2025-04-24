@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.137...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.138...HEAD)
+
+**Fixed bugs:**
+
+- MQTT client not receiving events in `asyncapi.mqtt.proxy` Example [\#1416](https://github.com/aklivity/zilla/issues/1416)
+
+**Merged pull requests:**
+
+- Ensure SslEngine delegated task completes with signal … [\#1461](https://github.com/aklivity/zilla/pull/1461) ([jfallows](https://github.com/jfallows))
+- Fix `asyncapi.mqtt.proxy` example & enable test [\#1460](https://github.com/aklivity/zilla/pull/1460) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.138](https://github.com/aklivity/zilla/tree/0.9.138) (2025-04-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.137...0.9.138)
 
 **Merged pull requests:**
 

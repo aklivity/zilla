@@ -12,7 +12,7 @@ defaultContentType: application/json
 
 channels:
   smartylighting:
-    address: "smartylighting/streetlights/1/0/event/1/lighting/measured"
+    address: "smartylighting/streetlights/1/0/event/+/lighting/measured"
     title: MQTT Topic to produce & consume topic.
     messages:
       item:
@@ -45,10 +45,7 @@ components:
             type: string
       contentType: application/json
       payload:
-        type: object
-        properties:
-          item:
-            $ref: "#/components/schemas/item"
+        $ref: "#/components/schemas/item"
   schemas:
     item:
       type: object

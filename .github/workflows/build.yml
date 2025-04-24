@@ -83,7 +83,6 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
-            ^\asyncapi.mqtt.proxy$
             ^\asyncapi.sse.proxy$
             ^\asyncapi.sse.kafka.proxy$
 
