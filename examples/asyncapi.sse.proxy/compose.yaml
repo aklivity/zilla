@@ -1,7 +1,7 @@
 name: ${NAMESPACE:-zilla-asyncapi-sse-proxy}
 services:
   zilla:
-    image: ghcr.io/aklivity/zilla:develop-SNAPSHOT
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
     restart: unless-stopped
     hostname: zilla.examples.dev
     ports:
