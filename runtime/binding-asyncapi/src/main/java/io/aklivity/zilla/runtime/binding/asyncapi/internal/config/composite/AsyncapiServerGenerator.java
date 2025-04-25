@@ -43,6 +43,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -457,9 +460,50 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .name("sse_server0")
                         .type("sse")
                         .kind(SERVER)
+                        .options(SseOptionsConfig::builder)
+                            .inject(this::injectSseRequests)
+                            .build()
                         .inject(this::injectSseRoutes)
                         .inject(this::injectMetrics)
                         .build();
+            }
+
+            private <C> SseOptionsConfigBuilder<C> injectSseRequests(
+                SseOptionsConfigBuilder<C> options)
+            {
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.operations.values().stream())
+                    .filter(AsyncapiOperationView::hasBindingsSse)
+                    .filter(AsyncapiOperationView::hasMessagesOrParameters)
+                    .forEach(operation ->
+                    {
+                        options
+                            .request()
+                                .path(operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                .inject(request -> injectSseContent(request, operation))
+                            .build();
+                    });
+
+                return options;
+            }
+
+            private <C> SsePathConfigBuilder<C> injectSseContent(
+                SsePathConfigBuilder<C> request,
+                AsyncapiOperationView operation)
+            {
+                if (operation.channel.hasMessages())
+                {
+                    request
+                        .content(JsonModelConfig::builder)
+                        .catalog()
+                            .name("catalog0")
+                            .inject(cataloged -> injectHttpContentSchemas(cataloged, operation))
+                            .build()
+                        .build();
+                }
+
+                return request;
             }
 
             private <C>BindingConfigBuilder<C> injectSseRoutes(

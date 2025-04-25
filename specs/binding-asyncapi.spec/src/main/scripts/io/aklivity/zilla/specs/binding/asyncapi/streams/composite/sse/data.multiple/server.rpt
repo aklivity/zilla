@@ -26,10 +26,10 @@ write http:status "200" "OK"
 write http:header "content-type" "text/event-stream"
 write http:header "transfer-encoding" "chunked"
 
-write "data:Hello, world\n"
+write 'data:{ "id": 1, "name": "Hello World!" }\n'
       "\n"
 write flush
 
-write "data:Hello, again\n"
+write 'data:{ "id": 1, "name": "Hello World!" }\n'
       "\n"
 write flush

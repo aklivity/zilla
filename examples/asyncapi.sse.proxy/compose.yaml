@@ -17,7 +17,6 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-      - ./sse-asyncapi.yaml:/etc/zilla/specs/sse-asyncapi.yaml
     command: start -v -e
 
   sse-server:

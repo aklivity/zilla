@@ -25,8 +25,8 @@ write close
 read http:status "200" "OK"
 read http:header "content-type" "text/event-stream"
 
-read "data:Hello, world\n"
+read 'data:{ "id": 1, "name": "Hello World!" }\n'
      "\n"
 
-read "data:Hello, again\n"
+read 'data:{ "id": 1, "name": "Hello World!" }\n'
      "\n"

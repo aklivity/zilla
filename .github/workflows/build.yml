@@ -48,7 +48,7 @@ jobs:
       if: success()
       with:
         path: ~/docker-cache/docker.tar
-        key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+        key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v4
@@ -83,7 +83,6 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
-            ^\asyncapi.sse.proxy$
             ^\asyncapi.sse.kafka.proxy$
 
   testing:
@@ -106,7 +105,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/docker-cache/docker.tar
-          key: docker-${{ runner.os }}-zilla-develop-SNAPSHOT
+          key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
       - name: Load cached Docker image
         run: |

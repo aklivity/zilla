@@ -32,6 +32,6 @@ write zilla:begin.ext ${asyncapi:beginEx()
                              .build()}
 connected
 
-read "Hello, world"
+read '{ "id": 1, "name": "Hello World!" }'
 
-read "Hello, again"
+read '{ "id": 1, "name": "Hello World!" }'

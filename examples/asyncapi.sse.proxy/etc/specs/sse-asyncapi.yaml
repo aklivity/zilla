@@ -7,7 +7,7 @@ info:
 servers:
   plain:
     host: localhost:7114
-    protocol: sse
+    protocol: http
 defaultContentType: application/json
 
 channels:
@@ -27,6 +27,9 @@ operations:
     action: receive
     channel:
       $ref: "#/channels/showEventById"
+    bindings:
+      x-zilla-sse:
+        method: "GET"
 
 components:
   schemas:
