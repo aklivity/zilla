@@ -40,14 +40,14 @@ jobs:
     - name: Save Docker image
       if: success()
       run: |
-        mkdir -p docker-cache
-        docker save -o docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
+        mkdir -p ~/docker-cache
+        docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
 
     - name: Cache Docker image
       uses: actions/cache@v4
       if: success()
       with:
-        path: docker-cache/docker.tar
+        path: ~/docker-cache/docker.tar
         key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
     - name: Conditional Artifact Upload
@@ -104,12 +104,12 @@ jobs:
       - name: Restore cached Docker images
         uses: actions/cache@v4
         with:
-          path: docker-cache/docker.tar
+          path: ~/docker-cache/docker.tar
           key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
       - name: Load cached Docker image
         run: |
-          docker load -i docker-cache/docker.tar
+          docker load -i ~/docker-cache/docker.tar
 
       - name: Cache Docker images
         if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
