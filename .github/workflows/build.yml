@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      cache_key: ${{ steps.cache-key.outputs.cache_key }}
     strategy:
       matrix:
         java: [ 20, 21, 23 ]
@@ -40,19 +42,19 @@ jobs:
     - name: Save Docker image
       if: success()
       run: |
-        mkdir -p ~/docker-cache
-        docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
+        mkdir -p docker-cache
+        docker save -o docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
+
+    - name: Compute Unique Cache Key
+      id: cache-key
+      run: echo "cache_key=zilla-develop-SNAPSHOT-${{ hashFiles('docker-cache/docker.tar') }}" >> "$GITHUB_OUTPUT"
 
     - name: Cache Docker image
       uses: actions/cache@v4
       if: success()
       with:
-        path: ~/docker-cache/docker.tar
-        key: zilla-develop-SNAPSHOT-${{ hashFiles('~/docker-cache/docker.tar') }}
-
-    - name: Compute Unique Cache Key
-      id: cache-key
-      run: echo "cache_key=zilla-develop-SNAPSHOT-${{ hashFiles('~/docker-cache/docker.tar') }}" >> "$GITHUB_OUTPUT"
+        path: docker-cache/docker.tar
+        key: ${{ steps.cache-key.outputs.cache_key }}
 
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v4
@@ -108,12 +110,12 @@ jobs:
       - name: Restore cached Docker images
         uses: actions/cache@v4
         with:
-          path: ~/docker-cache/docker.tar
+          path: docker-cache/docker.tar
           key: ${{ needs.build.outputs.cache_key }}
 
       - name: Load cached Docker image
         run: |
-          docker load -i ~/docker-cache/docker.tar
+          docker load -i docker-cache/docker.tar
 
       - name: Cache Docker images
         if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
