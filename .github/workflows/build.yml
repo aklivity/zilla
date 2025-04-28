@@ -83,7 +83,6 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
-            ^\asyncapi.sse.kafka.proxy$
 
   testing:
     strategy:
