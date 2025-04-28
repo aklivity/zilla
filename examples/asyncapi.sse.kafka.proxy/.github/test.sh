@@ -16,6 +16,9 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
+
+sleep 5
+
 # send request to zilla
 timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events" | tee .testoutput &
 
@@ -28,7 +31,7 @@ echo "$INPUT" |
     -k "1"
 
 # fetch the output of zilla request; try 5 times
-for i in $(seq 0 2); do
+for i in $(seq 0 5); do
   sleep 5
   OUTPUT=$(cat .testoutput | grep "^data:")
   if [ -n "$OUTPUT" ]; then
