@@ -7,7 +7,7 @@ EXIT=0
 PORT="7114"
 KAFKA_BOOTSTRAP_SERVER="kafka.examples.dev:29092"
 INPUT='{"id": 1,"name":"Hello World!"}'
-EXPECTED='data:{ "id": 1, "name": "Hello World!"}'
+EXPECTED='data:{"id": 1,"name":"Hello World!"}'
 echo \# Testing asyncapi.sse.kafka.proxy/
 echo PORT="$PORT"
 echo KAFKA_BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVER"
@@ -21,7 +21,7 @@ timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT
 
 # push response to kafka with kafkacat
 echo "$INPUT" |
-  docker compose -p zilla-http-kafka-sync exec -T kafkacat \
+  docker compose -p zilla-asyncapi-sse-kafka-proxy exec -T kafkacat \
     kafkacat -P \
     -b $KAFKA_BOOTSTRAP_SERVER \
     -t events \
@@ -29,7 +29,7 @@ echo "$INPUT" |
 
 # fetch the output of zilla request; try 5 times
 for i in $(seq 0 2); do
-  sleep $i
+  sleep 5
   OUTPUT=$(cat .testoutput | grep "^data:")
   if [ -n "$OUTPUT" ]; then
     break
@@ -47,10 +47,5 @@ else
   echo ❌
   EXIT=1
 fi
-
-# TODO remove once fixed
-echo '❌ curl: (52) Empty reply from server. Tested on main. and does not work with described instructions'
-echo 'Refer: https://github.com/aklivity/zilla/issues/1417'
-EXIT=1
 
 exit $EXIT
