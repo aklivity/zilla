@@ -394,6 +394,13 @@ public final class GrpcFunctions
             return this;
         }
 
+        public GrpcAbortExBuilder message(
+            String message)
+        {
+            abortExRW.message(message);
+            return this;
+        }
+
         public byte[] build()
         {
             final GrpcAbortExFW abortEx = abortExRW.build();
@@ -424,6 +431,13 @@ public final class GrpcFunctions
             String status)
         {
             resetExRW.status(status);
+            return this;
+        }
+
+        public GrpcResetExBuilder message(
+            String message)
+        {
+            resetExRW.message(message);
             return this;
         }
 
