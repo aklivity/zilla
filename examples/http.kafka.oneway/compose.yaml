@@ -75,11 +75,11 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     command:
       - |
-        echo -e "Creating kafka topic";
+        echo "Creating kafka topic";
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic events
-        echo -e "Successfully created the following topics:";
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list;
-        echo -e "Creating user";
+        echo "Successfully created the following topics:";
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list --exclude-internal;
+        echo "Creating user";
         /opt/bitnami/kafka/bin/kafka-configs.sh \
         --bootstrap-server kafka:29092 \
         --alter \
