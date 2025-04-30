@@ -60,13 +60,13 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     command:
       - |
-        echo -e "Creating kafka topic";
+        echo "Creating kafka topic";
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-messages
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-devices --config cleanup.policy=compact
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-retained --config cleanup.policy=compact
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-sessions --config cleanup.policy=compact
-        echo -e "Successfully created the following topics:";
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list;
+        echo "Successfully created the following topics:";
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
 
   kafka-ui:
     image: ghcr.io/kafbat/kafka-ui:v1.0.0
