@@ -40,11 +40,12 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
@@ -100,9 +101,10 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        MutableInteger capacity)
+        TcpEventContext event,
+        CapacityTracker capacity)
     {
-        this.router = new TcpClientRouter(context, capacity);
+        this.router = new TcpClientRouter(context, event, capacity);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
@@ -164,7 +166,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long initialId = begin.streamId();
             final SocketChannel channel = newSocketChannel();
 
-            final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
+            final TcpClient client = new TcpClient(application, originId, routedId, initialId, binding.id, channel);
             client.doNetConnect(route, binding.options);
             newStream = client::onAppMessage;
         }
@@ -206,10 +208,11 @@ public class TcpClientFactory implements TcpStreamFactory
     }
 
     private void closeNet(
+        long bindingId,
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
-        router.close();
+        router.close(bindingId);
     }
 
     private final class TcpClient
@@ -219,6 +222,7 @@ public class TcpClientFactory implements TcpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final long bindingId;
         private final SocketChannel net;
 
         private PollerKey networkKey;
@@ -242,6 +246,7 @@ public class TcpClientFactory implements TcpStreamFactory
             long originId,
             long routedId,
             long initialId,
+            long bindingId,
             SocketChannel net)
         {
             this.app = app;
@@ -249,6 +254,7 @@ public class TcpClientFactory implements TcpStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.bindingId = bindingId;
             this.net = net;
         }
 
@@ -355,7 +361,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                     if (net.socket().isOutputShutdown())
                     {
-                        closeNet(net);
+                        closeNet(bindingId, net);
                     }
                 }
                 else if (bytesRead != 0)
@@ -468,7 +474,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 if (net.isConnectionPending())
                 {
                     networkKey.clear(OP_CONNECT);
-                    closeNet(net);
+                    closeNet(bindingId, net);
                 }
                 else
                 {
@@ -477,7 +483,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                     if (net.socket().isInputShutdown())
                     {
-                        closeNet(net);
+                        closeNet(bindingId, net);
                     }
                 }
             }
@@ -773,7 +779,7 @@ public class TcpClientFactory implements TcpStreamFactory
             doAppAbort(traceId);
             doAppReset(traceId);
 
-            closeNet(net);
+            closeNet(bindingId, net);
 
             cleanupWriteSlot();
         }

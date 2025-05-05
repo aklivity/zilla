@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpDnsFailedExFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventExFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpUsageCapacityPercentageExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -46,11 +47,13 @@ public final class TcpEventFormatter implements EventFormatterSpi
         switch (extension.kind())
         {
         case DNS_FAILED:
-        {
-            final TcpDnsFailedExFW ex = extension.dnsFailed();
-            result = String.format("Unable to resolve host dns for address (%s).", asString(ex.address()));
+            final TcpDnsFailedExFW dnsFailed = extension.dnsFailed();
+            result = String.format("Unable to resolve host dns for address (%s).", asString(dnsFailed.address()));
             break;
-        }
+        case USAGE_CAPACITY_PERCENTAGE:
+            final TcpUsageCapacityPercentageExFW capacityUsage = extension.usageCapacity();
+            result = String.format("%d", capacityUsage.percentage());
+            break;
         }
         return result;
     }
