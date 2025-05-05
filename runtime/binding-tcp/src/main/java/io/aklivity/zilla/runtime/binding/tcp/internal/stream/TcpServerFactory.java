@@ -40,10 +40,10 @@ import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
@@ -103,7 +103,7 @@ public class TcpServerFactory implements TcpStreamFactory
     public TcpServerFactory(
         TcpConfiguration config,
         EngineContext context,
-        MutableInteger capacity)
+        CapacityTracker capacity)
     {
         this.router = new TcpServerRouter(context, this::handleAccept, capacity);
         this.writeBuffer = context.writeBuffer();
@@ -171,7 +171,8 @@ public class TcpServerFactory implements TcpStreamFactory
 
             ServerSocketChannel server = (ServerSocketChannel) acceptKey.channel();
 
-            for (SocketChannel channel = router.accept(server); channel != null; channel = router.accept(server))
+            for (SocketChannel channel = router.accept(binding.id, server); channel != null;
+                channel = router.accept(binding.id, server))
             {
                 channel.configureBlocking(false);
                 channel.setOption(TCP_NODELAY, options.nodelay);
@@ -204,14 +205,15 @@ public class TcpServerFactory implements TcpStreamFactory
         }
         else
         {
-            closeNet(network);
+            closeNet(binding.id, network);
         }
     }
 
     private void closeNet(
+        long bindingId,
         SocketChannel network)
     {
-        router.close(network);
+        router.close(bindingId, network);
     }
 
     private final class TcpServer
@@ -293,7 +295,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
                     if (net.socket().isOutputShutdown())
                     {
-                        closeNet(net);
+                        closeNet(originId, net);
                     }
                 }
                 else if (bytesRead != 0)
@@ -407,7 +409,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
                 if (net.socket().isInputShutdown())
                 {
-                    closeNet(net);
+                    closeNet(originId, net);
                 }
             }
             catch (IOException ex)
@@ -725,7 +727,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
             cleanupWriteSlot();
 
-            closeNet(net);
+            closeNet(originId, net);
         }
 
         private void cleanupWriteSlot()
