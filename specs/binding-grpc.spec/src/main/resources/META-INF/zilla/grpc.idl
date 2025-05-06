@@ -48,11 +48,13 @@ scope grpc
         struct GrpcAbortEx extends core::stream::Extension
         {
             string16 status;
+            string16 message = null;
         }
 
         struct GrpcResetEx extends core::stream::Extension
         {
             string16 status;
+            string16 message = null;
         }
     }
 }

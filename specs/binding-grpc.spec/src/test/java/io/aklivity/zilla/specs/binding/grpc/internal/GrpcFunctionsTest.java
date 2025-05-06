@@ -167,12 +167,14 @@ public class GrpcFunctionsTest
         byte[] build = GrpcFunctions.resetEx()
             .typeId(0x01)
             .status("10")
+            .message("Custom Error Message")
             .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
         GrpcResetExFW resetEx = new GrpcResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, resetEx.typeId());
 
         assertEquals("10", resetEx.status().asString());
+        assertEquals("Custom Error Message", resetEx.message().asString());
     }
 
     @Test
@@ -181,12 +183,14 @@ public class GrpcFunctionsTest
         byte[] build = GrpcFunctions.abortEx()
             .typeId(0x01)
             .status("10")
+            .message("Custom Error Message")
             .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
         GrpcAbortExFW abortEx = new GrpcAbortExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, abortEx.typeId());
 
         assertEquals("10", abortEx.status().asString());
+        assertEquals("Custom Error Message", abortEx.message().asString());
     }
 
     @Test

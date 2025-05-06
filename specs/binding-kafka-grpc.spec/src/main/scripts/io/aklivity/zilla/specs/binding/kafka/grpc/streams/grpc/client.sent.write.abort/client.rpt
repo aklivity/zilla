@@ -47,6 +47,7 @@ read ${grpc:protobuf()
 read zilla:abort.ext ${grpc:abortEx()
                             .typeId(zilla:id("grpc"))
                             .status("10")
+                            .message("Custom Error Message")
                             .build()}
 read aborted
 

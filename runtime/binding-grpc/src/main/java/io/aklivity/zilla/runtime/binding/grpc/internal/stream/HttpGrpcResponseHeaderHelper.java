@@ -41,6 +41,7 @@ public final class HttpGrpcResponseHeaderHelper
 {
     private static final String8FW HTTP_HEADER_STATUS = new String8FW(":status");
     private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
+    private static final String8FW HTTP_HEADER_GRPC_MESSAGE = new String8FW("grpc-message");
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
 
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
@@ -67,12 +68,14 @@ public final class HttpGrpcResponseHeaderHelper
         Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
         visitors.put(HTTP_HEADER_STATUS, this::visitStatus);
         visitors.put(HTTP_HEADER_GRPC_STATUS, this::visitGrpcStatus);
+        visitors.put(HTTP_HEADER_GRPC_MESSAGE, this::visitGrpcMessage);
         visitors.put(HEADER_NAME_CONTENT_TYPE, this::visitContentType);
         this.visitors = visitors;
     }
     private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
     private final String16FW statusRO = new String16FW();
     private final String16FW grpcStatusRO = new String16FW();
+    private final String16FW grpcMessageRO = new String16FW();
     private final byte[] headerPrefix = new byte[GRPC_PREFIX_LENGTH];
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
     private final MutableDirectBuffer metadataBuffer;
@@ -80,6 +83,7 @@ public final class HttpGrpcResponseHeaderHelper
     public CharSequence contentType;
     public String16FW status;
     public String16FW grpcStatus;
+    public String16FW grpcMessage;
     public Array32FW<GrpcMetadataFW> metadata;
 
     public HttpGrpcResponseHeaderHelper(
@@ -93,6 +97,7 @@ public final class HttpGrpcResponseHeaderHelper
     {
         status = null;
         grpcStatus = null;
+        grpcMessage = null;
         contentType = null;
         metadata = null;
         grpcMetadataRW.wrap(metadataBuffer, 0, metadataBuffer.capacity());
@@ -141,6 +146,12 @@ public final class HttpGrpcResponseHeaderHelper
         String16FW value)
     {
         grpcStatus = grpcStatusRO.wrap(value.buffer(), value.offset(), value.limit());
+    }
+
+    private void visitGrpcMessage(
+        String16FW value)
+    {
+        grpcMessage = grpcMessageRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitHeader(
