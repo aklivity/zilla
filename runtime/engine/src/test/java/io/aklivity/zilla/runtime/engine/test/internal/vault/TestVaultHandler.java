@@ -25,6 +25,8 @@ import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.X509CertSelector;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -136,7 +139,8 @@ public final class TestVaultHandler implements VaultHandler
     @Override
     public TrustManagerFactory initTrust(
         List<String> certAliases,
-        KeyStore cacerts)
+        KeyStore cacerts,
+        boolean crlChecks)
     {
         TrustManagerFactory factory = null;
 
@@ -173,8 +177,15 @@ public final class TestVaultHandler implements VaultHandler
                     }
                 }
 
+                PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(store, new X509CertSelector());
+                if (crlChecks)
+                {
+                    pkixParams.setRevocationEnabled(true);
+                }
+                CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
+
                 factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(store);
+                factory.init(tmParams);
             }
             catch (Exception ex)
             {

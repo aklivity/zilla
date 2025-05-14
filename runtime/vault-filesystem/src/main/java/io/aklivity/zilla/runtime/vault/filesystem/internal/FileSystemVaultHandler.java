@@ -24,15 +24,17 @@ import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.cert.Certificate;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
@@ -46,10 +48,11 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 public class FileSystemVaultHandler implements VaultHandler
 {
     private static final String STORE_TYPE_DEFAULT = "pkcs12";
+    private static final String PKIX_ALGORITHM = "PKIX";
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
-    private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
+    private final TriFunction<List<String>, KeyStore, Boolean, TrustManagerFactory> supplyTrust;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
@@ -66,7 +69,7 @@ public class FileSystemVaultHandler implements VaultHandler
             : aliases -> null;
 
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
-        supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
+        supplyTrust = (aliases, cacerts, crlChecks) -> newTrustFactory(trust, aliases, cacerts, crlChecks);
     }
 
     @Override
@@ -79,9 +82,10 @@ public class FileSystemVaultHandler implements VaultHandler
     @Override
     public TrustManagerFactory initTrust(
         List<String> aliases,
-        KeyStore cacerts)
+        KeyStore cacerts,
+        boolean crlChecks)
     {
-        return supplyTrust.apply(aliases, cacerts);
+        return supplyTrust.apply(aliases, cacerts, crlChecks);
     }
 
     @Override
@@ -150,7 +154,8 @@ public class FileSystemVaultHandler implements VaultHandler
     private TrustManagerFactory newTrustFactory(
         FileSystemStoreInfo store,
         List<String> aliases,
-        KeyStore cacerts)
+        KeyStore cacerts,
+        boolean crlChecks)
     {
         TrustManagerFactory factory = null;
 
@@ -185,8 +190,17 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(trust);
+                PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
+                String algorithm = TrustManagerFactory.getDefaultAlgorithm();
+                if (crlChecks)
+                {
+                    pkixParams.setRevocationEnabled(true);
+                    algorithm = PKIX_ALGORITHM;
+                }
+                CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
+
+                factory = TrustManagerFactory.getInstance(algorithm);
+                factory.init(tmParams);
             }
         }
         catch (Exception ex)
@@ -316,5 +330,11 @@ public class FileSystemVaultHandler implements VaultHandler
 
             return keys;
         }
+    }
+
+    @FunctionalInterface
+    public interface TriFunction<T, U, V, R>
+    {
+        R apply(T t, U u, V v);
     }
 }

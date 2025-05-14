@@ -29,6 +29,7 @@ public class TlsConfiguration extends Configuration
     public static final BooleanPropertyDef TLS_PROACTIVE_CLIENT_REPLY_BEGIN;
     public static final BooleanPropertyDef TLS_CLIENT_HTTPS_IDENTIFICATION;
     public static final BooleanPropertyDef TLS_CLIENT_SERVER_NAME_INDICATION;
+    public static final BooleanPropertyDef TLS_CRL_CHECKS;
     public static final BooleanPropertyDef TLS_VERBOSE;
     public static final BooleanPropertyDef TLS_DEBUG;
 
@@ -44,6 +45,7 @@ public class TlsConfiguration extends Configuration
         TLS_PROACTIVE_CLIENT_REPLY_BEGIN = config.property("proactive.client.reply.begin", false);
         TLS_CLIENT_HTTPS_IDENTIFICATION = config.property("client.https.identification", true);
         TLS_CLIENT_SERVER_NAME_INDICATION = config.property("client.server.name.indication", true);
+        TLS_CRL_CHECKS = config.property("crl.checks", false);
         TLS_VERBOSE = config.property("verbose", TlsConfiguration::verboseDefault);
         TLS_DEBUG = config.property("debug", TlsConfiguration::debugDefault);
         TLS_CONFIG = config;
@@ -88,6 +90,11 @@ public class TlsConfiguration extends Configuration
     public boolean clientServerNameIndication()
     {
         return TLS_CLIENT_SERVER_NAME_INDICATION.getAsBoolean(this);
+    }
+
+    public boolean crlChecks()
+    {
+        return TLS_CRL_CHECKS.getAsBoolean(this);
     }
 
     public boolean verbose()

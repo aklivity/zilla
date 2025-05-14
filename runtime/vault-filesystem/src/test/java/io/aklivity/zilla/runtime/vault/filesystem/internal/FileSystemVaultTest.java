@@ -52,7 +52,7 @@ public class FileSystemVaultTest
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
         KeyManagerFactory keys = vault.initKeys(List.of("localhost"));
-        TrustManagerFactory trust = vault.initTrust(List.of("clientca"), null);
+        TrustManagerFactory trust = vault.initTrust(List.of("clientca"), null, false);
 
         assertThat(keys, not(nullValue()));
         assertThat(trust, not(nullValue()));

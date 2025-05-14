@@ -31,5 +31,6 @@ public interface VaultHandler
 
     TrustManagerFactory initTrust(
         List<String> certRefs,
-        KeyStore cacerts);
+        KeyStore cacerts,
+        boolean crlChecks);
 }
