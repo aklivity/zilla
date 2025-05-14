@@ -1013,7 +1013,9 @@ public class EngineWorker implements EngineContext, Agent
     public Metric resolveMetric(
         String metricName)
     {
+        System.out.println("resolveMetric: " + metricName);
         String metricGroupName = metricName.split("\\.")[0];
+        System.out.println(metricGroupName);
         return metricGroupsByName.get(metricGroupName).supply(metricName);
     }
 
