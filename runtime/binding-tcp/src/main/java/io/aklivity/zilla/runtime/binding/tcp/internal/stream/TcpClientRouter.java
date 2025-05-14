@@ -180,7 +180,7 @@ public final class TcpClientRouter
 
         if (resolved != null)
         {
-            capacity.decrementAndGet(binding.id);
+            capacity.decrementAndGet();
         }
 
         return resolved;
@@ -192,10 +192,9 @@ public final class TcpClientRouter
         bindings.remove(bindingId);
     }
 
-    public void close(
-        long bindingId)
+    public void close()
     {
-        capacity.decrementAndGet(bindingId);
+        capacity.decrementAndGet();
     }
 
     @Override

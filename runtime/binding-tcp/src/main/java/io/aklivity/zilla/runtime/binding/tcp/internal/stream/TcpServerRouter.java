@@ -85,7 +85,6 @@ public final class TcpServerRouter
     }
 
     public SocketChannel accept(
-        long bindingId,
         ServerSocketChannel server) throws IOException
     {
         SocketChannel channel = null;
@@ -96,7 +95,7 @@ public final class TcpServerRouter
 
             if (channel != null)
             {
-                capacity.decrementAndGet(bindingId);
+                capacity.decrementAndGet();
             }
         }
 
@@ -112,12 +111,11 @@ public final class TcpServerRouter
     }
 
     public void close(
-        long bindingId,
         SocketChannel channel)
     {
         CloseHelper.quietClose(channel);
 
-        int newCapacity = capacity.incrementAndGet(bindingId);
+        int newCapacity = capacity.incrementAndGet();
         if (unbound && newCapacity > 0)
         {
             bindings.values().stream()

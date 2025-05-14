@@ -101,9 +101,9 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpEventContext event,
         CapacityTracker capacity)
     {
+        TcpEventContext event = new TcpEventContext(context);
         this.router = new TcpClientRouter(context, event, capacity);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
@@ -166,7 +166,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long initialId = begin.streamId();
             final SocketChannel channel = newSocketChannel();
 
-            final TcpClient client = new TcpClient(application, originId, routedId, initialId, binding.id, channel);
+            final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
             client.doNetConnect(route, binding.options);
             newStream = client::onAppMessage;
         }
@@ -208,11 +208,10 @@ public class TcpClientFactory implements TcpStreamFactory
     }
 
     private void closeNet(
-        long bindingId,
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
-        router.close(bindingId);
+        router.close();
     }
 
     private final class TcpClient
@@ -222,7 +221,6 @@ public class TcpClientFactory implements TcpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long bindingId;
         private final SocketChannel net;
 
         private PollerKey networkKey;
@@ -246,7 +244,6 @@ public class TcpClientFactory implements TcpStreamFactory
             long originId,
             long routedId,
             long initialId,
-            long bindingId,
             SocketChannel net)
         {
             this.app = app;
@@ -254,7 +251,6 @@ public class TcpClientFactory implements TcpStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.bindingId = bindingId;
             this.net = net;
         }
 
@@ -361,7 +357,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                     if (net.socket().isOutputShutdown())
                     {
-                        closeNet(bindingId, net);
+                        closeNet(net);
                     }
                 }
                 else if (bytesRead != 0)
@@ -474,7 +470,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 if (net.isConnectionPending())
                 {
                     networkKey.clear(OP_CONNECT);
-                    closeNet(bindingId, net);
+                    closeNet(net);
                 }
                 else
                 {
@@ -483,7 +479,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                     if (net.socket().isInputShutdown())
                     {
-                        closeNet(bindingId, net);
+                        closeNet(net);
                     }
                 }
             }
@@ -779,7 +775,7 @@ public class TcpClientFactory implements TcpStreamFactory
             doAppAbort(traceId);
             doAppReset(traceId);
 
-            closeNet(bindingId, net);
+            closeNet(net);
 
             cleanupWriteSlot();
         }

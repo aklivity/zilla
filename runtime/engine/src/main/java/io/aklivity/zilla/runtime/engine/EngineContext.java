@@ -161,6 +161,8 @@ public interface EngineContext
     ConverterHandler supplyWriteConverter(
         ModelConfig config);
 
+    LongConsumer supplyUtilizationMetric();
+
     Path resolvePath(
         String location);
 

@@ -15,23 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import java.util.function.LongConsumer;
+
 import org.agrona.collections.MutableInteger;
 
 public final class CapacityTracker
 {
     private final MutableInteger capacity;
-    private final TcpEventContext eventContext;
+    private final LongConsumer capacityUsage;
     private final int initialCapacity;
 
     private int capacityPercentage;
 
     public CapacityTracker(
         int initialCapacity,
-        TcpEventContext eventContext)
+        LongConsumer capacityUsage)
     {
-        this.eventContext = eventContext;
         this.initialCapacity = initialCapacity;
         this.capacity = new MutableInteger(initialCapacity);
+        this.capacityUsage = capacityUsage;
     }
 
     public int capacity()
@@ -39,20 +41,18 @@ public final class CapacityTracker
         return capacity.get();
     }
 
-    public int incrementAndGet(
-        long bindingId)
+    public int incrementAndGet()
     {
         int newCapacity = capacity.incrementAndGet();
-        capacityChanged(bindingId, newCapacity);
+        capacityChanged(newCapacity);
 
         return newCapacity;
     }
 
-    public int decrementAndGet(
-        long bindingId)
+    public int decrementAndGet()
     {
         int newCapacity = capacity.decrementAndGet();
-        capacityChanged(bindingId, newCapacity);
+        capacityChanged(newCapacity);
 
         return newCapacity;
     }
@@ -63,14 +63,14 @@ public final class CapacityTracker
     }
 
     private void capacityChanged(
-        long bindingId,
         int newCapacity)
     {
-        int newCapacityPercentage = 100 - (newCapacity * 100 / initialCapacity);
+        final int newCapacityPercentage = 100 - (newCapacity * 100 / initialCapacity);
+        final int percentageDiff = newCapacityPercentage - capacityPercentage;
 
-        if (Math.abs(capacityPercentage - newCapacityPercentage) >= 1)
+        if (Math.abs(percentageDiff) >= 1)
         {
-            eventContext.usageChanged(bindingId, newCapacityPercentage);
+            capacityUsage.accept(percentageDiff);
         }
 
         capacityPercentage = newCapacityPercentage;

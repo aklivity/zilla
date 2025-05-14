@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventType.DNS_FAILED;
-import static io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventType.USAGE_CAPACITY_PERCENTAGE;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -40,7 +39,6 @@ public class TcpEventContext
 
     private final int tcpTypeId;
     private final int dnsFailedEventId;
-    private final int capacityPercantageEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -49,7 +47,6 @@ public class TcpEventContext
     {
         this.tcpTypeId = context.supplyTypeId(TcpBinding.NAME);
         this.dnsFailedEventId = context.supplyEventId("binding.tcp.dns.failed");
-        this.capacityPercantageEventId = context.supplyEventId("binding.tcp.usage.capacity.percentage");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -71,28 +68,6 @@ public class TcpEventContext
             .id(dnsFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
-            .namespacedId(bindingId)
-            .extension(extension.buffer(), extension.offset(), extension.limit())
-            .build();
-        eventWriter.accept(tcpTypeId, event.buffer(), event.offset(), event.limit());
-    }
-
-    public void usageChanged(
-        long bindingId,
-        int percentage)
-    {
-        TcpEventExFW extension = tcpEventExRW
-            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .usageCapacity(e -> e
-                .typeId(USAGE_CAPACITY_PERCENTAGE.value())
-                .percentage(percentage)
-            )
-            .build();
-        EventFW event = eventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(capacityPercantageEventId)
-            .timestamp(clock.millis())
-            .traceId(0L)
             .namespacedId(bindingId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();

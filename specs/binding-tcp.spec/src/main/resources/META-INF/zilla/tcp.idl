@@ -19,8 +19,7 @@ scope tcp
     {
         enum TcpEventType (uint8)
         {
-            DNS_FAILED (1),
-            USAGE_CAPACITY_PERCENTAGE (2)
+            DNS_FAILED (1)
         }
 
         struct TcpDnsFailedEx extends core::stream::Extension
@@ -28,15 +27,9 @@ scope tcp
             string16 address;
         }
 
-        struct TcpUsageCapacityPercentageEx extends core::stream::Extension
-        {
-            int32 percentage;
-        }
-
         union TcpEventEx switch (TcpEventType)
         {
             case DNS_FAILED: TcpDnsFailedEx dnsFailed;
-            case USAGE_CAPACITY_PERCENTAGE: TcpUsageCapacityPercentageEx usageCapacity;
         }
     }
 }

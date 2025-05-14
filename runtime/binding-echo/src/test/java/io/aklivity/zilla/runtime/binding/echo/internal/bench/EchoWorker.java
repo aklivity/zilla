@@ -326,6 +326,12 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public LongConsumer supplyUtilizationMetric()
+    {
+        return null;
+    }
+
+    @Override
     public Path resolvePath(
         String location)
     {

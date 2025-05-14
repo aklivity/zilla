@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory;
@@ -39,11 +40,11 @@ final class TcpBindingContext implements BindingContext
         TcpConfiguration config,
         EngineContext context)
     {
-        TcpEventContext event = new TcpEventContext(context);
-        CapacityTracker capacity = new CapacityTracker(ENGINE_WORKER_CAPACITY.getAsInt(config), event);
+        LongConsumer capacityUsage = context.supplyUtilizationMetric();
+        CapacityTracker capacity = new CapacityTracker(ENGINE_WORKER_CAPACITY.getAsInt(config), capacityUsage);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new TcpServerFactory(config, context, capacity));
-        factories.put(CLIENT, new TcpClientFactory(config, context, event, capacity));
+        factories.put(CLIENT, new TcpClientFactory(config, context, capacity));
 
         this.factories = factories;
     }

@@ -171,8 +171,8 @@ public class TcpServerFactory implements TcpStreamFactory
 
             ServerSocketChannel server = (ServerSocketChannel) acceptKey.channel();
 
-            for (SocketChannel channel = router.accept(binding.id, server); channel != null;
-                channel = router.accept(binding.id, server))
+            for (SocketChannel channel = router.accept(server); channel != null;
+                channel = router.accept(server))
             {
                 channel.configureBlocking(false);
                 channel.setOption(TCP_NODELAY, options.nodelay);
@@ -205,15 +205,14 @@ public class TcpServerFactory implements TcpStreamFactory
         }
         else
         {
-            closeNet(binding.id, network);
+            closeNet(network);
         }
     }
 
     private void closeNet(
-        long bindingId,
         SocketChannel network)
     {
-        router.close(bindingId, network);
+        router.close(network);
     }
 
     private final class TcpServer
@@ -295,7 +294,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
                     if (net.socket().isOutputShutdown())
                     {
-                        closeNet(originId, net);
+                        closeNet(net);
                     }
                 }
                 else if (bytesRead != 0)
@@ -409,7 +408,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
                 if (net.socket().isInputShutdown())
                 {
-                    closeNet(originId, net);
+                    closeNet(net);
                 }
             }
             catch (IOException ex)
@@ -727,7 +726,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
             cleanupWriteSlot();
 
-            closeNet(originId, net);
+            closeNet(net);
         }
 
         private void cleanupWriteSlot()
