@@ -769,7 +769,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId("worker.utilization");
+        final int metricId = labels.supplyLabelId("engine.worker.utilization");
         //final int metricId = labels.supplyLabelId("worker.count");
         final int engineId = labels.supplyLabelId("engine");
         final long bindingId = NamespacedId.id(engineId, engineId);
