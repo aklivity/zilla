@@ -297,6 +297,16 @@ public class EngineWorker implements EngineContext, Agent
         metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
         metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
 
+        if (!readonly)
+        {
+            final int privateId = labels.supplyLabelId("private");
+            final int engineId = labels.supplyLabelId("engine");
+            final long bindingId = NamespacedId.id(privateId, engineId);
+
+            final int metricId = labels.supplyLabelId("engine.worker.count");
+            supplyMetricWriter(GAUGE, bindingId, metricId).accept(1);
+        }
+
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
                 .streamsCapacity(config.streamsBufferCapacity())
@@ -769,10 +779,11 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId("engine.worker.utilization");
-        //final int metricId = labels.supplyLabelId("worker.count");
+        final int privateId = labels.supplyLabelId("private");
         final int engineId = labels.supplyLabelId("engine");
-        final long bindingId = NamespacedId.id(engineId, engineId);
+        final long bindingId = NamespacedId.id(privateId, engineId);
+
+        final int metricId = labels.supplyLabelId("engine.worker.utilization");
 
         return supplyMetricWriter(GAUGE, bindingId, metricId);
     }
