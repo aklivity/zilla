@@ -299,9 +299,8 @@ public class EngineWorker implements EngineContext, Agent
 
         if (!readonly)
         {
-            final int privateId = labels.supplyLabelId("private");
             final int engineId = labels.supplyLabelId("engine");
-            final long bindingId = NamespacedId.id(privateId, engineId);
+            final long bindingId = NamespacedId.id(engineId, engineId);
 
             final int metricId = labels.supplyLabelId("engine.worker.count");
             supplyMetricWriter(GAUGE, bindingId, metricId).accept(1);
@@ -779,9 +778,8 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int privateId = labels.supplyLabelId("private");
         final int engineId = labels.supplyLabelId("engine");
-        final long bindingId = NamespacedId.id(privateId, engineId);
+        final long bindingId = NamespacedId.id(engineId, engineId);
 
         final int metricId = labels.supplyLabelId("engine.worker.utilization");
 
