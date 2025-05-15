@@ -40,7 +40,7 @@ public class EngineWorkerCountMetric implements Metric
     @Override
     public Unit unit()
     {
-        return Unit.PERCENT;
+        return Unit.COUNT;
     }
 
     @Override
