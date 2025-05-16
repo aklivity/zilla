@@ -53,13 +53,13 @@ public class ScalarRecord implements MetricRecord
     public String namespace()
     {
         // implicit int -> long conversion, it's OK
-        return labelResolver.apply(namespaceId);
+        return namespaceId != -1 ? labelResolver.apply(namespaceId) : null;
     }
 
     @Override
     public String binding()
     {
-        return labelResolver.apply(bindingId);
+        return bindingId != -1 ? labelResolver.apply(bindingId) : null;
     }
 
     @Override

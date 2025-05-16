@@ -154,6 +154,8 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class EngineWorker implements EngineContext, Agent
 {
+    private static final long NO_NAMESPACE_BINDING_ID = -1L;
+
     private static final int RESERVED_SIZE = 33;
 
     private static final int SHIFT_SIZE = 56;
@@ -299,11 +301,8 @@ public class EngineWorker implements EngineContext, Agent
 
         if (!readonly)
         {
-            final int engineId = labels.supplyLabelId("engine");
-            final long bindingId = NamespacedId.id(engineId, engineId);
-
             final int metricId = labels.supplyLabelId("engine.worker.count");
-            supplyMetricWriter(GAUGE, bindingId, metricId).accept(1);
+            supplyMetricWriter(GAUGE, NO_NAMESPACE_BINDING_ID, metricId).accept(1);
         }
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
@@ -778,12 +777,9 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int engineId = labels.supplyLabelId("engine");
-        final long bindingId = NamespacedId.id(engineId, engineId);
-
         final int metricId = labels.supplyLabelId("engine.worker.utilization");
 
-        return supplyMetricWriter(GAUGE, bindingId, metricId);
+        return supplyMetricWriter(GAUGE, NO_NAMESPACE_BINDING_ID, metricId);
     }
 
     @Override
