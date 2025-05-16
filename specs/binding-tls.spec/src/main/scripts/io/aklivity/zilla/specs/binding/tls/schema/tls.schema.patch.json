@@ -223,6 +223,11 @@
                     "title": "Trust CA Certificates",
                     "type": "boolean"
                 },
+                "crlChecks":
+                {
+                    "title": "Check CRLs",
+                    "type": "boolean"
+                },
                 "sni":
                 {
                     "title": "Server Names",

@@ -75,6 +75,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientCRLChecks()
+    {
+        JsonObject config = schema.validate("client.crl.checks.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClientMutual()
     {
         JsonObject config = schema.validate("client.mutual.yaml");
@@ -110,6 +118,14 @@ public class SchemaTest
     public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerCRLChecks()
+    {
+        JsonObject config = schema.validate("server.crl.checks.yaml");
 
         assertThat(config, not(nullValue()));
     }
