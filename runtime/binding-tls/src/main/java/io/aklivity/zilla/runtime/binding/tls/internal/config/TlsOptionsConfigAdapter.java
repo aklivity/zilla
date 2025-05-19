@@ -93,8 +93,7 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(TRUSTCACERTS_NAME, tlsOptions.trustcacerts);
         }
 
-        if (tlsOptions.trust != null && tlsOptions.crlChecks ||
-            tlsOptions.trust == null && !tlsOptions.crlChecks)
+        if (tlsOptions.trust != null && tlsOptions.crlChecks)
         {
             object.add(CRL_CHECKS_NAME, tlsOptions.crlChecks);
         }
