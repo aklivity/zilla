@@ -118,7 +118,7 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
     {
         final TlsMutualConfig mutual = this.mutual == null && this.trust != null ? REQUIRED : this.mutual;
         final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
-        final boolean crlChecks = this.crlChecks == null ? this.trust == null : this.crlChecks;
+        final boolean crlChecks = this.crlChecks;
         return mapper.apply(new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts, crlChecks));
     }
 }
