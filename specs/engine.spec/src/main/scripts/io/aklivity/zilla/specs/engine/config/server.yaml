@@ -43,6 +43,10 @@ bindings:
     net0:
         type: test
         kind: server
+        options:
+            authorization:
+                test0:
+                    credentials: TOKEN
         routes:
             - guarded:
                 test0:
