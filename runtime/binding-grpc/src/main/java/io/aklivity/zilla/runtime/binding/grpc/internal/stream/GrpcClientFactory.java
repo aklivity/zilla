@@ -69,6 +69,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String8FW HTTP_HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HTTP_HEADER_TE = new String8FW("te");
     private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
+    private static final String8FW HTTP_HEADER_GRPC_MESSAGE = new String8FW("grpc-message");
 
     private static final String16FW HTTP_HEADER_VALUE_METHOD_POST = new String16FW("POST");
     private static final String16FW HTTP_HEADER_VALUE_STATUS_200 = new String16FW("200");
@@ -90,6 +91,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final AbortFW abortRO = new AbortFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final String16FW messageRO = new String16FW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -242,6 +244,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private int state;
         private String grpcStatus;
+        private String grpcMessage;
 
         private GrpcClient(
             MessageConsumer application,
@@ -480,9 +483,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
         private void doAppAbortDeferring(
             long traceId,
             long authorization,
-            String16FW grpcStatus)
+            String16FW grpcStatus,
+            String16FW grpcMessage)
         {
             this.grpcStatus = grpcStatus != null ? grpcStatus.asString() : null;
+            this.grpcMessage = grpcMessage != null ? grpcMessage.asString() : null;
             this.state = GrpcState.closingReply(state);
 
             if (GrpcState.replyOpened(state))
@@ -495,17 +500,24 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long traceId,
             long authorization)
         {
-            GrpcAbortExFW abortEx = grpcStatus != null
-                    ? grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(grpcTypeId)
-                            .status(grpcStatus)
-                            .build()
-                    : grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(grpcTypeId)
-                            .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
-                            .build();
+            GrpcAbortExFW.Builder abortEx = grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(grpcTypeId);
 
-            doAppAbort(traceId, authorization, abortEx);
+            if (grpcStatus != null)
+            {
+                abortEx.status(grpcStatus);
+            }
+            else
+            {
+                abortEx.status(HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            }
+
+            if (grpcMessage != null)
+            {
+                abortEx.message(grpcMessage);
+            }
+
+            doAppAbort(traceId, authorization, abortEx.build());
         }
 
         private void doAppAbort(
@@ -770,6 +782,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             String16FW status = HTTP_HEADER_VALUE_STATUS_200;
             String16FW grpcStatus = null;
+            String16FW grpcMessage = null;
 
             helper.visit(httpBeginEx);
 
@@ -777,6 +790,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 status = helper.status;
                 grpcStatus = helper.grpcStatus;
+                grpcMessage = helper.grpcMessage;
             }
 
             assert acknowledge <= sequence;
@@ -799,7 +813,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {
-                delegate.doAppAbortDeferring(traceId, authorization, grpcStatus);
+                delegate.doAppAbortDeferring(traceId, authorization, grpcStatus, grpcMessage);
                 doNetReset(traceId, authorization);
             }
         }
@@ -875,6 +889,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
             final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
+            final HttpHeaderFW grpcMessage = trailers.matchFirst(t -> t.name().equals(HTTP_HEADER_GRPC_MESSAGE));
+            final String16FW message = grpcMessage != null
+                ? messageRO.wrap(grpcMessage.value().buffer(), grpcMessage.value().offset(), grpcMessage.value().limit())
+                : null;
             final HttpHeaderFW grpcStatus = trailers.matchFirst(t -> t.name().equals(HTTP_HEADER_GRPC_STATUS));
 
             if (grpcStatus != null && HEADER_VALUE_GRPC_OK.equals(grpcStatus.value()))
@@ -884,7 +902,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             else
             {
                 delegate.doAppAbortDeferring(traceId, authorization,
-                        grpcStatus != null ? grpcStatus.value() : HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                        grpcStatus != null ? grpcStatus.value() : HEADER_VALUE_GRPC_INTERNAL_ERROR, message);
             }
         }
 

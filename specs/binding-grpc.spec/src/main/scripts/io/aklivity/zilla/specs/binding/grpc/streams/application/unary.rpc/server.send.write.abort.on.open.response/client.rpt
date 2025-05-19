@@ -37,6 +37,7 @@ write close
 read zilla:abort.ext ${grpc:abortEx()
                             .typeId(zilla:id("grpc"))
                             .status("9")
+                            .message("Custom Error Message")
                             .build()}
 read aborted
 

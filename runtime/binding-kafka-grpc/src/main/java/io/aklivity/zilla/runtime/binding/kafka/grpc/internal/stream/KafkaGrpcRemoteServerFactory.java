@@ -868,7 +868,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 initialMax = delegate.replyMax;
                 state = KafkaGrpcState.closeInitial(state);
 
-                doKafkaTombstone(traceId, authorization, HEADER_VALUE_GRPC_OK);
+                doKafkaTombstone(traceId, authorization, HEADER_VALUE_GRPC_OK, null);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -878,7 +878,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private void doKafkaAbort(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (KafkaGrpcState.initialOpening(state) &&
                 !KafkaGrpcState.initialClosed(state))
@@ -888,7 +889,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 initialMax = delegate.replyMax;
                 state = KafkaGrpcState.closeInitial(state);
 
-                doKafkaTombstone(traceId, authorization, status);
+                doKafkaTombstone(traceId, authorization, status, message);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, emptyRO);
@@ -1059,7 +1060,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private void doKafkaTombstone(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             Flyweight tombstoneDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1068,7 +1070,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(k -> condition.key(delegate.correlationId, k))
-                    .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, h))))
+                    .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, message, h))))
                 .build();
 
             doKafkaData(traceId, authorization, delegate.initialBudetId, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
@@ -1324,7 +1326,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(k -> condition.key(c, k))
-                        .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, h))))
+                        .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, null, h))))
                     .build();
                 doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
             });
@@ -1545,8 +1547,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             final GrpcAbortExFW abortEx = extension != null ? extension.get(abortExRO::tryWrap) : null;
 
             final String16FW status = abortEx != null ? abortEx.status() : HEADER_VALUE_GRPC_ABORTED;
+            final String16FW message = abortEx != null ? abortEx.message() : null;
 
-            correlater.doKafkaAbort(traceId, authorization, status);
+            correlater.doKafkaAbort(traceId, authorization, status, message);
         }
 
         private void onGrpcReset(
@@ -1705,7 +1708,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             doGrpcReset(traceId, authorization);
             doGrpcAbort(traceId, authorization);
 
-            correlater.doKafkaAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            correlater.doKafkaAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
             correlater.doKafkaReset(traceId, authorization);
 
             server.removeIfClosed(correlationId);

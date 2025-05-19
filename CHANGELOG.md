@@ -2,7 +2,27 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.138...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.139...HEAD)
+
+**Implemented enhancements:**
+
+- Persist gRPC error messages [\#988](https://github.com/aklivity/zilla/issues/988)
+
+**Fixed bugs:**
+
+- `curl` fails to connect to `zilla` in `asyncapi.sse.proxy` and `asyncapi.sse.kafka.proxy` examples [\#1417](https://github.com/aklivity/zilla/issues/1417)
+
+**Merged pull requests:**
+
+- support `guarded` `routes` in TestBindingFactory [\#1477](https://github.com/aklivity/zilla/pull/1477) ([ankitk-me](https://github.com/ankitk-me))
+- Remove `-e` option from `echo` & add `--exclude-internal` in `list` [\#1469](https://github.com/aklivity/zilla/pull/1469) ([ankitk-me](https://github.com/ankitk-me))
+- Persist gRPC custom error messages [\#1468](https://github.com/aklivity/zilla/pull/1468) ([ankitk-me](https://github.com/ankitk-me))
+- fix `asyncapi.sse.kafka.proxy` example & enable `test` [\#1463](https://github.com/aklivity/zilla/pull/1463) ([ankitk-me](https://github.com/ankitk-me))
+- added support for validation in asyncapi.sse flow & example fix [\#1462](https://github.com/aklivity/zilla/pull/1462) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.139](https://github.com/aklivity/zilla/tree/0.9.139) (2025-04-24)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.138...0.9.139)
 
 **Fixed bugs:**
 

@@ -24,7 +24,7 @@ operations:
     traits:
       - $ref: "#/components/operationTraits/kafka"
     messages:
-      - $ref: "#/channels/eventstore/messages/event"
+      - $ref: "#/channels/events/messages/event"
 components:
   messages:
     event:

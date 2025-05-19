@@ -25,7 +25,7 @@ import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Long2LongHashMap;
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -39,10 +39,12 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
@@ -82,8 +84,8 @@ final class TestBindingFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final EngineContext context;
-    private final Long2LongHashMap router;
     private final TestEventContext event;
+    private final Long2ObjectHashMap<TestBindingConfig> bindings;
 
     private ConverterHandler valueType;
     private String schema;
@@ -101,16 +103,14 @@ final class TestBindingFactory implements BindingHandler
         EngineContext context)
     {
         this.context = context;
-        this.router = new Long2LongHashMap(-1L);
         this.event = new TestEventContext(context);
+        this.bindings = new Long2ObjectHashMap<>();
     }
 
     public void attach(
         BindingConfig binding)
     {
-        binding.routes.stream()
-            .filter(r -> r.when.isEmpty())
-            .findFirst().ifPresent(exit -> router.put(binding.id, exit.id));
+        bindings.put(binding.id, new TestBindingConfig(binding));
 
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
@@ -172,7 +172,7 @@ final class TestBindingFactory implements BindingHandler
     public void detach(
         BindingConfig binding)
     {
-        router.remove(binding.id);
+        bindings.remove(binding.id);
     }
 
     @Override
@@ -188,12 +188,22 @@ final class TestBindingFactory implements BindingHandler
         long routedId = begin.routedId();
         long initialId = begin.streamId();
         long replyId = initialId ^ 1L;
-        long resolvedId = router.get(routedId);
 
         MessageConsumer newStream =  null;
 
-        if (resolvedId != -1L)
+        TestBindingConfig binding = bindings.get(routedId);
+        long authorization = begin.authorization();
+
+        if (guard != null)
         {
+            authorization = guard.reauthorize(begin.traceId(), routedId, 0, credentials);
+        }
+
+        TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+
+        if (route != null)
+        {
+            final long resolvedId = route.id;
             newStream = new TestSource(source, originId, routedId, initialId, replyId, resolvedId)::onMessage;
         }
 
@@ -376,11 +386,6 @@ final class TestBindingFactory implements BindingHandler
                         handler.resolve(catalog.id);
                     }
                 }
-            }
-
-            if (guard != null)
-            {
-                guard.reauthorize(traceId, routedId, 0, credentials);
             }
 
             while (events != null && eventIndex < events.size())

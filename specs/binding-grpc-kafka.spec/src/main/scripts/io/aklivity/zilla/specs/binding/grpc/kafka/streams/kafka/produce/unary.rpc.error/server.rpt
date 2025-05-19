@@ -99,6 +99,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("test")
                                 .header("zilla:status", "9")
+                                .header("zilla:message", "Custom Error Message")
                                 .header("meta:custom", "value")
                                 .build()
                             .build()}

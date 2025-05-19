@@ -34,6 +34,6 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .build()}
 connected
 
-write "Hello, world"
+write '{ "id": 1, "name": "Hello World!" }'
 
-write "Hello, again"
+write '{ "id": 1, "name": "Hello World!" }'

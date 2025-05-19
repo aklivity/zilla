@@ -79,6 +79,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final int DATA_FLAG_COMPLETE = 0x03;
 
     private static final String8FW HEADER_NAME_ZILLA_GRPC_STATUS = new String8FW("zilla:status");
+    private static final String8FW HEADER_NAME_ZILLA_GRPC_MESSAGE = new String8FW("zilla:message");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
@@ -101,6 +102,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final AbortFW abortRO = new AbortFW();
 
     private final String16FW.Builder statusRW = new
+        String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
+    private final String16FW.Builder messageRW = new
         String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -454,7 +457,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
             else
             {
-                doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_ABORTED, null);
                 cleanup(traceId, authorization);
             }
         }
@@ -647,8 +650,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
-            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
+            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
 
             fetch.doKafkaAbort(traceId, authorization);
             fetch.doKafkaReset(traceId, authorization);
@@ -731,20 +734,25 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private void doGrpcAbort(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
             {
                 replySeq = fetch.replySeq;
 
-                final GrpcAbortExFW grpcAbortEx =
+                final GrpcAbortExFW.Builder grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
-                        .status(status)
-                        .build();
+                        .status(status);
+
+                if (message != null)
+                {
+                    grpcAbortEx.message(message);
+                }
 
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, grpcAbortEx);
+                    traceId, authorization, grpcAbortEx.build());
             }
             state = GrpcKafkaState.closeReply(state);
         }
@@ -780,20 +788,25 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private void doGrpcReset(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (!GrpcKafkaState.initialClosed(state))
             {
                 state = GrpcKafkaState.closeInitial(state);
 
-                final GrpcResetExFW grpcResetEx =
+                final GrpcResetExFW.Builder grpcResetEx =
                     grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
-                        .status(status)
-                        .build();
+                        .status(status);
+
+                if (message != null)
+                {
+                    grpcResetEx.message(message);
+                }
 
                 doReset(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, grpcResetEx);
+                    traceId, authorization, grpcResetEx.build());
             }
         }
     }
@@ -1441,7 +1454,19 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                         String16FW status = statusRW
                             .set(value.buffer(), value.offset(), value.sizeof())
                             .build();
-                        doGrpcAbort(traceId, authorization, status);
+
+                        String16FW message = null;
+                        KafkaHeaderFW grpcMessage = kafkaDataEx.merged().fetch().headers()
+                            .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_MESSAGE.value().equals(h.name().value()));
+                        if (grpcMessage != null)
+                        {
+                            OctetsFW messageValue = grpcMessage.value();
+                            message = messageRW
+                                .set(messageValue.buffer(), messageValue.offset(), messageValue.sizeof())
+                                .build();
+                        }
+
+                        doGrpcAbort(traceId, authorization, status, message);
                     }
                     else
                     {
@@ -1493,7 +1518,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization)
         {
             doGrpcReset(traceId, authorization);
-            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
 
             producer.doKafkaAbort(traceId, authorization);
             producer.doKafkaReset(traceId, authorization);
@@ -1583,21 +1608,26 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private void doGrpcAbort(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (GrpcKafkaState.replyOpening(state) &&
                 !GrpcKafkaState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
 
-                final GrpcAbortExFW grpcAbortEx =
+                final GrpcAbortExFW.Builder grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
-                        .status(status)
-                        .build();
+                        .status(status);
+
+                if (message != null)
+                {
+                    grpcAbortEx.message(message);
+                }
 
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, grpcAbortEx);
+                    traceId, authorization, grpcAbortEx.build());
             }
             state = GrpcKafkaState.closeReply(state);
         }
@@ -1931,7 +1961,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization)
         {
             doGrpcReset(traceId, authorization);
-            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
 
             delegate.doKafkaAbort(traceId, authorization);
             delegate.doKafkaReset(traceId, authorization);
@@ -1970,19 +2000,24 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private void doGrpcAbort(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (GrpcKafkaState.replyOpening(state) &&
                 !GrpcKafkaState.replyClosed(state))
             {
-                final GrpcAbortExFW grpcAbortEx =
+                final GrpcAbortExFW.Builder grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
-                        .status(status)
-                        .build();
+                        .status(status);
+
+                if (message != null)
+                {
+                    grpcAbortEx.message(message);
+                }
 
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, grpcAbortEx);
+                    traceId, authorization, grpcAbortEx.build());
             }
             state = GrpcKafkaState.closeReply(state);
         }

@@ -87,6 +87,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_NAME_GRPC_ENCODING = new String8FW("grpc-encoding");
     private static final String8FW HEADER_NAME_GRPC_STATUS = new String8FW("grpc-status");
+    private static final String8FW HEADER_NAME_GRPC_MESSAGE = new String8FW("grpc-message");
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
     private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
@@ -162,7 +163,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 long authorization,
                 int reserved)
             {
-                server.doGrpcNetStatus(traceId, authorization, reserved, HEADER_VALUE_GRPC_OK);
+                server.doGrpcNetStatus(traceId, authorization, reserved, HEADER_VALUE_GRPC_OK, null);
             }
 
             @Override
@@ -170,9 +171,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 GrpcServer server,
                 long traceId,
                 long authorization,
-                String16FW status)
+                String16FW status,
+                String16FW message)
             {
-                server.doGrpcNetStatus(traceId, authorization, 0, status);
+                server.doGrpcNetStatus(traceId, authorization, 0, status, message);
             }
 
             @Override
@@ -180,9 +182,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 GrpcServer server,
                 long traceId,
                 long authorization,
-                String16FW status)
+                String16FW status,
+                String16FW message)
             {
-                server.doGrpcNetReset(traceId, authorization, status);
+                server.doGrpcNetReset(traceId, authorization, status, message);
             }
         },
         GRPC_WEB_PROTO
@@ -194,7 +197,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 long authorization,
                 int reserved)
             {
-                server.doGrpcWebNetStatus(traceId, authorization, HEADER_VALUE_GRPC_OK);
+                server.doGrpcWebNetStatus(traceId, authorization, HEADER_VALUE_GRPC_OK, null);
             }
 
             @Override
@@ -202,9 +205,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 GrpcServer server,
                 long traceId,
                 long authorization,
-                String16FW status)
+                String16FW status,
+                String16FW message)
             {
-                server.doGrpcWebNetStatus(traceId, authorization, status);
+                server.doGrpcWebNetStatus(traceId, authorization, status, message);
             }
 
             @Override
@@ -212,9 +216,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 GrpcServer server,
                 long traceId,
                 long authorization,
-                String16FW status)
+                String16FW status,
+                String16FW message)
             {
-                server.doGrpcWebNetStatus(traceId, authorization, status);
+                server.doGrpcWebNetStatus(traceId, authorization, status, message);
             }
         };
 
@@ -228,13 +233,15 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             GrpcServer server,
             long traceId,
             long authorization,
-            String16FW status);
+            String16FW status,
+            String16FW message);
 
         public abstract void doNetReset(
             GrpcServer server,
             long traceId,
             long authorization,
-            String16FW status);
+            String16FW status,
+            String16FW message);
     }
 
     public GrpcServerFactory(
@@ -308,7 +315,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         if (!isGrpcRequestMethod(httpBeginEx))
         {
             doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
         }
         else
         {
@@ -320,17 +327,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (method == null)
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED, null);
             }
             else if (contentType == null)
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_415, null);
+                    HEADER_VALUE_STATUS_415, null, null);
             }
             else if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED, null);
             }
             else
             {
@@ -384,7 +391,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         else
         {
             doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
+                HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED, null);
             newStream = (t, b, i, l) -> {};
         }
 
@@ -403,6 +410,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private final long replyId;
         private final long affinity;
         private String16FW status;
+        private String16FW message;
 
         private long initialSeq;
         private long initialAck;
@@ -560,7 +568,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 }
                 else
                 {
-                    doNetReset(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                    doNetReset(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
                 }
             }
             else
@@ -641,7 +649,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (GrpcState.initialClosing(state) && status != null)
             {
-                doGrpcWebNetStatus(traceId, authorization, status);
+                doGrpcWebNetStatus(traceId, authorization, status, message);
             }
             else
             {
@@ -768,12 +776,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private void doNetAbort(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (!GrpcState.replyClosed(state))
             {
                 state = GrpcState.closingReply(state);
-                contentType.doNetAbort(this, traceId, authorization, status);
+                contentType.doNetAbort(this, traceId, authorization, status, message);
 
                 cleanupExpiringIfNecessary();
             }
@@ -782,11 +791,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private void doNetReset(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
 
             state = GrpcState.closingInitial(state);
-            contentType.doNetReset(this, traceId, authorization, status);
+            contentType.doNetReset(this, traceId, authorization, status, message);
 
             cleanupExpiringIfNecessary();
         }
@@ -808,12 +818,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private void doGrpcNetReset(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (!GrpcState.initialClosed(state))
             {
                 doRejectNet(network, originId, routedId, traceId, authorization,  initialId, initialSeq, initialAck,
-                    HEADER_VALUE_STATUS_200, status);
+                    HEADER_VALUE_STATUS_200, status, message);
 
                 state = GrpcState.closeInitial(state);
             }
@@ -823,17 +834,22 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long traceId,
             long authorization,
             int reserved,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (!GrpcState.replyClosed(state))
             {
-                HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                HttpEndExFW.Builder trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(httpTypeId)
-                    .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(status))
-                    .build();
+                    .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(status));
+
+                if (message != null)
+                {
+                    trailer.trailersItem(t -> t.name(HEADER_NAME_GRPC_MESSAGE).value(message));
+                }
 
                 doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBud, reserved, trailer);
+                    traceId, authorization, replyBud, reserved, trailer.build());
 
                 state = GrpcState.closeReply(state);
             }
@@ -842,7 +858,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private void doGrpcWebNetStatus(
             long traceId,
             long authorization,
-            String16FW status)
+            String16FW status,
+            String16FW message)
         {
             if (!GrpcState.replyClosed(state))
             {
@@ -853,6 +870,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
                 encodeProgress = doEncodeHeader(encodeBuffer, encodeProgress,
                     HEADER_NAME_GRPC_STATUS.value(), status.value(), false);
+
+                if (message != null)
+                {
+                    encodeProgress = doEncodeHeader(encodeBuffer, encodeProgress,
+                        HEADER_NAME_GRPC_MESSAGE.value(), message.value(), false);
+                }
 
                 final int headersLength = encodeProgress - encodeOffset - GRPC_MESSAGE_PADDING;
                 grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeLimit)
@@ -874,6 +897,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 else
                 {
                     this.status = status;
+                    this.message = message;
                 }
             }
         }
@@ -886,7 +910,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (GrpcState.replyOpening(state))
             {
-                contentType.doNetAbort(this, traceId, authorization, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED);
+                contentType.doNetAbort(this, traceId, authorization, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED, null);
             }
             else
             {
@@ -895,7 +919,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
                 doHttpResponse(network, traceId, authorization, replyBud, affinity, originId,
                     routedId, replyId, replySeq, replyAck, writeBuffer.capacity(), replyPad,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED);
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED, null);
             }
             delegate.cleanup(traceId, 0L);
         }
@@ -1059,6 +1083,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final GrpcResetExFW resetEx = extension.get(resetExRO::tryWrap);
 
             final String16FW status = resetEx != null ? resetEx.status() : HEADER_VALUE_GRPC_INTERNAL_ERROR;
+            final String16FW message = resetEx != null ? resetEx.message() : null;
 
             assert acknowledge <= sequence;
             assert acknowledge >= initialAck;
@@ -1067,7 +1092,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doNetReset(traceId, authorization, status);
+            delegate.doNetReset(traceId, authorization, status, message);
         }
 
         private void onAppWindow(
@@ -1198,6 +1223,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final GrpcAbortExFW abortEx = extension.get(abortExRO::tryWrap);
 
             final String16FW status = abortEx != null ? abortEx.status() : HEADER_VALUE_GRPC_ABORTED;
+            final String16FW message = abortEx != null ? abortEx.message() : null;
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1207,7 +1233,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doNetAbort(traceId, authorization, status);
+            delegate.doNetAbort(traceId, authorization, status, message);
         }
 
 
@@ -1444,7 +1470,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long sequence,
         long acknowledge,
         String16FW httpStatus,
-        String16FW grpcStatus)
+        String16FW grpcStatus,
+        String16FW grpcMessage)
     {
         doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
         HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1453,6 +1480,11 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         if (grpcStatus != null)
         {
             resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
+        }
+
+        if (grpcMessage != null && grpcMessage.value() != null)
+        {
+            resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_MESSAGE).value(grpcMessage));
         }
 
         doReset(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
@@ -1483,12 +1515,20 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         int maximum,
         int padding,
         String16FW httpStatus,
-        String16FW grpcStatus)
+        String16FW grpcStatus,
+        String16FW grpcMessage)
     {
         doBegin(acceptReply, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
             authorization, affinity, hs ->
-            hs.item(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
-                .item(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus)));
+            {
+                hs.item(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
+                    .item(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
+
+                if (grpcMessage != null)
+                {
+                    hs.item(h -> h.name(HEADER_NAME_GRPC_MESSAGE).value(grpcMessage));
+                }
+            });
         doEnd(acceptReply, originId, routedId, replyId, sequence, acknowledge, maximum,
             traceId, authorization, budgetId, padding, EMPTY_OCTETS);
     }
