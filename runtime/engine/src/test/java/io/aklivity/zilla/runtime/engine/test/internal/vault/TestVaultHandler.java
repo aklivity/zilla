@@ -52,6 +52,7 @@ public final class TestVaultHandler implements VaultHandler
         Pattern.compile(
             "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
             "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
+    public static final String PKIX_ALGORITHM = "PKIX";
 
     private final TestVaultEntryConfig key;
     private final TestVaultEntryConfig signer;
@@ -177,9 +178,9 @@ public final class TestVaultHandler implements VaultHandler
                     }
                 }
 
-                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 if (crlChecks)
                 {
+                    factory = TrustManagerFactory.getInstance(PKIX_ALGORITHM);
                     PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(store, new X509CertSelector());
                     pkixParams.setRevocationEnabled(true);
                     CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
@@ -187,6 +188,7 @@ public final class TestVaultHandler implements VaultHandler
                 }
                 else
                 {
+                    factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     factory.init(store);
                 }
             }
