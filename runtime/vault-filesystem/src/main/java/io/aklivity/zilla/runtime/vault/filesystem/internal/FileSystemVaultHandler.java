@@ -190,17 +190,18 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
-                String algorithm = TrustManagerFactory.getDefaultAlgorithm();
+                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 if (crlChecks)
                 {
+                    PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
                     pkixParams.setRevocationEnabled(true);
-                    algorithm = PKIX_ALGORITHM;
+                    CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
+                    factory.init(tmParams);
                 }
-                CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
-
-                factory = TrustManagerFactory.getInstance(algorithm);
-                factory.init(tmParams);
+                else
+                {
+                    factory.init(trust);
+                }
             }
         }
         catch (Exception ex)

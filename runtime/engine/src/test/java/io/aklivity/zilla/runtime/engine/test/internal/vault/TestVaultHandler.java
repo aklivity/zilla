@@ -177,15 +177,18 @@ public final class TestVaultHandler implements VaultHandler
                     }
                 }
 
-                PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(store, new X509CertSelector());
+                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 if (crlChecks)
                 {
+                    PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(store, new X509CertSelector());
                     pkixParams.setRevocationEnabled(true);
+                    CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
+                    factory.init(tmParams);
                 }
-                CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
-
-                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(tmParams);
+                else
+                {
+                    factory.init(store);
+                }
             }
             catch (Exception ex)
             {
