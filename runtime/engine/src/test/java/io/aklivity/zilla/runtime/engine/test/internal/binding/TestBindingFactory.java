@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import static io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
-import static java.util.stream.Collectors.toList;
 
 import java.security.KeyStore;
 import java.util.LinkedList;
@@ -34,18 +33,18 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingRouteConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
@@ -86,7 +85,7 @@ final class TestBindingFactory implements BindingHandler
 
     private final EngineContext context;
     private final TestEventContext event;
-    private final Long2ObjectHashMap<BindingConfig> bindings;
+    private final Long2ObjectHashMap<TestBindingConfig> bindings;
 
     private ConverterHandler valueType;
     private String schema;
@@ -111,7 +110,7 @@ final class TestBindingFactory implements BindingHandler
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, binding);
+        bindings.put(binding.id, new TestBindingConfig(binding));
 
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
@@ -191,31 +190,20 @@ final class TestBindingFactory implements BindingHandler
         long replyId = initialId ^ 1L;
 
         MessageConsumer newStream =  null;
-        long resolvedId;
 
-        BindingConfig binding = bindings.get(routedId);
+        TestBindingConfig binding = bindings.get(routedId);
+        long authorization = begin.authorization();
 
         if (guard != null)
         {
-            final long authorization = guard.reauthorize(begin.traceId(), routedId, 0, credentials);
-            List<TestBindingRouteConfig> routes = binding.routes.stream().map(TestBindingRouteConfig::new).collect(toList());
-            TestBindingRouteConfig route = routes.stream()
-                .filter(r -> r.authorized(authorization))
-                .findFirst()
-                .orElse(null);
-            resolvedId = route != null ? route.id : 0L;
-        }
-        else
-        {
-            RouteConfig route = binding.routes.stream()
-                .filter(r -> r.when.isEmpty())
-                .findFirst()
-                .orElse(null);
-            resolvedId = route != null ? route.id : 0L;
+            authorization = guard.reauthorize(begin.traceId(), routedId, 0, credentials);
         }
 
-        if (resolvedId != 0L)
+        TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+
+        if (route != null)
         {
+            final long resolvedId = route.id;
             newStream = new TestSource(source, originId, routedId, initialId, replyId, resolvedId)::onMessage;
         }
 

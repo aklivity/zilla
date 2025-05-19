@@ -15,20 +15,24 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.List;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
-public final class TestBindingRouteConfig
+public final class TestRouteConfig
 {
     public final long id;
+    public final List<ConditionConfig> when;
 
     private final LongPredicate authorized;
 
-    public TestBindingRouteConfig(
+    public TestRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
+        this.when = route.when;
         this.authorized = route.authorized;
     }
 
