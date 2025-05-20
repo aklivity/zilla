@@ -15,18 +15,20 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import static java.util.function.UnaryOperator.identity;
+
 import java.util.List;
-import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TestRouteConfig
 {
     public final long id;
     public final List<ConditionConfig> when;
 
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public TestRouteConfig(
         RouteConfig route)
@@ -39,6 +41,6 @@ public final class TestRouteConfig
     public boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 }

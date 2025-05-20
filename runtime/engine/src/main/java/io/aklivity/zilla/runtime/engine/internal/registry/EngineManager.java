@@ -33,7 +33,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class EngineManager
 {
@@ -330,7 +330,7 @@ public class EngineManager
             for (RouteConfig route : binding.routes)
             {
                 route.id = resolver.resolve(route.exit);
-                route.authorized = session -> true;
+                route.authorized = (session, resolve) -> true;
 
                 if (route.guarded != null)
                 {
@@ -338,12 +338,12 @@ public class EngineManager
                     {
                         guarded.id = resolver.resolve(guarded.name);
 
-                        LongPredicate authorizer = guards.stream()
+                        LongObjectPredicate authorizer = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))
                             .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
-                            .orElse(session -> false);
+                            .orElse((session, resolve) -> false);
 
                         LongFunction<String> identifier = guards.stream()
                             .filter(g -> g.id == guarded.id)

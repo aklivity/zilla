@@ -22,11 +22,12 @@ import static java.util.stream.Collectors.toMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class MqttRouteConfig
 {
@@ -34,7 +35,7 @@ public final class MqttRouteConfig
 
     private final List<MqttConditionMatcher> when;
     private final MqttWithConfig with;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
     private final Map<String, LongFunction<String>> identities;
 
     public MqttRouteConfig(
@@ -59,7 +60,7 @@ public final class MqttRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, UnaryOperator.identity());
     }
 
     LongFunction<String> identity(

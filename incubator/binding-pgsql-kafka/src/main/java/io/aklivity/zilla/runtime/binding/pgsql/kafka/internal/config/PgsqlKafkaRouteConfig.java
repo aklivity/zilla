@@ -14,16 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config;
 
-import java.util.function.LongPredicate;
+import static java.util.function.UnaryOperator.identity;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class PgsqlKafkaRouteConfig
 {
     public final long id;
     public final int order;
 
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public PgsqlKafkaRouteConfig(
         RouteConfig route)
@@ -36,6 +37,6 @@ public final class PgsqlKafkaRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 }

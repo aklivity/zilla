@@ -14,15 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class HttpFileSystemRouteConfig
 {
@@ -30,7 +31,7 @@ public final class HttpFileSystemRouteConfig
     public final Optional<HttpFileSystemWithResolver> with;
 
     private final List<HttpFileSystemConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public HttpFileSystemRouteConfig(
         RouteConfig route)
@@ -51,7 +52,7 @@ public final class HttpFileSystemRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(

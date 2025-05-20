@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.engine.guard;
 
 import java.net.URL;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public interface Guard
 {
@@ -38,7 +38,7 @@ public interface Guard
      *
      * @return  the session verifier predicate
      */
-    LongPredicate verifier(
+    LongObjectPredicate verifier(
         LongToIntFunction indexOf,
         GuardedConfig config);
 

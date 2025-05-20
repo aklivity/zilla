@@ -14,23 +14,24 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionMatcher;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithResolver;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class MqttKafkaRouteConfig
 {
 
     public final MqttKafkaWithResolver with;
     private final List<MqttKafkaConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public final long id;
     public final long order;
@@ -59,7 +60,7 @@ public class MqttKafkaRouteConfig
     public boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     public boolean matchesClient(

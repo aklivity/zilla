@@ -14,22 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.LongPredicate;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class RisingwaveRouteConfig
 {
     public final long id;
 
     private final List<RisingwaveConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public RisingwaveRouteConfig(
         RouteConfig route)
@@ -45,7 +46,7 @@ public final class RisingwaveRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(

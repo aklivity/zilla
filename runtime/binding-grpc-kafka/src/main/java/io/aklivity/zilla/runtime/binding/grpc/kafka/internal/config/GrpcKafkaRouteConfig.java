@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 
 public final class GrpcKafkaRouteConfig
@@ -39,7 +40,7 @@ public final class GrpcKafkaRouteConfig
 
     private final List<GrpcKafkaConditionMatcher> when;
     public final GrpcKafkaWithResolver with;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public GrpcKafkaRouteConfig(
         GrpcKafkaOptionsConfig options,
@@ -72,7 +73,7 @@ public final class GrpcKafkaRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(

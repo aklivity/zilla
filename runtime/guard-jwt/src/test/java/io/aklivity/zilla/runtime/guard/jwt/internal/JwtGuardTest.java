@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 
 import org.jose4j.jwt.JwtClaims;
 import org.junit.Test;
@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardTest
@@ -59,9 +60,9 @@ public class JwtGuardTest
         GuardFactory factory = GuardFactory.instantiate();
         Guard guard = factory.create("jwt", config);
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
-        assertFalse(verifier.test(1L));
+        assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
 
     @Test
@@ -84,9 +85,9 @@ public class JwtGuardTest
 
         guard.supply(engine);
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
-        assertFalse(verifier.test(1L));
+        assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
 
     @Test
@@ -116,9 +117,9 @@ public class JwtGuardTest
             .options(JwtOptionsConfig.builder().build())
             .build());
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
-        assertFalse(verifier.test(1L));
+        assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
 
     @Test
@@ -154,7 +155,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -169,7 +170,7 @@ public class JwtGuardTest
 
         long authorizedId = handler.reauthorize(0L, 0L, 101L, token);
 
-        assertFalse(verifier.test(authorizedId));
+        assertFalse(verifier.test(authorizedId, UnaryOperator.identity()));
     }
 
     @Test
@@ -207,7 +208,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -222,7 +223,7 @@ public class JwtGuardTest
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
-        assertTrue(verifier.test(sessionId));
+        assertTrue(verifier.test(sessionId, UnaryOperator.identity()));
     }
 
     @Test
@@ -259,7 +260,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -274,7 +275,7 @@ public class JwtGuardTest
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
-        assertTrue(verifier.test(sessionId));
+        assertTrue(verifier.test(sessionId, UnaryOperator.identity()));
     }
 
     @Test
@@ -310,7 +311,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -325,7 +326,7 @@ public class JwtGuardTest
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
-        assertTrue(verifier.test(sessionId));
+        assertTrue(verifier.test(sessionId, UnaryOperator.identity()));
     }
 
     @Test
@@ -361,7 +362,7 @@ public class JwtGuardTest
             .name("test0")
             .build();
         guarded.id = config.id;
-        LongPredicate verifier = guard.verifier(id -> (int)(id >> 4), guarded);
+        LongObjectPredicate verifier = guard.verifier(id -> (int)(id >> 4), guarded);
 
         Instant now = Instant.now();
 
@@ -376,7 +377,7 @@ public class JwtGuardTest
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
-        assertTrue(verifier.test(sessionId));
+        assertTrue(verifier.test(sessionId, UnaryOperator.identity()));
     }
 
     @Test

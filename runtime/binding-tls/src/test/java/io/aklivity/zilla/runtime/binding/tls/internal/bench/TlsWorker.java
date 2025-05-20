@@ -468,7 +468,7 @@ public class TlsWorker implements EngineContext
             .map(b -> b.routes)
             .forEach(rs -> rs.stream()
                 .peek(r -> r.id = crc32c(r.exit))
-                .forEach(r -> r.authorized = session -> true));
+                .forEach(r -> r.authorized = (session, resolve) -> true));
 
         namespace.bindings.forEach(b ->
         {

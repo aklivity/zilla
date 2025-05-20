@@ -15,21 +15,22 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class ProxyRouteConfig
 {
     public final long id;
 
     private final List<ProxyConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate authorized;
 
     public ProxyRouteConfig(
         RouteConfig route)
@@ -45,7 +46,7 @@ public final class ProxyRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(
