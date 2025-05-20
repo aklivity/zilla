@@ -23,12 +23,15 @@ import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStore.TrustedCertificateEntry;
+import java.security.cert.CertPathValidator;
 import java.security.cert.Certificate;
 import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -190,16 +193,25 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 if (crlChecks)
                 {
+                    factory = TrustManagerFactory.getInstance(PKIX_ALGORITHM);
                     PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
                     pkixParams.setRevocationEnabled(true);
+
+                    CertPathValidator validator = CertPathValidator.getInstance(PKIX_ALGORITHM);
+                    PKIXRevocationChecker checker = (PKIXRevocationChecker) validator.getRevocationChecker();
+                    checker.setOptions(EnumSet.of(
+                        PKIXRevocationChecker.Option.PREFER_CRLS
+                    ));
+                    pkixParams.addCertPathChecker(checker);
+
                     CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
                     factory.init(tmParams);
                 }
                 else
                 {
+                    factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     factory.init(trust);
                 }
             }
