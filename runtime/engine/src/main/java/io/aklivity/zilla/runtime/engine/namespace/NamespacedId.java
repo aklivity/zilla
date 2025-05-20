@@ -17,6 +17,10 @@ package io.aklivity.zilla.runtime.engine.namespace;
 
 public final class NamespacedId
 {
+    public static final int NO_NAMESPACE_ID = -1;
+    public static final int NO_LOCAL_ID = -1;
+    public static final long NO_NAMESPACED_ID = id(NO_NAMESPACE_ID, NO_LOCAL_ID);
+
     public static int namespaceId(
         long namespacedId)
     {

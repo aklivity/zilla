@@ -33,6 +33,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -154,8 +155,6 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class EngineWorker implements EngineContext, Agent
 {
-    private static final long NO_NAMESPACE_BINDING_ID = -1L;
-
     private static final int RESERVED_SIZE = 33;
 
     private static final int SHIFT_SIZE = 56;
@@ -302,7 +301,7 @@ public class EngineWorker implements EngineContext, Agent
         if (!readonly)
         {
             final int metricId = labels.supplyLabelId("engine.worker.count");
-            supplyMetricWriter(GAUGE, NO_NAMESPACE_BINDING_ID, metricId).accept(1);
+            supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId).accept(1);
         }
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
@@ -779,7 +778,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int metricId = labels.supplyLabelId("engine.worker.utilization");
 
-        return supplyMetricWriter(GAUGE, NO_NAMESPACE_BINDING_ID, metricId);
+        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
     }
 
     @Override
