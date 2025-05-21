@@ -67,16 +67,10 @@ public class LongObjectPredicateTest
 
         final UnaryOperator<String> resolver = input ->
         {
-            String result = input;
-            boolean replaced = false;
-
-            if (result.contains("${key}"))
-            {
-                result = result.replace("${key}", function.apply("key"));
-                replaced = true;
-            }
-
-            return replaced ? result : function.apply(input);
+            String format = input.replace("${key}", "%1$s");
+            return format != input
+                ? format.formatted(function.apply("key"))
+                : input;
         };
 
 

@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
-import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -53,9 +52,18 @@ public final class SseRouteConfig
     }
 
     boolean authorized(
-        long authorization)
+        long authorization,
+        String path)
     {
-        return authorized.test(authorization, identity());
+        UnaryOperator<String> resolve = input ->
+        {
+            String format = input.replace("${method}", "%1$s").replace("${path}", "%2$s");
+            return format != input
+                ? format.formatted("GET", path)
+                : input;
+        };
+
+        return authorized.test(authorization, resolve);
     }
 
     boolean matches(

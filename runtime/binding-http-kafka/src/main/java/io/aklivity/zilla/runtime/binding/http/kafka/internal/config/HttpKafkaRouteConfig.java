@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
-import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -71,9 +70,19 @@ public final class HttpKafkaRouteConfig
     }
 
     boolean authorized(
-        long authorization)
+        long authorization,
+        CharSequence method,
+        CharSequence path)
     {
-        return authorized.test(authorization, identity());
+        UnaryOperator<String> resolve = input ->
+        {
+            String format = input.replace("${method}", "%1$s").replace("${path}", "%2$s");
+            return format != input
+                ? format.formatted(method, path)
+                : input;
+        };
+
+        return authorized.test(authorization, resolve);
     }
 
     boolean matches(

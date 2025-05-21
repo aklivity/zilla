@@ -61,7 +61,7 @@ public final class SseBindingConfig
         String path)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(path))
+            .filter(r -> r.authorized(authorization, path) && r.matches(path))
             .findFirst()
             .orElse(null);
     }

@@ -66,7 +66,7 @@ public final class HttpKafkaBindingConfig
         CharSequence path = helper.path;
 
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(method, path))
+            .filter(r -> r.authorized(authorization, method, path) && r.matches(method, path))
             .findFirst()
             .orElse(null);
     }
