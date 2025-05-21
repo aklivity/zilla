@@ -18,6 +18,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
@@ -30,7 +31,7 @@ public final class GrpcRouteConfig
     public final long id;
 
     private final List<GrpcConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public GrpcRouteConfig(
         RouteConfig route)

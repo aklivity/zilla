@@ -60,7 +60,7 @@ public class JwtGuardTest
         GuardFactory factory = GuardFactory.instantiate();
         Guard guard = factory.create("jwt", config);
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
@@ -85,7 +85,7 @@ public class JwtGuardTest
 
         guard.supply(engine);
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
@@ -117,7 +117,7 @@ public class JwtGuardTest
             .options(JwtOptionsConfig.builder().build())
             .build());
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         assertFalse(verifier.test(1L, UnaryOperator.identity()));
     }
@@ -155,7 +155,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -208,7 +208,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -260,7 +260,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -311,7 +311,7 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        LongObjectPredicate verifier = guard.verifier(s -> 0, guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
         Instant now = Instant.now();
 
@@ -362,7 +362,7 @@ public class JwtGuardTest
             .name("test0")
             .build();
         guarded.id = config.id;
-        LongObjectPredicate verifier = guard.verifier(id -> (int)(id >> 4), guarded);
+        LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(id -> (int)(id >> 4), guarded);
 
         Instant now = Instant.now();
 

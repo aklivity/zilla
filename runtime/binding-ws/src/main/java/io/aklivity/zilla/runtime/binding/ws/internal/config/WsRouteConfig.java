@@ -19,6 +19,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.ws.config.WsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -30,7 +31,7 @@ public final class WsRouteConfig
     public final int order;
 
     private final List<WsConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public WsRouteConfig(
         RouteConfig route)

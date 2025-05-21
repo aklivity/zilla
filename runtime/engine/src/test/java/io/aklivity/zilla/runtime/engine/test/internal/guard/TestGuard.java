@@ -21,6 +21,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -63,7 +64,7 @@ public final class TestGuard implements Guard
     }
 
     @Override
-    public LongObjectPredicate verifier(
+    public LongObjectPredicate<UnaryOperator<String>> verifier(
         LongToIntFunction indexOf,
         GuardedConfig config)
     {

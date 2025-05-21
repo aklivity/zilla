@@ -18,6 +18,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 
@@ -30,7 +31,7 @@ public final class RisingwaveRouteConfig
     public final long id;
 
     private final List<RisingwaveConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public RisingwaveRouteConfig(
         RouteConfig route)

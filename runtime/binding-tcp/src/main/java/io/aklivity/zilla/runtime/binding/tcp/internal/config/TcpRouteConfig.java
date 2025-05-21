@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -31,7 +32,7 @@ public final class TcpRouteConfig
     public final long id;
 
     private final List<TcpConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public TcpRouteConfig(
         RouteConfig route)

@@ -19,13 +19,14 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class RouteConfig
 {
     public transient long id;
-    public transient LongObjectPredicate authorized;
+    public transient LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public final int order;
     public final String exit;

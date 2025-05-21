@@ -20,6 +20,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
@@ -32,7 +33,7 @@ public final class SseRouteConfig
 
     private final List<SseConditionMatcher> when;
     private final SseWithConfig with;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public SseRouteConfig(
         RouteConfig route)

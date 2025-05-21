@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
@@ -37,7 +38,7 @@ public final class SseKafkaRouteConfig
     public final Optional<SseKafkaWithResolver> with;
 
     private final List<SseKafkaConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public SseKafkaRouteConfig(
         RouteConfig route)

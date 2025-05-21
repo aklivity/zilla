@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionMatcher;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithResolver;
@@ -31,7 +32,7 @@ public class MqttKafkaRouteConfig
 
     public final MqttKafkaWithResolver with;
     private final List<MqttKafkaConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public final long id;
     public final long order;

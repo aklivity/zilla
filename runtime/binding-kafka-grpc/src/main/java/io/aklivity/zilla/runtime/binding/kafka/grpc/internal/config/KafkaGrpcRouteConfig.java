@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
@@ -28,7 +29,7 @@ public final class KafkaGrpcRouteConfig
     public final long id;
     public final KafkaGrpcWithConfig with;
     public final List<KafkaGrpcConditionResolver> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public KafkaGrpcRouteConfig(
         KafkaGrpcOptionsConfig options,

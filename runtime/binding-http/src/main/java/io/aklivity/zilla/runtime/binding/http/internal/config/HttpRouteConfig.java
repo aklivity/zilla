@@ -38,7 +38,7 @@ public final class HttpRouteConfig
 
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
     public HttpRouteConfig(
@@ -83,22 +83,10 @@ public final class HttpRouteConfig
     {
         UnaryOperator<String> resolve = input ->
         {
-            String result = input;
-            boolean replaced = false;
-
-            if (result.contains("${method}"))
-            {
-                result = result.replace("${method}", headerByName.apply(":method"));
-                replaced = true;
-            }
-
-            if (result.contains("${path}"))
-            {
-                result = result.replace("${path}", headerByName.apply(":path"));
-                replaced = true;
-            }
-
-            return replaced ? result : headerByName.apply(input);
+            String format = input.replace("${method}", "%1$s").replace("${path}", "%2$s");
+            return format != input
+                ? format.formatted(headerByName.apply(":method"), headerByName.apply(":path"))
+                : input;
         };
 
         return authorized.test(authorization, resolve);

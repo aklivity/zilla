@@ -19,6 +19,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
@@ -30,7 +31,7 @@ public final class ProxyRouteConfig
     public final long id;
 
     private final List<ProxyConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public ProxyRouteConfig(
         RouteConfig route)

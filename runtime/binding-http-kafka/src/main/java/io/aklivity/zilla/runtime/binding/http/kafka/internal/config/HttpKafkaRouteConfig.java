@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
+import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
@@ -37,7 +38,7 @@ public final class HttpKafkaRouteConfig
     public final HttpKafkaWithResolver with;
 
     private final List<HttpKafkaConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public HttpKafkaRouteConfig(
         HttpKafkaOptionsConfig options,

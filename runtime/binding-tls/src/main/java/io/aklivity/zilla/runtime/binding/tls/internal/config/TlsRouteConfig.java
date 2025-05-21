@@ -19,6 +19,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -29,7 +30,7 @@ public final class TlsRouteConfig
     public final long id;
 
     private final List<TlsConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public TlsRouteConfig(
         RouteConfig route)

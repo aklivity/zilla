@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -31,7 +32,7 @@ public final class HttpFileSystemRouteConfig
     public final Optional<HttpFileSystemWithResolver> with;
 
     private final List<HttpFileSystemConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public HttpFileSystemRouteConfig(
         RouteConfig route)

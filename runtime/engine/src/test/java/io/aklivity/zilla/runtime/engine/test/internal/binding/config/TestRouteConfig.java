@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 import static java.util.function.UnaryOperator.identity;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -28,7 +29,7 @@ public final class TestRouteConfig
     public final long id;
     public final List<ConditionConfig> when;
 
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public TestRouteConfig(
         RouteConfig route)

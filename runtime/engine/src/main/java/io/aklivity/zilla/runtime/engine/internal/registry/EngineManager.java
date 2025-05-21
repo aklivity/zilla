@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -338,7 +339,7 @@ public class EngineManager
                     {
                         guarded.id = resolver.resolve(guarded.name);
 
-                        LongObjectPredicate authorizer = guards.stream()
+                        LongObjectPredicate<UnaryOperator<String>> authorizer = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))

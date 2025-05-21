@@ -19,6 +19,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
@@ -30,7 +31,7 @@ public final class AmqpRouteConfig
     public final long id;
 
     private final List<AmqpConditionMatcher> when;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public AmqpRouteConfig(
         RouteConfig route)

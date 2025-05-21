@@ -35,7 +35,7 @@ public final class MqttRouteConfig
 
     private final List<MqttConditionMatcher> when;
     private final MqttWithConfig with;
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String, LongFunction<String>> identities;
 
     public MqttRouteConfig(

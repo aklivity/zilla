@@ -18,6 +18,7 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
@@ -28,7 +29,7 @@ public final class OpenapiRouteConfig
     public final List<OpenapiConditionConfig> when;
     public final OpenapiWithConfig with;
 
-    private final LongObjectPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public OpenapiRouteConfig(
         RouteConfig route)
