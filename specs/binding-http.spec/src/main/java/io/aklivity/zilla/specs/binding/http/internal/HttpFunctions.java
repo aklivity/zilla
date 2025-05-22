@@ -216,6 +216,18 @@ public final class HttpFunctions
     }
 
     @Function
+    public static byte[] constantBytes(
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        for (int i = 0; i < length; i++)
+        {
+            bytes[i] = (byte) (i % 128);
+        }
+        return bytes;
+    }
+
+    @Function
     public static byte[] randomBytes(
         int length)
     {

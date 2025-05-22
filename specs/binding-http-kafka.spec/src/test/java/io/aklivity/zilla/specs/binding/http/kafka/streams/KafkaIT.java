@@ -434,6 +434,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/post.item.command.10k/client",
+        "${kafka}/post.item.command.10k/server"})
+    public void shouldPostItemCommand10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/post.item.async.command/client",
         "${kafka}/post.item.async.command/server"})
     public void shouldPostItemAsyncCommand() throws Exception

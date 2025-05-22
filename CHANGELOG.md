@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.140...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.141...HEAD)
+
+**Fixed bugs:**
+
+- Zilla crashes with IndexOutOfBoundException at produce with reply capability if message \> 8kb [\#1479](https://github.com/aklivity/zilla/issues/1479)
+
+**Merged pull requests:**
+
+- Fix large message hashing in http-kafka [\#1480](https://github.com/aklivity/zilla/pull/1480) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.141](https://github.com/aklivity/zilla/tree/0.9.141) (2025-05-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.140...0.9.141)
 
 **Merged pull requests:**
 
