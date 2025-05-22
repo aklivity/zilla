@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.140</version>
+    <version>0.9.141</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -51,13 +51,14 @@
       <plugin>
         <groupId>io.kokuwa.maven</groupId>
         <artifactId>helm-maven-plugin</artifactId>
-        <version>6.10.0</version>
+        <version>6.17.0</version>
         <extensions>true</extensions>
         <configuration>
           <chartDirectory>src/main/helm</chartDirectory>
           <chartVersion>${project.version}</chartVersion>
           <appVersion>${project.version}</appVersion>
           <skipUpload>true</skipUpload>
+          <skipPushLogin>true</skipPushLogin>
           <uploadRepoStable>
             <name>github</name>
             <url>ghcr.io/aklivity/charts</url>

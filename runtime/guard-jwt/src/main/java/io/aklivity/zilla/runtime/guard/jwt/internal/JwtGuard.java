@@ -21,13 +21,14 @@ import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class JwtGuard implements Guard
 {
@@ -65,7 +66,7 @@ public final class JwtGuard implements Guard
     }
 
     @Override
-    public LongPredicate verifier(
+    public LongObjectPredicate<UnaryOperator<String>> verifier(
         LongToIntFunction indexOf,
         GuardedConfig config)
     {
@@ -76,7 +77,7 @@ public final class JwtGuard implements Guard
 
         final int guardIndex = indexOf.applyAsInt(guardId);
 
-        return session -> verify(guardIndex, guardId, indexOf.applyAsInt(session), session, roles);
+        return (session, resolve) -> verify(guardIndex, guardId, indexOf.applyAsInt(session), session, roles);
     }
 
     @Override

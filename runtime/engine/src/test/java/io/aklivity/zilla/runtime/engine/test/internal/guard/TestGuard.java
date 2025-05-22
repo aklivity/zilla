@@ -20,14 +20,15 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import java.net.URL;
 import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TestGuard implements Guard
 {
@@ -63,13 +64,13 @@ public final class TestGuard implements Guard
     }
 
     @Override
-    public LongPredicate verifier(
+    public LongObjectPredicate<UnaryOperator<String>> verifier(
         LongToIntFunction indexOf,
         GuardedConfig config)
     {
         long guardId = config.id;
         List<String> roles = config.roles;
-        return sessionId -> verify(guardId, indexOf.applyAsInt(sessionId), sessionId, roles);
+        return (sessionId, resolve) -> verify(guardId, indexOf.applyAsInt(sessionId), sessionId, roles);
     }
 
     @Override

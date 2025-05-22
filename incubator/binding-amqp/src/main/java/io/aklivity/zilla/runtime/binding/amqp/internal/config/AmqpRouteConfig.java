@@ -15,21 +15,23 @@
  */
 package io.aklivity.zilla.runtime.binding.amqp.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class AmqpRouteConfig
 {
     public final long id;
 
     private final List<AmqpConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public AmqpRouteConfig(
         RouteConfig route)
@@ -45,7 +47,7 @@ public final class AmqpRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(
