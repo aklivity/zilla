@@ -479,6 +479,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/post.item.command.10k/client",
+        "${http}/post.item.command.10k/server"})
+    public void shouldPostItemCommand10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/post.item.command.if.match/client",
         "${http}/post.item.command.if.match/server"})
     public void shouldPostItemCommandIfMatch() throws Exception

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.specs.binding.http.internal;
 
+import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.constantBytes;
 import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.copyOfRange;
 import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.randomAscii;
 import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.randomBytes;
@@ -106,6 +107,15 @@ public class HttpFunctionsTest
 
         assertNotEquals("aBcdEfGHiJ", randomizedCase);
         assertEquals("abcdefghij", randomizedCase.toLowerCase());
+    }
+
+    @Test
+    public void shouldCreateConstantBytes() throws Exception
+    {
+        final byte[] bytes = constantBytes(42);
+
+        assertNotNull(bytes);
+        assertEquals(42, bytes.length);
     }
 
     @Test
