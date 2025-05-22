@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.141](https://github.com/aklivity/zilla/tree/0.9.141) (2025-05-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.140...0.9.141)
+
+**Merged pull requests:**
+
+- support dynamic guarded route [\#1478](https://github.com/aklivity/zilla/pull/1478) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.140](https://github.com/aklivity/zilla/tree/0.9.140) (2025-05-19)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.139...0.9.140)
