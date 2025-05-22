@@ -14,16 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.internal.config;
 
-import java.util.function.LongPredicate;
+import static java.util.function.UnaryOperator.identity;
+
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class PgsqlRouteConfig
 {
     public final long id;
     public final int order;
 
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public PgsqlRouteConfig(
         RouteConfig route)
@@ -36,6 +39,6 @@ public final class PgsqlRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 }

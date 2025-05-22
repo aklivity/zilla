@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.fan.internal.stream;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static java.util.function.UnaryOperator.identity;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -132,7 +133,7 @@ public final class FanServerFactory implements FanStreamFactory
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
             final RouteConfig route = binding.routes.stream()
-                    .filter(r -> r.authorized.test(authorization))
+                    .filter(r -> r.authorized.test(authorization, identity()))
                     .findFirst()
                     .orElse(null);
 

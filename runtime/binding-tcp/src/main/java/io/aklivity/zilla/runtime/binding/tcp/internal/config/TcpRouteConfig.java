@@ -15,22 +15,24 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.function.LongPredicate;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TcpRouteConfig
 {
     public final long id;
 
     private final List<TcpConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public TcpRouteConfig(
         RouteConfig route)
@@ -46,7 +48,7 @@ public final class TcpRouteConfig
     public boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     public boolean matches(

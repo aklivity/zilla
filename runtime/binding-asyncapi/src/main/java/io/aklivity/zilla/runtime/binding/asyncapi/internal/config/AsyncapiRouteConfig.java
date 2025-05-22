@@ -14,12 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class AsyncapiRouteConfig
 {
@@ -27,7 +29,7 @@ public final class AsyncapiRouteConfig
     public final List<AsyncapiConditionConfig> when;
     public final AsyncapiWithConfig with;
 
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public AsyncapiRouteConfig(
         RouteConfig route)
@@ -43,7 +45,7 @@ public final class AsyncapiRouteConfig
     boolean authorized(
         long authorization)
     {
-        return authorized.test(authorization);
+        return authorized.test(authorization, identity());
     }
 
     boolean matches(

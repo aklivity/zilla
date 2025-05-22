@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class HttpKafkaRouteConfig
 {
@@ -36,7 +37,7 @@ public final class HttpKafkaRouteConfig
     public final HttpKafkaWithResolver with;
 
     private final List<HttpKafkaConditionMatcher> when;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public HttpKafkaRouteConfig(
         HttpKafkaOptionsConfig options,
@@ -69,9 +70,19 @@ public final class HttpKafkaRouteConfig
     }
 
     boolean authorized(
-        long authorization)
+        long authorization,
+        CharSequence method,
+        CharSequence path)
     {
-        return authorized.test(authorization);
+        UnaryOperator<String> resolve = input ->
+        {
+            String format = input.replace("${method}", "%1$s").replace("${path}", "%2$s");
+            return format != input
+                ? format.formatted(method, path)
+                : input;
+        };
+
+        return authorized.test(authorization, resolve);
     }
 
     boolean matches(

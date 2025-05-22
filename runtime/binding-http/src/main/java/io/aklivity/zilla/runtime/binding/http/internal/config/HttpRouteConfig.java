@@ -23,13 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.LongPredicate;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class HttpRouteConfig
 {
@@ -37,7 +38,7 @@ public final class HttpRouteConfig
 
     private final List<HttpConditionMatcher> when;
     private final HttpWithResolver with;
-    private final LongPredicate authorized;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String8FW, String16FW> overrides;
 
     public HttpRouteConfig(
@@ -54,7 +55,7 @@ public final class HttpRouteConfig
             .map(HttpConditionMatcher::new)
             .peek(m -> Optional.ofNullable(with).ifPresent(w -> m.observe(w::onConditionMatched)))
             .collect(toList());
-        this.authorized = route.authorized;
+        this.authorized = (session, resolve) -> route.authorized.test(session, resolve);
         this.overrides = new LinkedHashMap<>();
         if (overrides != null)
         {
@@ -77,9 +78,18 @@ public final class HttpRouteConfig
     }
 
     boolean authorized(
-        long authorization)
+        long authorization,
+        Function<String, String> headerByName)
     {
-        return authorized.test(authorization);
+        UnaryOperator<String> resolve = input ->
+        {
+            String format = input.replace("${method}", "%1$s").replace("${path}", "%2$s");
+            return format != input
+                ? format.formatted(headerByName.apply(":method"), headerByName.apply(":path"))
+                : input;
+        };
+
+        return authorized.test(authorization, resolve);
     }
 
     boolean matches(

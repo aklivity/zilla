@@ -91,7 +91,7 @@ public final class HttpBindingConfig
         Function<String, String> headerByName)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(headerByName))
+            .filter(r -> r.authorized(authorization, headerByName) && r.matches(headerByName))
             .findFirst()
             .orElse(null);
     }
