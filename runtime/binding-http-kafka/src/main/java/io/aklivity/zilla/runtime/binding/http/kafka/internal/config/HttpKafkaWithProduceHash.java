@@ -44,8 +44,18 @@ public class HttpKafkaWithProduceHash
     public void updateHash(
         DirectBuffer value)
     {
-        value.getBytes(0, hashBytesRW, 0, value.capacity());
-        md5.update(hashBytesRW, 0, value.capacity());
+        final int chunkSize = hashBytesRW.length;
+        int offset = 0;
+        int remaining = value.capacity();
+
+        while (remaining > 0)
+        {
+            int bytesToRead = Math.min(chunkSize, remaining);
+            value.getBytes(offset, hashBytesRW, 0, bytesToRead);
+            md5.update(hashBytesRW, 0, bytesToRead);
+            offset += bytesToRead;
+            remaining -= bytesToRead;
+        }
     }
 
     public void digestHash()

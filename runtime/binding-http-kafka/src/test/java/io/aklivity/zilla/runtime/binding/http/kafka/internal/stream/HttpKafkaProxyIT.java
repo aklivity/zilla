@@ -40,7 +40,7 @@ public class HttpKafkaProxyIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 16384)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/kafka/config")
         .external("kafka0")
         .clean();
@@ -594,6 +594,16 @@ public class HttpKafkaProxyIT
         "${http}/post.item.command/client",
         "${kafka}/post.item.command/server"})
     public void shouldPostItemCommand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.post.item.command.yaml")
+    @Specification({
+        "${http}/post.item.command.10k/client",
+        "${kafka}/post.item.command.10k/server"})
+    public void shouldPostItemCommand10k() throws Exception
     {
         k3po.finish();
     }
