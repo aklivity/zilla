@@ -258,6 +258,11 @@
                                                     "title": "Reply-To",
                                                     "type": "string"
                                                 },
+                                                "correlation-id":
+                                                {
+                                                    "title": "Correlation-Id Kafka Header",
+                                                    "type": "string"
+                                                },
                                                 "async":
                                                 {
                                                     "title": "Async",

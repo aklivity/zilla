@@ -20,7 +20,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -111,22 +113,18 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        HttpKafkaIdempotencyConfig newIdempotency = IDEMPOTENCY_DEFAULT;
+        HttpKafkaCorrelationConfigBuilder<HttpKafkaCorrelationConfig> correlationConfig = HttpKafkaCorrelationConfig.builder();
+        HttpKafkaIdempotencyConfigBuilder<HttpKafkaIdempotencyConfig> idempotencyConfig = HttpKafkaIdempotencyConfig.builder();
 
         if (object.containsKey(IDEMPOTENCY_NAME))
         {
-            String8FW newIdempotencyKey = IDEMPOTENCY_HEADER_DEFAULT;
-
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
             if (idempotency.containsKey(IDEMPOTENCY_HEADER_NAME))
             {
-                newIdempotencyKey = new String8FW(idempotency.getString(IDEMPOTENCY_HEADER_NAME));
+                idempotencyConfig.header(idempotency.getString(IDEMPOTENCY_HEADER_NAME));
             }
-
-            newIdempotency = new HttpKafkaIdempotencyConfig(newIdempotencyKey);
         }
 
-        HttpKafkaCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
         {
             JsonObject correlation = object.getJsonObject(CORRELATION_NAME);
@@ -134,22 +132,21 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             {
                 JsonObject headers = correlation.getJsonObject(CORRELATION_HEADERS_NAME);
 
-                String16FW newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
                 {
-                    newReplyTo = new String16FW(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
+                    correlationConfig.replyTo(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
                 }
 
-                String16FW newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
                 {
-                    newCorrelationId = new String16FW(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
+                    correlationConfig.correlationId(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
                 }
-
-                newCorrelation = new HttpKafkaCorrelationConfig(newReplyTo, newCorrelationId);
             }
         }
 
-        return new HttpKafkaOptionsConfig(newIdempotency, newCorrelation);
+        return HttpKafkaOptionsConfig.builder()
+            .idempotency(idempotencyConfig.build())
+            .correlation(correlationConfig.build())
+            .build();
     }
 }

@@ -70,6 +70,7 @@ public class HttpKafkaWithProduceResult
     private final HttpKafkaWithProduceHash hash;
     private final long timeout;
     private final boolean idempotent;
+    private final String16FW correlationId;
 
     HttpKafkaWithProduceResult(
         long compositeId,
@@ -83,7 +84,8 @@ public class HttpKafkaWithProduceResult
         String16FW idempotencyKey,
         List<HttpKafkaWithProduceAsyncHeaderResult> async,
         HttpKafkaWithProduceHash hash,
-        long timeout)
+        long timeout,
+        String16FW correlationId)
     {
         this.compositeId = compositeId;
         this.correlation = correlation;
@@ -97,6 +99,7 @@ public class HttpKafkaWithProduceResult
         this.hash = hash;
         this.idempotent = idempotencyKey != null;
         this.timeout = timeout;
+        this.correlationId = correlationId;
     }
 
     public long compositeId()
@@ -244,9 +247,19 @@ public class HttpKafkaWithProduceResult
     {
         final String16FW correlationId = hash.correlationId();
 
+        String16FW name;
+        if (this.correlationId != null)
+        {
+            name = this.correlationId;
+        }
+        else
+        {
+            name = correlation.correlationId;
+        }
+
         builder
-            .nameLen(correlation.correlationId.length())
-            .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+            .nameLen(name.length())
+            .name(name.value(), 0, name.length())
             .valueLen(correlationId.length())
             .value(correlationId.value(), 0, correlationId.length());
     }
