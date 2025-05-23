@@ -37,6 +37,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
     private static final String OVERRIDES_NAME = "overrides";
     private static final String REPLY_TO_NAME = "reply-to";
     private static final String ASYNC_NAME = "async";
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
 
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
@@ -89,6 +90,11 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             }
 
             object.add(ASYNC_NAME, newAsync);
+        }
+
+        if (produce.correlationId != null)
+        {
+            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId.asString());
         }
 
         return object.build();
@@ -146,6 +152,12 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             }
         }
 
+        String correlationId = null;
+        if (object.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
+        {
+            correlationId = object.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME);
+        }
+
         return HttpKafkaWithConfig.builder()
             .produce(HttpKafkaWithProduceConfig.builder()
                 .topic(newTopic)
@@ -154,6 +166,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
                 .overrides(newOverrides)
                 .replyTo(newReplyTo)
                 .async(newAsync)
+                .correlationId(correlationId)
                 .build())
             .build();
     }

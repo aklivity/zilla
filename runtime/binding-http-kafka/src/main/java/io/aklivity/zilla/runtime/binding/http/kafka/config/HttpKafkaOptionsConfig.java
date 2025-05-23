@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class HttpKafkaOptionsConfig extends OptionsConfig
@@ -27,5 +29,16 @@ public final class HttpKafkaOptionsConfig extends OptionsConfig
     {
         this.idempotency = idempotency;
         this.correlation = correlation;
+    }
+
+    public static HttpKafkaOptionsConfigBuilder<HttpKafkaOptionsConfig> builder()
+    {
+        return new HttpKafkaOptionsConfigBuilder<>(HttpKafkaOptionsConfig.class::cast);
+    }
+
+    public static <T> HttpKafkaOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new HttpKafkaOptionsConfigBuilder<>(mapper);
     }
 }

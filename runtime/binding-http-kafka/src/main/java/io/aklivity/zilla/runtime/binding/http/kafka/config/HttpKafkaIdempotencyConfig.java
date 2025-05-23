@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public final class HttpKafkaIdempotencyConfig
@@ -24,5 +26,16 @@ public final class HttpKafkaIdempotencyConfig
         String8FW header)
     {
         this.header = header;
+    }
+
+    public static HttpKafkaIdempotencyConfigBuilder<HttpKafkaIdempotencyConfig> builder()
+    {
+        return new HttpKafkaIdempotencyConfigBuilder<>(HttpKafkaIdempotencyConfig.class::cast);
+    }
+
+    public static <T> HttpKafkaIdempotencyConfigBuilder<T> builder(
+        Function<HttpKafkaIdempotencyConfig, T> mapper)
+    {
+        return new HttpKafkaIdempotencyConfigBuilder<>(mapper);
     }
 }

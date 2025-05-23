@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaCorrelationConfig
@@ -27,5 +29,16 @@ public final class HttpKafkaCorrelationConfig
     {
         this.replyTo = replyTo;
         this.correlationId = correlationId;
+    }
+
+    public static HttpKafkaCorrelationConfigBuilder<HttpKafkaCorrelationConfig> builder()
+    {
+        return new HttpKafkaCorrelationConfigBuilder<>(HttpKafkaCorrelationConfig.class::cast);
+    }
+
+    public static <T> HttpKafkaCorrelationConfigBuilder<T> builder(
+        Function<HttpKafkaCorrelationConfig, T> mapper)
+    {
+        return new HttpKafkaCorrelationConfigBuilder<>(mapper);
     }
 }
