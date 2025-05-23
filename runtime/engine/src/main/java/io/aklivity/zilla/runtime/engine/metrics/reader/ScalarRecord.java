@@ -61,7 +61,7 @@ public class ScalarRecord implements MetricRecord
     @Override
     public String binding()
     {
-        return bindingId != -1 ? labelResolver.apply(bindingId) : null;
+        return bindingId != NamespacedId.NO_NAMESPACE_ID ? labelResolver.apply(bindingId) : null;
     }
 
     @Override
