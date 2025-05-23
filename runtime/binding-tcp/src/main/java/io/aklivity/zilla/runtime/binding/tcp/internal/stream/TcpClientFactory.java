@@ -40,11 +40,12 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
@@ -100,9 +101,10 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        MutableInteger capacity)
+        TcpCapacityTracker capacity)
     {
-        this.router = new TcpClientRouter(context, capacity);
+        TcpEventContext event = new TcpEventContext(context);
+        this.router = new TcpClientRouter(context, event, capacity);
         this.writeBuffer = context.writeBuffer();
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
