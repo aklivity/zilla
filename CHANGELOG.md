@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.142...HEAD)
+
+**Implemented enhancements:**
+
+- Collect exportable engine metric representing worker capacity usage for auto scaling [\#1465](https://github.com/aklivity/zilla/issues/1465)
+
+**Merged pull requests:**
+
+- Engine worker metrics support [\#1470](https://github.com/aklivity/zilla/pull/1470) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.142](https://github.com/aklivity/zilla/tree/0.9.142) (2025-05-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.141...0.9.142)
