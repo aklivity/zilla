@@ -93,7 +93,8 @@ public final class TlsBindingConfig
         SecureRandom random)
     {
         KeyManagerFactory keys = newKeys(config, vault, options.keys, options.signers);
-        TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+        TrustManagerFactory trust = newTrust(config, vault, options.trust,
+            options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {

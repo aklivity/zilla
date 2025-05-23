@@ -385,4 +385,10 @@ public class EchoWorker implements EngineContext
     {
         return null;
     }
+
+    @Override
+    public Boolean crlChecks()
+    {
+        return null;
+    }
 }

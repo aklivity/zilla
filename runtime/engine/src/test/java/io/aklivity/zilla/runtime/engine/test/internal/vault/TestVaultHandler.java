@@ -49,6 +49,7 @@ public final class TestVaultHandler implements VaultHandler
         Pattern.compile(
             "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
             "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
+    public static final String PKIX_ALGORITHM = "PKIX";
 
     private final TestVaultEntryConfig key;
     private final TestVaultEntryConfig signer;
