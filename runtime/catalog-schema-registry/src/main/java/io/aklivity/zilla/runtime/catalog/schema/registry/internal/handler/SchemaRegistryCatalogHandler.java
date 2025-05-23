@@ -543,7 +543,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
             if (vault != null)
             {
-                trust = vault.initTrust(trustNames, cacerts, false);
+                trust = vault.initTrust(trustNames, cacerts);
             }
             else if (cacerts != null)
             {

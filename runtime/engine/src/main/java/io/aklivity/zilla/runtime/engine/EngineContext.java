@@ -183,4 +183,6 @@ public interface EngineContext
     MessageReader supplyEventReader();
 
     Clock clock();
+
+    Boolean crlChecks();
 }

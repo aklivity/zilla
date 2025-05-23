@@ -74,7 +74,6 @@ public final class TlsBindingConfig
 
     private boolean clientHttpsIdentification;
     private boolean clientServerNameIndication;
-    private boolean crlChecks;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -95,7 +94,7 @@ public final class TlsBindingConfig
     {
         KeyManagerFactory keys = newKeys(config, vault, options.keys, options.signers);
         TrustManagerFactory trust = newTrust(config, vault, options.trust,
-            options.trustcacerts && kind == KindConfig.CLIENT, options.crlChecks);
+            options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {
@@ -452,8 +451,7 @@ public final class TlsBindingConfig
         TlsConfiguration config,
         VaultHandler vault,
         List<String> trustNames,
-        boolean trustcacerts,
-        boolean crlChecks)
+        boolean trustcacerts)
     {
         TrustManagerFactory trust = null;
 
@@ -468,7 +466,7 @@ public final class TlsBindingConfig
 
             if (vault != null)
             {
-                trust = vault.initTrust(trustNames, cacerts, crlChecks || config.crlChecks());
+                trust = vault.initTrust(trustNames, cacerts);
             }
             else if (cacerts != null)
             {

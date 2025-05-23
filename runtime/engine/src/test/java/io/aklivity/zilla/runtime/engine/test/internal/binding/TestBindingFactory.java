@@ -308,7 +308,7 @@ final class TestBindingFactory implements BindingHandler
                 if (trust != null)
                 {
                     KeyStore cacerts = null;
-                    vault.initTrust(List.of(trust), cacerts, false);
+                    vault.initTrust(List.of(trust), cacerts);
                 }
             }
 

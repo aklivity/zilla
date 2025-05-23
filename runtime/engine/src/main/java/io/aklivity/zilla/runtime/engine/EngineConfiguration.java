@@ -91,6 +91,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
     public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
+    public static final BooleanPropertyDef ENGINE_CRL_CHECKS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -143,6 +144,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
         ENGINE_ERROR_REPORTER = config.property(ErrorReporter.class, "error.reporter",
             EngineConfiguration::decodeErrorReporter, EngineConfiguration::defaultErrorReporter);
+        ENGINE_CRL_CHECKS = config.property("crl.checks", true);
         ENGINE_CONFIG = config;
     }
 
@@ -320,6 +322,11 @@ public class EngineConfiguration extends Configuration
     public boolean verboseComposites()
     {
         return ENGINE_VERBOSE_COMPOSITES.getAsBoolean(this);
+    }
+
+    public boolean crlChecks()
+    {
+        return ENGINE_CRL_CHECKS.getAsBoolean(this);
     }
 
     public int workers()

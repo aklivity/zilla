@@ -35,6 +35,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
@@ -55,11 +56,13 @@ public class FileSystemVaultHandler implements VaultHandler
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
-    private final TriFunction<List<String>, KeyStore, Boolean, TrustManagerFactory> supplyTrust;
+    private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
+    private final boolean crlChecks;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
-        Function<String, Path> resolvePath)
+        Function<String, Path> resolvePath,
+        boolean crlChecks)
     {
         FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
@@ -71,8 +74,9 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
+        this.crlChecks = crlChecks;
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
-        supplyTrust = (aliases, cacerts, crlChecks) -> newTrustFactory(trust, aliases, cacerts, crlChecks);
+        supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
 
     @Override
@@ -85,10 +89,9 @@ public class FileSystemVaultHandler implements VaultHandler
     @Override
     public TrustManagerFactory initTrust(
         List<String> aliases,
-        KeyStore cacerts,
-        boolean crlChecks)
+        KeyStore cacerts)
     {
-        return supplyTrust.apply(aliases, cacerts, crlChecks);
+        return supplyTrust.apply(aliases, cacerts);
     }
 
     @Override
@@ -157,8 +160,7 @@ public class FileSystemVaultHandler implements VaultHandler
     private TrustManagerFactory newTrustFactory(
         FileSystemStoreInfo store,
         List<String> aliases,
-        KeyStore cacerts,
-        boolean crlChecks)
+        KeyStore cacerts)
     {
         TrustManagerFactory factory = null;
 
@@ -343,11 +345,5 @@ public class FileSystemVaultHandler implements VaultHandler
 
             return keys;
         }
-    }
-
-    @FunctionalInterface
-    public interface TriFunction<T, U, V, R>
-    {
-        R apply(T t, U u, V v);
     }
 }
