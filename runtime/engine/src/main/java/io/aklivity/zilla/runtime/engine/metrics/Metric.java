@@ -30,8 +30,7 @@ public interface Metric
     {
         BYTES,
         NANOSECONDS,
-        COUNT,
-        PERCENT
+        COUNT
     }
 
     String name();

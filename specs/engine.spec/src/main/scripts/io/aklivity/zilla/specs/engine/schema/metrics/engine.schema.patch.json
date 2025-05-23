@@ -1,7 +1,0 @@
-[
-    {
-        "op": "add",
-        "path": "/$defs/telemetry/metrics/items/enum/-",
-        "value": "engine.worker.utilization"
-    }
-]

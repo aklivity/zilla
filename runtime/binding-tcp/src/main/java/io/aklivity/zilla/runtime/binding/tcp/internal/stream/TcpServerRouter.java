@@ -28,7 +28,7 @@ import java.util.function.ToIntFunction;
 import org.agrona.CloseHelper;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -40,14 +40,14 @@ public final class TcpServerRouter
     private final ToIntFunction<PollerKey> acceptHandler;
     private final Function<SelectableChannel, PollerKey> supplyPollerKey;
     private final Long2ObjectHashMap<TcpServerBindingConfig> serversById;
-    private final CapacityTracker capacity;
+    private final TcpCapacityTracker capacity;
 
     private boolean unbound;
 
     public TcpServerRouter(
         EngineContext context,
         ToIntFunction<PollerKey> acceptHandler,
-        CapacityTracker capacity)
+        TcpCapacityTracker capacity)
     {
         this.bindings = new Long2ObjectHashMap<>();
         this.supplyPollerKey = context::supplyPollerKey;

@@ -43,7 +43,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
@@ -103,7 +103,7 @@ public class TcpServerFactory implements TcpStreamFactory
     public TcpServerFactory(
         TcpConfiguration config,
         EngineContext context,
-        CapacityTracker capacity)
+        TcpCapacityTracker capacity)
     {
         this.router = new TcpServerRouter(context, this::handleAccept, capacity);
         this.writeBuffer = context.writeBuffer();
@@ -171,8 +171,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
             ServerSocketChannel server = (ServerSocketChannel) acceptKey.channel();
 
-            for (SocketChannel channel = router.accept(server); channel != null;
-                channel = router.accept(server))
+            for (SocketChannel channel = router.accept(server); channel != null; channel = router.accept(server))
             {
                 channel.configureBlocking(false);
                 channel.setOption(TCP_NODELAY, options.nodelay);

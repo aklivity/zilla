@@ -15,11 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+
 import java.util.function.LongConsumer;
 
 import org.agrona.collections.MutableInteger;
 
-public final class CapacityTracker
+import io.aklivity.zilla.runtime.engine.EngineContext;
+
+public final class TcpCapacityTracker
 {
     private final MutableInteger capacity;
     private final LongConsumer capacityUsage;
@@ -27,13 +31,13 @@ public final class CapacityTracker
 
     private int capacityPercentage;
 
-    public CapacityTracker(
-        int initialCapacity,
-        LongConsumer capacityUsage)
+    public TcpCapacityTracker(
+        TcpConfiguration config,
+        EngineContext context)
     {
-        this.initialCapacity = initialCapacity;
+        this.initialCapacity = ENGINE_WORKER_CAPACITY.getAsInt(config);
         this.capacity = new MutableInteger(initialCapacity);
-        this.capacityUsage = capacityUsage;
+        this.capacityUsage = context.supplyUtilizationMetric();
     }
 
     public int capacity()

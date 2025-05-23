@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
@@ -49,14 +49,14 @@ public final class TcpClientRouter
     private final byte[] ipv6ros = new byte[16];
 
     private final Function<String, InetAddress[]> resolveHost;
-    private final CapacityTracker capacity;
+    private final TcpCapacityTracker capacity;
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
     private final TcpEventContext event;
 
     public TcpClientRouter(
         EngineContext context,
         TcpEventContext event,
-        CapacityTracker capacity)
+        TcpCapacityTracker capacity)
     {
         this.resolveHost = context::resolveHost;
         this.event = event;

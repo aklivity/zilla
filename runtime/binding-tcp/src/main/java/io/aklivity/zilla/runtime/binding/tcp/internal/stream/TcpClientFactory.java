@@ -43,7 +43,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.CapacityTracker;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
@@ -101,7 +101,7 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        CapacityTracker capacity)
+        TcpCapacityTracker capacity)
     {
         TcpEventContext event = new TcpEventContext(context);
         this.router = new TcpClientRouter(context, event, capacity);

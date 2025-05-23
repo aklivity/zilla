@@ -22,6 +22,8 @@ import java.util.function.DoubleSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+
 public class ScalarRecord implements MetricRecord
 {
     private final long bindingId;
@@ -53,7 +55,7 @@ public class ScalarRecord implements MetricRecord
     public String namespace()
     {
         // implicit int -> long conversion, it's OK
-        return namespaceId != -1 ? labelResolver.apply(namespaceId) : null;
+        return namespaceId != NamespacedId.NO_NAMESPACE_ID ? labelResolver.apply(namespaceId) : null;
     }
 
     @Override
