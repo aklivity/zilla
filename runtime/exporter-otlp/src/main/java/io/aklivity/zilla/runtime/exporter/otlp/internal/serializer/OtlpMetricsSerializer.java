@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -174,16 +175,24 @@ public class OtlpMetricsSerializer
         MetricRecord record)
     {
         List<AttributeConfig> attributes = new LinkedList<>();
-        attributes.add(AttributeConfig.builder()
-            .name("namespace")
-            .value(record.namespace())
-            .build()
-        );
-        attributes.add(AttributeConfig.builder()
-            .name("binding")
-            .value(record.binding())
-            .build()
-        );
+
+        if (record.namespace() != null)
+        {
+            attributes.add(AttributeConfig.builder()
+                .name("namespace")
+                .value(record.namespace())
+                .build()
+            );
+        }
+
+        if (record.binding() != null)
+        {
+            attributes.add(AttributeConfig.builder()
+                .name("binding")
+                .value(record.binding())
+                .build()
+            );
+        }
         if (serviceNameAttribute != null)
         {
             attributes.add(serviceNameAttribute);
@@ -310,11 +319,14 @@ public class OtlpMetricsSerializer
             long bindingId)
         {
             String result = null;
-            KindConfig kind = resolveKind.apply(bindingId);
-            Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
-            if (externalNames != null)
+            if (bindingId != NO_NAMESPACED_ID)
             {
-                result = externalNames.get(internalMetricName);
+                KindConfig kind = resolveKind.apply(bindingId);
+                Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
+                if (externalNames != null)
+                {
+                    result = externalNames.get(internalMetricName);
+                }
             }
             return result != null ? result : internalMetricName;
         }

@@ -15,14 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
-
-import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory;
@@ -41,7 +38,7 @@ final class TcpBindingContext implements BindingContext
         TcpConfiguration config,
         EngineContext context)
     {
-        MutableInteger capacity = new MutableInteger(ENGINE_WORKER_CAPACITY.getAsInt(config));
+        TcpCapacityTracker capacity = new TcpCapacityTracker(config, context);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new TcpServerFactory(config, context, capacity));
         factories.put(CLIENT, new TcpClientFactory(config, context, capacity));

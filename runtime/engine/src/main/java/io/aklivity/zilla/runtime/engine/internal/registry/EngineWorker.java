@@ -33,6 +33,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -296,6 +297,12 @@ public class EngineWorker implements EngineContext, Agent
         metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
         metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
         metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
+
+        if (!readonly)
+        {
+            final int metricId = labels.supplyLabelId("engine.worker.count");
+            supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId).accept(1);
+        }
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -764,6 +771,14 @@ public class EngineWorker implements EngineContext, Agent
     {
         ModelContext model = modelsByType.get(config.model);
         return model != null ? model.supplyWriteConverterHandler(config) : null;
+    }
+
+    @Override
+    public LongConsumer supplyUtilizationMetric()
+    {
+        final int metricId = labels.supplyLabelId("engine.worker.utilization");
+
+        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
     }
 
     @Override
