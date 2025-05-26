@@ -81,11 +81,11 @@ public class HttpKafkaWithProduceResult
         List<HttpKafkaWithProduceOverrideResult> overrides,
         String16FW ifMatch,
         String16FW replyTo,
+        String16FW correlationId,
         String16FW idempotencyKey,
         List<HttpKafkaWithProduceAsyncHeaderResult> async,
         HttpKafkaWithProduceHash hash,
-        long timeout,
-        String16FW correlationId)
+        long timeout)
     {
         this.compositeId = compositeId;
         this.correlation = correlation;
@@ -95,11 +95,11 @@ public class HttpKafkaWithProduceResult
         this.overrides = overrides;
         this.ifMatch = ifMatch;
         this.replyTo = replyTo;
+        this.correlationId = correlationId;
         this.async = async;
         this.hash = hash;
         this.idempotent = idempotencyKey != null;
         this.timeout = timeout;
-        this.correlationId = correlationId;
     }
 
     public long compositeId()
@@ -247,15 +247,7 @@ public class HttpKafkaWithProduceResult
     {
         final String16FW correlationId = hash.correlationId();
 
-        String16FW name;
-        if (this.correlationId != null)
-        {
-            name = this.correlationId;
-        }
-        else
-        {
-            name = correlation.correlationId;
-        }
+        final String16FW name = this.correlationId != null ? this.correlationId : correlation.correlationId;
 
         builder
             .nameLen(name.length())

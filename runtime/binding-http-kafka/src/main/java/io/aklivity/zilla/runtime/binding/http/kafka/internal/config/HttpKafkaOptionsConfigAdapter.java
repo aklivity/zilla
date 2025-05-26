@@ -20,9 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -113,15 +111,16 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        HttpKafkaCorrelationConfigBuilder<HttpKafkaCorrelationConfig> correlationConfig = HttpKafkaCorrelationConfig.builder();
-        HttpKafkaIdempotencyConfigBuilder<HttpKafkaIdempotencyConfig> idempotencyConfig = HttpKafkaIdempotencyConfig.builder();
+        String header = null;
+        String correlationId = null;
+        String replyTo = null;
 
         if (object.containsKey(IDEMPOTENCY_NAME))
         {
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
             if (idempotency.containsKey(IDEMPOTENCY_HEADER_NAME))
             {
-                idempotencyConfig.header(idempotency.getString(IDEMPOTENCY_HEADER_NAME));
+                header = idempotency.getString(IDEMPOTENCY_HEADER_NAME);
             }
         }
 
@@ -134,19 +133,24 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
                 if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
                 {
-                    correlationConfig.replyTo(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
+                    replyTo = headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME);
                 }
 
                 if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
                 {
-                    correlationConfig.correlationId(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
+                    correlationId = headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME);
                 }
             }
         }
 
         return HttpKafkaOptionsConfig.builder()
-            .idempotency(idempotencyConfig.build())
-            .correlation(correlationConfig.build())
+            .idempotency()
+                .header(header)
+                .build()
+            .correlation()
+                .replyTo(replyTo)
+                .correlationId(correlationId)
+                .build()
             .build();
     }
 }

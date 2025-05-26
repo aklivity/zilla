@@ -442,6 +442,6 @@ public final class HttpKafkaWithResolver
 
         return new HttpKafkaWithProduceResult(
                 compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
-                idempotencyKey, async, hash, timeout, produce.correlationId);
+                produce.correlationId, idempotencyKey, async, hash, timeout);
     }
 }

@@ -80,6 +80,11 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             object.add(REPLY_TO_NAME, produce.replyTo.get());
         }
 
+        if (produce.correlationId != null)
+        {
+            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId.asString());
+        }
+
         if (produce.async.isPresent())
         {
             JsonObjectBuilder newAsync = Json.createObjectBuilder();
@@ -90,11 +95,6 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             }
 
             object.add(ASYNC_NAME, newAsync);
-        }
-
-        if (produce.correlationId != null)
-        {
-            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId.asString());
         }
 
         return object.build();
@@ -135,6 +135,10 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
                 ? object.getString(REPLY_TO_NAME)
                 : null;
 
+        String correlationId = object.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME)
+            ? object.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME)
+            : null;
+
         List<HttpKafkaWithProduceAsyncHeaderConfig> newAsync = null;
         if (object.containsKey(ASYNC_NAME))
         {
@@ -152,12 +156,6 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             }
         }
 
-        String correlationId = null;
-        if (object.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
-        {
-            correlationId = object.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME);
-        }
-
         return HttpKafkaWithConfig.builder()
             .produce(HttpKafkaWithProduceConfig.builder()
                 .topic(newTopic)
@@ -165,8 +163,8 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
                 .key(newKey)
                 .overrides(newOverrides)
                 .replyTo(newReplyTo)
-                .async(newAsync)
                 .correlationId(correlationId)
+                .async(newAsync)
                 .build())
             .build();
     }

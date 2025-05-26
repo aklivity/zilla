@@ -825,7 +825,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         produce.replyTo(kafkaOperation.reply.channel.address);
                     }
 
-                    AsyncapiMessageView messageView = httpOperation.messages.get(0);
+                    AsyncapiMessageView messageView = kafkaOperation.messages.get(0);
                     if (messageView.correlationId != null && messageView.correlationId.location != null)
                     {
                         String correlationId = messageView.correlationId.location;

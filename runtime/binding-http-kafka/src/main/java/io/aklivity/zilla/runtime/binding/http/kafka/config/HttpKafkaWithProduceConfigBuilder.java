@@ -124,7 +124,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        return mapper.apply(new HttpKafkaWithProduceConfig(topic, acks, key, overrides, replyTo, async, correlationId));
+        return mapper.apply(new HttpKafkaWithProduceConfig(topic, acks, key, overrides, replyTo, correlationId, async));
     }
 
     private HttpKafkaWithProduceConfigBuilder<T> override(

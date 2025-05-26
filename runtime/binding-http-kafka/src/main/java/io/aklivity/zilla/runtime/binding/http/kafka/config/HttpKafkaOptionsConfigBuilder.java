@@ -32,14 +32,24 @@ public final class HttpKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, Htt
         this.mapper = mapper;
     }
 
-    public HttpKafkaOptionsConfigBuilder<T> correlation(
+    public HttpKafkaCorrelationConfigBuilder<HttpKafkaOptionsConfigBuilder<T>> correlation()
+    {
+        return new HttpKafkaCorrelationConfigBuilder<>(this::correlation);
+    }
+
+    public HttpKafkaIdempotencyConfigBuilder<HttpKafkaOptionsConfigBuilder<T>> idempotency()
+    {
+        return new HttpKafkaIdempotencyConfigBuilder<>(this::idempotency);
+    }
+
+    private HttpKafkaOptionsConfigBuilder<T> correlation(
         HttpKafkaCorrelationConfig correlation)
     {
         this.correlation = correlation;
         return this;
     }
 
-    public HttpKafkaOptionsConfigBuilder<T> idempotency(
+    private HttpKafkaOptionsConfigBuilder<T> idempotency(
         HttpKafkaIdempotencyConfig idempotency)
     {
         this.idempotency = idempotency;
