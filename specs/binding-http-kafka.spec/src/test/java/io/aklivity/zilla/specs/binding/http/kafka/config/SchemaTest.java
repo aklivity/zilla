@@ -123,6 +123,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyPostItemsWithCorrelationId()
+    {
+        JsonObject config = schema.validate("proxy.post.items.with.correlationId.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyPostItemsAsync()
     {
         JsonObject config = schema.validate("proxy.post.items.async.yaml");
