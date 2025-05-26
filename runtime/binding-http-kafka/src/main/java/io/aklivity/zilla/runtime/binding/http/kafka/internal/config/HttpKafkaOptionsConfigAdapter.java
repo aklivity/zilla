@@ -20,6 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfigBuilder;
@@ -127,19 +128,24 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
         if (object.containsKey(CORRELATION_NAME))
         {
-            JsonObject correlation = object.getJsonObject(CORRELATION_NAME);
-            if (correlation.containsKey(CORRELATION_HEADERS_NAME))
+            JsonObject correlationJson = object.getJsonObject(CORRELATION_NAME);
+            if (correlationJson.containsKey(CORRELATION_HEADERS_NAME))
             {
-                JsonObject headers = correlation.getJsonObject(CORRELATION_HEADERS_NAME);
+                HttpKafkaCorrelationConfigBuilder<HttpKafkaOptionsConfigBuilder<HttpKafkaOptionsConfig>>
+                    correlation = builder.correlation();
+                JsonObject headers = correlationJson.getJsonObject(CORRELATION_HEADERS_NAME);
 
-                builder.correlation()
-                    .replyTo(headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME)
-                        ? headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME)
-                        : null)
-                    .correlationId(headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME)
-                        ? headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME)
-                        : null)
-                    .build();
+                if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
+                {
+                    correlation.replyTo(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
+                }
+
+                if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
+                {
+                    correlation.correlationId(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
+                }
+
+                correlation.build();
             }
         }
 
