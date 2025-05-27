@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
@@ -213,10 +214,12 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                 private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
                 private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
                 private static final Pattern CORRELATION_PATTERN = Pattern.compile(CORRELATION_ID);
+                private static final Pattern CORRELATION_HEADERS_NAME = Pattern.compile("\\$message\\.header#\\/(.+)");
 
                 private final Matcher parameters = PARAMETER_PATTERN.matcher("");
                 private final Matcher correlation = CORRELATION_PATTERN.matcher("");
                 private final Matcher jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
+                private final Matcher correlationHeader = CORRELATION_HEADERS_NAME.matcher("");
 
 
                 private final List<ProxyRouteHelper> httpKafkaRoutes;
@@ -481,6 +484,16 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     if (reply != null)
                     {
                         produce.replyTo(reply.channel.address);
+                    }
+
+                    AsyncapiMessageView messageView = kafkaOperation.messages.get(0);
+                    if (messageView.correlationId != null && messageView.correlationId.location != null)
+                    {
+                        String correlationId = messageView.correlationId.location;
+                        if (correlationHeader.reset(correlationId).matches())
+                        {
+                            produce.correlationId(correlation.group(1));
+                        }
                     }
 
                     return produce;
