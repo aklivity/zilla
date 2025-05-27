@@ -413,7 +413,9 @@ public class ServerIT
         }
 
         channel1.close();
-        channel5.close();
+        channel2.close();
+        channel3.close();
+        channel4.close();
 
         k3po.awaitBarrier("CLOSED");
 
@@ -422,12 +424,26 @@ public class ServerIT
 
         SocketChannel channel6 = SocketChannel.open();
         channel6.connect(new InetSocketAddress("127.0.0.1", 12345));
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_5");
 
-        channel2.close();
-        channel3.close();
-        channel4.close();
+        SocketChannel channel7 = SocketChannel.open();
+        channel7.connect(new InetSocketAddress("127.0.0.1", 12345));
+
+        SocketChannel channel8 = SocketChannel.open();
+        channel8.connect(new InetSocketAddress("127.0.0.1", 12345));
+
+        SocketChannel channel9 = SocketChannel.open();
+        channel9.connect(new InetSocketAddress("127.0.0.1", 12345));
+
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_6");
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_7");
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_8");
+        k3po.awaitBarrier("CONNECTION_ACCEPTED_9");
+
         channel6.close();
+        channel7.close();
+        channel8.close();
+        channel9.close();
+
         Thread.sleep(500);
 
         k3po.finish();
