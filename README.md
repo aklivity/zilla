@@ -92,7 +92,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
 - **[Zilla Examples](examples)**: A collection of pre-canned Zilla feature demos.
 - **[Eventful Petstore Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** See Zilla make the OpenAPI/Swagger Petstore service event-driven by mapping it onto Kafka in just a few lines of YAML.
-- **[Taxi Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** A demo of a taxi-based IoT deployment with Zilla, Kafka, OpenAPIs and AsyncAPIs.
+- **[Taxi Demo](https://github.com/aklivity/zilla-demos/tree/main/taxi):** A demo of a taxi-based IoT deployment with Zilla, Kafka, OpenAPIs and AsyncAPIs.
 
 ### 📝 Check out blog posts
 
