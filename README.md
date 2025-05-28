@@ -43,7 +43,7 @@ Use **Zilla** as a:
 
 ## Native Kafka Proxying with Zilla ***Plus***
 
-To secure and govern native Kafka clients, with features such as Virtual Clusters and mTLS-enabled custom Kafka domains, see [**Zilla Plus**](https://www.aklivity.io/products/zilla-plus#compare-editions). Enterprise support and integrations are also available through this commercially backed version of Zilla.
+To secure and govern native Kafka clients, with features such as Virtual Clusters and mTLS-enabled custom Kafka domains, see [**Zilla Plus**](https://www.aklivity.io/products/zilla-plus). Enterprise support and integrations are also available through this commercially backed version of Zilla.
 
 ## Get started in 60 seconds
 
