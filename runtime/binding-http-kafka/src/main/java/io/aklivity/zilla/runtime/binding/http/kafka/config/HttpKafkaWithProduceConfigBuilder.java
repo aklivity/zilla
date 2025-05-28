@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaWithProduceConfigBuilder<T>>
@@ -31,6 +32,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     private List<HttpKafkaWithProduceOverrideConfig> overrides;
     private String replyTo;
     private List<HttpKafkaWithProduceAsyncHeaderConfig> async;
+    private String16FW correlationId;
 
 
     HttpKafkaWithProduceConfigBuilder(
@@ -79,6 +81,13 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
         return this;
     }
 
+    public HttpKafkaWithProduceConfigBuilder<T> correlationId(
+        String correlationId)
+    {
+        this.correlationId = correlationId != null ? new String16FW(correlationId) : null;
+        return this;
+    }
+
     public HttpKafkaWithProduceAsyncHeaderConfigBuilder<HttpKafkaWithProduceConfigBuilder<T>> async()
     {
         return HttpKafkaWithProduceAsyncHeaderConfig.builder(this::async);
@@ -115,7 +124,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        return mapper.apply(new HttpKafkaWithProduceConfig(topic, acks, key, overrides, replyTo, async));
+        return mapper.apply(new HttpKafkaWithProduceConfig(topic, acks, key, overrides, replyTo, correlationId, async));
     }
 
     private HttpKafkaWithProduceConfigBuilder<T> override(

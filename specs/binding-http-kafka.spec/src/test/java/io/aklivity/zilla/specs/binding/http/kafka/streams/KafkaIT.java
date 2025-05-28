@@ -533,6 +533,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/post.items.with.correlationId/client",
+        "${kafka}/post.items.with.correlationId/server"})
+    public void shouldPostItemsWithCorrelationId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception

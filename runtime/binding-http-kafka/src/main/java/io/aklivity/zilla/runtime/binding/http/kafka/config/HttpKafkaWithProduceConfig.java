@@ -34,6 +34,7 @@ public final class HttpKafkaWithProduceConfig
     public final Optional<List<HttpKafkaWithProduceOverrideConfig>> overrides;
     public final Optional<String> replyTo;
     public final Optional<List<HttpKafkaWithProduceAsyncHeaderConfig>> async;
+    public final String16FW correlationId;
 
     private final List<Matcher> asyncMatchers;
 
@@ -43,6 +44,7 @@ public final class HttpKafkaWithProduceConfig
         String key,
         List<HttpKafkaWithProduceOverrideConfig> overrides,
         String replyTo,
+        String16FW correlationId,
         List<HttpKafkaWithProduceAsyncHeaderConfig> async)
     {
         this.topic = topic;
@@ -50,6 +52,7 @@ public final class HttpKafkaWithProduceConfig
         this.key = Optional.ofNullable(key);
         this.overrides = Optional.ofNullable(overrides);
         this.replyTo = Optional.ofNullable(replyTo);
+        this.correlationId = correlationId;
         this.async = Optional.ofNullable(async);
 
         this.asyncMatchers = this.async.isPresent()

@@ -37,6 +37,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
     private static final String OVERRIDES_NAME = "overrides";
     private static final String REPLY_TO_NAME = "reply-to";
     private static final String ASYNC_NAME = "async";
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
 
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
@@ -77,6 +78,11 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
         if (produce.replyTo.isPresent())
         {
             object.add(REPLY_TO_NAME, produce.replyTo.get());
+        }
+
+        if (produce.correlationId != null)
+        {
+            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId.asString());
         }
 
         if (produce.async.isPresent())
@@ -129,6 +135,10 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
                 ? object.getString(REPLY_TO_NAME)
                 : null;
 
+        String correlationId = object.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME)
+            ? object.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME)
+            : null;
+
         List<HttpKafkaWithProduceAsyncHeaderConfig> newAsync = null;
         if (object.containsKey(ASYNC_NAME))
         {
@@ -153,6 +163,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
                 .key(newKey)
                 .overrides(newOverrides)
                 .replyTo(newReplyTo)
+                .correlationId(correlationId)
                 .async(newAsync)
                 .build())
             .build();
