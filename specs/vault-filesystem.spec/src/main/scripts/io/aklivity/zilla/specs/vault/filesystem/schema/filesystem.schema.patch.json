@@ -96,6 +96,12 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "revocation":
+                            {
+                                "title": "Revocation Method",
+                                "type": "string",
+                                "enum": [ "crl" ]
                             }
                         },
                         "additionalProperties": false

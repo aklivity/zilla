@@ -27,6 +27,7 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     private FileSystemStoreConfig keys;
     private FileSystemStoreConfig trust;
     private FileSystemStoreConfig signers;
+    private String revocation;
 
     FileSystemOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -77,9 +78,16 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
         return this;
     }
 
+    public FileSystemOptionsConfigBuilder<T> revocation(
+        String revocation)
+    {
+        this.revocation = revocation;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new FileSystemOptionsConfig(keys, trust, signers));
+        return mapper.apply(new FileSystemOptionsConfig(keys, trust, signers, revocation));
     }
 }
