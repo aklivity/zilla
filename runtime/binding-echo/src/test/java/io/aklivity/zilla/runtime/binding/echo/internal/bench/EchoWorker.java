@@ -381,7 +381,7 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public Boolean crlChecks()
+    public String revocation()
     {
         return null;
     }

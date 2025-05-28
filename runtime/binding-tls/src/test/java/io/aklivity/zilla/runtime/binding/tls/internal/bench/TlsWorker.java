@@ -447,7 +447,7 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
-    public Boolean crlChecks()
+    public String revocation()
     {
         return null;
     }

@@ -184,5 +184,5 @@ public interface EngineContext
 
     Clock clock();
 
-    Boolean crlChecks();
+    String revocation();
 }

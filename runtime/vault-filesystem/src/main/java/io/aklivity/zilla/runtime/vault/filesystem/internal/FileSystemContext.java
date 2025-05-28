@@ -27,14 +27,14 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 final class FileSystemContext implements VaultContext
 {
     private final Function<String, Path> resolvePath;
-    private final boolean crlChecks;
+    private final String revocation;
 
     FileSystemContext(
         Configuration config,
         EngineContext context)
     {
         this.resolvePath = context::resolvePath;
-        this.crlChecks = context.crlChecks();
+        this.revocation = context.revocation();
     }
 
     @Override
@@ -42,7 +42,7 @@ final class FileSystemContext implements VaultContext
         VaultConfig vault)
     {
         FileSystemOptionsConfig options = (FileSystemOptionsConfig) vault.options;
-        return new FileSystemVaultHandler(options, resolvePath);
+        return new FileSystemVaultHandler(options, resolvePath, revocation);
     }
 
     @Override

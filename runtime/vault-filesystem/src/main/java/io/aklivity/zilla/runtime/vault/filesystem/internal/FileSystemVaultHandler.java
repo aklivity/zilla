@@ -62,7 +62,8 @@ public class FileSystemVaultHandler implements VaultHandler
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
-        Function<String, Path> resolvePath)
+        Function<String, Path> resolvePath,
+        String revocation)
     {
         FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
@@ -74,7 +75,7 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
-        this.revocation = options.revocation;
+        this.revocation = options.revocation != null ? options.revocation : revocation;
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
