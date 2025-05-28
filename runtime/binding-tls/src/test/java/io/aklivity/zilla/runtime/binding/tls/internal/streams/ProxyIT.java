@@ -49,6 +49,16 @@ public class ProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${proxy}/client/client.hello.without.ext/client",
+        "${proxy}/server/client.hello.without.ext/server" })
+    public void shouldProxyClientHelloWithoutExt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.sni.yaml")
     @Specification({
         "${proxy}/client/client.hello.with.sni/client",

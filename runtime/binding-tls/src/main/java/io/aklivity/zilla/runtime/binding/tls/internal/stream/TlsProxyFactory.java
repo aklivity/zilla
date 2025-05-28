@@ -18,10 +18,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
-import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.agrona.BitUtil.SIZE_OF_BYTE;
-import static org.agrona.BitUtil.SIZE_OF_SHORT;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -36,7 +33,14 @@ import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsExtensionFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsExtensionsFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsHandshakeClientHelloFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsHandshakeMessageFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsRecordFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsServerNameExtensionFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsServerNameTypeFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsSniHostNameFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.DataFW;
@@ -92,6 +96,13 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
 
     private final TlsRecordFW tlsRecordRO = new TlsRecordFW();
+    private final TlsHandshakeMessageFW tlsHandshakeRO = new TlsHandshakeMessageFW();
+    private final TlsHandshakeClientHelloFW tlsClientHelloRO = new TlsHandshakeClientHelloFW();
+    private final TlsExtensionsFW tlsExtensionsRO = new TlsExtensionsFW();
+    private final TlsExtensionFW tlsExtensionRO = new TlsExtensionFW();
+    private final TlsServerNameExtensionFW tlsServerNameExRO = new TlsServerNameExtensionFW();
+    private final TlsServerNameTypeFW tlsServerNameTypeRO = new TlsServerNameTypeFW();
+    private final TlsSniHostNameFW tlsHostnameRO = new TlsSniHostNameFW();
 
     private final TlsProxyDecoder decodeRecord = this::decodeRecord;
     private final TlsProxyDecoder decodeRecordBytes = this::decodeRecordBytes;
@@ -446,41 +457,20 @@ public final class TlsProxyFactory implements TlsStreamFactory
                     break decode;
                 }
 
-                DirectBuffer message = tlsRecord.payload().value();
-                int messageProgress = 0;
-                byte messageType = message.getByte(messageProgress++);
-                int messageLength =
-                        (message.getByte(messageProgress++) & 0xff) << 16 |
-                        (message.getByte(messageProgress++) & 0xff) << 8  |
-                        (message.getByte(messageProgress++) & 0xff) << 0;
-
-                if (messageType != MESSAGE_TYPE_CLIENT_HELLO ||
-                    messageProgress + messageLength != message.capacity())
+                TlsHandshakeMessageFW tlsHandshake = tlsRecord.payload().get(tlsHandshakeRO::tryWrap);
+                if (tlsHandshake == null ||
+                    tlsHandshake.typeAndLength() >> 24 != MESSAGE_TYPE_CLIENT_HELLO ||
+                    (tlsHandshake.typeAndLength() & 0x00ff_ffff) + tlsHandshake.limit() > tlsRecord.limit())
                 {
                     proxy.doNetReset(traceId);
                     proxy.decoder = decodeIgnoreAll;
                     break decode;
                 }
 
-                // skip version
-                messageProgress += 2;
-
-                // skip random
-                messageProgress += 32;
-
-                // skip session id
-                messageProgress += SIZE_OF_BYTE + (message.getByte(messageProgress) & 0xff);
-
-                // cipher suites
-                messageProgress += SIZE_OF_SHORT + (message.getShort(messageProgress, BIG_ENDIAN) & 0xffff);
-
-                // compress methods
-                messageProgress += SIZE_OF_BYTE + (message.getByte(messageProgress) & 0xff);
-
-                int extensionsLength = message.getShort(messageProgress, BIG_ENDIAN) & 0xffff;
-                messageProgress += SIZE_OF_SHORT;
-
-                if (messageProgress + extensionsLength != message.capacity())
+                TlsHandshakeClientHelloFW tlsClientHello =
+                    tlsClientHelloRO.tryWrap(tlsRecord.buffer(), tlsHandshake.limit(), tlsRecord.limit());
+                if (tlsClientHello == null ||
+                    tlsClientHello.limit() > tlsRecord.limit())
                 {
                     proxy.doNetReset(traceId);
                     proxy.decoder = decodeIgnoreAll;
@@ -488,52 +478,72 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 }
 
                 String serverName = null;
-                while (messageProgress < message.capacity())
-                {
-                    int extensionType = message.getShort(messageProgress, BIG_ENDIAN) & 0xffff;
-                    messageProgress += SIZE_OF_SHORT;
-                    int extensionLength = message.getShort(messageProgress, BIG_ENDIAN) & 0xffff;
-                    messageProgress += SIZE_OF_SHORT;
 
-                    if (messageProgress + extensionLength > message.capacity())
+                if (tlsClientHello.limit() < tlsRecord.limit())
+                {
+                    TlsExtensionsFW tlsExtensions =
+                        tlsExtensionsRO.tryWrap(tlsRecord.buffer(), tlsClientHello.limit(), tlsRecord.limit());
+                    if (tlsExtensions == null ||
+                        tlsExtensions.limit() != tlsRecord.limit())
                     {
                         proxy.doNetReset(traceId);
                         proxy.decoder = decodeIgnoreAll;
                         break decode;
                     }
 
-                    if (extensionType == EXTENSION_TYPE_SNI)
-                    {
-                        int sniLength = message.getShort(messageProgress, BIG_ENDIAN) & 0xffff;
-                        messageProgress += SIZE_OF_SHORT;
+                    DirectBuffer tlsExtensionsBuf = tlsExtensions.value().value();
+                    int tlsExtensionsLimit = tlsExtensions.length();
+                    int tlsExtensionsProgress = 0;
 
-                        if (messageProgress + sniLength > message.capacity())
+                    while (tlsExtensionsProgress < tlsExtensionsLimit)
+                    {
+                        TlsExtensionFW tlsExtension =
+                            tlsExtensionRO.tryWrap(tlsExtensionsBuf, tlsExtensionsProgress, tlsExtensionsLimit);
+                        if (tlsExtension == null ||
+                            tlsExtension.limit() > tlsRecord.limit())
                         {
                             proxy.doNetReset(traceId);
                             proxy.decoder = decodeIgnoreAll;
                             break decode;
                         }
 
-                        int sniType = message.getByte(messageProgress++);
-                        if (sniType == SNI_TYPE_HOSTNAME)
+                        if (tlsExtension.type() == EXTENSION_TYPE_SNI)
                         {
-                            int hostnameLength = message.getShort(messageProgress, BIG_ENDIAN) & 0xffff;
-                            messageProgress += SIZE_OF_SHORT;
-
-                            if (messageProgress + hostnameLength > message.capacity())
+                            TlsServerNameExtensionFW tlsServerNameEx = tlsExtension.data().get(tlsServerNameExRO::tryWrap);
+                            if (tlsServerNameEx == null ||
+                                tlsServerNameEx.limit() > tlsRecord.limit())
                             {
                                 proxy.doNetReset(traceId);
                                 proxy.decoder = decodeIgnoreAll;
                                 break decode;
                             }
 
-                            serverName = message.getStringWithoutLengthUtf8(messageProgress, hostnameLength);
-                            messageProgress += hostnameLength;
+                            int tlsServerNameTypeOffset = tlsServerNameEx.value().offset();
+                            TlsServerNameTypeFW tlsServerNameType =
+                                tlsServerNameTypeRO.tryWrap(tlsExtensionsBuf, tlsServerNameTypeOffset, tlsExtensionsLimit);
+                            if (tlsServerNameType == null)
+                            {
+                                proxy.doNetReset(traceId);
+                                proxy.decoder = decodeIgnoreAll;
+                                break decode;
+                            }
+
+                            if (tlsServerNameType.value() == SNI_TYPE_HOSTNAME)
+                            {
+                                TlsSniHostNameFW tlsHostname =
+                                    tlsHostnameRO.tryWrap(tlsExtensionsBuf, tlsServerNameType.limit(), tlsExtensionsLimit);
+                                if (tlsHostname == null)
+                                {
+                                    proxy.doNetReset(traceId);
+                                    proxy.decoder = decodeIgnoreAll;
+                                    break decode;
+                                }
+
+                                serverName = tlsHostname.value().asString();
+                            }
                         }
-                    }
-                    else
-                    {
-                        messageProgress += extensionLength;
+
+                        tlsExtensionsProgress = tlsExtension.limit();
                     }
                 }
 
