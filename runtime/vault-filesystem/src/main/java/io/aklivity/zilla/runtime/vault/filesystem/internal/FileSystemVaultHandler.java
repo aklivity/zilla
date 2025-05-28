@@ -53,16 +53,16 @@ public class FileSystemVaultHandler implements VaultHandler
 {
     private static final String STORE_TYPE_DEFAULT = "pkcs12";
     private static final String PKIX_ALGORITHM = "PKIX";
+    private static final String CRL_REVOCATION = "crl";
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
     private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
-    private final boolean crlChecks;
+    private final String revocation;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
-        Function<String, Path> resolvePath,
-        boolean crlChecks)
+        Function<String, Path> resolvePath)
     {
         FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
@@ -74,7 +74,7 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
-        this.crlChecks = crlChecks;
+        this.revocation = options.revocation;
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
@@ -195,7 +195,7 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                if (crlChecks)
+                if (CRL_REVOCATION.equals(revocation))
                 {
                     factory = TrustManagerFactory.getInstance(PKIX_ALGORITHM);
                     PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());

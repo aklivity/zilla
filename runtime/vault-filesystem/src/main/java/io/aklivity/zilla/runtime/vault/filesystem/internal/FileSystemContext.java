@@ -42,7 +42,7 @@ final class FileSystemContext implements VaultContext
         VaultConfig vault)
     {
         FileSystemOptionsConfig options = (FileSystemOptionsConfig) vault.options;
-        return new FileSystemVaultHandler(options, resolvePath, crlChecks);
+        return new FileSystemVaultHandler(options, resolvePath);
     }
 
     @Override

@@ -40,4 +40,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateVaultWithCRL()
+    {
+        JsonObject config = schema.validate("vault.crl.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
