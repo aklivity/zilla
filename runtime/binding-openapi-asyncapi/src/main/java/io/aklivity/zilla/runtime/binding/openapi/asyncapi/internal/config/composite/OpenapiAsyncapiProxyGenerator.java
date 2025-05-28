@@ -492,7 +492,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                         String correlationId = messageView.correlationId.location;
                         if (correlationHeader.reset(correlationId).matches())
                         {
-                            produce.correlationId(correlation.group(1));
+                            produce.correlationId(correlationHeader.group(1));
                         }
                     }
 

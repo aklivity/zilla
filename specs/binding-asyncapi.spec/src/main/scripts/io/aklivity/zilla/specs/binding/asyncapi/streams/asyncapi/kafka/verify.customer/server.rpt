@@ -52,6 +52,14 @@ read "{ \"id\": 100000, \"username\": \"fehguy\", \"status\": \"approved\", \"ad
 read await SEND_ASYNC_REQUEST
 
 read option zilla:flags "fin"
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .partition(-1, -1)
+                               .header("requestId", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-fcc9c9231b3719989b3110968d068822")
+                               .build()
+                           .build()}
 read zilla:data.empty
 
 read closed
