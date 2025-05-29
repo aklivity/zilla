@@ -51,5 +51,66 @@ scope protocol
             uint16 length;
             octets[length] payload;
         }
+
+        struct TlsHandshakeMessage
+        {
+            int32 typeAndLength;
+        }
+
+        struct TlsSessionId
+        {
+            uint8 length;
+            octets[length] value;
+        }
+
+        struct TlsCipherSuites
+        {
+            uint16 length;
+            octets[length] value;
+        }
+
+        struct TlsCompressionMethods
+        {
+            uint8 length;
+            octets[length] value;
+        }
+
+        struct TlsExtensions
+        {
+            uint16 length;
+            octets[length] value;
+        }
+
+        struct TlsExtension
+        {
+            uint16 type;
+            uint16 length;
+            octets[length] data;
+        }
+
+        struct TlsServerNameExtension
+        {
+            uint16 length;
+            octets[length] value;
+        }
+
+        struct TlsServerNameType
+        {
+            uint8 value;
+        }
+
+        struct TlsSniHostName
+        {
+            string16 value;
+        }
+
+        struct TlsHandshakeClientHello
+        {
+            TlsProtocolVersion version;
+            octets[32] random;
+            TlsSessionId session;
+            TlsCipherSuites suites;
+            TlsCompressionMethods methods;
+        }
     }
 }
