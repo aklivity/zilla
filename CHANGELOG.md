@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.143...HEAD)
+
+**Closed issues:**
+
+- Can't build Zilla offline due to JitPack-based K3PO dependencies [\#1481](https://github.com/aklivity/zilla/issues/1481)
+- Support Overriding `correlation-id` via AsyncAPI Specification [\#1471](https://github.com/aklivity/zilla/issues/1471)
+
+**Merged pull requests:**
+
+- Use flyweights for TLS proxy decoder [\#1485](https://github.com/aklivity/zilla/pull/1485) ([jfallows](https://github.com/jfallows))
+- Remove unused gitbook files [\#1484](https://github.com/aklivity/zilla/pull/1484) ([jfallows](https://github.com/jfallows))
+- Enhance tcp unbinding spec test [\#1483](https://github.com/aklivity/zilla/pull/1483) ([akrambek](https://github.com/akrambek))
+- Overriding `correlation-id` via AsyncAPI Specification [\#1482](https://github.com/aklivity/zilla/pull/1482) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.143](https://github.com/aklivity/zilla/tree/0.9.143) (2025-05-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.142...0.9.143)
