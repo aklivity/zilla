@@ -41,6 +41,10 @@ Use **Zilla** as a:
 | [Validate MQTT via AsyncAPI →](examples/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
 | **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](examples). |
 
+## Native Kafka Proxying with Zilla ***Plus***
+
+To secure and govern native Kafka clients, with features such as Virtual Clusters and mTLS-enabled custom Kafka domains, see [**Zilla Plus**](https://www.aklivity.io/products/zilla-plus). Enterprise support and integrations are also available through this commercially backed version of Zilla.
+
 ## Get started in 60 seconds
 
 **Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [**Quickstart**](https://docs.aklivity.io/zilla/latest/getting-started/quickstart).

@@ -545,9 +545,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                 private static final Pattern HEADER_LOCATION_PATTERN = Pattern.compile("([^/]+)$");
                 private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+                private static final Pattern CORRELATION_HEADERS_NAME = Pattern.compile("\\$message\\.header#\\/(.+)");
 
                 private final Matcher headerLocation = HEADER_LOCATION_PATTERN.matcher("");
                 private final Matcher parameters = PARAMETER_PATTERN.matcher("");
+                private final Matcher correlation = CORRELATION_HEADERS_NAME.matcher("");
 
                 private final List<ProxyRouteHelper> httpKafkaRoutes;
 
@@ -821,6 +823,16 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     if (kafkaOperation.reply != null)
                     {
                         produce.replyTo(kafkaOperation.reply.channel.address);
+                    }
+
+                    AsyncapiMessageView messageView = kafkaOperation.messages.get(0);
+                    if (messageView.correlationId != null && messageView.correlationId.location != null)
+                    {
+                        String correlationId = messageView.correlationId.location;
+                        if (correlation.reset(correlationId).matches())
+                        {
+                            produce.correlationId(correlation.group(1));
+                        }
                     }
 
                     AsyncapiHttpKafkaOperationBinding httpKafkaBinding = httpOperation.bindings.httpKafka;

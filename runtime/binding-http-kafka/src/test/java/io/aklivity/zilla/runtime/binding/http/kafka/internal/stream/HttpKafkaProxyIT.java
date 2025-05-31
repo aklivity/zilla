@@ -689,6 +689,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.post.items.with.correlationId.yaml")
+    @Specification({
+        "${http}/post.items/client",
+        "${kafka}/post.items.with.correlationId/server"})
+    public void shouldPostItemsWithCorrelationId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.post.items.async.yaml")
     @Specification({
         "${http}/post.items.prefer.async/client",

@@ -39,9 +39,27 @@ public class ProxyIT
 
     @Test
     @Specification({
+        "${proxy}/client/client.hello.without.ext/client",
+        "${proxy}/client/client.hello.without.ext/server"})
+    public void shouldSendClientHelloWithoutExt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${proxy}/client/client.hello.with.sni/client",
         "${proxy}/client/client.hello.with.sni/server"})
     public void shouldSendClientHelloWithServerName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${proxy}/server/client.hello.without.ext/client",
+        "${proxy}/server/client.hello.without.ext/server"})
+    public void shouldReceiveClientHelloWithoutExt() throws Exception
     {
         k3po.finish();
     }

@@ -50,6 +50,30 @@ connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
-write await CONNECTION_ACCEPTED_5
+write await CONNECTION_ACCEPTED_6
+write close
+read closed
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write await CONNECTION_ACCEPTED_7
+write close
+read closed
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write await CONNECTION_ACCEPTED_8
+write close
+read closed
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write await CONNECTION_ACCEPTED_9
 write close
 read closed

@@ -199,6 +199,8 @@ catalogs:
               contentType: application/json
               payload:
                 $ref: "#/components/schemas/Customer"
+              correlationId:
+                location: "$message.header#/requestId"
           schemas:
             Customer:
               type: object
