@@ -25,7 +25,7 @@ RUN cat zpm.json.template | sed "s/\${VERSION}/${project.version}/g" | tee zpm.j
 RUN ./zpmw install --debug --instrument --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM ubuntu:jammy-20250404
+FROM ubuntu:jammy-20250530
 
 ENV ZILLA_VERSION ${project.version}
 
