@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.145](https://github.com/aklivity/zilla/tree/0.9.145) (2025-06-05)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.144...0.9.145)
+
+**Merged pull requests:**
+
+- Support conditional Thread.interrupt\(\) on exception in EngineRule [\#1489](https://github.com/aklivity/zilla/pull/1489) ([jfallows](https://github.com/jfallows))
+- Bump lycheeverse/lychee-action from 2.3.0 to 2.4.1 [\#1473](https://github.com/aklivity/zilla/pull/1473) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.144](https://github.com/aklivity/zilla/tree/0.9.144) (2025-05-31)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.143...0.9.144)
