@@ -83,6 +83,7 @@ public final class EngineRule implements TestRule
     private EngineConfiguration configuration;
     private String configRoot;
     private Predicate<String> exceptions;
+    private boolean interruptible;
     private boolean clean;
 
     public EngineRule()
@@ -90,6 +91,7 @@ public final class EngineRule implements TestRule
         this.builder = Engine.builder();
         this.properties = new Properties();
         this.exceptions = m -> false;
+        this.interruptible = true;
 
         configure(ENGINE_DRAIN_ON_CLOSE, true);
         configure(ENGINE_SYNTHETIC_ABORT, true);
@@ -153,6 +155,13 @@ public final class EngineRule implements TestRule
         Predicate<String> exceptions)
     {
         this.exceptions = exceptions;
+        return this;
+    }
+
+    public EngineRule interruptible(
+        boolean interruptible)
+    {
+        this.interruptible = interruptible;
         return this;
     }
 
@@ -323,9 +332,12 @@ public final class EngineRule implements TestRule
                 final List<Throwable> errors = synchronizedList(new ArrayList<>());
                 final ErrorHandler errorHandler = ex ->
                 {
-                    ex.printStackTrace();
                     errors.add(ex);
-                    baseThread.interrupt();
+
+                    if (interruptible)
+                    {
+                        baseThread.interrupt();
+                    }
                 };
 
                 FileSystem fs = null;
