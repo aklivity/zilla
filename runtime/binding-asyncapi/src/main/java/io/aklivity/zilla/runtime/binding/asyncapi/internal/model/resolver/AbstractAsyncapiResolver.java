@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,6 +26,7 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
 {
     private final Map<String, T> resolvables;
     private final Matcher matcher;
+    private final Collection<T> unresolved;
 
     public AbstractAsyncapiResolver(
         Map<String, T> resolvables,
@@ -31,13 +34,19 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
     {
         this.resolvables = resolvables;
         this.matcher = pattern.matcher("");
+        this.unresolved = new LinkedHashSet<T>();
     }
 
     public final T resolve(
         T model)
     {
         final String key = resolveRef(model.ref);
-        return key != null ? resolvables.get(key) : model;
+        T candidate = key != null ? resolvables.getOrDefault(key, model) : model;
+        if (candidate.ref != null)
+        {
+            unresolved.add(candidate);
+        }
+        return candidate;
     }
 
     public T resolve(
