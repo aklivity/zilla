@@ -32,6 +32,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.agrona.collections.MutableLong;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
@@ -648,6 +651,42 @@ public class JwtGuardHandlerTest
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
 
         guard.deauthorize(sessionId);
+    }
+
+    @Test
+    public void shouldAuthorizeWithCustomRole() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .guarded("realm_access.roles")
+            .key(RFC7515_RS256_CONFIG)
+            .challenge(challenge)
+            .build();
+        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put("roles", asList("default-roles-backend", "offline_access", "uma_authorization"));
+        claims.setClaim("realm_access", realmAccess);
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
+
+        assertThat(sessionId, not(equalTo(0L)));
+        assertThat(guard.identity(sessionId), equalTo("testSubject"));
+        assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
+        assertTrue(guard.verify(sessionId, asList("default-roles-backend", "offline_access", "uma_authorization")));
     }
 
     static String sign(

@@ -27,6 +27,7 @@ public class JwtOptionsConfig extends OptionsConfig
 {
     public final String issuer;
     public final String audience;
+    public final String guarded;
     public final List<JwtKeyConfig> keys;
     public final Optional<Duration> challenge;
     public final String identity;
@@ -46,6 +47,7 @@ public class JwtOptionsConfig extends OptionsConfig
     JwtOptionsConfig(
         String issuer,
         String audience,
+        String guarded,
         List<JwtKeyConfig> keys,
         Duration challenge,
         String identity,
@@ -53,6 +55,7 @@ public class JwtOptionsConfig extends OptionsConfig
     {
         this.issuer = issuer;
         this.audience = audience;
+        this.guarded = guarded;
         this.keys = keys;
         this.challenge = ofNullable(challenge);
         this.identity = identity;

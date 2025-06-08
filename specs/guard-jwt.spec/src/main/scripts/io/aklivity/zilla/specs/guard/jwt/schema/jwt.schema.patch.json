@@ -41,6 +41,12 @@
                                 "title": "Audience",
                                 "type": "string"
                             },
+                            "guarded":
+                            {
+                                "title": "Guarded",
+                                "type": "string",
+                                "default": "scope"
+                            },
                             "keys":
                             {
                                 "title": "Keys",

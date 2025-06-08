@@ -27,9 +27,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -53,10 +53,13 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapte
 
 public class JwtGuardHandler implements GuardHandler
 {
+    private static final String SCOPE_PATTERN = "\\s+";
+
     private final JsonWebSignature signature = new JsonWebSignature();
 
     private final String issuer;
     private final String audience;
+    private final String guarded;
     private final Duration challenge;
     private final String identity;
     private final Map<String, JsonWebKey> keys;
@@ -72,6 +75,7 @@ public class JwtGuardHandler implements GuardHandler
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
+        this.guarded = options.guarded;
         this.challenge = options.challenge.orElse(null);
         this.identity = options.identity;
 
@@ -179,11 +183,23 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
-                .map(s -> s.toString().intern())
-                .map(s -> s.split("\\s+"))
-                .map(Arrays::asList)
-                .orElse(null);
+            List<String> roles = null;
+            String path = (guarded != null && !guarded.isEmpty()) ? guarded : "scope";
+            Object claimObj = claimValue(claims, path);
+
+            if (claimObj instanceof List)
+            {
+                List<Object> listClaim = (List<Object>) claimObj;
+                roles = listClaim.stream()
+                                 .map(Object::toString)
+                                 .map(String::intern)
+                                 .collect(Collectors.toList());
+            }
+            else if (claimObj != null)
+            {
+                roles = Arrays.asList(claimObj.toString().split(SCOPE_PATTERN));
+                roles.replaceAll(String::intern);
+            }
 
             JwtSessionStore sessionStore = supplySessionStore(contextId);
             session = sessionStore.supplySession(identity, roles);
@@ -405,6 +421,33 @@ public class JwtGuardHandler implements GuardHandler
                 unshare.accept(this);
             }
         }
+    }
+
+    private static Object claimValue(
+        Object node,
+        String path)
+    {
+        Object current = node;
+        for (String part : path.split("\\."))
+        {
+            if (current == null)
+            {
+                break;
+            }
+            if (current instanceof JwtClaims)
+            {
+                current = ((JwtClaims) current).getClaimValue(part);
+            }
+            else if (current instanceof Map)
+            {
+                current = ((Map<?, ?>) current).get(part);
+            }
+            else
+            {
+                current = null;
+            }
+        }
+        return current;
     }
 
     private static String readKeys(

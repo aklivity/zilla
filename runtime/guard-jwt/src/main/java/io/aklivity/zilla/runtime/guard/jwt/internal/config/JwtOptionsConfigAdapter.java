@@ -38,6 +38,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 {
     private static final String ISSUER_NAME = "issuer";
     private static final String AUDIENCE_NAME = "audience";
+    private static final String GUARDED = "guarded";
     private static final String KEYS_NAME = "keys";
     private static final String CHALLENGE_NAME = "challenge";
     private static final String IDENTITY_NAME = "identity";
@@ -74,6 +75,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (jwtOptions.audience != null)
         {
             object.add(AUDIENCE_NAME, jwtOptions.audience);
+        }
+
+        if (jwtOptions.guarded != null)
+        {
+            object.add(GUARDED, jwtOptions.guarded);
         }
 
         if (jwtOptions.keys != null)
@@ -116,6 +122,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(AUDIENCE_NAME))
         {
             jwtOptions.audience(object.getString(AUDIENCE_NAME));
+        }
+
+        if (object.containsKey(GUARDED))
+        {
+            jwtOptions.guarded(object.getString(GUARDED));
         }
 
         if (object.containsKey(KEYS_NAME))
