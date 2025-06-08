@@ -53,7 +53,8 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapte
 
 public class JwtGuardHandler implements GuardHandler
 {
-    private static final String SCOPE_PATTERN = "\\s+";
+    private static final String SCOPE_VALUE_PATTERN = "\\s+";
+    private static final String SCOPE_PATH_PATTERN = "\\.";
 
     private final JsonWebSignature signature = new JsonWebSignature();
 
@@ -197,7 +198,7 @@ public class JwtGuardHandler implements GuardHandler
             }
             else if (claimObj != null)
             {
-                roles = Arrays.asList(claimObj.toString().split(SCOPE_PATTERN));
+                roles = Arrays.asList(claimObj.toString().split(SCOPE_VALUE_PATTERN));
                 roles.replaceAll(String::intern);
             }
 
@@ -428,7 +429,7 @@ public class JwtGuardHandler implements GuardHandler
         String path)
     {
         Object current = node;
-        for (String part : path.split("\\."))
+        for (String part : path.split(SCOPE_PATH_PATTERN))
         {
             if (current == null)
             {
