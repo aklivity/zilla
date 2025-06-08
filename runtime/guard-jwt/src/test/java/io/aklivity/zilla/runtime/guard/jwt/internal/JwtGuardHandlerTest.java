@@ -687,6 +687,7 @@ public class JwtGuardHandlerTest
         assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
         assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
         assertTrue(guard.verify(sessionId, asList("default-roles-backend", "offline_access", "uma_authorization")));
+        assertFalse(guard.verify(sessionId, asList("admin")));
     }
 
     static String sign(
