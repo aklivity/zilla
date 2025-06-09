@@ -60,7 +60,7 @@ public class JwtGuardHandler implements GuardHandler
 
     private final String issuer;
     private final String audience;
-    private final String guarded;
+    private final String roles;
     private final Duration challenge;
     private final String identity;
     private final Map<String, JsonWebKey> keys;
@@ -76,7 +76,7 @@ public class JwtGuardHandler implements GuardHandler
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
-        this.guarded = options.roles;
+        this.roles = options.roles;
         this.challenge = options.challenge.orElse(null);
         this.identity = options.identity;
 
@@ -185,7 +185,7 @@ public class JwtGuardHandler implements GuardHandler
             }
 
             List<String> roles = null;
-            String path = (guarded != null && !guarded.isEmpty()) ? guarded : "scope";
+            String path = (this.roles != null && !this.roles.isEmpty()) ? this.roles : "scope";
             Object claimObj = claimValue(claims, path);
 
             if (claimObj instanceof List)
