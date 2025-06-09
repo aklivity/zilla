@@ -41,9 +41,9 @@
                                 "title": "Audience",
                                 "type": "string"
                             },
-                            "guarded":
+                            "roles":
                             {
-                                "title": "Guarded",
+                                "title": "Roles",
                                 "type": "string",
                                 "default": "scope"
                             },

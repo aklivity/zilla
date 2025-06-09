@@ -21,7 +21,7 @@ guards:
     options:
       issuer: https://auth.example.com
       audience: https://api.example.com
-      guarded: "realm_access.roles"
+      roles: "realm_access.roles"
       keys:
         - kty: EC
           crv: P-256

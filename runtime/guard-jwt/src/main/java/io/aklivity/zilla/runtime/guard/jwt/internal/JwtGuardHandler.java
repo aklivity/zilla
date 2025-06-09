@@ -76,7 +76,7 @@ public class JwtGuardHandler implements GuardHandler
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
-        this.guarded = options.guarded;
+        this.guarded = options.roles;
         this.challenge = options.challenge.orElse(null);
         this.identity = options.identity;
 

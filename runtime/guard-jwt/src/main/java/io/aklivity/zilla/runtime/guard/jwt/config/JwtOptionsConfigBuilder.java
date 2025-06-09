@@ -28,7 +28,7 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
 
     private String issuer;
     private String audience;
-    private String guarded;
+    private String roles;
     private List<JwtKeyConfig> keys;
     private Duration challenge;
     private String identity;
@@ -61,10 +61,10 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
         return this;
     }
 
-    public JwtOptionsConfigBuilder<T> guarded(
-        String guarded)
+    public JwtOptionsConfigBuilder<T> roles(
+        String roles)
     {
-        this.guarded = guarded;
+        this.roles = roles;
         return this;
     }
 
@@ -115,6 +115,6 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new JwtOptionsConfig(issuer, audience, guarded, keys, challenge, identity, keysURL));
+        return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL));
     }
 }

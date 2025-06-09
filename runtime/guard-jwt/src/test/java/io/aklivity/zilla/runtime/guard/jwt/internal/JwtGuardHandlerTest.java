@@ -31,7 +31,6 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -661,7 +660,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
-            .guarded("realm_access.roles")
+            .roles("realm_access.roles")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
