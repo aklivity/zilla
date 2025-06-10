@@ -666,7 +666,6 @@ public class JwtGuardHandlerTest
         guard.deauthorize(sessionId);
     }
 
-    @SuppressWarnings("checkstyle:Indentation")
     @Test
     public void shouldAuthorizeWithCustomRole() throws Exception
     {
@@ -689,7 +688,7 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("realm_access",
-        Map.of("roles", List.of("default-roles-backend", "offline_access", "uma_authorization")));
+            Map.of("roles", List.of("default-roles-backend", "offline_access", "uma_authorization")));
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
