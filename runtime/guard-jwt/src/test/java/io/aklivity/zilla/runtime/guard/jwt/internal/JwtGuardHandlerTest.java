@@ -31,7 +31,7 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.collections.MutableLong;
@@ -65,6 +65,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -98,6 +99,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .identity("username")
@@ -132,6 +134,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -161,6 +164,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -189,6 +193,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -218,6 +223,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -389,6 +395,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -415,6 +422,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -450,6 +458,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -486,6 +495,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -521,6 +531,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -558,6 +569,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -595,6 +607,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -631,6 +644,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
+            .roles("scope")
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -652,6 +666,7 @@ public class JwtGuardHandlerTest
         guard.deauthorize(sessionId);
     }
 
+    @SuppressWarnings("checkstyle:Indentation")
     @Test
     public void shouldAuthorizeWithCustomRole() throws Exception
     {
@@ -673,10 +688,8 @@ public class JwtGuardHandlerTest
         claims.setClaim("aud", "testAudience");
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
-        Map<String, Object> realmAccess = new HashMap<>();
-        realmAccess.put("roles", asList("default-roles-backend", "offline_access", "uma_authorization"));
-        claims.setClaim("realm_access", realmAccess);
-
+        claims.setClaim("realm_access",
+        Map.of("roles", List.of("default-roles-backend", "offline_access", "uma_authorization")));
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);

@@ -27,9 +27,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -184,23 +184,22 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            List<String> roles = null;
-            String path = (this.roles != null && !this.roles.isEmpty()) ? this.roles : "scope";
-            Object claimObj = claimValue(claims, path);
+            Object rolesValue = claimValue(claims, this.roles);
+            @SuppressWarnings("unchecked")
+            List<String> rolesValueAsList = (rolesValue instanceof List)
+                    ? (List<String>) rolesValue
+                    : Optional.ofNullable(rolesValue)
+                        .map(Object::toString)
+                        .map(s -> s.split(SCOPE_VALUE_PATTERN))
+                        .map(Arrays::asList)
+                        .orElse(null);
 
-            if (claimObj instanceof List)
-            {
-                List<Object> listClaim = (List<Object>) claimObj;
-                roles = listClaim.stream()
-                                 .map(Object::toString)
-                                 .map(String::intern)
-                                 .collect(Collectors.toList());
-            }
-            else if (claimObj != null)
-            {
-                roles = Arrays.asList(claimObj.toString().split(SCOPE_VALUE_PATTERN));
-                roles.replaceAll(String::intern);
-            }
+            List<String> roles = rolesValueAsList != null
+                ? rolesValueAsList.stream()
+                    .map(Object::toString)
+                    .map(String::intern)
+                    .toList()
+                : null;
 
             JwtSessionStore sessionStore = supplySessionStore(contextId);
             session = sessionStore.supplySession(identity, roles);
