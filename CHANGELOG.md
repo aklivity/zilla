@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.146](https://github.com/aklivity/zilla/tree/0.9.146) (2025-06-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.145...0.9.146)
+
+**Closed issues:**
+
+- Custom Role Claim Support in Zilla JWT Validation [\#1476](https://github.com/aklivity/zilla/issues/1476)
+
+**Merged pull requests:**
+
+- Test missing namespace and binding name [\#1493](https://github.com/aklivity/zilla/pull/1493) ([akrambek](https://github.com/akrambek))
+- Support custom role claim [\#1492](https://github.com/aklivity/zilla/pull/1492) ([akrambek](https://github.com/akrambek))
+- Update README.md [\#1464](https://github.com/aklivity/zilla/pull/1464) ([anujkarn002](https://github.com/anujkarn002))
+
 ## [0.9.145](https://github.com/aklivity/zilla/tree/0.9.145) (2025-06-05)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.144...0.9.145)
