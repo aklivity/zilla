@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.config;
 
+import static io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfigBuilder.ROLES_DEFAULT;
 import static java.util.Collections.emptyList;
 
 import java.time.Duration;
@@ -77,7 +78,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(AUDIENCE_NAME, jwtOptions.audience);
         }
 
-        if (jwtOptions.roles != null)
+        if (jwtOptions.roles != null && !ROLES_DEFAULT.equals(jwtOptions.roles))
         {
             object.add(ROLES, jwtOptions.roles);
         }

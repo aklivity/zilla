@@ -24,6 +24,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfigBuilder<T>>
 {
+    public static final String ROLES_DEFAULT = "scope";
+
     private final Function<OptionsConfig, T> mapper;
 
     private String issuer;
@@ -115,7 +117,7 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     @Override
     public T build()
     {
-        roles = roles != null ? roles : "scope";
+        roles = roles != null ? roles : ROLES_DEFAULT;
 
         return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL));
     }
