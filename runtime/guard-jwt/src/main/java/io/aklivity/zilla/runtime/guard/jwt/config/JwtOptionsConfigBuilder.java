@@ -115,6 +115,8 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     @Override
     public T build()
     {
+        roles = roles != null ? roles : "scope";
+        
         return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL));
     }
 }

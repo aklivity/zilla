@@ -53,8 +53,8 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapte
 
 public class JwtGuardHandler implements GuardHandler
 {
-    private static final String SCOPE_VALUE_PATTERN = "\\s+";
-    private static final String SCOPE_PATH_PATTERN = "\\.";
+    private static final String SPLIT_VALUE_PATTERN = "\\s+";
+    private static final String SPLIT_PATH_PATTERN = "\\.";
 
     private final JsonWebSignature signature = new JsonWebSignature();
 
@@ -186,20 +186,13 @@ public class JwtGuardHandler implements GuardHandler
 
             Object rolesValue = claimValue(claims, this.roles);
             @SuppressWarnings("unchecked")
-            List<String> rolesValueAsList = (rolesValue instanceof List)
+            List<String> roles = (rolesValue instanceof List)
                     ? (List<String>) rolesValue
                     : Optional.ofNullable(rolesValue)
                         .map(Object::toString)
-                        .map(s -> s.split(SCOPE_VALUE_PATTERN))
+                        .map(s -> s.split(SPLIT_VALUE_PATTERN))
                         .map(Arrays::asList)
                         .orElse(null);
-
-            List<String> roles = rolesValueAsList != null
-                ? rolesValueAsList.stream()
-                    .map(Object::toString)
-                    .map(String::intern)
-                    .toList()
-                : null;
 
             JwtSessionStore sessionStore = supplySessionStore(contextId);
             session = sessionStore.supplySession(identity, roles);
@@ -428,7 +421,7 @@ public class JwtGuardHandler implements GuardHandler
         String path)
     {
         Object current = node;
-        for (String part : path.split(SCOPE_PATH_PATTERN))
+        for (String part : path.split(SPLIT_PATH_PATTERN))
         {
             if (current == null)
             {
