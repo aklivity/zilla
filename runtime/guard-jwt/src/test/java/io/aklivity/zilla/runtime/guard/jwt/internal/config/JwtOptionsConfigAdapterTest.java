@@ -137,6 +137,7 @@ public class JwtOptionsConfigAdapterTest
                 "{" +
                         "\"issuer\":\"https://auth.example.com\"," +
                         "\"audience\":\"https://api.example.com\"," +
+                        "\"roles\":\"scope\"," +
                         "\"keys\":" +
                         "[" +
                             "{" +
