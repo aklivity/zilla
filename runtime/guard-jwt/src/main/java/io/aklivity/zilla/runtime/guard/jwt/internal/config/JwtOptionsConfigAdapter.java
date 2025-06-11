@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.config;
 
+import static io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfigBuilder.ROLES_DEFAULT;
 import static java.util.Collections.emptyList;
 
 import java.time.Duration;
@@ -38,6 +39,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 {
     private static final String ISSUER_NAME = "issuer";
     private static final String AUDIENCE_NAME = "audience";
+    private static final String ROLES = "roles";
     private static final String KEYS_NAME = "keys";
     private static final String CHALLENGE_NAME = "challenge";
     private static final String IDENTITY_NAME = "identity";
@@ -74,6 +76,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (jwtOptions.audience != null)
         {
             object.add(AUDIENCE_NAME, jwtOptions.audience);
+        }
+
+        if (jwtOptions.roles != null && !ROLES_DEFAULT.equals(jwtOptions.roles))
+        {
+            object.add(ROLES, jwtOptions.roles);
         }
 
         if (jwtOptions.keys != null)
@@ -116,6 +123,11 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(AUDIENCE_NAME))
         {
             jwtOptions.audience(object.getString(AUDIENCE_NAME));
+        }
+
+        if (object.containsKey(ROLES))
+        {
+            jwtOptions.roles(object.getString(ROLES));
         }
 
         if (object.containsKey(KEYS_NAME))
