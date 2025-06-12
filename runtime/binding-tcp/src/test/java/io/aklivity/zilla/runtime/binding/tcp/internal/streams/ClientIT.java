@@ -379,19 +379,16 @@ public class ClientIT
                 {
                     if (key.isAcceptable())
                     {
-                        ServerSocketChannel srv = (ServerSocketChannel) key.channel();
-                        SocketChannel client = srv.accept();
+                        SocketChannel client = server.accept();
                         handler.handle(client);
                         accepted++;
                     }
                 }
 
-                if (accepted == 1)
+                if (accepted == 2)
                 {
-                    for (int i = 1; i < 3; i++)
-                    {
-                        k3po.notifyBarrier("CONNECTION_ACCEPTED_" + i);
-                    }
+                    k3po.notifyBarrier("CONNECTION_ACCEPTED_1");
+                    k3po.notifyBarrier("CONNECTION_ACCEPTED_2");
                 }
             }
 
@@ -403,13 +400,14 @@ public class ClientIT
                 {
                     if (key.isAcceptable())
                     {
-                        ServerSocketChannel srv = (ServerSocketChannel) key.channel();
-                        SocketChannel client = srv.accept();
+                        SocketChannel client = server.accept();
                         handler.handle(client);
                         accepted++;
                     }
                 }
             }
+
+            assert accepted == 2;
 
             selector.selectedKeys().clear();
             k3po.finish();
