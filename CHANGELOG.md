@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.146...HEAD)
+
+**Merged pull requests:**
+
+- Fix typo increase counter on connection close instead of decreasing it [\#1494](https://github.com/aklivity/zilla/pull/1494) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.146](https://github.com/aklivity/zilla/tree/0.9.146) (2025-06-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.145...0.9.146)
