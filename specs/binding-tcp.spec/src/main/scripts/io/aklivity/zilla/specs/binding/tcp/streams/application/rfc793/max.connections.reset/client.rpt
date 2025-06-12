@@ -30,7 +30,25 @@ write await CONNECTION_ACCEPTED_2
 write close
 read closed
 
+read notify CONNECTION_CLOSED_2
+
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connect aborted
+
+connect await CONNECTION_CLOSED_2
+    "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write close
+read closed
+
+connect await CONNECTION_CLOSED_2
+    "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+write close
+read closed
