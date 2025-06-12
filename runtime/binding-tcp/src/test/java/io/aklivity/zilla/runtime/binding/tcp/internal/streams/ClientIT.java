@@ -21,10 +21,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
@@ -352,21 +355,61 @@ public class ClientIT
         value = "2")
     public void shouldResetWhenConnectionsExceeded() throws Exception
     {
-        try (ServerSocketChannel server = ServerSocketChannel.open())
+        try (ServerSocketChannel server = ServerSocketChannel.open();
+             Selector selector = Selector.open())
         {
+            server.configureBlocking(false);
             server.setOption(SO_REUSEADDR, true);
             server.bind(new InetSocketAddress("127.0.0.1", 12345));
+            server.register(selector, SelectionKey.OP_ACCEPT);
 
             k3po.start();
 
-            for (int i = 1; i < 3; i++)
+            AcceptHandler handler = channel ->
             {
-                try (SocketChannel channel = server.accept())
+                channel.configureBlocking(true);
+                channel.close();
+            };
+
+            int accepted = 0;
+            while (accepted < 2)
+            {
+                selector.select();
+                for (SelectionKey key : selector.selectedKeys())
                 {
-                    k3po.notifyBarrier("CONNECTION_ACCEPTED_" + i);
+                    if (key.isAcceptable())
+                    {
+                        SocketChannel client = server.accept();
+                        handler.handle(client);
+                        accepted++;
+                    }
+                }
+
+                if (accepted == 2)
+                {
+                    k3po.notifyBarrier("CONNECTION_ACCEPTED_1");
+                    k3po.notifyBarrier("CONNECTION_ACCEPTED_2");
                 }
             }
 
+            accepted = 0;
+            while (accepted < 2)
+            {
+                selector.select();
+                for (SelectionKey key : selector.selectedKeys())
+                {
+                    if (key.isAcceptable())
+                    {
+                        SocketChannel client = server.accept();
+                        handler.handle(client);
+                        accepted++;
+                    }
+                }
+            }
+
+            assert accepted == 2;
+
+            selector.selectedKeys().clear();
             k3po.finish();
         }
     }
@@ -375,5 +418,11 @@ public class ClientIT
         String host) throws UnknownHostException
     {
         throw new UnknownHostException();
+    }
+
+    @FunctionalInterface
+    interface AcceptHandler
+    {
+        void handle(SocketChannel channel) throws IOException;
     }
 }

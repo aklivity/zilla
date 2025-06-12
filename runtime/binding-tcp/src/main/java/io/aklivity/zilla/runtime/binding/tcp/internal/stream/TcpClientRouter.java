@@ -194,7 +194,7 @@ public final class TcpClientRouter
 
     public void close()
     {
-        capacity.decrementAndGet();
+        capacity.incrementAndGet();
     }
 
     @Override
