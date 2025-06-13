@@ -95,7 +95,7 @@ public final class TcpServerRouter
 
             if (channel != null)
             {
-                capacity.onConnected();
+                capacity.claim();
             }
         }
 
@@ -114,7 +114,7 @@ public final class TcpServerRouter
         SocketChannel channel)
     {
         CloseHelper.quietClose(channel);
-        capacity.onClosed();
+        capacity.released();
 
         if (unbound && capacity.available() > 0)
         {

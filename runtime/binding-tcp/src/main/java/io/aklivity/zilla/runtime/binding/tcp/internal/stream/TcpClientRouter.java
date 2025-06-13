@@ -180,7 +180,7 @@ public final class TcpClientRouter
 
         if (resolved != null)
         {
-            capacity.onConnected();
+            capacity.claim();
         }
 
         return resolved;
@@ -194,7 +194,7 @@ public final class TcpClientRouter
 
     public void close()
     {
-        capacity.onClosed();
+        capacity.released();
     }
 
     @Override

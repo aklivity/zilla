@@ -19,47 +19,45 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 
 import java.util.function.LongConsumer;
 
-import org.agrona.collections.MutableInteger;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class TcpCapacityTracker
 {
     private final int capacity;
-    private final MutableInteger usage;
     private final LongConsumer recordUsage;
+
+    private int usage;
 
     public TcpCapacityTracker(
         TcpConfiguration config,
         EngineContext context)
     {
         this.capacity = ENGINE_WORKER_CAPACITY.getAsInt(config);
-        this.usage = new MutableInteger(0);
         this.recordUsage = context.supplyUtilizationMetric();
     }
 
     public int available()
     {
-        return capacity - usage.get();
+        return capacity - usage;
     }
 
-    public void onConnected()
+    public void claim()
     {
-        int newUsage = usage.incrementAndGet();
-        assert newUsage <= capacity;
+        int newUsage = ++usage;
+        assert newUsage <= capacity : "newUsage = %d, capacity = %d".formatted(newUsage, capacity);
 
-        onUsageChanged(newUsage);
+        record(newUsage);
     }
 
-    public void onClosed()
+    public void released()
     {
-        int newUsage = usage.decrementAndGet();
-        assert newUsage >= 0;
+        int newUsage = --usage;
+        assert newUsage >= 0 : "newUsage = %d".formatted(newUsage);
 
-        onUsageChanged(newUsage);
+        record(newUsage);
     }
 
-    private void onUsageChanged(
+    private void record(
         int newUsage)
     {
         final int newUsageAsPercentage = newUsage * 100 / capacity;

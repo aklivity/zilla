@@ -126,7 +126,6 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -225,8 +224,8 @@ public class EngineWorker implements EngineContext, Agent
     private final Supplier<IdleStrategy> supplyIdleStrategy;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
-    private final ScalarsLayout countersLayout;
-    private final ScalarsLayout gaugesLayout;
+    private final CountersLayout countersLayout;
+    private final GaugesLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
     private final Int2ObjectHashMap<String> eventNames;

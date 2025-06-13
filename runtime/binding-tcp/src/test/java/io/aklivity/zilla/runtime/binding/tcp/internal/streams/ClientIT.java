@@ -21,15 +21,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.function.LongSupplier;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -355,62 +353,53 @@ public class ClientIT
         value = "2")
     public void shouldResetWhenConnectionsExceeded() throws Exception
     {
-        try (ServerSocketChannel server = ServerSocketChannel.open();
-             Selector selector = Selector.open())
+        final LongSupplier utilization = engine.context().gauge(null, null, "engine.worker.utilization");
+
+        try (ServerSocketChannel server = ServerSocketChannel.open())
         {
-            server.configureBlocking(false);
             server.setOption(SO_REUSEADDR, true);
             server.bind(new InetSocketAddress("127.0.0.1", 12345));
-            server.register(selector, SelectionKey.OP_ACCEPT);
 
             k3po.start();
 
-            AcceptHandler handler = channel ->
-            {
-                channel.configureBlocking(true);
-                channel.close();
-            };
+            ByteBuffer buf = ByteBuffer.allocate(0);
 
-            int accepted = 0;
-            while (accepted < 2)
+            while (utilization.getAsLong() != 100L)
             {
-                selector.select();
-                for (SelectionKey key : selector.selectedKeys())
-                {
-                    if (key.isAcceptable())
-                    {
-                        SocketChannel client = server.accept();
-                        handler.handle(client);
-                        accepted++;
-                    }
-                }
-
-                if (accepted == 2)
-                {
-                    k3po.notifyBarrier("CONNECTION_ACCEPTED_1");
-                    k3po.notifyBarrier("CONNECTION_ACCEPTED_2");
-                }
+                Thread.onSpinWait();
             }
 
-            accepted = 0;
-            while (accepted < 2)
+            SocketChannel client1 = server.accept();
+            k3po.notifyBarrier("CONNECTION_ACCEPTED_1");
+            client1.read(buf);
+            client1.close();
+
+            while (utilization.getAsLong() != 50L)
             {
-                selector.select();
-                for (SelectionKey key : selector.selectedKeys())
-                {
-                    if (key.isAcceptable())
-                    {
-                        SocketChannel client = server.accept();
-                        handler.handle(client);
-                        accepted++;
-                    }
-                }
+                Thread.onSpinWait();
             }
 
-            assert accepted == 2;
+            SocketChannel client2 = server.accept();
+            k3po.notifyBarrier("CONNECTION_ACCEPTED_2");
+            client2.read(buf);
+            client2.close();
 
-            selector.selectedKeys().clear();
+            while (utilization.getAsLong() != 100L)
+            {
+                Thread.onSpinWait();
+            }
+
+            SocketChannel client3 = server.accept();
+            client3.read(buf);
+            client3.close();
+
+            SocketChannel client4 = server.accept();
+            client4.read(buf);
+            client4.close();
+
             k3po.finish();
+
+            assert utilization.getAsLong() == 0L;
         }
     }
 
@@ -418,11 +407,5 @@ public class ClientIT
         String host) throws UnknownHostException
     {
         throw new UnknownHostException();
-    }
-
-    @FunctionalInterface
-    interface AcceptHandler
-    {
-        void handle(SocketChannel channel) throws IOException;
     }
 }
