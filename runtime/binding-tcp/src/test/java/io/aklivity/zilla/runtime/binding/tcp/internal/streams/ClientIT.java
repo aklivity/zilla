@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -348,12 +349,10 @@ public class ClientIT
     @Specification({
         "${app}/max.connections.reset/client"
     })
-    @Configure(
-        name = "zilla.engine.worker.capacity",
-        value = "2")
+    @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "2")
     public void shouldResetWhenConnectionsExceeded() throws Exception
     {
-        final LongSupplier utilization = engine.context().gauge(null, null, "engine.worker.utilization");
+        final LongSupplier utilization = engine.utilization();
 
         try (ServerSocketChannel server = ServerSocketChannel.open())
         {
@@ -398,8 +397,6 @@ public class ClientIT
             client4.close();
 
             k3po.finish();
-
-            assert utilization.getAsLong() == 0L;
         }
     }
 

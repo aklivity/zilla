@@ -126,6 +126,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkerUtilizationMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -231,6 +232,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
+    private final LongSupplier utilizationMetric;
 
     private long initialId;
     private long promiseId;
@@ -465,6 +467,7 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
+        this.utilizationMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkerUtilizationMetric.NAME));
     }
 
     public static int indexOfId(
@@ -777,7 +780,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId("engine.worker.utilization");
+        final int metricId = labels.supplyLabelId(EngineWorkerUtilizationMetric.NAME);
 
         return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
     }
@@ -922,6 +925,12 @@ public class EngineWorker implements EngineContext, Agent
             throw new IllegalStateException(
                     String.format("Some resources not released: %d buffers, %d creditors, %d debitors",
                                   acquiredBuffers, acquiredCreditors, acquiredDebitors));
+        }
+
+        long utilization = utilizationMetric.getAsLong();
+        if (utilization != 0L)
+        {
+            throw new IllegalStateException("Engine worker utilization is non-zero: %d".formatted(utilization));
         }
     }
 

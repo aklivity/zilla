@@ -21,8 +21,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
 public class EngineWorkerCountMetric implements Metric
 {
-    private static final String GROUP = EngineMetricGroup.NAME;
-    private static final String NAME = String.format("%s.%s", GROUP, "worker.count");
+    static final String NAME = String.format("%s.%s", EngineMetricGroup.NAME, "worker.count");
+
     private static final String DESCRIPTION = "Engine worker count";
 
     @Override

@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -28,6 +28,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.function.LongSupplier;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -41,6 +42,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ServerIT
 {
@@ -53,7 +55,6 @@ public class ServerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_WORKER_CAPACITY, 4)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/tcp/config")
         .external("app0")
@@ -380,71 +381,84 @@ public class ServerIT
     @Specification({
         "${app}/max.connections/server"
     })
+    @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "4")
     public void shouldUnbindRebind() throws Exception
     {
+        final LongSupplier utilization = engine.utilization();
+
         k3po.start();
 
-        SocketChannel channel1 = SocketChannel.open();
-        channel1.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client1 = SocketChannel.open();
+        client1.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel2 = SocketChannel.open();
-        channel2.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client2 = SocketChannel.open();
+        client2.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel3 = SocketChannel.open();
-        channel3.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client3 = SocketChannel.open();
+        client3.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel4 = SocketChannel.open();
-        channel4.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client4 = SocketChannel.open();
+        client4.connect(new InetSocketAddress("127.0.0.1", 12345));
 
         k3po.awaitBarrier("CONNECTION_ACCEPTED_1");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
 
-        SocketChannel channel5 = SocketChannel.open();
+        while (utilization.getAsLong() != 100L)
+        {
+            Thread.onSpinWait();
+        }
+
+        SocketChannel client5 = SocketChannel.open();
         try
         {
-            channel5.connect(new InetSocketAddress("127.0.0.1", 12345));
-            fail("4th connect shouldn't succeed as max.connections = 3");
+            client5.connect(new InetSocketAddress("127.0.0.1", 12345));
+            fail("Client should not be able to connect, engine is at capacity");
         }
         catch (IOException ioe)
         {
-            // expected
+            // expected, engine at capacity
         }
 
-        channel1.close();
-        channel2.close();
-        channel3.close();
-        channel4.close();
+        client1.close();
+        client2.close();
+        client3.close();
+        client4.close();
 
         k3po.awaitBarrier("CLOSED");
 
-        // sleep so that rebind happens
-        Thread.sleep(200);
+        while (utilization.getAsLong() != 0L)
+        {
+            Thread.onSpinWait();
+        }
 
-        SocketChannel channel6 = SocketChannel.open();
-        channel6.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client6 = SocketChannel.open();
+        client6.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel7 = SocketChannel.open();
-        channel7.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client7 = SocketChannel.open();
+        client7.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel8 = SocketChannel.open();
-        channel8.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client8 = SocketChannel.open();
+        client8.connect(new InetSocketAddress("127.0.0.1", 12345));
 
-        SocketChannel channel9 = SocketChannel.open();
-        channel9.connect(new InetSocketAddress("127.0.0.1", 12345));
+        SocketChannel client9 = SocketChannel.open();
+        client9.connect(new InetSocketAddress("127.0.0.1", 12345));
 
         k3po.awaitBarrier("CONNECTION_ACCEPTED_6");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_7");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_8");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_9");
 
-        channel6.close();
-        channel7.close();
-        channel8.close();
-        channel9.close();
+        while (utilization.getAsLong() != 100L)
+        {
+            Thread.onSpinWait();
+        }
 
-        Thread.sleep(500);
+        client6.close();
+        client7.close();
+        client8.close();
+        client9.close();
 
         k3po.finish();
     }
