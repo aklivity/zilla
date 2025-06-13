@@ -474,6 +474,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 {
                     networkKey.clear(OP_CONNECT);
                     closeNet(net);
+                    doAppAbort(traceId);
                 }
                 else
                 {
