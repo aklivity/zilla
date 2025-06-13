@@ -89,17 +89,17 @@ public final class TcpServerRouter
     {
         SocketChannel channel = null;
 
-        if (capacity.get() > 0)
+        if (capacity.available() > 0)
         {
             channel = server.accept();
 
             if (channel != null)
             {
-                capacity.decrementAndGet();
+                capacity.onConnected();
             }
         }
 
-        if (!unbound && capacity.get() <= 0)
+        if (!unbound && capacity.available() <= 0)
         {
             bindings.values().stream()
                 .filter(b -> b.kind == SERVER)
@@ -114,9 +114,9 @@ public final class TcpServerRouter
         SocketChannel channel)
     {
         CloseHelper.quietClose(channel);
+        capacity.onClosed();
 
-        int newCapacity = capacity.incrementAndGet();
-        if (unbound && newCapacity > 0)
+        if (unbound && capacity.available() > 0)
         {
             bindings.values().stream()
                 .filter(b -> b.kind == SERVER)

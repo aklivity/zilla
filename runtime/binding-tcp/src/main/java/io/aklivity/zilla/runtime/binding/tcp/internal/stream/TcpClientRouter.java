@@ -90,7 +90,7 @@ public final class TcpClientRouter
         resolve:
         try
         {
-            if (capacity.get() <= 0)
+            if (capacity.available() <= 0)
             {
                 break resolve;
             }
@@ -180,7 +180,7 @@ public final class TcpClientRouter
 
         if (resolved != null)
         {
-            capacity.decrementAndGet();
+            capacity.onConnected();
         }
 
         return resolved;
@@ -194,7 +194,7 @@ public final class TcpClientRouter
 
     public void close()
     {
-        capacity.incrementAndGet();
+        capacity.onClosed();
     }
 
     @Override

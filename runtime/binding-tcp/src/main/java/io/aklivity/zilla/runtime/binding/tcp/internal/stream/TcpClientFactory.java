@@ -309,7 +309,10 @@ public class TcpClientFactory implements TcpStreamFactory
                 networkKey.handler(OP_READ, this::onNetReadable);
                 networkKey.handler(OP_WRITE, this::onNetWritable);
 
-                doAppBegin(traceId);
+                final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
+                final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
+
+                doAppBegin(traceId, localAddress, remoteAddress);
                 doAppWindow(traceId);
             }
             catch (IOException ex)
@@ -708,11 +711,10 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private void doAppBegin(
-            long traceId) throws IOException
+            long traceId,
+            InetSocketAddress localAddress,
+            InetSocketAddress remoteAddress)
         {
-            final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
-            final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
-
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
             state = TcpState.openingReply(state);
         }
@@ -762,7 +764,13 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (TcpState.replyOpened(state) && !TcpState.replyClosed(state))
+            if (!TcpState.replyOpening(state) &&
+                !TcpState.replyClosed(state))
+            {
+                doAppBegin(traceId, null, null);
+            }
+
+            if (!TcpState.replyClosed(state))
             {
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
@@ -939,11 +947,12 @@ public class TcpClientFactory implements TcpStreamFactory
         InetSocketAddress localAddress,
         InetSocketAddress remoteAddress)
     {
-        return (buffer, offset, limit) ->
-            beginExRW.wrap(buffer, offset, limit)
-                     .typeId(proxyTypeId)
-                     .address(a -> proxyAddress(a, localAddress, remoteAddress))
-                     .build()
-                     .sizeof();
+        return (buffer, offset, limit) -> localAddress != null || remoteAddress != null
+                ? beginExRW.wrap(buffer, offset, limit)
+                         .typeId(proxyTypeId)
+                         .address(a -> proxyAddress(a, localAddress, remoteAddress))
+                         .build()
+                         .sizeof()
+                : 0;
     }
 }

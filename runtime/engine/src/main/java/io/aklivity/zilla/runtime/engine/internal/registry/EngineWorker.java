@@ -123,6 +123,8 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
@@ -273,14 +275,14 @@ public class EngineWorker implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        this.countersLayout = new ScalarsLayout.Builder()
+        this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("counters")
                 .build();
 
-        this.gaugesLayout = new ScalarsLayout.Builder()
+        this.gaugesLayout = new GaugesLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)

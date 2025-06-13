@@ -24,6 +24,7 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
@@ -31,25 +32,21 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class ScalarsLayout extends MetricsLayout
+public abstract class ScalarsLayout extends MetricsLayout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int RECORD_SIZE = 3 * FIELD_SIZE;
 
-    private ScalarsLayout(
+    protected ScalarsLayout(
         AtomicBuffer buffer)
     {
         super(buffer);
     }
 
     @Override
-    public LongConsumer supplyWriter(
+    public abstract LongConsumer supplyWriter(
         long bindingId,
-        long metricId)
-    {
-        int index = findOrSetPosition(bindingId, metricId);
-        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
-    }
+        long metricId);
 
     @Override
     public LongSupplier supplyReader(
@@ -94,7 +91,7 @@ public final class ScalarsLayout extends MetricsLayout
         return RECORD_SIZE;
     }
 
-    public static final class Builder
+    public abstract static class Builder
     {
         private long capacity;
         private Path path;
@@ -129,7 +126,8 @@ public final class ScalarsLayout extends MetricsLayout
             return this;
         }
 
-        public ScalarsLayout build()
+        protected final <T extends ScalarsLayout> T build(
+            Function<AtomicBuffer, T> constructor)
         {
             final File layoutFile = path.toFile();
             if (!readonly)
@@ -139,7 +137,7 @@ public final class ScalarsLayout extends MetricsLayout
             FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
             MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, this.label);
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            return new ScalarsLayout(atomicBuffer);
+            return constructor.apply(atomicBuffer);
         }
     }
 }
