@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.146...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.147...HEAD)
+
+**Merged pull requests:**
+
+- Cancel pending TLS handshake task when streams closed in both directions [\#1497](https://github.com/aklivity/zilla/pull/1497) ([jfallows](https://github.com/jfallows))
+
+## [0.9.147](https://github.com/aklivity/zilla/tree/0.9.147) (2025-06-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.146...0.9.147)
 
 **Merged pull requests:**
 
