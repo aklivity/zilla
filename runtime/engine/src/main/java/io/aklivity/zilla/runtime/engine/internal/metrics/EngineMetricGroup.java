@@ -30,6 +30,7 @@ public class EngineMetricGroup implements MetricGroup
 
     private final Map<String, Supplier<Metric>> engineMetrics = Map.of(
         EngineWorkerUtilizationMetric.NAME, EngineWorkerUtilizationMetric::new,
+        EngineWorkerCapacityMetric.NAME, EngineWorkerCapacityMetric::new,
         EngineWorkerCountMetric.NAME, EngineWorkerCountMetric::new
     );
 

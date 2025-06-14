@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
@@ -126,6 +127,8 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkerCapacityMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkerCountMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkerUtilizationMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -233,6 +236,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
     private final LongSupplier utilizationMetric;
+    private final boolean readonly;
 
     private long initialId;
     private long promiseId;
@@ -243,6 +247,7 @@ public class EngineWorker implements EngineContext, Agent
     private long lastReadStreamId;
 
     private volatile Thread thread;
+
 
     public EngineWorker(
         EngineConfiguration config,
@@ -269,6 +274,7 @@ public class EngineWorker implements EngineContext, Agent
         this.configPath = Path.of(config.configURI());
         this.labels = labels;
         this.affinityMask = affinityMask;
+        this.readonly = readonly;
 
         this.supplyIdleStrategy = () -> new BackoffIdleStrategy(
                 config.maxSpins(),
@@ -300,12 +306,6 @@ public class EngineWorker implements EngineContext, Agent
         metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
         metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
         metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
-
-        if (!readonly)
-        {
-            final int metricId = labels.supplyLabelId("engine.worker.count");
-            supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId).accept(1);
-        }
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -881,6 +881,26 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public void onStart()
+    {
+        if (!readonly)
+        {
+            int countMetricId = labels.supplyLabelId(EngineWorkerCountMetric.NAME);
+            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, countMetricId);
+
+            int capacityMetricId = labels.supplyLabelId(EngineWorkerCapacityMetric.NAME);
+            LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
+
+            int utilizationMetricId = labels.supplyLabelId(EngineWorkerUtilizationMetric.NAME);
+            LongConsumer recordUtilization = supplyGaugeWriter(utilizationMetricId);
+
+            recordCount.accept(1);
+            recordCapacity.accept(ENGINE_WORKER_CAPACITY.getAsInt(config));
+            recordUtilization.accept(0);
+        }
+    }
+
+    @Override
     public void onClose()
     {
         registry.detachAll();
@@ -1029,6 +1049,12 @@ public class EngineWorker implements EngineContext, Agent
     {
         String metricGroupName = metricName.split("\\.")[0];
         return metricGroupsByName.get(metricGroupName).supply(metricName);
+    }
+
+    public LongConsumer supplyGaugeWriter(
+        long metricId)
+    {
+        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId);
     }
 
     // required for testing
