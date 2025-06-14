@@ -15,7 +15,7 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-    command: start -v -e
+    command: start -v -e -w 1 -Pzilla.engine.worker.capacity=32
 
 networks:
   default:
