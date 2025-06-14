@@ -166,6 +166,8 @@ public class TcpClientFactory implements TcpStreamFactory
             final long initialId = begin.streamId();
             final SocketChannel channel = newSocketChannel();
 
+            router.opened(channel);
+
             final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
             client.doNetConnect(route, binding.options);
             newStream = client::onAppMessage;
@@ -211,7 +213,6 @@ public class TcpClientFactory implements TcpStreamFactory
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
-        router.close();
     }
 
     private final class TcpClient
@@ -668,8 +669,11 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert replyAck <= replySeq;
 
+            assert !TcpState.replyClosed(state);
+
             state = TcpState.closeReply(state);
             CloseHelper.quietClose(net::shutdownInput);
+            router.closed(net);
 
             cleanup(traceId);
         }
@@ -742,8 +746,13 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-            state = TcpState.closeReply(state);
+            if (!TcpState.replyClosed(state))
+            {
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                state = TcpState.closeReply(state);
+
+                router.closed(net);
+            }
         }
 
         private void doAppWindow(
@@ -755,7 +764,8 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppReset(
             long traceId)
         {
-            if (TcpState.initialOpening(state) && !TcpState.initialClosing(state))
+            if (TcpState.initialOpening(state) &&
+                !TcpState.initialClosing(state))
             {
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
                 state = TcpState.closeInitial(state);
@@ -775,6 +785,8 @@ public class TcpClientFactory implements TcpStreamFactory
             {
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
+
+                router.closed(net);
             }
         }
 
