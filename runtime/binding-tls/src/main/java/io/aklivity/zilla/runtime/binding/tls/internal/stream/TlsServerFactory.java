@@ -1233,6 +1233,8 @@ public final class TlsServerFactory implements TlsStreamFactory
                 {
                     doEncodeCloseOutbound(traceId, budgetId);
                     doNetEnd(traceId);
+
+                    cancelHandshakeTask();
                 }
 
                 decoder = decodeIgnoreAll;
@@ -1268,6 +1270,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             stream.ifPresent(s -> s.doAppReset(traceId));
 
             doNetAbort(traceId);
+
+            cancelHandshakeTask();
         }
 
         private void onNetReset(
@@ -1292,6 +1296,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             stream.ifPresent(s -> s.doAppAbort(traceId));
 
             doNetReset(traceId);
+
+            cancelHandshakeTask();
         }
 
         private void onNetWindow(
@@ -1838,6 +1844,17 @@ public final class TlsServerFactory implements TlsStreamFactory
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cancelHandshakeTask()
+        {
+            assert TlsState.closed(state);
+
+            if (handshakeTaskFutureId != NO_CANCEL_ID)
+            {
+                signaler.cancel(handshakeTaskFutureId);
+                handshakeTaskFutureId = NO_CANCEL_ID;
             }
         }
 
