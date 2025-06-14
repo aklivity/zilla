@@ -106,7 +106,15 @@ public final class Target implements AutoCloseable
         for (int remoteIndex = 0; remoteIndex < throttles.length; remoteIndex++)
         {
             final int remoteIndex0 = remoteIndex;
-            throttles[remoteIndex].forEach((id, handler) -> doSyntheticReset(throttleId(localIndex, remoteIndex0, id), handler));
+            throttles[remoteIndex].forEach((id, handler) ->
+            {
+                final long throttleId = throttleId(localIndex, remoteIndex0, id);
+
+                System.out.println("localIndex = %d, remoteIndex = %d, id = %d, throttleId = %d"
+                        .formatted(localIndex, remoteIndex0, id, throttleId));
+
+                doSyntheticReset(throttleId, handler);
+            });
         }
 
         streamsLayout.close();
