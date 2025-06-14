@@ -110,7 +110,7 @@ public class EngineConfiguration extends Configuration
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
         ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.25);
         ENGINE_DISK_PERCENTAGE = config.property("disk.percentage", 0.75);
-        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkersCapacity);
+        ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkerCapacity);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 32 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
@@ -376,7 +376,7 @@ public class EngineConfiguration extends Configuration
         return BudgetsLayout.SIZEOF_BUDGET_ENTRY * ENGINE_WORKER_CAPACITY.getAsInt(config);
     }
 
-    private static int defaultWorkersCapacity(
+    private static int defaultWorkerCapacity(
         Configuration config)
     {
         OperatingSystemMXBean osBean = (OperatingSystemMXBean) getOperatingSystemMXBean();
