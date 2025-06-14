@@ -19,10 +19,10 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
-public class EngineWorkerUtilizationMetric implements Metric
+public final class EngineWorkerUtilizationMetric implements Metric
 {
-    private static final String GROUP = EngineMetricGroup.NAME;
-    private static final String NAME = String.format("%s.%s", GROUP, "worker.utilization");
+    public static final String NAME = String.format("%s.%s", EngineMetricGroup.NAME, "worker.utilization");
+
     private static final String DESCRIPTION = "Engine worker utilization";
 
     @Override

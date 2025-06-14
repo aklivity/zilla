@@ -164,10 +164,10 @@ public class TcpClientFactory implements TcpStreamFactory
         if (route != null)
         {
             final long initialId = begin.streamId();
-            final SocketChannel channel = newSocketChannel();
 
-            final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
-            client.doNetConnect(route, binding.options);
+            final SocketChannel channel = newSocketChannel(binding.options);
+
+            final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel, route);
             newStream = client::onAppMessage;
         }
 
@@ -189,13 +189,15 @@ public class TcpClientFactory implements TcpStreamFactory
         router.detach(bindingId);
     }
 
-    private SocketChannel newSocketChannel()
+    private SocketChannel newSocketChannel(
+        TcpOptionsConfig options)
     {
         try
         {
             final SocketChannel channel = SocketChannel.open();
             channel.configureBlocking(false);
             channel.setOption(TCP_NODELAY, true);
+            channel.setOption(SO_KEEPALIVE, options != null && options.keepalive);
             return channel;
         }
         catch (IOException ex)
@@ -211,7 +213,6 @@ public class TcpClientFactory implements TcpStreamFactory
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
-        router.close();
     }
 
     private final class TcpClient
@@ -222,6 +223,7 @@ public class TcpClientFactory implements TcpStreamFactory
         private final long initialId;
         private final long replyId;
         private final SocketChannel net;
+        private final InetSocketAddress remoteAddress;
 
         private PollerKey networkKey;
 
@@ -244,7 +246,8 @@ public class TcpClientFactory implements TcpStreamFactory
             long originId,
             long routedId,
             long initialId,
-            SocketChannel net)
+            SocketChannel net,
+            InetSocketAddress remoteAddress)
         {
             this.app = app;
             this.originId = originId;
@@ -252,17 +255,13 @@ public class TcpClientFactory implements TcpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.net = net;
+            this.remoteAddress = remoteAddress;
         }
 
-        private void doNetConnect(
-            InetSocketAddress remoteAddress,
-            TcpOptionsConfig options)
+        private void doNetConnect()
         {
             try
             {
-                state = TcpState.openingInitial(state);
-                net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
-
                 networkKey = supplyPollerKey.apply(net);
 
                 if (net.connect(remoteAddress))
@@ -309,7 +308,10 @@ public class TcpClientFactory implements TcpStreamFactory
                 networkKey.handler(OP_READ, this::onNetReadable);
                 networkKey.handler(OP_WRITE, this::onNetWritable);
 
-                doAppBegin(traceId);
+                final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
+                final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
+
+                doAppBegin(traceId, localAddress, remoteAddress);
                 doAppWindow(traceId);
             }
             catch (IOException ex)
@@ -471,6 +473,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 {
                     networkKey.clear(OP_CONNECT);
                     closeNet(net);
+                    doAppAbort(traceId);
                 }
                 else
                 {
@@ -549,7 +552,11 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            assert TcpState.initialOpening(state);
+            state = TcpState.openingInitial(state);
+
+            router.opened(net);
+
+            doNetConnect();
         }
 
         private void onAppData(
@@ -664,8 +671,17 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert replyAck <= replySeq;
 
+            // TODO: assert !TcpState.replyClosed(state);
+
+            // Note: asyncapi triggers duplicate synthetic reset on engine close during ITs
+            if (TcpState.replyClosed(state))
+            {
+                return;
+            }
+
             state = TcpState.closeReply(state);
             CloseHelper.quietClose(net::shutdownInput);
+            router.closed(net);
 
             cleanup(traceId);
         }
@@ -708,11 +724,10 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private void doAppBegin(
-            long traceId) throws IOException
+            long traceId,
+            InetSocketAddress localAddress,
+            InetSocketAddress remoteAddress)
         {
-            final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
-            final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
-
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
             state = TcpState.openingReply(state);
         }
@@ -739,8 +754,13 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-            state = TcpState.closeReply(state);
+            if (!TcpState.replyClosed(state))
+            {
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                state = TcpState.closeReply(state);
+
+                router.closed(net);
+            }
         }
 
         private void doAppWindow(
@@ -752,7 +772,8 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppReset(
             long traceId)
         {
-            if (TcpState.initialOpening(state) && !TcpState.initialClosing(state))
+            if (TcpState.initialOpening(state) &&
+                !TcpState.initialClosing(state))
             {
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
                 state = TcpState.closeInitial(state);
@@ -762,10 +783,18 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (TcpState.replyOpened(state) && !TcpState.replyClosed(state))
+            if (!TcpState.replyOpening(state) &&
+                !TcpState.replyClosed(state))
+            {
+                doAppBegin(traceId, null, null);
+            }
+
+            if (!TcpState.replyClosed(state))
             {
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
+
+                router.closed(net);
             }
         }
 
@@ -939,11 +968,12 @@ public class TcpClientFactory implements TcpStreamFactory
         InetSocketAddress localAddress,
         InetSocketAddress remoteAddress)
     {
-        return (buffer, offset, limit) ->
-            beginExRW.wrap(buffer, offset, limit)
-                     .typeId(proxyTypeId)
-                     .address(a -> proxyAddress(a, localAddress, remoteAddress))
-                     .build()
-                     .sizeof();
+        return (buffer, offset, limit) -> localAddress != null || remoteAddress != null
+                ? beginExRW.wrap(buffer, offset, limit)
+                         .typeId(proxyTypeId)
+                         .address(a -> proxyAddress(a, localAddress, remoteAddress))
+                         .build()
+                         .sizeof()
+                : 0;
     }
 }

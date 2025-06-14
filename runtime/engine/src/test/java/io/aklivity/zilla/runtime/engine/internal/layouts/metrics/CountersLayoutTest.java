@@ -28,27 +28,27 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-public class ScalarsLayoutTest
+public class CountersLayoutTest
 {
     @Test
     public void shouldWorkInGenericCase() throws Exception
     {
         String fileName = "target/zilla-itests/counters0";
         Path path = Paths.get(fileName);
-        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
+        CountersLayout layout = new CountersLayout.Builder()
                 .path(path)
                 .capacity(8192)
                 .readonly(false)
                 .label("counters")
                 .build();
 
-        LongConsumer writer1 = scalarsLayout.supplyWriter(11L, 42L);
-        LongConsumer writer2 = scalarsLayout.supplyWriter(22L, 77L);
-        LongConsumer writer3 = scalarsLayout.supplyWriter(33L, 88L);
+        LongConsumer writer1 = layout.supplyWriter(11L, 42L);
+        LongConsumer writer2 = layout.supplyWriter(22L, 77L);
+        LongConsumer writer3 = layout.supplyWriter(33L, 88L);
 
-        LongSupplier reader1 = scalarsLayout.supplyReader(11L, 42L);
-        LongSupplier reader2 = scalarsLayout.supplyReader(22L, 77L);
-        LongSupplier reader3 = scalarsLayout.supplyReader(33L, 88L);
+        LongSupplier reader1 = layout.supplyReader(11L, 42L);
+        LongSupplier reader2 = layout.supplyReader(22L, 77L);
+        LongSupplier reader3 = layout.supplyReader(33L, 88L);
 
         assertThat(reader1.getAsLong(), equalTo(0L)); // should be 0L initially
         writer1.accept(1L);
@@ -67,7 +67,7 @@ public class ScalarsLayoutTest
         assertThat(reader2.getAsLong(), equalTo(130L)); // 100 + 10 + 20
         assertThat(reader3.getAsLong(), equalTo(80L)); // 77 + 1 + 1 + 1
 
-        scalarsLayout.close();
+        layout.close();
         assertTrue(Files.exists(path));
         Files.delete(path);
     }
@@ -77,21 +77,21 @@ public class ScalarsLayoutTest
     {
         String fileName = "target/zilla-itests/counters1";
         Path path = Paths.get(fileName);
-        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
+        CountersLayout layout = new CountersLayout.Builder()
                 .path(path)
                 .capacity(71) // we'd need 72 bytes here for the 3 records
                 .readonly(false)
                 .label("counters")
                 .build();
 
-        scalarsLayout.supplyWriter(11L, 42L);
-        scalarsLayout.supplyWriter(22L, 77L);
+        layout.supplyWriter(11L, 42L);
+        layout.supplyWriter(22L, 77L);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            scalarsLayout.supplyWriter(33L, 88L);
+            layout.supplyWriter(33L, 88L);
         });
 
-        scalarsLayout.close();
+        layout.close();
         assertTrue(Files.exists(path));
         Files.delete(path);
     }
@@ -101,18 +101,18 @@ public class ScalarsLayoutTest
     {
         String fileName = "target/zilla-itests/counters2";
         Path path = Paths.get(fileName);
-        ScalarsLayout scalarsLayout = new ScalarsLayout.Builder()
+        CountersLayout layout = new CountersLayout.Builder()
                 .path(path)
                 .capacity(8192)
                 .readonly(false)
                 .label("counters")
                 .build();
 
-        scalarsLayout.supplyWriter(11L, 42L);
-        scalarsLayout.supplyWriter(22L, 77L);
-        scalarsLayout.supplyWriter(33L, 88L);
+        layout.supplyWriter(11L, 42L);
+        layout.supplyWriter(22L, 77L);
+        layout.supplyWriter(33L, 88L);
         long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
 
-        assertThat(scalarsLayout.getIds(), equalTo(expectedIds));
+        assertThat(layout.getIds(), equalTo(expectedIds));
     }
 }

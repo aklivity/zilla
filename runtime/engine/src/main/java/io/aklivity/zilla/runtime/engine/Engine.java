@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_LOCAL_ID;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACE_ID;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -568,12 +570,24 @@ public final class Engine implements Collector, AutoCloseable
             String binding,
             String metric)
         {
-            int namespaceId = supplyLabelId.applyAsInt(namespace);
-            int bindingId = supplyLabelId.applyAsInt(binding);
+            int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
+            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
             int metricId = supplyLabelId.applyAsInt(metric);
-            long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
-            long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
-            return Engine.this.counter(namespacedBindingId, namespacedMetricId);
+            long namespacedId = NamespacedId.id(namespaceId, bindingId);
+            return Engine.this.counter(namespacedId, metricId);
+        }
+
+        @Override
+        public LongSupplier gauge(
+            String namespace,
+            String binding,
+            String metric)
+        {
+            int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
+            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
+            int metricId = supplyLabelId.applyAsInt(metric);
+            long namespacedId = NamespacedId.id(namespaceId, bindingId);
+            return Engine.this.gauge(namespacedId, metricId);
         }
 
         // required for testing
@@ -583,12 +597,11 @@ public final class Engine implements Collector, AutoCloseable
             String metric,
             int core)
         {
-            int namespaceId = supplyLabelId.applyAsInt(namespace);
-            int bindingId = supplyLabelId.applyAsInt(binding);
+            int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
+            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
             int metricId = supplyLabelId.applyAsInt(metric);
-            long namespacedBindingId = NamespacedId.id(namespaceId, bindingId);
-            long namespacedMetricId = NamespacedId.id(namespaceId, metricId);
-            return Engine.this.counterWriter(namespacedBindingId, namespacedMetricId, core);
+            long namespacedId = NamespacedId.id(namespaceId, bindingId);
+            return Engine.this.counterWriter(namespacedId, metricId, core);
         }
     }
 }
