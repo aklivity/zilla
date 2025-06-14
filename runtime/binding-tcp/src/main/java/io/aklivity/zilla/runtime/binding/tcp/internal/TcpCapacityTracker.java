@@ -43,6 +43,8 @@ public final class TcpCapacityTracker
 
     public void claim()
     {
+        System.out.println("Claiming " + usage);
+        Thread.dumpStack();
         int newUsage = ++usage;
         assert newUsage <= capacity : "newUsage = %d, capacity = %d".formatted(newUsage, capacity);
 
@@ -51,6 +53,8 @@ public final class TcpCapacityTracker
 
     public void released()
     {
+        System.out.println("Releasing " + usage);
+        Thread.dumpStack();
         int newUsage = --usage;
         assert newUsage >= 0 : "newUsage = %d".formatted(newUsage);
 
