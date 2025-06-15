@@ -60,6 +60,8 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
     public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
+    public static final IntPropertyDef ENGINE_WORKER_CAPACITY_LIMIT;
+    public static final BooleanPropertyDef ENGINE_WORKER_CAPACITY_UNBOUNDED;
     public static final DoublePropertyDef ENGINE_MEMORY_PERCENTAGE;
     public static final DoublePropertyDef ENGINE_DISK_PERCENTAGE;
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
@@ -111,6 +113,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_MEMORY_PERCENTAGE = config.property("memory.percentage", 0.25);
         ENGINE_DISK_PERCENTAGE = config.property("disk.percentage", 0.75);
         ENGINE_WORKER_CAPACITY = config.property("worker.capacity", EngineConfiguration::defaultWorkerCapacity);
+        ENGINE_WORKER_CAPACITY_UNBOUNDED = config.property("worker.capacity.unbounded", false);
+        ENGINE_WORKER_CAPACITY_LIMIT = config.property("worker.capacity.limit", EngineConfiguration::defaultWorkerCapacityLimit);
         ENGINE_BUFFER_POOL_CAPACITY = config.property("buffer.pool.capacity", EngineConfiguration::defaultBufferPoolCapacity);
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 32 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
@@ -424,6 +428,14 @@ public class EngineConfiguration extends Configuration
         int newWorkersCapacity = Integer.highestOneBit(min(min(bufferPoolMaxCapacity, budgetsMaxCapacity), streamsMaxCapacity));
 
         return newWorkersCapacity;
+    }
+
+    private static int defaultWorkerCapacityLimit(
+        Configuration config)
+    {
+        return ENGINE_WORKER_CAPACITY_UNBOUNDED.get(config)
+            ? Integer.MAX_VALUE
+            : ENGINE_WORKER_CAPACITY.get(config);
     }
 
     private static URL configURL(

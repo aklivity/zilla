@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
@@ -895,7 +895,7 @@ public class EngineWorker implements EngineContext, Agent
             LongConsumer recordUtilization = supplyGaugeWriter(utilizationMetricId);
 
             recordCount.accept(1);
-            recordCapacity.accept(ENGINE_WORKER_CAPACITY.getAsInt(config));
+            recordCapacity.accept(ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config));
             recordUtilization.accept(0);
         }
     }
