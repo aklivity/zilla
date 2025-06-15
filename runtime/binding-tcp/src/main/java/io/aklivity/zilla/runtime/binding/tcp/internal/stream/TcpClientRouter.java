@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.tcp.internal.types.ProxyInfoType
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -90,7 +91,7 @@ public final class TcpClientRouter
         resolve:
         try
         {
-            if (capacity.get() <= 0)
+            if (capacity.available() <= 0)
             {
                 break resolve;
             }
@@ -178,11 +179,6 @@ public final class TcpClientRouter
             event.dnsFailed(traceId, binding.id, ex.hostname);
         }
 
-        if (resolved != null)
-        {
-            capacity.decrementAndGet();
-        }
-
         return resolved;
     }
 
@@ -192,9 +188,16 @@ public final class TcpClientRouter
         bindings.remove(bindingId);
     }
 
-    public void close()
+    public void opened(
+        SocketChannel network)
     {
-        capacity.incrementAndGet();
+        capacity.claim();
+    }
+
+    public void closed(
+        SocketChannel network)
+    {
+        capacity.released();
     }
 
     @Override

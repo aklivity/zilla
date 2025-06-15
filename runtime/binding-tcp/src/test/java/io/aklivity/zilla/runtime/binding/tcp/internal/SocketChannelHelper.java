@@ -83,6 +83,31 @@ public final class SocketChannelHelper
         }
     }
 
+    public static class DoConnectHelper extends Helper
+    {
+        private static boolean forcePending;
+
+        protected DoConnectHelper(org.jboss.byteman.rule.Rule rule)
+        {
+            super(rule);
+        }
+
+        public static void forcePending()
+        {
+            forcePending = true;
+        }
+
+        public boolean isConnectionPending(SocketChannel channel) throws IOException
+        {
+            return forcePending ? true : channel.isConnectionPending();
+        }
+
+        private static void reset()
+        {
+            forcePending = false;
+        }
+    }
+
     public static class CountDownHelper extends Helper
     {
         private static CountDownLatch latch;
@@ -130,6 +155,7 @@ public final class SocketChannelHelper
     {
         OnDataHelper.reset();
         HandleWriteHelper.reset();
+        DoConnectHelper.reset();
     }
 
     private static int write(

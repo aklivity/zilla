@@ -46,6 +46,7 @@ import org.junit.runner.RunWith;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper;
+import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.DoConnectHelper;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.HandleWriteHelper;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.OnDataHelper;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -57,8 +58,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class ClientPartialWriteIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("server", "io/aklivity/zilla/specs/binding/tcp/streams/network/rfc793")
-        .addScriptRoot("client", "io/aklivity/zilla/specs/binding/tcp/streams/application/rfc793");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/tcp/streams/network/rfc793")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/tcp/streams/application/rfc793");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
 
@@ -75,8 +76,8 @@ public class ClientPartialWriteIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
-        "${client}/client.sent.data/client",
-        "${server}/client.sent.data/server"
+        "${app}/client.sent.data/client",
+        "${net}/client.sent.data/server"
     })
     public void shouldSpinWrite() throws Exception
     {
@@ -88,8 +89,8 @@ public class ClientPartialWriteIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
-        "${client}/client.sent.data/client",
-        "${server}/client.sent.data/server"
+        "${app}/client.sent.data/client",
+        "${net}/client.sent.data/server"
     })
     public void shouldFinishWriteWhenSocketIsWritableAgain() throws Exception
     {
@@ -100,8 +101,8 @@ public class ClientPartialWriteIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
-        "${client}/client.sent.data/client",
-        "${server}/client.sent.data/server"
+        "${app}/client.sent.data/client",
+        "${net}/client.sent.data/server"
     })
     public void shouldHandleMultiplePartialWrites() throws Exception
     {
@@ -113,8 +114,8 @@ public class ClientPartialWriteIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
-        "${client}/client.sent.data.multiple.frames/client",
-        "${server}/client.sent.data.multiple.frames/server"
+        "${app}/client.sent.data.multiple.frames/client",
+        "${net}/client.sent.data.multiple.frames/server"
     })
     public void shouldWriteWhenMoreDataArrivesWhileAwaitingSocketWritable() throws Exception
     {
@@ -131,7 +132,7 @@ public class ClientPartialWriteIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
-        "${client}/client.sent.data.then.end/client"
+        "${app}/client.sent.data.then.end/client"
     })
     public void shouldHandleEndOfStreamWithPendingWrite() throws Exception
     {
@@ -179,4 +180,28 @@ public class ClientPartialWriteIT
         }
     }
 
+    @Test
+    @Configuration("client.host.yaml")
+    @Specification({
+        "${app}/client.close.immediately/client"
+    })
+    public void shouldAbortWhenCloseWhileConnectPending() throws Exception
+    {
+        DoConnectHelper.forcePending();
+
+        try (ServerSocketChannel server = ServerSocketChannel.open())
+        {
+            server.setOption(SO_REUSEADDR, true);
+            server.bind(new InetSocketAddress("127.0.0.1", 12345));
+
+            k3po.start();
+
+            SocketChannel client = server.accept();
+
+            k3po.finish();
+
+            client.close();
+        }
+
+    }
 }

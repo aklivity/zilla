@@ -29,3 +29,11 @@ HELPER io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$Handle
 IF callerEquals("TcpServerFactory$TcpServer.onNetWritable", true, 2)
 DO return doWrite($0, $1);
 ENDRULE
+
+RULE doConnect
+CLASS ^java.nio.channels.SocketChannel
+METHOD isConnectionPending()
+HELPER io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$DoConnectHelper
+IF callerEquals("TcpClientFactory$TcpClient.doNetShutdownOutput", true, 2)
+DO return isConnectionPending($0);
+ENDRULE

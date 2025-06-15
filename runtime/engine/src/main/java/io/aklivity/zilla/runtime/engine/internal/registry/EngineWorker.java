@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
@@ -123,8 +124,12 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUtilizationMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -223,13 +228,15 @@ public class EngineWorker implements EngineContext, Agent
     private final Supplier<IdleStrategy> supplyIdleStrategy;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
-    private final ScalarsLayout countersLayout;
-    private final ScalarsLayout gaugesLayout;
+    private final CountersLayout countersLayout;
+    private final GaugesLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
+    private final LongSupplier utilizationMetric;
+    private final boolean readonly;
 
     private long initialId;
     private long promiseId;
@@ -240,6 +247,7 @@ public class EngineWorker implements EngineContext, Agent
     private long lastReadStreamId;
 
     private volatile Thread thread;
+
 
     public EngineWorker(
         EngineConfiguration config,
@@ -266,6 +274,7 @@ public class EngineWorker implements EngineContext, Agent
         this.configPath = Path.of(config.configURI());
         this.labels = labels;
         this.affinityMask = affinityMask;
+        this.readonly = readonly;
 
         this.supplyIdleStrategy = () -> new BackoffIdleStrategy(
                 config.maxSpins(),
@@ -273,14 +282,14 @@ public class EngineWorker implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        this.countersLayout = new ScalarsLayout.Builder()
+        this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("counters")
                 .build();
 
-        this.gaugesLayout = new ScalarsLayout.Builder()
+        this.gaugesLayout = new GaugesLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
@@ -297,12 +306,6 @@ public class EngineWorker implements EngineContext, Agent
         metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
         metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
         metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
-
-        if (!readonly)
-        {
-            final int metricId = labels.supplyLabelId("engine.worker.count");
-            supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId).accept(1);
-        }
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -464,6 +467,7 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
+        this.utilizationMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME));
     }
 
     public static int indexOfId(
@@ -776,7 +780,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId("engine.worker.utilization");
+        final int metricId = labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME);
 
         return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
     }
@@ -877,6 +881,26 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public void onStart()
+    {
+        if (!readonly)
+        {
+            int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
+            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId);
+
+            int capacityMetricId = labels.supplyLabelId(EngineWorkersCapacityMetric.NAME);
+            LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
+
+            int utilizationMetricId = labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME);
+            LongConsumer recordUtilization = supplyGaugeWriter(utilizationMetricId);
+
+            recordCount.accept(1);
+            recordCapacity.accept(ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config));
+            recordUtilization.accept(0);
+        }
+    }
+
+    @Override
     public void onClose()
     {
         registry.detachAll();
@@ -921,6 +945,15 @@ public class EngineWorker implements EngineContext, Agent
             throw new IllegalStateException(
                     String.format("Some resources not released: %d buffers, %d creditors, %d debitors",
                                   acquiredBuffers, acquiredCreditors, acquiredDebitors));
+        }
+
+        if (!readonly)
+        {
+            long utilization = utilizationMetric.getAsLong();
+            if (utilization != 0L)
+            {
+                throw new IllegalStateException("Engine worker utilization is non-zero: %d".formatted(utilization));
+            }
         }
     }
 
@@ -1019,6 +1052,12 @@ public class EngineWorker implements EngineContext, Agent
     {
         String metricGroupName = metricName.split("\\.")[0];
         return metricGroupsByName.get(metricGroupName).supply(metricName);
+    }
+
+    public LongConsumer supplyGaugeWriter(
+        long metricId)
+    {
+        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId);
     }
 
     // required for testing
