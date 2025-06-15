@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 
 import java.io.IOException;
@@ -42,7 +41,6 @@ public final class TcpServerRouter
     private final Long2ObjectHashMap<TcpServerBindingConfig> serversById;
     private final TcpCapacityTracker capacity;
 
-    private boolean unbound;
 
     public TcpServerRouter(
         EngineContext context,
@@ -87,24 +85,19 @@ public final class TcpServerRouter
     public SocketChannel accept(
         ServerSocketChannel server) throws IOException
     {
-        SocketChannel channel = null;
+        SocketChannel channel = server.accept();
 
-        if (capacity.available() > 0)
+        if (channel != null)
         {
-            channel = server.accept();
-
-            if (channel != null)
+            if (capacity.available() > 0)
             {
                 capacity.claim();
             }
-        }
-
-        if (!unbound && capacity.available() <= 0)
-        {
-            bindings.values().stream()
-                .filter(b -> b.kind == SERVER)
-                .forEach(this::unregister);
-            unbound = true;
+            else
+            {
+                CloseHelper.quietClose(channel);
+                channel = null;
+            }
         }
 
         return channel;
@@ -115,14 +108,6 @@ public final class TcpServerRouter
     {
         CloseHelper.quietClose(channel);
         capacity.released();
-
-        if (unbound && capacity.available() > 0)
-        {
-            bindings.values().stream()
-                .filter(b -> b.kind == SERVER)
-                .forEach(this::register);
-            unbound = false;
-        }
     }
 
     private void register(

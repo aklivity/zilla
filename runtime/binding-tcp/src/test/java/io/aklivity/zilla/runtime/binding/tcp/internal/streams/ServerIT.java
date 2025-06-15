@@ -418,6 +418,7 @@ public class ServerIT
         }
         catch (IOException ioe)
         {
+            ioe.printStackTrace();
             // expected, engine at capacity
         }
 
