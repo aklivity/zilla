@@ -43,7 +43,7 @@ public class EventIT
     private final EngineRule engine = new EngineRule()
         .directory(ENGINE_DIRECTORY)
         .configure(ENGINE_WORKERS, 1)
-        .configurationRoot("io/aklivity/zilla/runtime/exporter/otlp/internal/config")
+        .configurationRoot("io/aklivity/zilla/specs/exporter/otlp/config")
         .external("app0")
         .clean();
 
