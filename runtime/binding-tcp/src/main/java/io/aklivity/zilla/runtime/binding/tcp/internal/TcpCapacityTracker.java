@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 
 import java.util.function.LongConsumer;
 
@@ -32,7 +32,7 @@ public final class TcpCapacityTracker
         TcpConfiguration config,
         EngineContext context)
     {
-        this.capacity = ENGINE_WORKER_CAPACITY.getAsInt(config);
+        this.capacity = ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config);
         this.recordUsage = context.supplyUtilizationMetric();
     }
 
