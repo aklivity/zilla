@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 import org.agrona.ErrorHandler;
 
@@ -147,10 +148,8 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        final ErrorHandler onError = ex ->
-        {
-            stop.countDown();
-        };
+        final ErrorHandler onError = ex -> stop.countDown();
+        final Consumer<Throwable> errorReporter = config.errorReporter();
 
         try (Engine engine = Engine.builder()
             .config(config)
@@ -171,8 +170,7 @@ public final class ZillaStartCommand extends ZillaCommand
         }
         catch (Throwable ex)
         {
-            System.out.println("error");
-            onError.onError(ex);
+            errorReporter.accept(ex);
             rethrowUnchecked(ex);
         }
     }
