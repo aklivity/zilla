@@ -70,7 +70,6 @@ public final class ZillaMain
             }
             catch (Throwable ex)
             {
-                // TODO: debug output
                 status = 1;
             }
 
