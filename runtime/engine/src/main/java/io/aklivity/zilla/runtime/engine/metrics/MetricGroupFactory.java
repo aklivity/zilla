@@ -15,13 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.Factory;
@@ -49,15 +46,6 @@ public final class MetricGroupFactory extends Factory
         MetricGroupFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized metrics type: " + type);
 
         return factorySpi.create(config);
-    }
-
-    private static MetricGroupFactory instantiate(
-        ServiceLoader<MetricGroupFactorySpi> factories)
-    {
-        Map<String, MetricGroupFactorySpi> factorySpisByName = new HashMap<>();
-        factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.type(), factorySpi));
-
-        return new MetricGroupFactory(unmodifiableMap(factorySpisByName));
     }
 
     private MetricGroupFactory(

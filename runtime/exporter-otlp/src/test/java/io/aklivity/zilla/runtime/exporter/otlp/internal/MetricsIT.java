@@ -34,14 +34,14 @@ public class MetricsIT
     private static final String ENGINE_DIRECTORY = "target/zilla-itests";
 
     private final K3poRule k3po = new K3poRule()
-        .setScriptRoot("io/aklivity/zilla/runtime/exporter/otlp/internal/application");
+        .setScriptRoot("io/aklivity/zilla/specs/exporter/otlp/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory(ENGINE_DIRECTORY)
         .configure(ENGINE_WORKERS, 3)
-        .configurationRoot("io/aklivity/zilla/runtime/exporter/otlp/internal/config")
+        .configurationRoot("io/aklivity/zilla/specs/exporter/otlp/config")
         .clean();
 
     @Rule
