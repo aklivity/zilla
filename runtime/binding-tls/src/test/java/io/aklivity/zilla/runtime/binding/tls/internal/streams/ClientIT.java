@@ -384,7 +384,7 @@ public class ClientIT
         "${app}/client.handshake.timeout/client",
         "${net}/client.handshake.timeout/server" })
     @Configure(name = TlsConfigurationTest.TLS_HANDSHAKE_TIMEOUT_NAME, value = "1")
-    public void shouldLogHandshakeErrorEvent() throws Exception
+    public void shouldLogHandshakeTimeoutEvent() throws Exception
     {
         k3po.finish();
     }
