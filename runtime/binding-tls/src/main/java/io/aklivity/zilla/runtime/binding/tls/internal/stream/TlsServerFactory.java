@@ -1386,7 +1386,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
-                event.tlsHandshakeFailed(traceId, routedId);
+                event.tlsHandshakeTimeout(traceId, routedId);
                 decoder = decodeIgnoreAll;
             }
         }
