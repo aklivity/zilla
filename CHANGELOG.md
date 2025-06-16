@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...HEAD)
+
+**Merged pull requests:**
+
+- Add specific event kind for TLS handshake timeout [\#1505](https://github.com/aklivity/zilla/pull/1505) ([jfallows](https://github.com/jfallows))
+- Enhance stdout exporter to include trace id [\#1504](https://github.com/aklivity/zilla/pull/1504) ([jfallows](https://github.com/jfallows))
+- Ensure matchCN thread safety when engine task parallelism \> 1 [\#1503](https://github.com/aklivity/zilla/pull/1503) ([jfallows](https://github.com/jfallows))
+
+## [0.9.149](https://github.com/aklivity/zilla/tree/0.9.149) (2025-06-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.148...0.9.149)
+
+**Merged pull requests:**
+
+- Report exceptions on zilla start, such as invalid power of 2 for config [\#1501](https://github.com/aklivity/zilla/pull/1501) ([jfallows](https://github.com/jfallows))
+- Support `engine.worker.capacity.unbounded` configuration [\#1500](https://github.com/aklivity/zilla/pull/1500) ([jfallows](https://github.com/jfallows))
+- Add `engine.workers.capacity` metric and rename other `engine.worker` metrics to `engine.workers` [\#1499](https://github.com/aklivity/zilla/pull/1499) ([jfallows](https://github.com/jfallows))
+- Use GaugesLayout for engine worker capacity metric [\#1496](https://github.com/aklivity/zilla/pull/1496) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.148](https://github.com/aklivity/zilla/tree/0.9.148) (2025-06-14)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.147...0.9.148)
