@@ -2,7 +2,17 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.148...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...HEAD)
+
+**Merged pull requests:**
+
+- Add specific event kind for TLS handshake timeout [\#1505](https://github.com/aklivity/zilla/pull/1505) ([jfallows](https://github.com/jfallows))
+- Enhance stdout exporter to include trace id [\#1504](https://github.com/aklivity/zilla/pull/1504) ([jfallows](https://github.com/jfallows))
+- Ensure matchCN thread safety when engine task parallelism \> 1 [\#1503](https://github.com/aklivity/zilla/pull/1503) ([jfallows](https://github.com/jfallows))
+
+## [0.9.149](https://github.com/aklivity/zilla/tree/0.9.149) (2025-06-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.148...0.9.149)
 
 **Merged pull requests:**
 

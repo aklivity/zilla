@@ -1684,7 +1684,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                     final long traceId = signal.traceId();
 
                     cleanupNet(traceId);
-                    event.tlsHandshakeFailed(traceId, client.originId);
+                    event.tlsHandshakeTimeout(traceId, client.originId);
                     decoder = decodeIgnoreAll;
                 }
             }
