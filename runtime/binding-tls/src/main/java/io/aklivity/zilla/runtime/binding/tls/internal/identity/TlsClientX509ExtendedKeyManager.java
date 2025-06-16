@@ -38,7 +38,8 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
 
     public static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^,]+)");
 
-    private final Matcher matchCN = COMMON_NAME_PATTERN.matcher("");
+    private static final ThreadLocal<Matcher> COMMON_NAME_MATCHER =
+            ThreadLocal.withInitial(() -> COMMON_NAME_PATTERN.matcher(""));
 
     private final X509ExtendedKeyManager delegate;
     private final boolean debug;
@@ -113,6 +114,7 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                         X509Certificate[] chain = delegate.getCertificateChain(candidate);
                         if (chain != null)
                         {
+                            Matcher matchCN = COMMON_NAME_MATCHER.get();
                             X500Principal subject = chain[0].getSubjectX500Principal();
 
                             if (subject != null &&
