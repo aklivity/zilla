@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.150...HEAD)
+
+**Merged pull requests:**
+
+- Add CRL checks [\#1474](https://github.com/aklivity/zilla/pull/1474) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.150](https://github.com/aklivity/zilla/tree/0.9.150) (2025-06-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...0.9.150)
 
 **Merged pull requests:**
 
