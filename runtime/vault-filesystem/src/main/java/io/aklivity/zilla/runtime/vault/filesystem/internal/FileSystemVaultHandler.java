@@ -23,22 +23,29 @@ import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStore.TrustedCertificateEntry;
+import java.security.cert.CertPathValidator;
 import java.security.cert.Certificate;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
@@ -46,14 +53,24 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 public class FileSystemVaultHandler implements VaultHandler
 {
     private static final String STORE_TYPE_DEFAULT = "pkcs12";
+    private static final String PKIX_ALGORITHM = "PKIX";
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
     private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
+    private final RevocationStrategy revocation;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
         Function<String, Path> resolvePath)
+    {
+        this(options, resolvePath, RevocationStrategy.NONE);
+    }
+
+    public FileSystemVaultHandler(
+        FileSystemOptionsConfig options,
+        Function<String, Path> resolvePath,
+        RevocationStrategy revocation)
     {
         FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
@@ -65,6 +82,7 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
+        this.revocation = options.revocation != null ? options.revocation : revocation;
         FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
@@ -185,8 +203,28 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(trust);
+                switch (revocation)
+                {
+                case CRL:
+                    factory = TrustManagerFactory.getInstance(PKIX_ALGORITHM);
+                    PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
+                    pkixParams.setRevocationEnabled(true);
+
+                    CertPathValidator validator = CertPathValidator.getInstance(PKIX_ALGORITHM);
+                    PKIXRevocationChecker checker = (PKIXRevocationChecker) validator.getRevocationChecker();
+                    checker.setOptions(EnumSet.of(
+                        PKIXRevocationChecker.Option.PREFER_CRLS
+                    ));
+                    pkixParams.addCertPathChecker(checker);
+
+                    CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
+                    factory.init(tmParams);
+                    break;
+                default:
+                    factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    factory.init(trust);
+                    break;
+                }
             }
         }
         catch (Exception ex)

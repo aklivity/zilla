@@ -74,7 +74,7 @@ public class FileSystemVaultTest
                 .build()
             .build();
 
-        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath, null);
 
         KeyManagerFactory keys = vault.initSigners(List.of("clientca"));
 

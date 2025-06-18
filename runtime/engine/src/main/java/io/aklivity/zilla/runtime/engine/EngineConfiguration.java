@@ -43,6 +43,7 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 import com.sun.management.OperatingSystemMXBean;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
 public class EngineConfiguration extends Configuration
 {
@@ -93,6 +94,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
     public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
+    public static final PropertyDef<RevocationStrategy> ENGINE_CERTIFICATE_REVOCATION_STRATEGY;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -147,6 +149,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
         ENGINE_ERROR_REPORTER = config.property(ErrorReporter.class, "error.reporter",
             EngineConfiguration::decodeErrorReporter, EngineConfiguration::defaultErrorReporter);
+        ENGINE_CERTIFICATE_REVOCATION_STRATEGY = config.property(RevocationStrategy.class, "certificate.revocation.strategy",
+            EngineConfiguration::decodeRevocationStrategy, RevocationStrategy.NONE);
         ENGINE_CONFIG = config;
     }
 
@@ -618,5 +622,11 @@ public class EngineConfiguration extends Configuration
         }
 
         return reporter;
+    }
+
+    private static RevocationStrategy decodeRevocationStrategy(
+        String value)
+    {
+        return RevocationStrategy.valueOf(value.toUpperCase());
     }
 }

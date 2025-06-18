@@ -22,6 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemVault;
@@ -31,6 +32,7 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String KEYS_NAME = "keys";
     private static final String TRUST_NAME = "trust";
     private static final String SIGNERS_NAME = "signers";
+    private static final String REVOCATION_NAME = "revocation";
 
     private final FileSystemStoreConfigAdapter store = new FileSystemStoreConfigAdapter();
 
@@ -69,6 +71,11 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
             object.add(SIGNERS_NAME, store.adaptToJson(fsOptions.signers));
         }
 
+        if (fsOptions.revocation != null)
+        {
+            object.add(REVOCATION_NAME, fsOptions.revocation.name().toLowerCase());
+        }
+
         return object.build();
     }
 
@@ -91,6 +98,11 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
         if (object.containsKey(SIGNERS_NAME))
         {
             fsOptions.signers(store.adaptFromJson(object.getJsonObject(SIGNERS_NAME)));
+        }
+
+        if (object.containsKey(REVOCATION_NAME))
+        {
+            fsOptions.revocation(RevocationStrategy.valueOf(object.getString(REVOCATION_NAME)));
         }
 
         return fsOptions.build();
