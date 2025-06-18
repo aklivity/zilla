@@ -183,6 +183,4 @@ public interface EngineContext
     MessageReader supplyEventReader();
 
     Clock clock();
-
-    String revocation();
 }

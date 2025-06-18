@@ -229,7 +229,6 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private final String revocation;
 
     private long initialId;
     private long promiseId;
@@ -345,7 +344,6 @@ public class EngineWorker implements EngineContext, Agent
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
         this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
-        this.revocation = config.revocation();
 
         this.poller = new Poller();
 
@@ -781,12 +779,6 @@ public class EngineWorker implements EngineContext, Agent
     public String roleName()
     {
         return agentName;
-    }
-
-    @Override
-    public String revocation()
-    {
-        return revocation;
     }
 
     @Override

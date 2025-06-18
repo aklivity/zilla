@@ -49,7 +49,7 @@ public class FileSystemVaultTest
                 .build()
             .build();
 
-        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath, null);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
         KeyManagerFactory keys = vault.initKeys(List.of("localhost"));
         TrustManagerFactory trust = vault.initTrust(List.of("clientca"), null);

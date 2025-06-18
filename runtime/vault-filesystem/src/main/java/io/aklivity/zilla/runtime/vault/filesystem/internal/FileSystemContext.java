@@ -15,26 +15,29 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CERTIFICATE_REVOCATION_STRATEGY;
+
 import java.nio.file.Path;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 final class FileSystemContext implements VaultContext
 {
     private final Function<String, Path> resolvePath;
-    private final String revocation;
+    private final RevocationStrategy revocation;
 
     FileSystemContext(
         Configuration config,
         EngineContext context)
     {
         this.resolvePath = context::resolvePath;
-        this.revocation = context.revocation();
+        this.revocation = ENGINE_CERTIFICATE_REVOCATION_STRATEGY.get(config);
     }
 
     @Override

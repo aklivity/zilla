@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
 public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, FileSystemOptionsConfigBuilder<T>>
 {
@@ -27,7 +28,7 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     private FileSystemStoreConfig keys;
     private FileSystemStoreConfig trust;
     private FileSystemStoreConfig signers;
-    private String revocation;
+    private RevocationStrategy revocation;
 
     FileSystemOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -79,7 +80,7 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     }
 
     public FileSystemOptionsConfigBuilder<T> revocation(
-        String revocation)
+        RevocationStrategy revocation)
     {
         this.revocation = revocation;
         return this;

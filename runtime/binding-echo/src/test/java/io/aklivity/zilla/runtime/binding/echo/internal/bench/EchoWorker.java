@@ -379,10 +379,4 @@ public class EchoWorker implements EngineContext
     {
         return null;
     }
-
-    @Override
-    public String revocation()
-    {
-        return null;
-    }
 }

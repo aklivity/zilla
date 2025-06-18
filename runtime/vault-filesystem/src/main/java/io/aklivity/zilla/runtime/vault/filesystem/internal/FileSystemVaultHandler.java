@@ -45,6 +45,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
@@ -53,17 +54,23 @@ public class FileSystemVaultHandler implements VaultHandler
 {
     private static final String STORE_TYPE_DEFAULT = "pkcs12";
     private static final String PKIX_ALGORITHM = "PKIX";
-    private static final String CRL_REVOCATION = "crl";
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
     private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
-    private final String revocation;
+    private final RevocationStrategy revocation;
+
+    public FileSystemVaultHandler(
+        FileSystemOptionsConfig options,
+        Function<String, Path> resolvePath)
+    {
+        this(options, resolvePath, RevocationStrategy.NONE);
+    }
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
         Function<String, Path> resolvePath,
-        String revocation)
+        RevocationStrategy revocation)
     {
         FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
@@ -196,8 +203,9 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                if (CRL_REVOCATION.equals(revocation))
+                switch (revocation)
                 {
+                case CRL:
                     factory = TrustManagerFactory.getInstance(PKIX_ALGORITHM);
                     PKIXBuilderParameters pkixParams = new PKIXBuilderParameters(trust, new X509CertSelector());
                     pkixParams.setRevocationEnabled(true);
@@ -211,11 +219,11 @@ public class FileSystemVaultHandler implements VaultHandler
 
                     CertPathTrustManagerParameters tmParams = new CertPathTrustManagerParameters(pkixParams);
                     factory.init(tmParams);
-                }
-                else
-                {
+                    break;
+                default:
                     factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     factory.init(trust);
+                    break;
                 }
             }
         }

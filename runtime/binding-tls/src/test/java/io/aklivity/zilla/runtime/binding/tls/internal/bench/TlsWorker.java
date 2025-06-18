@@ -446,12 +446,6 @@ public class TlsWorker implements EngineContext
         return Clock.systemUTC();
     }
 
-    @Override
-    public String revocation()
-    {
-        return null;
-    }
-
     public void doWork()
     {
         streamsBuffer.read(this::handleRead, Integer.MAX_VALUE);

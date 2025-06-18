@@ -46,7 +46,6 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String MUTUAL_NAME = "mutual";
     private static final String SIGNERS_NAME = "signers";
     private static final String TRUSTCACERTS_NAME = "trustcacerts";
-    private static final String CRL_CHECKS_NAME = "crlChecks";
 
     @Override
     public Kind kind()
@@ -91,11 +90,6 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             tlsOptions.trust == null && !tlsOptions.trustcacerts)
         {
             object.add(TRUSTCACERTS_NAME, tlsOptions.trustcacerts);
-        }
-
-        if (tlsOptions.trust != null && tlsOptions.crlChecks)
-        {
-            object.add(CRL_CHECKS_NAME, tlsOptions.crlChecks);
         }
 
         if (tlsOptions.sni != null)
@@ -153,11 +147,6 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(TRUSTCACERTS_NAME))
         {
             tlsOptions.trustcacerts(object.getBoolean(TRUSTCACERTS_NAME));
-        }
-
-        if (object.containsKey(CRL_CHECKS_NAME))
-        {
-            tlsOptions.crlChecks(object.getBoolean(CRL_CHECKS_NAME));
         }
 
         if (object.containsKey(SNI_NAME))
