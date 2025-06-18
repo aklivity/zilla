@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.151](https://github.com/aklivity/zilla/tree/0.9.151) (2025-06-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.150...0.9.151)
+
+**Merged pull requests:**
+
+- Add CRL checks [\#1474](https://github.com/aklivity/zilla/pull/1474) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.150](https://github.com/aklivity/zilla/tree/0.9.150) (2025-06-16)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...0.9.150)
