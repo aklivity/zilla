@@ -15,8 +15,10 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -60,4 +62,14 @@ public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<As
             ? matcher.group(2)
             : ref;
     }
+
+    @Override
+    public Set<String> unresolved()
+    {
+        return Stream.concat(
+            channels.unresolved().stream(),
+            messages.unresolved().stream())
+            .collect(Collectors.toSet());
+    }
+
 }

@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiCompositeGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiServerGenerator;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.event.AsyncapiEventContext;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -83,6 +84,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final int asyncapiTypeId;
 
     private final AsyncapiCompositeGenerator generator;
+    private final AsyncapiEventContext event;
 
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
@@ -97,6 +99,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.generator = new AsyncapiServerGenerator();
+        this.event = new AsyncapiEventContext(context);
     }
 
     @Override
@@ -113,6 +116,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         bindings.put(binding.id, attached);
 
         AsyncapiCompositeConfig composite = generator.generate(attached);
+
+
         assert composite != null;
         // TODO: schedule generate retry if null
 
@@ -148,6 +153,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
+        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
 
@@ -155,6 +161,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         final AsyncapiCompositeConfig composite = binding != null ? binding.composite : null;
 
         MessageConsumer newStream = null;
+
+        for (String ref : generator.unresolved)
+        {
+            event.unresolvedRef(traceId, originId, ref);
+        }
 
         if (binding != null && composite != null)
         {

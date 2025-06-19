@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AbstractAsyncapiResolvable;
 
@@ -59,5 +61,13 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         String ref)
     {
         return ref != null && matcher.reset(ref).matches() ? matcher.group(1) : null;
+    }
+
+    public Set<String> unresolved()
+    {
+        return unresolved
+            .stream()
+            .map(r -> r.ref)
+            .collect(Collectors.toSet());
     }
 }

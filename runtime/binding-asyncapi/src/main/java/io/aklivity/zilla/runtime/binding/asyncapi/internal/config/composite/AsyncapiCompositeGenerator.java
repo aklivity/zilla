@@ -21,9 +21,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
@@ -99,6 +102,7 @@ public abstract class AsyncapiCompositeGenerator
                 .pattern(StringPattern.EMAIL.pattern)
                 .build())
     );
+    public final Set<String> unresolved = new LinkedHashSet<>();
 
     public final AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding)
@@ -123,6 +127,17 @@ public abstract class AsyncapiCompositeGenerator
                         : specification.servers;
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
+                AsyncapiResolver resolver = asyncapi.resolver;
+                Stream.of(
+                    resolver.channels.unresolved(),
+                    resolver.operations.unresolved(),
+                    resolver.messages.unresolved(),
+                    resolver.securitySchemes.unresolved(),
+                    resolver.schemas.unresolved(),
+                    resolver.messageTraits.unresolved(),
+                    resolver.serverVariables.unresolved(),
+                    resolver.correlationIds.unresolved()
+                ).forEach(unresolved::addAll);
                 schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }
         }

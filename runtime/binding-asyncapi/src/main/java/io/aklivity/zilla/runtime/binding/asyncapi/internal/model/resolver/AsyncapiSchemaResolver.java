@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -85,6 +86,11 @@ public final class AsyncapiSchemaResolver
         String ref)
     {
         return resolver.resolveRef(ref);
+    }
+
+    public Set<String> unresolved()
+    {
+        return resolver.unresolved();
     }
 
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>

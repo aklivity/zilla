@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiClientGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiCompositeGenerator;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.event.AsyncapiEventContext;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -81,6 +82,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final int asyncapiTypeId;
     private final long compositeRouteId;
     private final AsyncapiCompositeGenerator generator;
+    private final AsyncapiEventContext event;
 
 
     public AsyncapiClientFactory(
@@ -97,6 +99,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.compositeRouteId = config.compositeRouteId();
         this.generator = new AsyncapiClientGenerator();
+        this.event = new AsyncapiEventContext(context);
     }
 
     @Override
@@ -148,10 +151,16 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
+        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
 
         final AsyncapiBindingConfig binding = bindings.get(routedId);
         final AsyncapiCompositeConfig composite = binding != null ? binding.composite : null;
+
+        for (String ref : generator.unresolved)
+        {
+            event.unresolvedRef(traceId, originId, ref);
+        }
 
         MessageConsumer newStream = null;
 
