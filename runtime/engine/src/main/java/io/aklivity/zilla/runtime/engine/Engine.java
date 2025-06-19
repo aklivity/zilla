@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineBoss;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
@@ -84,6 +85,7 @@ public final class Engine implements Collector, AutoCloseable
     private final ThreadFactory factory;
 
     private final List<EngineWorker> workers;
+    private final EngineBoss boss;
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
@@ -154,6 +156,7 @@ public final class Engine implements Collector, AutoCloseable
                 .capacity(config.eventsBufferCapacity())
                 .build();
 
+
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
@@ -164,6 +167,7 @@ public final class Engine implements Collector, AutoCloseable
             workers.add(worker);
         }
         this.workers = workers;
+        this.boss = new EngineBoss(config, errorHandler);
 
         final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
@@ -235,6 +239,8 @@ public final class Engine implements Collector, AutoCloseable
             worker.doStart();
         }
 
+        boss.doStart();
+
         // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc. will be attached
         if (!readonly)
         {
@@ -264,6 +270,15 @@ public final class Engine implements Collector, AutoCloseable
             {
                 errors.add(ex);
             }
+        }
+
+        try
+        {
+            boss.doClose();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
         }
 
         if (tasks != null)

@@ -13,28 +13,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.binding;
+package io.aklivity.zilla.runtime.engine;
 
-import java.nio.channels.SocketChannel;
+import java.nio.channels.SelectableChannel;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
-public interface BindingContext
+public interface EngineController
 {
-    default BindingHandler attach(
-        BindingConfig binding)
-    {
-        return null;
-    }
-
-    default void detach(
-        BindingConfig binding)
-    {
-    }
-
-    default void accept(
-        long bindingId,
-        SocketChannel channel)
-    {
-    }
+    PollerKey supplyPollerKey(
+        SelectableChannel channel);
 }
