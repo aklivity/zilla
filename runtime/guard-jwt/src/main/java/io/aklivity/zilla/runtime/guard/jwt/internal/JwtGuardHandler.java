@@ -53,10 +53,14 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapte
 
 public class JwtGuardHandler implements GuardHandler
 {
+    private static final String SPLIT_VALUE_PATTERN = "\\s+";
+    private static final String SPLIT_PATH_PATTERN = "\\.";
+
     private final JsonWebSignature signature = new JsonWebSignature();
 
     private final String issuer;
     private final String audience;
+    private final String roles;
     private final Duration challenge;
     private final String identity;
     private final Map<String, JsonWebKey> keys;
@@ -72,6 +76,7 @@ public class JwtGuardHandler implements GuardHandler
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
+        this.roles = options.roles;
         this.challenge = options.challenge.orElse(null);
         this.identity = options.identity;
 
@@ -179,11 +184,15 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
-                .map(s -> s.toString().intern())
-                .map(s -> s.split("\\s+"))
-                .map(Arrays::asList)
-                .orElse(null);
+            Object rolesValue = claimValue(claims, this.roles);
+            @SuppressWarnings("unchecked")
+            List<String> roles = (rolesValue instanceof List)
+                    ? (List<String>) rolesValue
+                    : Optional.ofNullable(rolesValue)
+                        .map(Object::toString)
+                        .map(s -> s.split(SPLIT_VALUE_PATTERN))
+                        .map(Arrays::asList)
+                        .orElse(null);
 
             JwtSessionStore sessionStore = supplySessionStore(contextId);
             session = sessionStore.supplySession(identity, roles);
@@ -405,6 +414,33 @@ public class JwtGuardHandler implements GuardHandler
                 unshare.accept(this);
             }
         }
+    }
+
+    private static Object claimValue(
+        Object node,
+        String path)
+    {
+        Object current = node;
+        for (String part : path.split(SPLIT_PATH_PATTERN))
+        {
+            if (current == null)
+            {
+                break;
+            }
+            if (current instanceof JwtClaims)
+            {
+                current = ((JwtClaims) current).getClaimValue(part);
+            }
+            else if (current instanceof Map)
+            {
+                current = ((Map<?, ?>) current).get(part);
+            }
+            else
+            {
+                current = null;
+            }
+        }
+        return current;
     }
 
     private static String readKeys(

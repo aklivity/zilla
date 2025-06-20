@@ -72,6 +72,33 @@ public class MetricsPrinterTest
     }
 
     @Test
+    public void shouldWorkMissingNamespaceAndBinding() throws Exception
+    {
+        // GIVEN
+        String expectedOutput =
+            "namespace    binding    metric      value\n" +
+            "                        counter1       42\n\n";
+
+        ScalarRecord counterRecord = mock(ScalarRecord.class);
+        when(counterRecord.namespace()).thenReturn(null);
+        when(counterRecord.binding()).thenReturn(null);
+        when(counterRecord.metric()).thenReturn("counter1");
+        when(counterRecord.valueReader()).thenReturn(() -> 42L);
+
+
+        List<MetricRecord> metricRecords = List.of(counterRecord);
+        MetricsPrinter printer = new MetricsPrinter(metricRecords);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+
+        // WHEN
+        printer.print(out);
+
+        // THEN
+        assertThat(os.toString("UTF8"), equalTo(expectedOutput));
+    }
+
+    @Test
     public void shouldPrintHeaderOnly() throws Exception
     {
         // GIVEN

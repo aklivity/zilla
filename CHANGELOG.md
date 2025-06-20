@@ -1,5 +1,73 @@
 # Changelog
 
+## [0.9.151](https://github.com/aklivity/zilla/tree/0.9.151) (2025-06-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.150...0.9.151)
+
+**Merged pull requests:**
+
+- Add CRL checks [\#1474](https://github.com/aklivity/zilla/pull/1474) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.150](https://github.com/aklivity/zilla/tree/0.9.150) (2025-06-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.149...0.9.150)
+
+**Merged pull requests:**
+
+- Add specific event kind for TLS handshake timeout [\#1505](https://github.com/aklivity/zilla/pull/1505) ([jfallows](https://github.com/jfallows))
+- Enhance stdout exporter to include trace id [\#1504](https://github.com/aklivity/zilla/pull/1504) ([jfallows](https://github.com/jfallows))
+- Ensure matchCN thread safety when engine task parallelism \> 1 [\#1503](https://github.com/aklivity/zilla/pull/1503) ([jfallows](https://github.com/jfallows))
+
+## [0.9.149](https://github.com/aklivity/zilla/tree/0.9.149) (2025-06-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.148...0.9.149)
+
+**Merged pull requests:**
+
+- Report exceptions on zilla start, such as invalid power of 2 for config [\#1501](https://github.com/aklivity/zilla/pull/1501) ([jfallows](https://github.com/jfallows))
+- Support `engine.worker.capacity.unbounded` configuration [\#1500](https://github.com/aklivity/zilla/pull/1500) ([jfallows](https://github.com/jfallows))
+- Add `engine.workers.capacity` metric and rename other `engine.worker` metrics to `engine.workers` [\#1499](https://github.com/aklivity/zilla/pull/1499) ([jfallows](https://github.com/jfallows))
+- Use GaugesLayout for engine worker capacity metric [\#1496](https://github.com/aklivity/zilla/pull/1496) ([jfallows](https://github.com/jfallows))
+
+## [0.9.148](https://github.com/aklivity/zilla/tree/0.9.148) (2025-06-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.147...0.9.148)
+
+**Merged pull requests:**
+
+- Cancel pending TLS handshake task when streams closed in both directions [\#1497](https://github.com/aklivity/zilla/pull/1497) ([jfallows](https://github.com/jfallows))
+
+## [0.9.147](https://github.com/aklivity/zilla/tree/0.9.147) (2025-06-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.146...0.9.147)
+
+**Merged pull requests:**
+
+- Fix typo increase counter on connection close instead of decreasing it [\#1494](https://github.com/aklivity/zilla/pull/1494) ([akrambek](https://github.com/akrambek))
+
+## [0.9.146](https://github.com/aklivity/zilla/tree/0.9.146) (2025-06-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.145...0.9.146)
+
+**Closed issues:**
+
+- Custom Role Claim Support in Zilla JWT Validation [\#1476](https://github.com/aklivity/zilla/issues/1476)
+
+**Merged pull requests:**
+
+- Test missing namespace and binding name [\#1493](https://github.com/aklivity/zilla/pull/1493) ([akrambek](https://github.com/akrambek))
+- Support custom role claim [\#1492](https://github.com/aklivity/zilla/pull/1492) ([akrambek](https://github.com/akrambek))
+- Update README.md [\#1464](https://github.com/aklivity/zilla/pull/1464) ([anujkarn002](https://github.com/anujkarn002))
+
+## [0.9.145](https://github.com/aklivity/zilla/tree/0.9.145) (2025-06-05)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.144...0.9.145)
+
+**Merged pull requests:**
+
+- Support conditional Thread.interrupt\(\) on exception in EngineRule [\#1489](https://github.com/aklivity/zilla/pull/1489) ([jfallows](https://github.com/jfallows))
+- Bump lycheeverse/lychee-action from 2.3.0 to 2.4.1 [\#1473](https://github.com/aklivity/zilla/pull/1473) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.144](https://github.com/aklivity/zilla/tree/0.9.144) (2025-05-31)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.143...0.9.144)

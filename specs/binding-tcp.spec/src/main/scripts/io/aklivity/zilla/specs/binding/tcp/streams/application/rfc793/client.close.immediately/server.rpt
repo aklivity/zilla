@@ -14,34 +14,12 @@
 # under the License.
 #
 
-property serverInitialWindow 8192
-
 accept "zilla://streams/app0"
-       option zilla:window ${serverInitialWindow}
+       option zilla:window 8192
        option zilla:transmission "duplex"
 accepted
+
 connected
-read notify CONNECTION_ACCEPTED_1
+
 read closed
-write close
-write notify CLOSED
-
-
-accepted
-connected
-read notify CONNECTION_ACCEPTED_2
-read closed
-write close
-write notify CLOSED
-
-rejected
-
-accepted
-connected
-read closed
-write close
-
-accepted
-connected
-read closed
-write close
+write abort

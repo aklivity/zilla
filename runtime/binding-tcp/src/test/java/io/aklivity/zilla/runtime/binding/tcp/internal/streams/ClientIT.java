@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -27,6 +28,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.function.LongSupplier;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -347,11 +349,11 @@ public class ClientIT
     @Specification({
         "${app}/max.connections.reset/client"
     })
-    @Configure(
-        name = "zilla.engine.worker.capacity",
-        value = "2")
+    @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "2")
     public void shouldResetWhenConnectionsExceeded() throws Exception
     {
+        final LongSupplier utilization = engine.utilization();
+
         try (ServerSocketChannel server = ServerSocketChannel.open())
         {
             server.setOption(SO_REUSEADDR, true);
@@ -359,13 +361,40 @@ public class ClientIT
 
             k3po.start();
 
-            for (int i = 1; i < 3; i++)
+            ByteBuffer buf = ByteBuffer.allocate(0);
+
+            while (utilization.getAsLong() != 100L)
             {
-                try (SocketChannel channel = server.accept())
-                {
-                    k3po.notifyBarrier("CONNECTION_ACCEPTED_" + i);
-                }
+                Thread.onSpinWait();
             }
+
+            SocketChannel client1 = server.accept();
+            k3po.notifyBarrier("CONNECTION_ACCEPTED_1");
+            client1.read(buf);
+            client1.close();
+
+            while (utilization.getAsLong() != 50L)
+            {
+                Thread.onSpinWait();
+            }
+
+            SocketChannel client2 = server.accept();
+            k3po.notifyBarrier("CONNECTION_ACCEPTED_2");
+            client2.read(buf);
+            client2.close();
+
+            while (utilization.getAsLong() != 100L)
+            {
+                Thread.onSpinWait();
+            }
+
+            SocketChannel client3 = server.accept();
+            client3.read(buf);
+            client3.close();
+
+            SocketChannel client4 = server.accept();
+            client4.read(buf);
+            client4.close();
 
             k3po.finish();
         }

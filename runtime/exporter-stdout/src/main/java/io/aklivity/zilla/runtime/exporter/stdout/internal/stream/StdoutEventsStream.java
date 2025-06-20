@@ -29,8 +29,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 
 public class StdoutEventsStream
 {
-    // {zilla namespace}:{component name} [dd/MMM/yyyy:HH:mm:ss Z] {event name} {event body}\n
-    private static final String FORMAT = "%s [%s] %s %s%n";
+    // {zilla namespace}:{component name} [dd/MMM/yyyy:HH:mm:ss Z] [trace id] {event name} {event body}\n
+    private static final String FORMAT = "%s [%s] [%016xd] %s %s%n";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     private final StdoutExporterContext context;
@@ -62,9 +62,10 @@ public class StdoutEventsStream
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
         String qname = context.supplyQName(event.namespacedId());
+        long traceId = event.traceId();
         String eventName = context.supplyEventName(event.id());
         String extension = formatter.format(msgTypeId, buffer, index, length);
-        out.format(FORMAT, qname, asDateTime(event.timestamp()), eventName, extension);
+        out.format(FORMAT, qname, asDateTime(event.timestamp()), traceId, eventName, extension);
     }
 
     private static String asDateTime(

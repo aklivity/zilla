@@ -41,6 +41,12 @@
                                 "title": "Audience",
                                 "type": "string"
                             },
+                            "roles":
+                            {
+                                "title": "Roles",
+                                "type": "string",
+                                "default": "scope"
+                            },
                             "keys":
                             {
                                 "title": "Keys",

@@ -13,26 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.ext;
+package io.aklivity.zilla.runtime.engine.security;
 
-import java.util.function.LongSupplier;
-
-import io.aklivity.zilla.runtime.engine.Configuration;
-
-public interface EngineExtContext
+public enum RevocationStrategy
 {
-    Configuration config();
-
-    void onError(
-        Exception error);
-
-    LongSupplier counter(
-        String namespace,
-        String binding,
-        String metric);
-
-    LongSupplier gauge(
-        String namespace,
-        String binding,
-        String metric);
+    CRL,
+    NONE
 }

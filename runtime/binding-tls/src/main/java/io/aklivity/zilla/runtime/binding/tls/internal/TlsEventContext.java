@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_FAILED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_REJECTED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PEER_NOT_VERIFIED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PROTOCOL_REJECTED;
@@ -40,12 +41,15 @@ public class TlsEventContext
     private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final TlsEventExFW.Builder tlsEventExRW = new TlsEventExFW.Builder();
+
     private final int tlsTypeId;
     private final int tlsFailedEventId;
     private final int tlsProtocolRejectedEventId;
     private final int tlsKeyRejectedEventId;
     private final int tlsPeerNotVerifiedEventId;
+    private final int tlsHandshakeTimeoutEventId;
     private final int tlsHandshakeFailedEventId;
+
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -57,6 +61,7 @@ public class TlsEventContext
         this.tlsProtocolRejectedEventId = context.supplyEventId("binding.tls.protocol.rejected");
         this.tlsKeyRejectedEventId = context.supplyEventId("binding.tls.key.rejected");
         this.tlsPeerNotVerifiedEventId = context.supplyEventId("binding.tls.peer.not.verified");
+        this.tlsHandshakeTimeoutEventId = context.supplyEventId("binding.tls.handshake.timeout");
         this.tlsHandshakeFailedEventId = context.supplyEventId("binding.tls.handshake.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
@@ -138,6 +143,27 @@ public class TlsEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(tlsPeerNotVerifiedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsHandshakeTimeout(
+        long traceId,
+        long bindingId)
+    {
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .tlsHandshakeFailed(e -> e
+                .typeId(TLS_HANDSHAKE_TIMEOUT.value())
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsHandshakeTimeoutEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

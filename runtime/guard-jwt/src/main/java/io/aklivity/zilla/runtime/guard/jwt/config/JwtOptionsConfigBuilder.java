@@ -24,10 +24,13 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfigBuilder<T>>
 {
+    public static final String ROLES_DEFAULT = "scope";
+
     private final Function<OptionsConfig, T> mapper;
 
     private String issuer;
     private String audience;
+    private String roles;
     private List<JwtKeyConfig> keys;
     private Duration challenge;
     private String identity;
@@ -57,6 +60,13 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
         String audience)
     {
         this.audience = audience;
+        return this;
+    }
+
+    public JwtOptionsConfigBuilder<T> roles(
+        String roles)
+    {
+        this.roles = roles;
         return this;
     }
 
@@ -107,6 +117,8 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new JwtOptionsConfig(issuer, audience, keys, challenge, identity, keysURL));
+        String roles = this.roles != null ? this.roles : ROLES_DEFAULT;
+
+        return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL));
     }
 }

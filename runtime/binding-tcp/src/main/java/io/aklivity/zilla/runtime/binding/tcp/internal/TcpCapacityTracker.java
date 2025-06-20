@@ -15,68 +15,53 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 
 import java.util.function.LongConsumer;
-
-import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class TcpCapacityTracker
 {
-    private final MutableInteger capacity;
-    private final LongConsumer capacityUsage;
-    private final int initialCapacity;
+    private final int capacity;
+    private final LongConsumer recordUsage;
 
-    private int capacityPercentage;
+    private int usage;
 
     public TcpCapacityTracker(
         TcpConfiguration config,
         EngineContext context)
     {
-        this.initialCapacity = ENGINE_WORKER_CAPACITY.getAsInt(config);
-        this.capacity = new MutableInteger(initialCapacity);
-        this.capacityUsage = context.supplyUtilizationMetric();
+        this.capacity = ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config);
+        this.recordUsage = context.supplyUtilizationMetric();
     }
 
-    public int capacity()
+    public int available()
     {
-        return capacity.get();
+        return capacity - usage;
     }
 
-    public int incrementAndGet()
+    public void claim()
     {
-        int newCapacity = capacity.incrementAndGet();
-        capacityChanged(newCapacity);
+        int newUsage = ++usage;
+        assert newUsage <= capacity : "newUsage = %d, capacity = %d".formatted(newUsage, capacity);
 
-        return newCapacity;
+        record(newUsage);
     }
 
-    public int decrementAndGet()
+    public void released()
     {
-        int newCapacity = capacity.decrementAndGet();
-        capacityChanged(newCapacity);
+        int newUsage = --usage;
+        assert newUsage >= 0 : "newUsage = %d".formatted(newUsage);
 
-        return newCapacity;
+        record(newUsage);
     }
 
-    public int get()
+    private void record(
+        int newUsage)
     {
-        return capacity.get();
-    }
+        final int newUsageAsPercentage = newUsage * 100 / capacity;
 
-    private void capacityChanged(
-        int newCapacity)
-    {
-        final int newCapacityPercentage = 100 - (newCapacity * 100 / initialCapacity);
-        final int percentageDiff = newCapacityPercentage - capacityPercentage;
-
-        if (Math.abs(percentageDiff) >= 1)
-        {
-            capacityUsage.accept(percentageDiff);
-        }
-
-        capacityPercentage = newCapacityPercentage;
+        recordUsage.accept(newUsageAsPercentage);
     }
 }

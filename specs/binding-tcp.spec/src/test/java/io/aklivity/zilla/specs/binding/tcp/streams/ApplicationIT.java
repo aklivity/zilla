@@ -70,6 +70,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.close.immediately/client",
+        "${app}/client.close.immediately/server" })
+    public void shouldInitiateClientCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.received.abort.sent.end/client",
         "${app}/client.received.abort.sent.end/server" })
     public void clientShouldReceiveResetAndAbortAndNoAdditionalResetWhensendEnd() throws Exception
