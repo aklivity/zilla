@@ -47,7 +47,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
@@ -127,17 +126,7 @@ public abstract class AsyncapiCompositeGenerator
                         : specification.servers;
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
-                AsyncapiResolver resolver = asyncapi.resolver;
-                Stream.of(
-                    resolver.channels.unresolved(),
-                    resolver.operations.unresolved(),
-                    resolver.messages.unresolved(),
-                    resolver.securitySchemes.unresolved(),
-                    resolver.schemas.unresolved(),
-                    resolver.messageTraits.unresolved(),
-                    resolver.serverVariables.unresolved(),
-                    resolver.correlationIds.unresolved()
-                ).forEach(unresolved::addAll);
+                unresolved.addAll(asyncapi.resolver.unresolved());
                 schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }
         }
