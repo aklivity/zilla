@@ -22,11 +22,7 @@ telemetry:
       type: test
       options:
         events:
-          - qname: test:composite0/http_api:http_server0
-            id: binding.http.request.accepted
-            name: BINDING_HTTP_REQUEST_ACCEPTED
-            message: '- POST http://localhost:8080/pets'
-          - qname: test:composite0/http_api:http_server0
+          - qname: test:composite0
             id: binding.asyncapi.unresolved.ref
             name: BINDING_ASYNCAPI_UNRESOLVED_REF
             message: Unresolved reference (#/channels/pets/messages/pets).

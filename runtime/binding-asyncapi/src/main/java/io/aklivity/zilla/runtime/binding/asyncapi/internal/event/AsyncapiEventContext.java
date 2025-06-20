@@ -51,7 +51,6 @@ public class AsyncapiEventContext
     }
 
     public void unresolvedRef(
-        long traceId,
         long bindingId,
         String ref)
     {
@@ -66,7 +65,7 @@ public class AsyncapiEventContext
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(unresolvedRef)
             .timestamp(clock.millis())
-            .traceId(traceId)
+            .traceId(0L)
             .namespacedId(bindingId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();

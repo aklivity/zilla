@@ -116,7 +116,10 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         bindings.put(binding.id, attached);
 
         AsyncapiCompositeConfig composite = generator.generate(attached);
-
+        for (String ref : generator.unresolved)
+        {
+            event.unresolvedRef(binding.id, ref);
+        }
 
         assert composite != null;
         // TODO: schedule generate retry if null
@@ -153,7 +156,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
-        final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
 
@@ -161,11 +163,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         final AsyncapiCompositeConfig composite = binding != null ? binding.composite : null;
 
         MessageConsumer newStream = null;
-
-        for (String ref : generator.unresolved)
-        {
-            event.unresolvedRef(traceId, originId, ref);
-        }
 
         if (binding != null && composite != null)
         {
