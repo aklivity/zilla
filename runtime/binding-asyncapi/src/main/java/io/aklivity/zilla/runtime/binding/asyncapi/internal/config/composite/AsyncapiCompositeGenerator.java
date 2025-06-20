@@ -21,9 +21,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,6 +101,7 @@ public abstract class AsyncapiCompositeGenerator
                 .pattern(StringPattern.EMAIL.pattern)
                 .build())
     );
+    public final Set<String> unresolved = new LinkedHashSet<>();
 
     public final AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding)
@@ -123,6 +126,7 @@ public abstract class AsyncapiCompositeGenerator
                         : specification.servers;
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
+                unresolved.addAll(asyncapi.resolver.unresolved());
                 schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }
         }

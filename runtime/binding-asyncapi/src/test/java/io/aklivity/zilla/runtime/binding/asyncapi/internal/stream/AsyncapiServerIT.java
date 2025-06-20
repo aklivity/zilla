@@ -106,4 +106,15 @@ public class AsyncapiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.unresolved.ref.yaml")
+    @Specification({
+        "${composite}/http/create.pet/client",
+        "${asyncapi}/http/create.pet/server"
+    })
+    public void shouldPublishEventUnresolvedRef() throws Exception
+    {
+        k3po.finish();
+    }
 }

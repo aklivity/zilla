@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Stream;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
 public final class AsyncapiResolver
@@ -28,6 +32,8 @@ public final class AsyncapiResolver
     public final AsyncapiServerVariableResolver serverVariables;
     public final AsyncapiCorrelationIdResolver correlationIds;
 
+    private final Set<String> unresolved;
+
     public AsyncapiResolver(
         Asyncapi model)
     {
@@ -40,5 +46,22 @@ public final class AsyncapiResolver
         this.messageTraits = new AsyncapiMessageTraitResolver(model);
         this.serverVariables = new AsyncapiServerVariableResolver(model);
         this.correlationIds = new AsyncapiCorrelationIdResolver(model);
+        this.unresolved = new LinkedHashSet<>();
+    }
+
+    public Set<String> unresolved()
+    {
+        Stream.of(
+            channels.unresolved(),
+            operations.unresolved(),
+            messages.unresolved(),
+            securitySchemes.unresolved(),
+            schemas.unresolved(),
+            messageTraits.unresolved(),
+            serverVariables.unresolved(),
+            correlationIds.unresolved())
+            .forEach(unresolved::addAll);
+
+        return unresolved;
     }
 }

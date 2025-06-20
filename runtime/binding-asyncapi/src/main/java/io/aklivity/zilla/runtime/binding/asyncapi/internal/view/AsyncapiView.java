@@ -37,6 +37,7 @@ public final class AsyncapiView
     public final Map<String, AsyncapiChannelView> channels;
     public final Map<String, AsyncapiOperationView> operations;
     public final AsyncapiComponentsView components;
+    public final AsyncapiResolver resolver;
 
     public boolean hasProtocol(
         String protocol)
@@ -91,7 +92,7 @@ public final class AsyncapiView
         this.label = label;
         this.compositeId = compositeId(id, 0);
 
-        AsyncapiResolver resolver = new AsyncapiResolver(asyncapi);
+        this.resolver = new AsyncapiResolver(asyncapi);
 
         this.servers = asyncapi.servers != null
             ? asyncapi.servers.entrySet().stream()

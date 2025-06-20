@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AbstractAsyncapiResolvable;
 
@@ -24,6 +28,7 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
 {
     private final Map<String, T> resolvables;
     private final Matcher matcher;
+    private final Collection<T> unresolved;
 
     public AbstractAsyncapiResolver(
         Map<String, T> resolvables,
@@ -31,13 +36,19 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
     {
         this.resolvables = resolvables;
         this.matcher = pattern.matcher("");
+        this.unresolved = new LinkedHashSet<T>();
     }
 
     public final T resolve(
         T model)
     {
         final String key = resolveRef(model.ref);
-        return key != null ? resolvables.get(key) : model;
+        T candidate = key != null ? resolvables.getOrDefault(key, model) : model;
+        if (candidate.ref != null)
+        {
+            unresolved.add(candidate);
+        }
+        return candidate;
     }
 
     public T resolve(
@@ -50,5 +61,13 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
         String ref)
     {
         return ref != null && matcher.reset(ref).matches() ? matcher.group(1) : null;
+    }
+
+    public Set<String> unresolved()
+    {
+        return unresolved
+            .stream()
+            .map(r -> r.ref)
+            .collect(Collectors.toSet());
     }
 }
