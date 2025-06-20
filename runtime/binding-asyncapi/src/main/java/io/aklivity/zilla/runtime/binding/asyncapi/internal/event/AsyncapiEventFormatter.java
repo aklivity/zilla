@@ -19,7 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiUnresolvedRefExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 

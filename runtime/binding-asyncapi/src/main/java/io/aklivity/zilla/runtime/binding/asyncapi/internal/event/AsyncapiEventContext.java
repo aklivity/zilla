@@ -24,7 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
