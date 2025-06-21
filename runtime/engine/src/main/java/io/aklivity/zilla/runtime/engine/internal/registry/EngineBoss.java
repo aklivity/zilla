@@ -1,20 +1,33 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.lang.System.currentTimeMillis;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.nio.channels.SelectableChannel;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-import org.agrona.DeadlineTimerWheel;
 import org.agrona.ErrorHandler;
-import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -23,6 +36,10 @@ import org.agrona.concurrent.IdleStrategy;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineController;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.BindingController;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
@@ -31,33 +48,31 @@ public class EngineBoss implements EngineController, Agent
     private static final String AGENT_NAME = "EngineBoss";
 
     private final AgentRunner runner;
-    private final Supplier<IdleStrategy> supplyIdleStrategy;
 
-    private final DeadlineTimerWheel timerWheel;
     private final Poller poller;
-    private final int expireLimit;
-    private final DeadlineTimerWheel.TimerHandler expireHandler;
-    private final Long2ObjectHashMap<Runnable> tasksByTimerId;
+    private final Deque<Runnable> taskQueue;
+    private final Map<String, BindingController> controllersByType;
 
     private volatile Thread thread;
 
     public EngineBoss(
         EngineConfiguration config,
-        ErrorHandler errorHandler)
+        ErrorHandler errorHandler,
+        Collection<Binding> bindings)
     {
         this.poller = new Poller();
-        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
-        this.expireLimit = config.maximumExpirationsPerPoll();
-        this.expireHandler = this::handleExpire;
-        this.tasksByTimerId = new Long2ObjectHashMap<>();
+        this.taskQueue = new ConcurrentLinkedDeque<>();
 
-        this.supplyIdleStrategy = () -> new BackoffIdleStrategy(
+        this.controllersByType = bindings.stream()
+            .collect(toMap(Binding::name, b -> b.supply(EngineBoss.this)));
+
+        IdleStrategy idleStrategy = new BackoffIdleStrategy(
             config.maxSpins(),
             config.maxYields(),
             config.minParkNanos(),
             config.maxParkNanos());
 
-        this.runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, this);
+        this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
     }
 
     @Override
@@ -69,16 +84,12 @@ public class EngineBoss implements EngineController, Agent
         {
             workDone += poller.doWork();
 
-            if (timerWheel.timerCount() != 0L)
+            if (!taskQueue.isEmpty())
             {
-                final long now = currentTimeMillis();
-                int expiredMax = expireLimit;
-                while (timerWheel.currentTickTime() <= now && expiredMax > 0)
+                for (Runnable task = taskQueue.poll(); task != null; task = taskQueue.poll())
                 {
-                    final int expired = timerWheel.poll(now, expireHandler, expiredMax);
-
-                    workDone += expired;
-                    expiredMax -= expired;
+                    task.run();
+                    workDone++;
                 }
             }
         }
@@ -108,6 +119,38 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
+    public void attach(
+        NamespaceConfig namespace)
+    {
+        taskQueue.offer(new NamespaceTask(namespace, this::attachNamespace));
+    }
+
+    private void attachNamespace(
+        NamespaceConfig namespace)
+    {
+        for (BindingConfig binding : namespace.bindings)
+        {
+            BindingController controller = controllersByType.get(binding.type);
+            if (controller != null)
+            {
+                controller.attach(binding);
+            }
+        }
+    }
+
+    public void detach(
+        NamespaceConfig namespace)
+    {
+        for (BindingConfig binding : namespace.bindings)
+        {
+            BindingController controller = controllersByType.get(binding.type);
+            if (controller != null)
+            {
+                controller.detach(binding);
+            }
+        }
+    }
+
     @Override
     public String roleName()
     {
@@ -118,18 +161,5 @@ public class EngineBoss implements EngineController, Agent
         SelectableChannel channel)
     {
         return poller.register(channel);
-    }
-
-    private boolean handleExpire(
-        TimeUnit timeUnit,
-        long now,
-        long timerId)
-    {
-        final Runnable task = tasksByTimerId.remove(timerId);
-        if (task != null)
-        {
-            task.run();
-        }
-        return true;
     }
 }

@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineController;
 import io.aklivity.zilla.runtime.engine.binding.BindingController;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 final class TcpBindingController implements BindingController

@@ -185,4 +185,6 @@ public interface EngineContext
     MessageReader supplyEventReader();
 
     Clock clock();
+
+    void dispatch(Runnable task);
 }

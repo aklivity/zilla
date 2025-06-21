@@ -983,8 +983,7 @@ public class EngineWorker implements EngineContext, Agent
         assert thread != Thread.currentThread();
 
         NamespaceTask attachTask = registry.attach(namespace);
-        taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        dispatch(attachTask);
 
         if (localIndex == 0)
         {
@@ -1001,8 +1000,7 @@ public class EngineWorker implements EngineContext, Agent
         assert thread != Thread.currentThread();
 
         NamespaceTask detachTask = registry.detach(namespace);
-        taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        dispatch(detachTask);
 
         if (localIndex == 0)
         {
@@ -1094,6 +1092,14 @@ public class EngineWorker implements EngineContext, Agent
     public Clock clock()
     {
         return Clock.systemUTC();
+    }
+
+    @Override
+    public void dispatch(
+        Runnable task)
+    {
+        taskQueue.offer(task);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
     }
 
     private void writeBindingTypes(

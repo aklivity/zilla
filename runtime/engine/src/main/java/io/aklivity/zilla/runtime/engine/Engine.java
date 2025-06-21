@@ -156,6 +156,7 @@ public final class Engine implements Collector, AutoCloseable
                 .capacity(config.eventsBufferCapacity())
                 .build();
 
+        this.boss = new EngineBoss(config, errorHandler, bindings);
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
@@ -167,7 +168,6 @@ public final class Engine implements Collector, AutoCloseable
             workers.add(worker);
         }
         this.workers = workers;
-        this.boss = new EngineBoss(config, errorHandler);
 
         final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
@@ -201,6 +201,7 @@ public final class Engine implements Collector, AutoCloseable
             labels::lookupLabel,
             maxWorkers,
             tuning,
+            boss,
             workers,
             logger,
             context,
