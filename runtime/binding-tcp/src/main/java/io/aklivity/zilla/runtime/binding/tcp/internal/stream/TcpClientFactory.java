@@ -563,8 +563,9 @@ public class TcpClientFactory implements TcpStreamFactory
 
             state = TcpState.openingInitial(state);
 
-
             doNetConnect();
+
+            capacity.claim();
         }
 
         private void onAppData(

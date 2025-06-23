@@ -55,7 +55,6 @@ public class ServerIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/tcp/config")
         .external("app0")
         .clean();

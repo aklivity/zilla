@@ -20,6 +20,7 @@ import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.net.StandardSocketOptions.SO_REUSEPORT;
 import static java.net.StandardSocketOptions.TCP_NODELAY;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
+import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.CloseHelper.quietCloseAll;
 
 import java.io.IOException;
@@ -27,7 +28,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -45,7 +46,7 @@ final class TcpBindingController implements BindingController
     private final EngineController controller;
     private final Int2ObjectHashMap<TcpBindingContext> contexts;
     private final Long2ObjectHashMap<ServerSocketChannel[]> serversById;
-    private final Random random;
+    private final AtomicInteger nextIndex;
 
     TcpBindingController(
         TcpConfiguration config,
@@ -56,7 +57,7 @@ final class TcpBindingController implements BindingController
         this.controller = controller;
         this.contexts = contexts;
         this.serversById = new Long2ObjectHashMap<>();
-        this.random = new Random();
+        this.nextIndex = new AtomicInteger();
     }
 
     @Override
@@ -127,11 +128,25 @@ final class TcpBindingController implements BindingController
 
                 InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
 
-                //TODO: apply load balancing logic
-                int index = random.nextInt(contexts.size());
-                TcpBindingContext context = contexts.get(index);
+                boolean accepted = false;
+                int contextCount = contexts.size();
+                for (int i = 0; !accepted && i < contextCount; i++)
+                {
+                    int index = nextIndex.getAndIncrement();
+                    TcpBindingContext context = contexts.get(index);
 
-                context.onAccepted(binding.id, channel, local);
+                    accepted = context.accepted(binding.id, channel, local);
+                }
+
+                if (nextIndex.get() >= contextCount)
+                {
+                    nextIndex.set(0);
+                }
+
+                if (!accepted)
+                {
+                    quietClose(channel);
+                }
             }
         }
         catch (IOException ex)

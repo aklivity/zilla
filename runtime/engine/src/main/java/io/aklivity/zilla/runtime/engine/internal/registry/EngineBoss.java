@@ -26,6 +26,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.agrona.ErrorHandler;
 import org.agrona.concurrent.Agent;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingController;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
@@ -52,19 +54,27 @@ public class EngineBoss implements EngineController, Agent
     private final Poller poller;
     private final Deque<Runnable> taskQueue;
     private final Map<String, BindingController> controllersByType;
+    private final LabelManager labels;
 
     private volatile Thread thread;
 
     public EngineBoss(
         EngineConfiguration config,
+        LabelManager labels,
         ErrorHandler errorHandler,
         Collection<Binding> bindings)
     {
+        this.labels = labels;
         this.poller = new Poller();
         this.taskQueue = new ConcurrentLinkedDeque<>();
 
         this.controllersByType = bindings.stream()
-            .collect(toMap(Binding::name, b -> b.supply(EngineBoss.this)));
+        .flatMap(b ->
+        {
+            BindingController controller = b.supply(this);
+            return controller != null ? Stream.of(Map.entry(b.name(), controller)) : Stream.empty();
+        })
+        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         IdleStrategy idleStrategy = new BackoffIdleStrategy(
             config.maxSpins(),

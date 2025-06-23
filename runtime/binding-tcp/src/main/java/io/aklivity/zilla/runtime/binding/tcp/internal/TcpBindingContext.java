@@ -38,11 +38,13 @@ final class TcpBindingContext implements BindingContext
     private final Map<KindConfig, TcpStreamFactory> factories;
     private final Consumer<Runnable> dispatch;
 
+    private final TcpCapacityTracker capacity;
+
     TcpBindingContext(
         TcpConfiguration config,
         EngineContext context)
     {
-        TcpCapacityTracker capacity = new TcpCapacityTracker(config, context);
+        this.capacity = new TcpCapacityTracker(config, context);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new TcpServerFactory(config, context, capacity));
         factories.put(CLIENT, new TcpClientFactory(config, context, capacity));
@@ -51,13 +53,20 @@ final class TcpBindingContext implements BindingContext
         this.factories = factories;
     }
 
-    public void onAccepted(
+    public boolean accepted(
         long bindingId,
         SocketChannel channel,
         InetSocketAddress local)
     {
-        TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);
-        dispatch.accept(task);
+        boolean accepted = false;
+        if (capacity.available() > 0)
+        {
+            TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);
+            dispatch.accept(task);
+            accepted = true;
+        }
+
+        return accepted;
     }
 
     @Override
