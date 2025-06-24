@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.EngineController;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingController;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -142,7 +143,7 @@ public class EngineBoss implements EngineController, Agent
         for (BindingConfig binding : namespace.bindings)
         {
             BindingController controller = controllersByType.get(binding.type);
-            if (controller != null)
+            if (controller != null && binding.kind == KindConfig.SERVER)
             {
                 controller.attach(binding);
             }
