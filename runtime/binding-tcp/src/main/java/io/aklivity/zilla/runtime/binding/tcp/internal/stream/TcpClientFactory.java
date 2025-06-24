@@ -160,7 +160,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         InetSocketAddress route = null;
 
-        TcpBindingConfig binding = bindingsById.get(originId);
+        TcpBindingConfig binding = bindingsById.get(routedId);
         if (binding != null)
         {
             route = binding.resolve(binding, traceId, authorization, beginEx);
