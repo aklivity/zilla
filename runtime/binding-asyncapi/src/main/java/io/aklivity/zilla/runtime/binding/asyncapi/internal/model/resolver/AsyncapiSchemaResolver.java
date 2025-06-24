@@ -31,9 +31,10 @@ public final class AsyncapiSchemaResolver
     private final ResolverImpl resolver;
 
     public AsyncapiSchemaResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        this.resolver = new ResolverImpl(model);
+        this.resolver = new ResolverImpl(model, unresolved);
     }
 
     @SuppressWarnings("unchecked")
@@ -90,19 +91,20 @@ public final class AsyncapiSchemaResolver
 
     public Set<String> unresolved()
     {
-        return resolver.unresolved();
+        return resolver.unresolvedRefs();
     }
 
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>
     {
         private ResolverImpl(
-            Asyncapi model)
+            Asyncapi model,
+            Set<String> unresolved)
         {
             super(
                 Optional.ofNullable(model.components)
                     .map(c -> c.schemas)
                     .orElseGet(Map::of),
-                Pattern.compile("#/components/schemas/(.+)"));
+                Pattern.compile("#/components/schemas/(.+)"), unresolved);
         }
     }
 }

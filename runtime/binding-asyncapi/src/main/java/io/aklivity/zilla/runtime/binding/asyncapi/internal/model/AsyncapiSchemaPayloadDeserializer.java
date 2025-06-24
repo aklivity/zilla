@@ -39,9 +39,9 @@ public class AsyncapiSchemaPayloadDeserializer implements JsonbDeserializer<Asyn
 
         if (value.containsKey("$ref"))
         {
-            AsyncapiSchemaItem asyncapiSchemaItem = new AsyncapiSchemaItem();
-            asyncapiSchemaItem.ref = value.getString("$ref");
-            schema = asyncapiSchemaItem;
+            AsyncapiSchemaItem schemaItem = new AsyncapiSchemaItem();
+            schemaItem.ref = value.getString("$ref");
+            schema = schemaItem;
         }
         else if (value.containsKey("type"))
         {

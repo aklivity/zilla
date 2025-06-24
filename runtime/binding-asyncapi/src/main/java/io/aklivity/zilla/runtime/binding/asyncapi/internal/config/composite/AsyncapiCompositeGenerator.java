@@ -126,7 +126,8 @@ public abstract class AsyncapiCompositeGenerator
                         : specification.servers;
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
-                unresolved.addAll(asyncapi.resolver.unresolved());
+                unresolved.addAll(asyncapi.resolver.unresolvedRefs());
+
                 schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }
         }

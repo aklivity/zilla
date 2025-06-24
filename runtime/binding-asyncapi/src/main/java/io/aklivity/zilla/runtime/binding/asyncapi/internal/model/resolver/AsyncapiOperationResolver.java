@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -32,11 +31,12 @@ public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<As
     private final Matcher matcher;
 
     public AsyncapiOperationResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        super(model.operations, Pattern.compile("#/operations/(.+)"));
-        this.channels = new AsyncapiChannelResolver(model);
-        this.messages = new AsyncapiMessageResolver(model);
+        super(model.operations, Pattern.compile("#/operations/(.+)"), unresolved);
+        this.channels = new AsyncapiChannelResolver(model, unresolved);
+        this.messages = new AsyncapiMessageResolver(model, unresolved);
         this.matcher = Pattern.compile("#/channels/(.+)/messages/(.+)").matcher("");
     }
 
@@ -62,14 +62,4 @@ public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<As
             ? matcher.group(2)
             : ref;
     }
-
-    @Override
-    public Set<String> unresolved()
-    {
-        return Stream.concat(
-            channels.unresolved().stream(),
-            messages.unresolved().stream())
-            .collect(Collectors.toSet());
-    }
-
 }

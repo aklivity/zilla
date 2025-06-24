@@ -113,7 +113,7 @@ public class AsyncapiServerIT
         "${composite}/http/create.pet/client",
         "${asyncapi}/http/create.pet/server"
     })
-    public void shouldPublishEventUnresolvedRef() throws Exception
+    public void shouldLogEventUnresolvedRef() throws Exception
     {
         k3po.finish();
     }

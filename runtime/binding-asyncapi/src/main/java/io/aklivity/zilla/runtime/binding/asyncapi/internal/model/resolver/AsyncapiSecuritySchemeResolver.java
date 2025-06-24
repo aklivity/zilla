@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -24,12 +25,13 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurit
 public final class AsyncapiSecuritySchemeResolver extends AbstractAsyncapiResolver<AsyncapiSecurityScheme>
 {
     public AsyncapiSecuritySchemeResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
         super(
             Optional.ofNullable(model.components)
                 .map(c -> c.securitySchemes)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/securitySchemes/(.+)"));
+            Pattern.compile("#/components/securitySchemes/(.+)"), unresolved);
     }
 }
