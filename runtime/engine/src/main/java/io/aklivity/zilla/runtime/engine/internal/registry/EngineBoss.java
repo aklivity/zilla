@@ -24,6 +24,7 @@ import java.nio.channels.SelectableChannel;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -131,10 +132,13 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
-    public void attach(
+    public CompletableFuture<Void> attach(
         NamespaceConfig namespace)
     {
-        taskQueue.offer(new NamespaceTask(namespace, this::attachNamespace));
+        NamespaceTask attachedTask = new NamespaceTask(namespace, this::attachNamespace);
+        taskQueue.offer(attachedTask);
+
+        return attachedTask.future();
     }
 
     private void attachNamespace(
