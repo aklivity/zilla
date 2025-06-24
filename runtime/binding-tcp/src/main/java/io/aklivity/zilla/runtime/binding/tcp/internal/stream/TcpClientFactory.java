@@ -45,7 +45,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpUsageTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
@@ -91,7 +91,7 @@ public class TcpClientFactory implements TcpStreamFactory
     private final ByteBuffer readByteBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer writeBuffer;
-    private final TcpCapacityTracker capacity;
+    private final TcpUsageTracker capacity;
     private final ByteBuffer writeByteBuffer;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -106,7 +106,7 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpCapacityTracker capacity)
+        TcpUsageTracker capacity)
     {
         this.event = new TcpEventContext(context);
         this.writeBuffer = context.writeBuffer();

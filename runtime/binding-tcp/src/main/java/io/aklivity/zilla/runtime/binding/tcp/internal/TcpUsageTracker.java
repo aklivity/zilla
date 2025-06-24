@@ -21,14 +21,14 @@ import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
-public final class TcpCapacityTracker
+public final class TcpUsageTracker
 {
     private final int capacity;
     private final LongConsumer recordUsage;
 
     private volatile int usage;
 
-    public TcpCapacityTracker(
+    public TcpUsageTracker(
         TcpConfiguration config,
         EngineContext context)
     {

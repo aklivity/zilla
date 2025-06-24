@@ -38,13 +38,13 @@ final class TcpBindingContext implements BindingContext
     private final Map<KindConfig, TcpStreamFactory> factories;
     private final Consumer<Runnable> dispatch;
 
-    private final TcpCapacityTracker capacity;
+    private final TcpUsageTracker capacity;
 
     TcpBindingContext(
         TcpConfiguration config,
         EngineContext context)
     {
-        this.capacity = new TcpCapacityTracker(config, context);
+        this.capacity = new TcpUsageTracker(config, context);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new TcpServerFactory(config, context, capacity));
         factories.put(CLIENT, new TcpClientFactory(config, context, capacity));
