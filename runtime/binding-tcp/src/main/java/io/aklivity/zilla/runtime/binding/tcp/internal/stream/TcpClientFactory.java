@@ -91,7 +91,7 @@ public class TcpClientFactory implements TcpStreamFactory
     private final ByteBuffer readByteBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer writeBuffer;
-    private final TcpUsageTracker capacity;
+    private final TcpUsageTracker usage;
     private final ByteBuffer writeByteBuffer;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -106,11 +106,11 @@ public class TcpClientFactory implements TcpStreamFactory
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpUsageTracker capacity)
+        TcpUsageTracker usage)
     {
         this.event = new TcpEventContext(context);
         this.writeBuffer = context.writeBuffer();
-        this.capacity = capacity;
+        this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
         this.supplyReplyId = context::supplyReplyId;
@@ -168,7 +168,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (route != null)
+        if (route != null && usage.available() > 0)
         {
             final long initialId = begin.streamId();
 
@@ -221,7 +221,7 @@ public class TcpClientFactory implements TcpStreamFactory
     {
         CloseHelper.quietClose(network);
 
-        capacity.released();
+        usage.released();
     }
 
     private final class TcpClient
@@ -565,7 +565,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
             doNetConnect();
 
-            capacity.claim();
+            usage.claim();
         }
 
         private void onAppData(

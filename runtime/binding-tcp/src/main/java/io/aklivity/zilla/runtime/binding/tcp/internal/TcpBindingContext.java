@@ -38,16 +38,16 @@ final class TcpBindingContext implements BindingContext
     private final Map<KindConfig, TcpStreamFactory> factories;
     private final Consumer<Runnable> dispatch;
 
-    private final TcpUsageTracker capacity;
+    private final TcpUsageTracker usage;
 
     TcpBindingContext(
         TcpConfiguration config,
         EngineContext context)
     {
-        this.capacity = new TcpUsageTracker(config, context);
+        this.usage = new TcpUsageTracker(config, context);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new TcpServerFactory(config, context, capacity));
-        factories.put(CLIENT, new TcpClientFactory(config, context, capacity));
+        factories.put(SERVER, new TcpServerFactory(config, context, usage));
+        factories.put(CLIENT, new TcpClientFactory(config, context, usage));
 
         this.dispatch = context::dispatch;
         this.factories = factories;
@@ -59,9 +59,9 @@ final class TcpBindingContext implements BindingContext
         InetSocketAddress local)
     {
         boolean accepted = false;
-        if (capacity.available() > 0)
+        if (usage.available() > 0)
         {
-            capacity.claim();
+            usage.claim();
             accepted = true;
 
             TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);

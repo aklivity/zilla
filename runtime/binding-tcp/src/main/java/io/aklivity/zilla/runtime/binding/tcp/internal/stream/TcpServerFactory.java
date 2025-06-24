@@ -93,7 +93,7 @@ public class TcpServerFactory implements TcpStreamFactory
     private final ByteBuffer readByteBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer writeBuffer;
-    private final TcpUsageTracker capacity;
+    private final TcpUsageTracker usage;
     private final ByteBuffer writeByteBuffer;
     private final int replyMax;
     private final int windowThreshold;
@@ -103,11 +103,11 @@ public class TcpServerFactory implements TcpStreamFactory
     public TcpServerFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpUsageTracker capacity)
+        TcpUsageTracker usage)
     {
         this.event = new TcpEventContext(context);
         this.writeBuffer = context.writeBuffer();
-        this.capacity = capacity;
+        this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
         this.supplyInitialId = context::supplyInitialId;
@@ -187,7 +187,7 @@ public class TcpServerFactory implements TcpStreamFactory
     {
         quietClose(network);
 
-        capacity.released();
+        usage.released();
     }
 
     private final class TcpServer
