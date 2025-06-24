@@ -121,10 +121,11 @@ public class EngineBoss implements EngineController, Agent
             controllersByType.values().forEach(BindingController::detachAll);
             controllersByType.clear();
 
-            poller.close();
-
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
+
             runner.close((int) SECONDS.toMillis(5L), timeout);
+
+            poller.close();
         }
         finally
         {
