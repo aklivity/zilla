@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.IOException;
@@ -381,7 +381,7 @@ public class ServerIT
         "${app}/max.connections/server"
     })
     @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "4")
-    public void shouldUnbindRebind() throws Exception
+    public void shouldRejectOnConnectionLimit() throws Exception
     {
         final LongSupplier utilization = engine.utilization();
 
@@ -413,7 +413,9 @@ public class ServerIT
         try
         {
             client5.connect(new InetSocketAddress("127.0.0.1", 12345));
-            fail("Client should not be able to connect, engine is at capacity");
+            ByteBuffer buf = ByteBuffer.allocate(1);
+            assertTrue(client5.read(buf) == -1);
+            client5.close();
         }
         catch (IOException ioe)
         {

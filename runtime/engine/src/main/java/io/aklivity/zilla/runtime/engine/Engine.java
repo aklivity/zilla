@@ -156,7 +156,7 @@ public final class Engine implements Collector, AutoCloseable
                 .capacity(config.eventsBufferCapacity())
                 .build();
 
-        this.boss = new EngineBoss(config, labels, errorHandler, bindings);
+        this.boss = new EngineBoss(config, errorHandler, bindings);
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)

@@ -30,6 +30,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.agrona.CloseHelper;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -109,6 +110,13 @@ final class TcpBindingController implements BindingController
     {
         ServerSocketChannel[] servers = serversById.remove(binding.id);
         quietCloseAll(servers);
+    }
+
+    @Override
+    public void detachAll()
+    {
+        serversById.values().forEach(CloseHelper::quietCloseAll);
+        serversById.clear();
     }
 
     private int handleAccept(

@@ -61,9 +61,11 @@ final class TcpBindingContext implements BindingContext
         boolean accepted = false;
         if (capacity.available() > 0)
         {
+            capacity.claim();
+            accepted = true;
+
             TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);
             dispatch.accept(task);
-            accepted = true;
         }
 
         return accepted;

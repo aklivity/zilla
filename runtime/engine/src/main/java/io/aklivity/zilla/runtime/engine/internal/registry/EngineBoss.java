@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingController;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
@@ -54,17 +53,14 @@ public class EngineBoss implements EngineController, Agent
     private final Poller poller;
     private final Deque<Runnable> taskQueue;
     private final Map<String, BindingController> controllersByType;
-    private final LabelManager labels;
 
     private volatile Thread thread;
 
     public EngineBoss(
         EngineConfiguration config,
-        LabelManager labels,
         ErrorHandler errorHandler,
         Collection<Binding> bindings)
     {
-        this.labels = labels;
         this.poller = new Poller();
         this.taskQueue = new ConcurrentLinkedDeque<>();
 
@@ -120,6 +116,11 @@ public class EngineBoss implements EngineController, Agent
     {
         try
         {
+            controllersByType.values().forEach(BindingController::detachAll);
+            controllersByType.clear();
+
+            poller.close();
+
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
             runner.close((int) SECONDS.toMillis(5L), timeout);
         }

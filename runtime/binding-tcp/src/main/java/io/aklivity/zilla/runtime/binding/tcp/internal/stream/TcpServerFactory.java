@@ -236,8 +236,6 @@ public class TcpServerFactory implements TcpStreamFactory
                 key.handler(OP_WRITE, this::onNetWritable);
 
                 doAppBegin();
-
-                capacity.claim();
             }
             catch (IOException ex)
             {

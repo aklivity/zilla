@@ -442,12 +442,12 @@ public class EngineManager
     private void register(
         NamespaceConfig namespace)
     {
+        boss.attach(namespace);
+
         workers.stream()
             .map(w -> w.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
-
-        boss.attach(namespace);
     }
 
     private void unregister(
