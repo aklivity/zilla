@@ -112,13 +112,6 @@ final class TcpBindingController implements BindingController
         quietCloseAll(servers);
     }
 
-    @Override
-    public void detachAll()
-    {
-        serversById.values().forEach(CloseHelper::quietCloseAll);
-        serversById.clear();
-    }
-
     private int handleAccept(
         PollerKey key)
     {

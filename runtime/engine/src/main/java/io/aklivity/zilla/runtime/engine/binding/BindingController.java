@@ -28,8 +28,4 @@ public interface BindingController
         BindingConfig binding)
     {
     }
-
-    default void detachAll()
-    {
-    }
 }

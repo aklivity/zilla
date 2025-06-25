@@ -409,18 +409,10 @@ public class ServerIT
         }
 
         SocketChannel client5 = SocketChannel.open();
-        try
-        {
-            client5.connect(new InetSocketAddress("127.0.0.1", 12345));
-            ByteBuffer buf = ByteBuffer.allocate(1);
-            assertTrue(client5.read(buf) == -1);
-            client5.close();
-        }
-        catch (IOException ioe)
-        {
-            ioe.printStackTrace();
-            // expected, engine at capacity
-        }
+        client5.connect(new InetSocketAddress("127.0.0.1", 12345));
+        ByteBuffer buf = ByteBuffer.allocate(1);
+        assertTrue(client5.read(buf) == -1);
+        client5.close();
 
         client1.close();
         client2.close();

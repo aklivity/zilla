@@ -173,7 +173,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
         if (route != null)
         {
-            final TcpServer server = new TcpServer(bindingId, route.id, network);
+            final TcpServer server = new TcpServer(binding.id, route.id, network);
             server.onNetAccepted();
         }
         else

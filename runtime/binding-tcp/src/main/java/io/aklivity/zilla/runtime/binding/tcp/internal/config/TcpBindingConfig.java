@@ -103,12 +103,10 @@ public final class TcpBindingConfig
     }
 
     public InetSocketAddress resolve(
-        TcpBindingConfig binding,
         long traceId,
         long authorization,
         ProxyBeginExFW beginEx)
     {
-        final TcpOptionsConfig options = binding.options;
         final int port = options != null && options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
 
         InetSocketAddress resolved = null;
@@ -121,7 +119,7 @@ public final class TcpBindingConfig
                 InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
                 resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
             }
-            else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
+            else if (routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
             {
                 ProxyAddressFW address = beginEx.address();
                 resolved = resolveInetSocketAddress(address);
@@ -130,7 +128,7 @@ public final class TcpBindingConfig
             {
                 final ProxyAddressFW address = beginEx.address();
 
-                for (TcpRouteConfig route : binding.routes)
+                for (TcpRouteConfig route : routes)
                 {
                     if (!route.authorized(authorization))
                     {
@@ -177,7 +175,7 @@ public final class TcpBindingConfig
                         .map(a -> new InetSocketAddress(a, port))
                         .toList();
 
-                    for (TcpRouteConfig route : binding.routes)
+                    for (TcpRouteConfig route : routes)
                     {
                         if (!route.authorized(authorization))
                         {
@@ -196,7 +194,7 @@ public final class TcpBindingConfig
         }
         catch (TcpDnsFailedException ex)
         {
-            event.dnsFailed(traceId, binding.id, ex.hostname);
+            event.dnsFailed(traceId, id, ex.hostname);
         }
 
         return resolved;

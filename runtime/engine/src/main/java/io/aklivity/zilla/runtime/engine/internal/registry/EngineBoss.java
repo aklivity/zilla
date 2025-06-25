@@ -21,8 +21,10 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.nio.channels.SelectableChannel;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -57,6 +59,7 @@ public class EngineBoss implements EngineController, Agent
     private final Map<String, BindingController> controllersByType;
 
     private volatile Thread thread;
+    private List<NamespaceConfig> namespaces;
 
     public EngineBoss(
         EngineConfiguration config,
@@ -65,6 +68,7 @@ public class EngineBoss implements EngineController, Agent
     {
         this.poller = new Poller();
         this.taskQueue = new ConcurrentLinkedDeque<>();
+        this.namespaces = new ArrayList<>();
 
         this.controllersByType = bindings.stream()
         .flatMap(b ->
@@ -118,7 +122,7 @@ public class EngineBoss implements EngineController, Agent
     {
         try
         {
-            controllersByType.values().forEach(BindingController::detachAll);
+            namespaces.forEach(this::detachNamespace);
             controllersByType.clear();
 
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
@@ -142,20 +146,16 @@ public class EngineBoss implements EngineController, Agent
         return attachedTask.future();
     }
 
-    private void attachNamespace(
+    public CompletableFuture<Void> detach(
         NamespaceConfig namespace)
     {
-        for (BindingConfig binding : namespace.bindings)
-        {
-            BindingController controller = controllersByType.get(binding.type);
-            if (controller != null && binding.kind == KindConfig.SERVER)
-            {
-                controller.attach(binding);
-            }
-        }
+        NamespaceTask detachedTask = new NamespaceTask(namespace, this::detachNamespace);
+        taskQueue.offer(detachedTask);
+
+        return detachedTask.future();
     }
 
-    public void detach(
+    private void detachNamespace(
         NamespaceConfig namespace)
     {
         for (BindingConfig binding : namespace.bindings)
@@ -178,5 +178,20 @@ public class EngineBoss implements EngineController, Agent
         SelectableChannel channel)
     {
         return poller.register(channel);
+    }
+
+    private void attachNamespace(
+        NamespaceConfig namespace)
+    {
+        namespaces.add(namespace);
+
+        for (BindingConfig binding : namespace.bindings)
+        {
+            BindingController controller = controllersByType.get(binding.type);
+            if (controller != null && binding.kind == KindConfig.SERVER)
+            {
+                controller.attach(binding);
+            }
+        }
     }
 }

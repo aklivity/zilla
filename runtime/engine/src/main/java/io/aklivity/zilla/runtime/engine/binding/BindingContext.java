@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import java.nio.channels.SocketChannel;
-
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public interface BindingContext
@@ -29,12 +27,6 @@ public interface BindingContext
 
     default void detach(
         BindingConfig binding)
-    {
-    }
-
-    default void accept(
-        long bindingId,
-        SocketChannel channel)
     {
     }
 }

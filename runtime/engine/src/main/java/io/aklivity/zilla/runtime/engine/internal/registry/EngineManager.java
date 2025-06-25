@@ -442,7 +442,7 @@ public class EngineManager
     private void register(
         NamespaceConfig namespace)
     {
-        this.boss.attach(namespace).join();
+        boss.attach(namespace).join();
 
         workers.stream()
             .map(w -> w.attach(namespace))
@@ -455,7 +455,7 @@ public class EngineManager
     {
         if (namespace != null)
         {
-            boss.detach(namespace);
+            boss.detach(namespace).join();
 
             workers.stream()
                 .map(w -> w.detach(namespace))

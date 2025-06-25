@@ -186,7 +186,9 @@ public interface EngineContext
 
     Clock clock();
 
-    default void dispatch(Runnable task)
+    default void dispatch(
+        Runnable task)
     {
+        task.run();
     }
 }

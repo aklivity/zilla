@@ -26,7 +26,7 @@ public final class TcpUsageTracker
     private final int capacity;
     private final LongConsumer recordUsage;
 
-    private volatile int usage;
+    private int usage;
 
     public TcpUsageTracker(
         TcpConfiguration config,

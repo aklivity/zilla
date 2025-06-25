@@ -163,7 +163,7 @@ public class TcpClientFactory implements TcpStreamFactory
         TcpBindingConfig binding = bindingsById.get(routedId);
         if (binding != null)
         {
-            route = binding.resolve(binding, traceId, authorization, beginEx);
+            route = binding.resolve(traceId, authorization, beginEx);
         }
 
         MessageConsumer newStream = null;
