@@ -32,6 +32,7 @@ public final class AsyncapiServerVariableResolver extends AbstractAsyncapiResolv
             Optional.ofNullable(model.components)
                 .map(c -> c.serverVariables)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/serverVariables/(.+)"), unresolved);
+            Pattern.compile("#/components/serverVariables/(.+)"),
+            unresolved);
     }
 }

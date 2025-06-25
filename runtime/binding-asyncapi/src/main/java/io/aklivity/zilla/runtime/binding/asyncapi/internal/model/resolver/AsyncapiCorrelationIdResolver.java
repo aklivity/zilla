@@ -32,6 +32,7 @@ public final class AsyncapiCorrelationIdResolver extends AbstractAsyncapiResolve
             Optional.ofNullable(model.components)
                 .map(c -> c.correlationIds)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/correlationIds/(.+)"), unresolved);
+            Pattern.compile("#/components/correlationIds/(.+)"),
+            unresolved);
     }
 }

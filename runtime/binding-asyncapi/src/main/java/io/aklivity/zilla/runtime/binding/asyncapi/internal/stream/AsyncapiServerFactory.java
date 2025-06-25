@@ -116,7 +116,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         bindings.put(binding.id, attached);
 
         AsyncapiCompositeConfig composite = generator.generate(attached);
-        for (String ref : generator.unresolved)
+        for (String ref : generator.unresolvedRefs())
         {
             event.unresolvedRef(binding.id, ref);
         }

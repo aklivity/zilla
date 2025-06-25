@@ -60,9 +60,4 @@ public abstract class AbstractAsyncapiResolver<T extends AbstractAsyncapiResolva
     {
         return ref != null && matcher.reset(ref).matches() ? matcher.group(1) : null;
     }
-
-    public Set<String> unresolvedRefs()
-    {
-        return unresolved;
-    }
 }

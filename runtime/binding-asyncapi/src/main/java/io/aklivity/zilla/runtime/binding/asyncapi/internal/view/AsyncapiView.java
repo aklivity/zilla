@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composi
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -37,7 +38,8 @@ public final class AsyncapiView
     public final Map<String, AsyncapiChannelView> channels;
     public final Map<String, AsyncapiOperationView> operations;
     public final AsyncapiComponentsView components;
-    public final AsyncapiResolver resolver;
+
+    private final AsyncapiResolver resolver;
 
     public boolean hasProtocol(
         String protocol)
@@ -116,5 +118,10 @@ public final class AsyncapiView
         this.components = asyncapi.components != null
             ? new AsyncapiComponentsView(resolver, asyncapi.components)
             : null;
+    }
+
+    public Collection<String> unresolvedRefs()
+    {
+        return resolver.unresolvedRefs();
     }
 }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -48,7 +49,7 @@ public final class AsyncapiResolver
         this.correlationIds = new AsyncapiCorrelationIdResolver(model, unresolved);
     }
 
-    public Set<String> unresolvedRefs()
+    public Collection<String> unresolvedRefs()
     {
         return unresolved;
     }

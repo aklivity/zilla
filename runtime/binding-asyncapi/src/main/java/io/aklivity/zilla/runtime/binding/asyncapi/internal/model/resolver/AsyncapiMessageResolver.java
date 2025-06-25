@@ -32,6 +32,7 @@ public final class AsyncapiMessageResolver extends AbstractAsyncapiResolver<Asyn
             Optional.ofNullable(model.components)
                 .map(c -> c.messages)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/messages/(.+)"), unresolved);
+            Pattern.compile("#/components/messages/(.+)"),
+            unresolved);
     }
 }

@@ -89,11 +89,6 @@ public final class AsyncapiSchemaResolver
         return resolver.resolveRef(ref);
     }
 
-    public Set<String> unresolved()
-    {
-        return resolver.unresolvedRefs();
-    }
-
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>
     {
         private ResolverImpl(

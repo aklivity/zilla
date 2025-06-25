@@ -32,6 +32,7 @@ public final class AsyncapiMessageTraitResolver extends AbstractAsyncapiResolver
             Optional.ofNullable(model.components)
                 .map(c -> c.messageTraits)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/messageTraits/(.+)"), unresolved);
+            Pattern.compile("#/components/messageTraits/(.+)"),
+            unresolved);
     }
 }
