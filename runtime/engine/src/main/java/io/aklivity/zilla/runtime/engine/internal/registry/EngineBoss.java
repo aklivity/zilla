@@ -137,6 +137,12 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
+    public void attachNow(
+        NamespaceConfig namespace)
+    {
+        attach(namespace).join();
+    }
+
     public CompletableFuture<Void> attach(
         NamespaceConfig namespace)
     {
@@ -144,6 +150,12 @@ public class EngineBoss implements EngineController, Agent
         taskQueue.offer(attachedTask);
 
         return attachedTask.future();
+    }
+
+    public void detachNow(
+        NamespaceConfig namespace)
+    {
+        detach(namespace).join();
     }
 
     public CompletableFuture<Void> detach(

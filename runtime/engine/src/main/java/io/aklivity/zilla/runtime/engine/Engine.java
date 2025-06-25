@@ -164,7 +164,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, workerIndex, readonly, this::process);
+                    eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
         this.workers = workers;

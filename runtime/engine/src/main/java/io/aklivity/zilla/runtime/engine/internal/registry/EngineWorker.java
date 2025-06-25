@@ -226,6 +226,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Path configPath;
     private final AgentRunner runner;
     private final Supplier<IdleStrategy> supplyIdleStrategy;
+    private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
     private final CountersLayout countersLayout;
@@ -267,7 +268,8 @@ public class EngineWorker implements EngineContext, Agent
         EventFormatterFactory eventFormatterFactory,
         int index,
         boolean readonly,
-        Consumer<NamespaceConfig> process)
+        Consumer<NamespaceConfig> process,
+        EngineBoss boss)
     {
         this.localIndex = index;
         this.config = config;
@@ -281,6 +283,7 @@ public class EngineWorker implements EngineContext, Agent
                 config.maxYields(),
                 config.minParkNanos(),
                 config.maxParkNanos());
+        this.boss = boss;
 
         this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
@@ -816,6 +819,11 @@ public class EngineWorker implements EngineContext, Agent
             EngineConfigWriter writer = new EngineConfigWriter(null);
             System.out.println(writer.write(composite));
         }
+
+        if (localIndex == 0)
+        {
+            boss.attachNow(composite);
+        }
     }
 
     @Override
@@ -826,6 +834,11 @@ public class EngineWorker implements EngineContext, Agent
 
         registry.detachNow(composite);
         writeBindingTypes(registry);
+
+        if (localIndex == 0)
+        {
+            boss.detachNow(composite);
+        }
     }
 
     public void doStart()
