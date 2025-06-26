@@ -25,4 +25,22 @@ scope openapi
             octets extension;
         }
     }
+    
+    scope event
+    {
+        enum OpenapiEventType (uint8)
+        {
+            UNRESOLVED_REF (1)
+        }
+
+        struct OpenapiUnresolvedRefEx extends core::stream::Extension
+        {
+            string16 ref;
+        }
+
+        union OpenapiEventEx switch (OpenapiEventType)
+        {
+            case UNRESOLVED_REF: OpenapiUnresolvedRefEx unresolvedRef;
+        }
+    }
 }
