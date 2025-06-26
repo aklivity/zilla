@@ -137,12 +137,6 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
-    public void attachNow(
-        NamespaceConfig namespace)
-    {
-        attach(namespace).join();
-    }
-
     public CompletableFuture<Void> attach(
         NamespaceConfig namespace)
     {
@@ -152,12 +146,6 @@ public class EngineBoss implements EngineController, Agent
         return attachedTask.future();
     }
 
-    public void detachNow(
-        NamespaceConfig namespace)
-    {
-        detach(namespace).join();
-    }
-
     public CompletableFuture<Void> detach(
         NamespaceConfig namespace)
     {
@@ -165,19 +153,6 @@ public class EngineBoss implements EngineController, Agent
         taskQueue.offer(detachedTask);
 
         return detachedTask.future();
-    }
-
-    private void detachNamespace(
-        NamespaceConfig namespace)
-    {
-        for (BindingConfig binding : namespace.bindings)
-        {
-            BindingController controller = controllersByType.get(binding.type);
-            if (controller != null)
-            {
-                controller.detach(binding);
-            }
-        }
     }
 
     @Override
@@ -203,6 +178,21 @@ public class EngineBoss implements EngineController, Agent
             if (controller != null && binding.kind == KindConfig.SERVER)
             {
                 controller.attach(binding);
+            }
+        }
+    }
+
+    private void detachNamespace(
+        NamespaceConfig namespace)
+    {
+        namespaces.remove(namespace);
+        
+        for (BindingConfig binding : namespace.bindings)
+        {
+            BindingController controller = controllersByType.get(binding.type);
+            if (controller != null)
+            {
+                controller.detach(binding);
             }
         }
     }

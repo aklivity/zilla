@@ -822,7 +822,7 @@ public class EngineWorker implements EngineContext, Agent
 
         if (localIndex == 0)
         {
-            boss.attachNow(composite);
+            boss.attach(composite).join();
         }
     }
 
@@ -837,7 +837,7 @@ public class EngineWorker implements EngineContext, Agent
 
         if (localIndex == 0)
         {
-            boss.detachNow(composite);
+            boss.detach(composite).join();
         }
     }
 
