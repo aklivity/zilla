@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -24,12 +25,14 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 public final class OpenapiResponseResolver extends AbstractOpenapiResolver<OpenapiResponse>
 {
     public OpenapiResponseResolver(
-        Openapi model)
+        Openapi model,
+        Set<String> unresolved)
     {
         super(
             Optional.ofNullable(model.components)
                 .map(c -> c.responses)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/responses/(.+)"));
+            Pattern.compile("#/components/responses/(.+)"),
+            unresolved);
     }
 }

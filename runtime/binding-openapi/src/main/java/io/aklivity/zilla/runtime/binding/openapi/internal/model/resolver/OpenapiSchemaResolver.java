@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -29,9 +30,10 @@ public final class OpenapiSchemaResolver
     private final ResolverImpl resolver;
 
     public OpenapiSchemaResolver(
-        Openapi model)
+        Openapi model,
+        Set<String> unresolved)
     {
-        this.resolver = new ResolverImpl(model);
+        this.resolver = new ResolverImpl(model, unresolved);
     }
 
     public OpenapiSchema resolve(
@@ -82,13 +84,15 @@ public final class OpenapiSchemaResolver
     private final class ResolverImpl extends AbstractOpenapiResolver<OpenapiSchema>
     {
         private ResolverImpl(
-            Openapi model)
+            Openapi model,
+            Set<String> unresolved)
         {
             super(
                 Optional.ofNullable(model.components)
                     .map(c -> c.schemas)
                     .orElseGet(Map::of),
-                Pattern.compile("#/components/schemas/(.+)"));
+                Pattern.compile("#/components/schemas/(.+)"),
+                unresolved);
         }
     }
 }

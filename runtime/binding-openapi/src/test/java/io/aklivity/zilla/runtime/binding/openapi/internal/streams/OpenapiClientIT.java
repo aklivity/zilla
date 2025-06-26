@@ -70,4 +70,15 @@ public class OpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.unresolved.ref.yaml")
+    @Specification({
+        "${openapi}/create.pet/client",
+        "${composite}/create.pet/server"
+    })
+    public void shouldLogEventUnresolvedRef() throws Exception
+    {
+        k3po.finish();
+    }
 }

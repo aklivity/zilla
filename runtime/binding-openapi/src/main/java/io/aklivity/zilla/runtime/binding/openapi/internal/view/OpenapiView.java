@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.openapi.internal.config.composit
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongSupplier;
@@ -39,6 +40,8 @@ public final class OpenapiView
     public final List<OpenapiServerView> servers;
     public final Map<String, OpenapiOperationView> operations;
     public final List<List<OpenapiSecurityRequirementView>> security;
+
+    private final OpenapiResolver resolver;
 
     public static OpenapiView of(
         Openapi model)
@@ -71,7 +74,7 @@ public final class OpenapiView
         this.label = label;
         this.compositeId = compositeId(id, 0);
 
-        OpenapiResolver resolver = new OpenapiResolver(model);
+        this.resolver = new OpenapiResolver(model);
 
         this.servers = model.servers != null
             ? model.servers.stream()
@@ -107,5 +110,10 @@ public final class OpenapiView
                 .filter(o -> o.id != null)
                 .collect(toMap(o -> o.id, identity()))
             : null;
+    }
+
+    public Collection<String> unresolvedRefs()
+    {
+        return resolver.unresolvedRefs();
     }
 }

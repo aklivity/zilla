@@ -24,7 +24,7 @@ for i in $(seq 1 5); do
     break
   fi
 
-  sleep 2
+  sleep 5
 done
 
 OUTPUT=$(

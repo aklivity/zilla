@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,20 +25,28 @@ public abstract class AbstractOpenapiResolver<T extends AbstractOpenapiResolvabl
 {
     private final Map<String, T> resolvables;
     private final Matcher matcher;
+    private final Set<String> unresolved;
 
     public AbstractOpenapiResolver(
         Map<String, T> resolvables,
-        Pattern pattern)
+        Pattern pattern,
+        Set<String> unresolved)
     {
         this.resolvables = resolvables;
         this.matcher = pattern.matcher("");
+        this.unresolved = unresolved;
     }
 
     public final T resolve(
         T model)
     {
         final String key = resolveRef(model.ref);
-        return key != null ? resolvables.get(key) : model;
+        T candidate = key != null ? resolvables.getOrDefault(key, model) : model;
+        if (candidate.ref != null)
+        {
+            unresolved.add(candidate.ref);
+        }
+        return candidate;
     }
 
     public T resolve(
