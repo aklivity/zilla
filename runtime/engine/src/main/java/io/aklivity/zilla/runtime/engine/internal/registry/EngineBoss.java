@@ -21,17 +21,17 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.nio.channels.SelectableChannel;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.agrona.ErrorHandler;
+import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -59,7 +59,7 @@ public class EngineBoss implements EngineController, Agent
     private final Map<String, BindingController> controllersByType;
 
     private volatile Thread thread;
-    private List<NamespaceConfig> namespaces;
+    private Set<NamespaceConfig> namespaces;
 
     public EngineBoss(
         EngineConfiguration config,
@@ -68,7 +68,7 @@ public class EngineBoss implements EngineController, Agent
     {
         this.poller = new Poller();
         this.taskQueue = new ConcurrentLinkedDeque<>();
-        this.namespaces = new ArrayList<>();
+        this.namespaces = new ObjectHashSet<>();
 
         this.controllersByType = bindings.stream()
         .flatMap(b ->
@@ -137,6 +137,12 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
+    public void attachNow(
+        NamespaceConfig namespace)
+    {
+        attach(namespace).join();
+    }
+
     public CompletableFuture<Void> attach(
         NamespaceConfig namespace)
     {
@@ -144,6 +150,12 @@ public class EngineBoss implements EngineController, Agent
         taskQueue.offer(attachedTask);
 
         return attachedTask.future();
+    }
+
+    public void detachNow(
+        NamespaceConfig namespace)
+    {
+        detach(namespace).join();
     }
 
     public CompletableFuture<Void> detach(
