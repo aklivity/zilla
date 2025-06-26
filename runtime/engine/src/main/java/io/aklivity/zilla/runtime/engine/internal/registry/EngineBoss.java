@@ -186,7 +186,7 @@ public class EngineBoss implements EngineController, Agent
         NamespaceConfig namespace)
     {
         namespaces.remove(namespace);
-        
+
         for (BindingConfig binding : namespace.bindings)
         {
             BindingController controller = controllersByType.get(binding.type);
