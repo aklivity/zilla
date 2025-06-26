@@ -35,8 +35,8 @@ public class OpenapiEventContext
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
-    private final OpenapiEventExFW.Builder asyncapiEventExRW = new OpenapiEventExFW.Builder();
-    private final int asyncapiTypeId;
+    private final OpenapiEventExFW.Builder openapiEventExRW = new OpenapiEventExFW.Builder();
+    private final int openapiTypeId;
     private final int unresolvedRef;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -44,7 +44,7 @@ public class OpenapiEventContext
     public OpenapiEventContext(
         EngineContext context)
     {
-        this.asyncapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
+        this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.unresolvedRef = context.supplyEventId("binding.openapi.unresolved.ref");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
@@ -54,7 +54,7 @@ public class OpenapiEventContext
         long bindingId,
         String ref)
     {
-        OpenapiEventExFW extension = asyncapiEventExRW
+        OpenapiEventExFW extension = openapiEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .unresolvedRef(e -> e
                 .typeId(UNRESOLVED_REF.value())
@@ -69,6 +69,6 @@ public class OpenapiEventContext
             .namespacedId(bindingId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        eventWriter.accept(asyncapiTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(openapiTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

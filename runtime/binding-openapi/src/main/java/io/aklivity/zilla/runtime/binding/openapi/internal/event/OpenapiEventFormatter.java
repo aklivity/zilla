@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 public final class OpenapiEventFormatter implements EventFormatterSpi
 {
     private final EventFW eventRO = new EventFW();
-    private final OpenapiEventExFW asyncapiEventExRO = new OpenapiEventExFW();
+    private final OpenapiEventExFW openapiEventExRO = new OpenapiEventExFW();
 
     OpenapiEventFormatter(
         Configuration config)
@@ -39,7 +39,7 @@ public final class OpenapiEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final OpenapiEventExFW extension = asyncapiEventExRO
+        final OpenapiEventExFW extension = openapiEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
         String result = null;
         switch (extension.kind())
