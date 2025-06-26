@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiCompositeGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiProxyGenerator;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.event.AsyncapiEventContext;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -77,6 +78,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final MutableDirectBuffer extBuffer;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final AsyncapiCompositeGenerator generator;
+    private final AsyncapiEventContext event;
 
     private final int asyncapiTypeId;
     private final BindingHandler streamFactory;
@@ -96,6 +98,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.generator = new AsyncapiProxyGenerator();
+        this.event = new AsyncapiEventContext(context);
     }
 
 
@@ -113,6 +116,10 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         bindings.put(binding.id, attached);
 
         AsyncapiCompositeConfig composite = generator.generate(attached);
+        for (String ref : generator.unresolvedRefs())
+        {
+            event.unresolvedRef(binding.id, ref);
+        }
         assert composite != null;
         // TODO: schedule generate retry if null
 

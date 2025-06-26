@@ -12,20 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.event;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-
-public final class AsyncapiChannelResolver extends AbstractAsyncapiResolver<AsyncapiChannel>
+public final class AsyncapiEventFormatterFactory implements EventFormatterFactorySpi
 {
-    public AsyncapiChannelResolver(
-        Asyncapi model,
-        Set<String> unresolved)
+    @Override
+    public AsyncapiEventFormatter create(
+        Configuration config)
     {
-        super(model.channels, Pattern.compile("#/channels/(.+)"), unresolved);
+        return new AsyncapiEventFormatter(config);
+    }
+
+    @Override
+    public String type()
+    {
+        return AsyncapiBinding.NAME;
     }
 }
