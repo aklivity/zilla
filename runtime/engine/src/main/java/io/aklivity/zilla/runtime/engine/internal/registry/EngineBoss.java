@@ -197,8 +197,6 @@ public class EngineBoss implements EngineController, Agent
     private void detachNamespace(
         NamespaceConfig namespace)
     {
-        namespaces.remove(namespace);
-
         for (BindingConfig binding : namespace.bindings)
         {
             BindingController controller = controllersByType.get(binding.type);
@@ -207,5 +205,7 @@ public class EngineBoss implements EngineController, Agent
                 controller.detach(binding);
             }
         }
+
+        namespaces.remove(namespace);
     }
 }
