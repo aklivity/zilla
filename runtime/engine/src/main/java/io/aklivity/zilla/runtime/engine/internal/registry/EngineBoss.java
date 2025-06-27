@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public class EngineBoss implements EngineController, Agent
 {
-    private static final String AGENT_NAME = "EngineBoss";
+    private static final String AGENT_NAME = "engine/boss";
 
     private final AgentRunner runner;
 

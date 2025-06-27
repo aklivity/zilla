@@ -330,7 +330,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.eventNames = new Int2ObjectHashMap<>();
 
-        this.agentName = String.format("engine/data#%d", index);
+        this.agentName = String.format("engine/worker#%d", index);
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, this);
