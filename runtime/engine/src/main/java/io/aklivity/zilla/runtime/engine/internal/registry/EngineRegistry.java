@@ -175,7 +175,7 @@ public class EngineRegistry
 
     public void detachAll()
     {
-        namespacesById.values().forEach(n -> n.detach());
+        namespacesById.values().forEach(NamespaceRegistry::detach);
         namespacesById.clear();
     }
 

@@ -18,11 +18,10 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding.WRITE_SPIN_COUNT;
 import static io.aklivity.zilla.runtime.binding.tcp.internal.util.IpUtil.proxyAddress;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static java.net.StandardSocketOptions.SO_KEEPALIVE;
-import static java.net.StandardSocketOptions.TCP_NODELAY;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
+import static org.agrona.CloseHelper.quietClose;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,7 +29,6 @@ import java.net.StandardSocketOptions;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -40,11 +38,12 @@ import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpUsageTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
@@ -83,17 +82,18 @@ public class TcpServerFactory implements TcpStreamFactory
 
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
-    private final TcpServerRouter router;
-
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Function<SelectableChannel, PollerKey> supplyPollerKey;
+    private final Long2ObjectHashMap<TcpBindingConfig> bindings;
+    private final TcpEventContext event;
 
     private final BufferPool bufferPool;
     private final ByteBuffer readByteBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer writeBuffer;
+    private final TcpUsageTracker usage;
     private final ByteBuffer writeByteBuffer;
     private final int replyMax;
     private final int windowThreshold;
@@ -103,10 +103,11 @@ public class TcpServerFactory implements TcpStreamFactory
     public TcpServerFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpCapacityTracker capacity)
+        TcpUsageTracker usage)
     {
-        this.router = new TcpServerRouter(context, this::handleAccept, capacity);
+        this.event = new TcpEventContext(context);
         this.writeBuffer = context.writeBuffer();
+        this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
         this.supplyInitialId = context::supplyInitialId;
@@ -121,6 +122,7 @@ public class TcpServerFactory implements TcpStreamFactory
         this.readBuffer = new UnsafeBuffer(readByteBuffer);
         this.replyMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
+        this.bindings = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -150,51 +152,23 @@ public class TcpServerFactory implements TcpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding);
-        router.attach(tcpBinding);
+        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding, event);
+        bindings.put(binding.id, tcpBinding);
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        router.detach(bindingId);
+        bindings.remove(bindingId);
     }
 
-    private int handleAccept(
-        PollerKey acceptKey)
-    {
-        try
-        {
-            TcpBindingConfig binding = (TcpBindingConfig) acceptKey.attachment();
-            TcpOptionsConfig options = binding.options;
-
-            ServerSocketChannel server = (ServerSocketChannel) acceptKey.channel();
-
-            for (SocketChannel channel = router.accept(server); channel != null; channel = router.accept(server))
-            {
-                channel.configureBlocking(false);
-                channel.setOption(TCP_NODELAY, options.nodelay);
-                channel.setOption(SO_KEEPALIVE, options.keepalive);
-
-                InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-
-                onAccepted(binding, channel, local);
-            }
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return 1;
-    }
-
-    private void onAccepted(
-        TcpBindingConfig binding,
+    public void onAccepted(
+        long bindingId,
         SocketChannel network,
         InetSocketAddress local)
     {
+        TcpBindingConfig binding = bindings.get(bindingId);
         final TcpRouteConfig route = binding.resolve(local);
 
         if (route != null)
@@ -211,7 +185,9 @@ public class TcpServerFactory implements TcpStreamFactory
     private void closeNet(
         SocketChannel network)
     {
-        router.close(network);
+        quietClose(network);
+
+        usage.released();
     }
 
     private final class TcpServer
@@ -588,7 +564,7 @@ public class TcpServerFactory implements TcpStreamFactory
             assert initialAck <= initialSeq;
 
             state = TcpState.closeInitial(state);
-            CloseHelper.quietClose(net::shutdownInput);
+            quietClose(net::shutdownInput);
 
             final boolean abortiveRelease = !TcpState.replyOpened(state);
 
