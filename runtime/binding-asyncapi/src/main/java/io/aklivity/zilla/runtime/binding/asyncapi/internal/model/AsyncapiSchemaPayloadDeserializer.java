@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-
-import java.io.Reader;
 import java.lang.reflect.Type;
 
 import jakarta.json.JsonObject;
@@ -35,30 +33,23 @@ public class AsyncapiSchemaPayloadDeserializer implements JsonbDeserializer<Asyn
         Type rtType) throws JsonbException
     {
         Jsonb jsonb = JsonbBuilder.create();
-        JsonParser.Event event = parser.next();
+        JsonObject value = parser.getObject();
 
         AsyncapiSchemaItem schema = null;
 
-        if (event == JsonParser.Event.KEY_NAME)
+        if (value.containsKey("$ref"))
         {
-            parser.next();
-            AsyncapiSchemaItem asyncapiSchemaItem = new AsyncapiSchemaItem();
-            asyncapiSchemaItem.ref = parser.getString();
-            schema = asyncapiSchemaItem;
+            AsyncapiSchemaItem schemaItem = new AsyncapiSchemaItem();
+            schemaItem.ref = value.getString("$ref");
+            schema = schemaItem;
         }
-        else if (event == JsonParser.Event.START_OBJECT)
+        else if (value.containsKey("type"))
         {
-            JsonObject accessor = parser.getObject();
-            String schemaFormat = accessor.getString("schemaFormat");
-
-            if (schemaFormat != null)
-            {
-                schema = jsonb.fromJson((Reader) accessor, AsyncapiMultiFormatSchema.class);
-            }
-            else
-            {
-                schema = jsonb.fromJson((Reader) accessor, AsyncapiSchema.class);
-            }
+            schema = jsonb.fromJson(value.toString(), AsyncapiSchema.class);
+        }
+        else if (value.containsKey("schemaFormat"))
+        {
+            schema = jsonb.fromJson(value.toString(), AsyncapiMultiFormatSchema.class);
         }
 
         return schema;

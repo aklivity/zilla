@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -30,11 +31,12 @@ public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<As
     private final Matcher matcher;
 
     public AsyncapiOperationResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        super(model.operations, Pattern.compile("#/operations/(.+)"));
-        this.channels = new AsyncapiChannelResolver(model);
-        this.messages = new AsyncapiMessageResolver(model);
+        super(model.operations, Pattern.compile("#/operations/(.+)"), unresolved);
+        this.channels = new AsyncapiChannelResolver(model, unresolved);
+        this.messages = new AsyncapiMessageResolver(model, unresolved);
         this.matcher = Pattern.compile("#/channels/(.+)/messages/(.+)").matcher("");
     }
 

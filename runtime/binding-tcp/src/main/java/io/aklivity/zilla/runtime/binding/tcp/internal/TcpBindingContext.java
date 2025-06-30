@@ -18,8 +18,11 @@ package io.aklivity.zilla.runtime.binding.tcp.internal;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
+import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory;
@@ -33,17 +36,39 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 final class TcpBindingContext implements BindingContext
 {
     private final Map<KindConfig, TcpStreamFactory> factories;
+    private final Consumer<Runnable> dispatch;
+
+    private final TcpUsageTracker usage;
 
     TcpBindingContext(
         TcpConfiguration config,
         EngineContext context)
     {
-        TcpCapacityTracker capacity = new TcpCapacityTracker(config, context);
+        this.usage = new TcpUsageTracker(config, context);
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new TcpServerFactory(config, context, capacity));
-        factories.put(CLIENT, new TcpClientFactory(config, context, capacity));
+        factories.put(SERVER, new TcpServerFactory(config, context, usage));
+        factories.put(CLIENT, new TcpClientFactory(config, context, usage));
 
+        this.dispatch = context::dispatch;
         this.factories = factories;
+    }
+
+    public boolean accepted(
+        long bindingId,
+        SocketChannel channel,
+        InetSocketAddress local)
+    {
+        boolean accepted = false;
+        if (usage.available() > 0)
+        {
+            usage.claim();
+            accepted = true;
+
+            TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);
+            dispatch.accept(task);
+        }
+
+        return accepted;
     }
 
     @Override
@@ -67,6 +92,30 @@ final class TcpBindingContext implements BindingContext
         if (tcpFactory != null)
         {
             tcpFactory.detach(binding.id);
+        }
+    }
+
+    private final class TcpAcceptedTask implements Runnable
+    {
+        private final long bindingId;
+        private final SocketChannel channel;
+        private final InetSocketAddress local;
+
+        TcpAcceptedTask(
+            long bindingId,
+            SocketChannel channel,
+            InetSocketAddress local)
+        {
+            this.bindingId = bindingId;
+            this.channel = channel;
+            this.local = local;
+        }
+
+        @Override
+        public void run()
+        {
+            TcpServerFactory serverFactory = (TcpServerFactory) factories.get(SERVER);
+            serverFactory.onAccepted(bindingId, channel, local);
         }
     }
 }

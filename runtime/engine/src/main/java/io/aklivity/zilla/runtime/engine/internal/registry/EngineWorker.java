@@ -226,6 +226,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Path configPath;
     private final AgentRunner runner;
     private final Supplier<IdleStrategy> supplyIdleStrategy;
+    private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
     private final CountersLayout countersLayout;
@@ -267,7 +268,8 @@ public class EngineWorker implements EngineContext, Agent
         EventFormatterFactory eventFormatterFactory,
         int index,
         boolean readonly,
-        Consumer<NamespaceConfig> process)
+        Consumer<NamespaceConfig> process,
+        EngineBoss boss)
     {
         this.localIndex = index;
         this.config = config;
@@ -281,6 +283,7 @@ public class EngineWorker implements EngineContext, Agent
                 config.maxYields(),
                 config.minParkNanos(),
                 config.maxParkNanos());
+        this.boss = boss;
 
         this.countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
@@ -327,7 +330,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.eventNames = new Int2ObjectHashMap<>();
 
-        this.agentName = String.format("engine/data#%d", index);
+        this.agentName = String.format("engine/worker#%d", index);
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, this);
@@ -816,6 +819,11 @@ public class EngineWorker implements EngineContext, Agent
             EngineConfigWriter writer = new EngineConfigWriter(null);
             System.out.println(writer.write(composite));
         }
+
+        if (localIndex == 0)
+        {
+            boss.attachNow(composite);
+        }
     }
 
     @Override
@@ -826,6 +834,11 @@ public class EngineWorker implements EngineContext, Agent
 
         registry.detachNow(composite);
         writeBindingTypes(registry);
+
+        if (localIndex == 0)
+        {
+            boss.detachNow(composite);
+        }
     }
 
     public void doStart()
@@ -983,8 +996,7 @@ public class EngineWorker implements EngineContext, Agent
         assert thread != Thread.currentThread();
 
         NamespaceTask attachTask = registry.attach(namespace);
-        taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        dispatch(attachTask);
 
         if (localIndex == 0)
         {
@@ -1001,8 +1013,7 @@ public class EngineWorker implements EngineContext, Agent
         assert thread != Thread.currentThread();
 
         NamespaceTask detachTask = registry.detach(namespace);
-        taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        dispatch(detachTask);
 
         if (localIndex == 0)
         {
@@ -1094,6 +1105,14 @@ public class EngineWorker implements EngineContext, Agent
     public Clock clock()
     {
         return Clock.systemUTC();
+    }
+
+    @Override
+    public void dispatch(
+        Runnable task)
+    {
+        taskQueue.offer(task);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
     }
 
     private void writeBindingTypes(

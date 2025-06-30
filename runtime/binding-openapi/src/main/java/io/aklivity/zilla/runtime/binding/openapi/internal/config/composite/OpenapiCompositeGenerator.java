@@ -19,9 +19,12 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -67,6 +70,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class OpenapiCompositeGenerator
 {
+    private final Set<String> unresolved = new LinkedHashSet<>();
+
     public final OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding)
     {
@@ -88,13 +93,20 @@ public abstract class OpenapiCompositeGenerator
                     specification.servers == null || specification.servers.isEmpty()
                         ? List.of(OpenapiServerConfig.builder().build())
                         : specification.servers;
-                final OpenapiView asyncapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), configs);
 
-                schemas.add(new OpenapiSchemaConfig(label, schemaId, asyncapi));
+                unresolved.addAll(openapi.unresolvedRefs());
+
+                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
             }
         }
 
         return generate(binding, schemas);
+    }
+
+    public final Collection<String> unresolvedRefs()
+    {
+        return unresolved;
     }
 
     protected abstract OpenapiCompositeConfig generate(

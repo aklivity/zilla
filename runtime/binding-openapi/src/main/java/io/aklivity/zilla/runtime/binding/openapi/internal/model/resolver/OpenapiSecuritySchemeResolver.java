@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
@@ -24,12 +25,14 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSecurityS
 public final class OpenapiSecuritySchemeResolver extends AbstractOpenapiResolver<OpenapiSecurityScheme>
 {
     public OpenapiSecuritySchemeResolver(
-        Openapi model)
+        Openapi model,
+        Set<String> unresolved)
     {
         super(
             Optional.ofNullable(model.components)
                 .map(c -> c.securitySchemes)
                 .orElseGet(Map::of),
-            Pattern.compile("#/components/securitySchemes/(.+)"));
+            Pattern.compile("#/components/securitySchemes/(.+)"),
+            unresolved);
     }
 }

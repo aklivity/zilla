@@ -329,11 +329,11 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.event.handshake.failed.yaml")
+    @Configuration("server.event.handshake.timeout.yaml")
     @Specification({
         "${net}/server.handshake.timeout/client"})
     @Configure(name = TlsConfigurationTest.TLS_HANDSHAKE_TIMEOUT_NAME, value = "1")
-    public void shouldLogHandshakeFailedEvent() throws Exception
+    public void shouldLogHandshakeTimeoutEvent() throws Exception
     {
         k3po.finish();
     }

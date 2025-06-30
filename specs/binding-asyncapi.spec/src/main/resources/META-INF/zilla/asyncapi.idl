@@ -24,4 +24,22 @@ scope asyncapi
             octets extension;
         }
     }
+
+    scope event
+    {
+        enum AsyncapiEventType (uint8)
+        {
+            UNRESOLVED_REF (1)
+        }
+
+        struct AsyncapiUnresolvedRefEx extends core::stream::Extension
+        {
+            string16 ref;
+        }
+
+        union AsyncapiEventEx switch (AsyncapiEventType)
+        {
+            case UNRESOLVED_REF: AsyncapiUnresolvedRefEx unresolvedRef;
+        }
+    }
 }

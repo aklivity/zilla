@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model.resolver;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 
 public final class OpenapiResolver
@@ -26,15 +30,23 @@ public final class OpenapiResolver
     public final OpenapiSecuritySchemeResolver securitySchemes;
     public final OpenapiLinkResolver links;
 
+    private final Set<String> unresolved;
+
     public OpenapiResolver(
         Openapi model)
     {
-        this.schemas = new OpenapiSchemaResolver(model);
-        this.parameters = new OpenapiParameterResolver(model);
-        this.headers = new OpenapiHeaderResolver(model);
-        this.requestBodies = new OpenapiRequestBodyResolver(model);
-        this.responses = new OpenapiResponseResolver(model);
-        this.securitySchemes = new OpenapiSecuritySchemeResolver(model);
-        this.links = new OpenapiLinkResolver(model);
+        this.unresolved = new LinkedHashSet<>();
+        this.schemas = new OpenapiSchemaResolver(model, unresolved);
+        this.parameters = new OpenapiParameterResolver(model, unresolved);
+        this.headers = new OpenapiHeaderResolver(model, unresolved);
+        this.requestBodies = new OpenapiRequestBodyResolver(model, unresolved);
+        this.responses = new OpenapiResponseResolver(model, unresolved);
+        this.securitySchemes = new OpenapiSecuritySchemeResolver(model, unresolved);
+        this.links = new OpenapiLinkResolver(model, unresolved);
+    }
+
+    public Collection<String> unresolvedRefs()
+    {
+        return unresolved;
     }
 }
