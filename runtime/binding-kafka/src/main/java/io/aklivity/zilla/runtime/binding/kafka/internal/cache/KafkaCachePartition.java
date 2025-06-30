@@ -127,6 +127,8 @@ public final class KafkaCachePartition
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
         .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);
+    private final KafkaKeyFW.Builder keyRW = new KafkaKeyFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);
     private final String32FW.Builder stringRW = new String32FW.Builder()
         .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -496,10 +498,12 @@ public final class KafkaCachePartition
                 KafkaCachePaddedKeyFW paddedKey =
                     logFile.readBytes(position, paddedKeyRO::wrap);
                 final int paddedKeySize = paddedKey.sizeof();
-                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
-                final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
-                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
-                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+                paddedKeyRW.rewrap();
+                KafkaKeyFW keyFW = keyRW.rewrap().length(length).value(buffer, index, length).build();
+                paddedKeyRW.key(keyFW);
+                final int keyAndMetadataSize = keyFW.sizeof() + KafkaCachePaddedKeyFW.FIELD_OFFSET_PADDING;
+                paddedKeyRW.padding(logFile.buffer(), 0, paddedKeySize - keyAndMetadataSize);
+                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyRW.build();
                 logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
             };
 

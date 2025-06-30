@@ -16,21 +16,27 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.String32FW;
 
 public class JsonReadConverterHandler extends JsonModelHandler implements ConverterHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+    private static final String PATH = "\\$\\.([A-Za-z_][A-Za-z0-9_]*)";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+
+    private final String32FW.Builder stringRW = new String32FW.Builder()
+            .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final Matcher matcher;
 
@@ -75,29 +81,35 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
 
     @Override
     public int extractedLength(
-        String path)
+            String path)
     {
-        OctetsFW value = null;
-        if (matcher.reset(path).matches())
-        {
-            value = extracted.get(matcher.group(1));
-        }
-        return value != null ? value.sizeof() : 0;
+        return findAndReplaceExtracted(path).length();
     }
 
     @Override
     public void extracted(
-        String path,
-        FieldVisitor visitor)
+            String path,
+            FieldVisitor visitor)
     {
-        if (matcher.reset(path).matches())
+        DirectBuffer value = findAndReplaceExtracted(path).value();
+        visitor.visit(value, 0, value.capacity());
+    }
+
+    private String32FW findAndReplaceExtracted(String path)
+    {
+        matcher.reset(path);
+        String newValue = matcher.replaceAll(r ->
         {
-            OctetsFW value = extracted.get(matcher.group(1));
-            if (value != null && value.sizeof() != 0)
+            String fieldName = r.group(1);
+            OctetsFW extractedField = extracted.get(fieldName);
+            if (extractedField == null)
             {
-                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+                return "";
             }
-        }
+            DirectBuffer value = extractedField.value();
+            return stringRW.set(value, 0, value.capacity()).build().asString();
+        });
+        return stringRW.set(newValue, StandardCharsets.UTF_8).build();
     }
 
     private int decodePayload(
