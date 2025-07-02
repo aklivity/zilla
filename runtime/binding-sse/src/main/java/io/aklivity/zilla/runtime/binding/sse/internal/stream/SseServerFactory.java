@@ -34,6 +34,7 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 import jakarta.json.Json;
 import jakarta.json.JsonObjectBuilder;
 
@@ -41,6 +42,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
+
 
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration;
@@ -60,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ResetFW;
@@ -311,7 +314,16 @@ public final class SseServerFactory implements SseStreamFactory
                     binding.supplyModelConfig(path.asString()));
 
                 server.onNetBegin(begin);
-                server.stream.doAppBegin(traceId, authorization, affinity, compositeId, scheme, authority, path, lastId8);
+                server.stream.doAppBegin(
+                        traceId,
+                        authorization,
+                        affinity,
+                        compositeId,
+                        scheme,
+                        authority,
+                        path,
+                        lastId8,
+                        headers);
 
                 newStream = server::onNetMessage;
             }
@@ -903,10 +915,11 @@ public final class SseServerFactory implements SseStreamFactory
                 String16FW scheme,
                 String16FW authority,
                 String16FW path,
-                String8FW lastId)
+                String8FW lastId,
+                Array32FW<HttpHeaderFW> headers)
             {
                 application = newSseStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, compositeId, scheme, authority, path, lastId);
+                        traceId, authorization, affinity, compositeId, scheme, authority, path, lastId, headers);
             }
 
             private void doAppEndDeferred(
@@ -1508,21 +1521,22 @@ public final class SseServerFactory implements SseStreamFactory
     }
 
     private MessageConsumer newSseStream(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        long compositeId,
-        String16FW scheme,
-        String16FW authority,
-        String16FW path,
-        String8FW lastId)
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long authorization,
+            long affinity,
+            long compositeId,
+            String16FW scheme,
+            String16FW authority,
+            String16FW path,
+            String8FW lastId,
+            Array32FW<HttpHeaderFW> headers)
     {
         final SseBeginExFW sseBegin = sseBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .compositeId(compositeId)
@@ -1531,6 +1545,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .authority(authority)
                 .path(path)
                 .lastId(lastId)
+                .headers(h -> convertHttpHeaders(h, headers))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -1553,6 +1568,12 @@ public final class SseServerFactory implements SseStreamFactory
 
         return receiver;
     }
+
+    private void convertHttpHeaders(Array32FW.Builder<HeaderFW.Builder, HeaderFW> builder, Array32FW<HttpHeaderFW> headers)
+    {
+        headers.forEach(h -> builder.item(hb -> hb.name(h.name()).value(h.value())));
+    }
+
 
     private void doAbort(
         MessageConsumer receiver,
