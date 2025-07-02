@@ -144,7 +144,7 @@ public final class SseKafkaWithResolver
                                 .matchFirst(h -> Objects.equals(h.name().asString(), r.group(1))) : null)
                         .map(HeaderFW::value)
                         .map(String16FW::asString)
-                        .orElse(r.group(1));
+                        .orElse("");
     }
 
     private static String findAndReplace(

@@ -407,7 +407,7 @@ public final class HttpKafkaWithResolver
                 Optional.ofNullable(httpBeginEx.headers().matchFirst(h -> Objects.equals(h.name().asString(), r.group(1))))
                         .map(HttpHeaderFW::value)
                         .map(String16FW::asString)
-                        .orElse(r.group(1));
+                        .orElse("");
     }
 
 
