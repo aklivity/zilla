@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -22,8 +23,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel
 public final class AsyncapiChannelResolver extends AbstractAsyncapiResolver<AsyncapiChannel>
 {
     public AsyncapiChannelResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        super(model.channels, Pattern.compile("#/channels/(.+)"));
+        super(model.channels, Pattern.compile("#/channels/(.+)"), unresolved);
     }
 }

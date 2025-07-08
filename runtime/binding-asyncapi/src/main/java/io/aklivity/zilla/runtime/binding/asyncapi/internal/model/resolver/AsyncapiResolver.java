@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
 public final class AsyncapiResolver
@@ -28,17 +32,25 @@ public final class AsyncapiResolver
     public final AsyncapiServerVariableResolver serverVariables;
     public final AsyncapiCorrelationIdResolver correlationIds;
 
+    private final Set<String> unresolved;
+
     public AsyncapiResolver(
         Asyncapi model)
     {
+        this.unresolved = new LinkedHashSet<>();
         this.defaultContentType = model.defaultContentType;
-        this.channels = new AsyncapiChannelResolver(model);
-        this.operations = new AsyncapiOperationResolver(model);
-        this.messages = new AsyncapiMessageResolver(model);
-        this.securitySchemes = new AsyncapiSecuritySchemeResolver(model);
-        this.schemas = new AsyncapiSchemaResolver(model);
-        this.messageTraits = new AsyncapiMessageTraitResolver(model);
-        this.serverVariables = new AsyncapiServerVariableResolver(model);
-        this.correlationIds = new AsyncapiCorrelationIdResolver(model);
+        this.channels = new AsyncapiChannelResolver(model, unresolved);
+        this.operations = new AsyncapiOperationResolver(model, unresolved);
+        this.messages = new AsyncapiMessageResolver(model, unresolved);
+        this.securitySchemes = new AsyncapiSecuritySchemeResolver(model, unresolved);
+        this.schemas = new AsyncapiSchemaResolver(model, unresolved);
+        this.messageTraits = new AsyncapiMessageTraitResolver(model, unresolved);
+        this.serverVariables = new AsyncapiServerVariableResolver(model, unresolved);
+        this.correlationIds = new AsyncapiCorrelationIdResolver(model, unresolved);
+    }
+
+    public Collection<String> unresolvedRefs()
+    {
+        return unresolved;
     }
 }

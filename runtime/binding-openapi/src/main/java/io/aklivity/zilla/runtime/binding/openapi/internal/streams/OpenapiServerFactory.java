@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.composite.OpenapiServerGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.internal.event.OpenapiEventContext;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
@@ -84,6 +85,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final int httpTypeId;
 
     private final OpenapiServerGenerator generator;
+    private final OpenapiEventContext event;
 
     public OpenapiServerFactory(
         OpenapiConfiguration config,
@@ -99,6 +101,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.generator = new OpenapiServerGenerator();
+        this.event = new OpenapiEventContext(context);
     }
 
     @Override
@@ -121,6 +124,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         bindings.put(binding.id, attached);
 
         OpenapiCompositeConfig composite = generator.generate(attached);
+        for (String ref : generator.unresolvedRefs())
+        {
+            event.unresolvedRef(binding.id, ref);
+        }
         assert composite != null;
         // TODO: schedule generate retry if null
 

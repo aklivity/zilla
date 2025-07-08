@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -30,9 +31,10 @@ public final class AsyncapiSchemaResolver
     private final ResolverImpl resolver;
 
     public AsyncapiSchemaResolver(
-        Asyncapi model)
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        this.resolver = new ResolverImpl(model);
+        this.resolver = new ResolverImpl(model, unresolved);
     }
 
     @SuppressWarnings("unchecked")
@@ -90,13 +92,14 @@ public final class AsyncapiSchemaResolver
     private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>
     {
         private ResolverImpl(
-            Asyncapi model)
+            Asyncapi model,
+            Set<String> unresolved)
         {
             super(
                 Optional.ofNullable(model.components)
                     .map(c -> c.schemas)
                     .orElseGet(Map::of),
-                Pattern.compile("#/components/schemas/(.+)"));
+                Pattern.compile("#/components/schemas/(.+)"), unresolved);
         }
     }
 }

@@ -27,6 +27,7 @@ import static java.nio.channels.SelectionKey.OP_WRITE;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -40,12 +41,13 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.internal.TcpCapacityTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpUsageTracker;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
@@ -85,32 +87,36 @@ public class TcpClientFactory implements TcpStreamFactory
     private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
-    private final TcpClientRouter router;
     private final BufferPool bufferPool;
     private final ByteBuffer readByteBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer writeBuffer;
+    private final TcpUsageTracker usage;
     private final ByteBuffer writeByteBuffer;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Function<SelectableChannel, PollerKey>  supplyPollerKey;
+    private final Function<String, InetAddress[]> resolveHost;
     private final int proxyTypeId;
     private final int windowThreshold;
     private final int initialMax;
+    private final Long2ObjectHashMap<TcpBindingConfig> bindingsById;
+    private final TcpEventContext event;
 
     public TcpClientFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpCapacityTracker capacity)
+        TcpUsageTracker usage)
     {
-        TcpEventContext event = new TcpEventContext(context);
-        this.router = new TcpClientRouter(context, event, capacity);
+        this.event = new TcpEventContext(context);
         this.writeBuffer = context.writeBuffer();
+        this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyPollerKey = context::supplyPollerKey;
+        this.resolveHost  = context::resolveHost;
         this.proxyTypeId = context.supplyTypeId("proxy");
 
         final int readBufferSize = writeBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
@@ -119,6 +125,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
+        this.bindingsById = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -153,15 +160,15 @@ public class TcpClientFactory implements TcpStreamFactory
 
         InetSocketAddress route = null;
 
-        TcpBindingConfig binding = router.lookup(routedId);
+        TcpBindingConfig binding = bindingsById.get(routedId);
         if (binding != null)
         {
-            route = router.resolve(binding, traceId, authorization, beginEx);
+            route = binding.resolve(traceId, authorization, beginEx);
         }
 
         MessageConsumer newStream = null;
 
-        if (route != null)
+        if (route != null && usage.available() > 0)
         {
             final long initialId = begin.streamId();
 
@@ -178,15 +185,15 @@ public class TcpClientFactory implements TcpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding);
-        router.attach(tcpBinding);
+        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding, resolveHost, event);
+        bindingsById.put(tcpBinding.id, tcpBinding);
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        router.detach(bindingId);
+        bindingsById.remove(bindingId);
     }
 
     private SocketChannel newSocketChannel(
@@ -213,6 +220,8 @@ public class TcpClientFactory implements TcpStreamFactory
         SocketChannel network)
     {
         CloseHelper.quietClose(network);
+
+        usage.released();
     }
 
     private final class TcpClient
@@ -554,9 +563,9 @@ public class TcpClientFactory implements TcpStreamFactory
 
             state = TcpState.openingInitial(state);
 
-            router.opened(net);
-
             doNetConnect();
+
+            usage.claim();
         }
 
         private void onAppData(
@@ -681,7 +690,6 @@ public class TcpClientFactory implements TcpStreamFactory
 
             state = TcpState.closeReply(state);
             CloseHelper.quietClose(net::shutdownInput);
-            router.closed(net);
 
             cleanup(traceId);
         }
@@ -758,8 +766,6 @@ public class TcpClientFactory implements TcpStreamFactory
             {
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
-
-                router.closed(net);
             }
         }
 
@@ -793,8 +799,6 @@ public class TcpClientFactory implements TcpStreamFactory
             {
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
-
-                router.closed(net);
             }
         }
 
