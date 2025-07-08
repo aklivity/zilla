@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.151...HEAD)
+
+**Fixed bugs:**
+
+- Getting autentication error if JWT does not contain kid header [\#1502](https://github.com/aklivity/zilla/issues/1502)
+- Zilla can appear unhealthy to tcp health check mechanisms at full engine worker utilization [\#1495](https://github.com/aklivity/zilla/issues/1495)
+- zilla stops sending sse updates after a couple days [\#1340](https://github.com/aklivity/zilla/issues/1340)
+- The http.filesystem example hangs when returning some files [\#1431](https://github.com/aklivity/zilla/issues/1431)
+
+**Closed issues:**
+
+- Validate `$ref` in OpenAPI Schema [\#1467](https://github.com/aklivity/zilla/issues/1467)
+- Validate `$ref` in AsyncAPI Schema [\#1466](https://github.com/aklivity/zilla/issues/1466)
+
+**Merged pull requests:**
+
+- record unresolved $ref in OpenAPI [\#1510](https://github.com/aklivity/zilla/pull/1510) ([ankitk-me](https://github.com/ankitk-me))
+- Support load balancer health check even at full capacity [\#1509](https://github.com/aklivity/zilla/pull/1509) ([akrambek](https://github.com/akrambek))
+- fix: Schema declaration in message & record unresolved `$ref` [\#1488](https://github.com/aklivity/zilla/pull/1488) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.151](https://github.com/aklivity/zilla/tree/0.9.151) (2025-06-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.150...0.9.151)
