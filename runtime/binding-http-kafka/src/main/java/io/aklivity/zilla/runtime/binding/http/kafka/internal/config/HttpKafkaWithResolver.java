@@ -18,7 +18,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -404,7 +403,9 @@ public final class HttpKafkaWithResolver
     private static Function<MatchResult, String> headerReplacer(HttpBeginExFW httpBeginEx)
     {
         return r ->
-                Optional.ofNullable(httpBeginEx.headers().matchFirst(h -> Objects.equals(h.name().asString(), r.group(1))))
+                Optional.ofNullable(httpBeginEx.headers()
+                                .matchFirst(h -> h.name().asString().equalsIgnoreCase(r.group(1)))
+                        )
                         .map(HttpHeaderFW::value)
                         .map(String16FW::asString)
                         .orElse("");

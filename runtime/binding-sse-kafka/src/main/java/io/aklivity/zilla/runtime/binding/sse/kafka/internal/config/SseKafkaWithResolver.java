@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
@@ -140,8 +139,11 @@ public final class SseKafkaWithResolver
     private static Function<MatchResult, String> headerReplacer(SseBeginExFW sseBeginEx)
     {
         return r ->
-                Optional.ofNullable(sseBeginEx != null ? sseBeginEx.headers()
-                                .matchFirst(h -> Objects.equals(h.name().asString(), r.group(1))) : null)
+                Optional.ofNullable(sseBeginEx)
+                        .map(SseBeginExFW::headers)
+                        .map(hs -> hs.matchFirst(
+                                h -> h.name().asString().equalsIgnoreCase(r.group(1))
+                                ))
                         .map(HeaderFW::value)
                         .map(String16FW::asString)
                         .orElse("");
