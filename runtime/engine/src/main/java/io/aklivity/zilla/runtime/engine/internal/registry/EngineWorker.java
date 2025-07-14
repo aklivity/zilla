@@ -129,7 +129,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
-import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUtilizationMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -236,7 +236,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private final LongSupplier utilizationMetric;
+    private final LongSupplier usageMetric;
     private final boolean readonly;
 
     private long initialId;
@@ -470,7 +470,7 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
-        this.utilizationMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME));
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME));
     }
 
     public static int indexOfId(
@@ -783,7 +783,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME);
+        final int metricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
 
         return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
     }
@@ -904,7 +904,7 @@ public class EngineWorker implements EngineContext, Agent
             int capacityMetricId = labels.supplyLabelId(EngineWorkersCapacityMetric.NAME);
             LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
 
-            int utilizationMetricId = labels.supplyLabelId(EngineWorkersUtilizationMetric.NAME);
+            int utilizationMetricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
             LongConsumer recordUtilization = supplyGaugeWriter(utilizationMetricId);
 
             recordCount.accept(1);
@@ -962,10 +962,10 @@ public class EngineWorker implements EngineContext, Agent
 
         if (!readonly)
         {
-            long utilization = utilizationMetric.getAsLong();
-            if (utilization != 0L)
+            long usage = usageMetric.getAsLong();
+            if (usage != 0L)
             {
-                throw new IllegalStateException("Engine worker utilization is non-zero: %d".formatted(utilization));
+                throw new IllegalStateException("Engine worker usage is non-zero: %d".formatted(usage));
             }
         }
     }

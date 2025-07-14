@@ -60,7 +60,7 @@ import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
-import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUtilizationMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -256,9 +256,9 @@ public final class EngineRule implements TestRule
         return engine.context().counterWriter(namespace, binding, metric, core);
     }
 
-    public LongSupplier utilization()
+    public LongSupplier usage()
     {
-        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUtilizationMetric.NAME));
+        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME));
     }
 
     public int supplyLabelId(

@@ -352,7 +352,7 @@ public class ClientIT
     @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "2")
     public void shouldResetWhenConnectionsExceeded() throws Exception
     {
-        final LongSupplier utilization = engine.utilization();
+        final LongSupplier usage = engine.usage();
 
         try (ServerSocketChannel server = ServerSocketChannel.open())
         {
@@ -363,7 +363,7 @@ public class ClientIT
 
             ByteBuffer buf = ByteBuffer.allocate(0);
 
-            while (utilization.getAsLong() != 100L)
+            while (usage.getAsLong() != 2L)
             {
                 Thread.onSpinWait();
             }
@@ -373,7 +373,7 @@ public class ClientIT
             client1.read(buf);
             client1.close();
 
-            while (utilization.getAsLong() != 50L)
+            while (usage.getAsLong() != 1L)
             {
                 Thread.onSpinWait();
             }
@@ -383,7 +383,7 @@ public class ClientIT
             client2.read(buf);
             client2.close();
 
-            while (utilization.getAsLong() != 100L)
+            while (usage.getAsLong() != 2L)
             {
                 Thread.onSpinWait();
             }
