@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.153](https://github.com/aklivity/zilla/tree/0.9.153) (2025-07-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.152...0.9.153)
+
+**Merged pull requests:**
+
+- Log worker usage instead of utilization [\#1515](https://github.com/aklivity/zilla/pull/1515) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.152](https://github.com/aklivity/zilla/tree/0.9.152) (2025-07-08)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.151...0.9.152)
