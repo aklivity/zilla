@@ -20,7 +20,7 @@ connected
 read http:method "POST"
 read http:version "HTTP/1.1"
 read http:header "Host" "localhost:4318"
-read http:header "Content-Length" "1669"
+read http:header "Content-Length" "1657"
 read
 '{'
   '"resourceMetrics":[{'
