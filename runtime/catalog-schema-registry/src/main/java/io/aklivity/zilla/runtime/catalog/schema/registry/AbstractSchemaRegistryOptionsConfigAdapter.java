@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.catalog.schema.registry;
 import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -47,6 +48,9 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_NAME = "basic";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME = "username";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME = "password";
     private static final String TLS_NAME = "tls";
 
     private final String type;
@@ -187,8 +191,23 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 JsonObject credentials = object.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
 
                 JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+                JsonObject basic = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_BASIC_NAME);
 
-                options.authorization(headers.getString(AUTHORIZATION_NAME));
+                String authorization;
+
+                if (headers != null)
+                {
+                    authorization = headers.getString(AUTHORIZATION_NAME);
+                }
+                else
+                {
+                    String username = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME);
+                    String password = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME);
+                    authorization = "Basic " + Base64.getEncoder().encodeToString(
+                        (username + ":" + password).getBytes());
+                }
+
+                options.authorization(authorization);
             }
         }
 
