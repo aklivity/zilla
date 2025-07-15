@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,13 +35,17 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
-import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.String32FW;
+
 
 public class AvroReadConverterHandler extends AvroModelHandler implements ConverterHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+    private static final String PATH = "\\$\\.([A-Za-z_][A-Za-z0-9_]*)";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+
+    private final String32FW.Builder stringRW = new String32FW.Builder()
+            .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final Matcher matcher;
 
@@ -83,7 +88,8 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     public void extract(
         String path)
     {
-        if (matcher.reset(path).matches())
+        matcher.reset(path);
+        while (matcher.find())
         {
             extracted.put(matcher.group(1), new AvroField());
         }
@@ -109,12 +115,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     public int extractedLength(
         String path)
     {
-        OctetsFW value = null;
-        if (matcher.reset(path).matches())
-        {
-            value = extracted.get(matcher.group(1)).value;
-        }
-        return value != null ? value.sizeof() : 0;
+        return findAndReplaceExtracted(path).length();
     }
 
     @Override
@@ -122,14 +123,25 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         String path,
         FieldVisitor visitor)
     {
-        if (matcher.reset(path).matches())
+        DirectBuffer value = findAndReplaceExtracted(path).value();
+        visitor.visit(value, 0, value.capacity());
+    }
+
+    private String32FW findAndReplaceExtracted(String path)
+    {
+        matcher.reset(path);
+        String newValue = matcher.replaceAll(r ->
         {
-            OctetsFW value = extracted.get(matcher.group(1)).value;
-            if (value != null && value.sizeof() != 0)
+            String fieldName = r.group(1);
+            AvroField extractedField = extracted.get(fieldName);
+            if (extractedField == null)
             {
-                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+                return "";
             }
-        }
+            DirectBuffer value = extractedField.value.value();
+            return stringRW.set(value, 0, value.capacity()).build().asString();
+        });
+        return stringRW.set(newValue, StandardCharsets.UTF_8).build();
     }
 
     private int decodePayload(

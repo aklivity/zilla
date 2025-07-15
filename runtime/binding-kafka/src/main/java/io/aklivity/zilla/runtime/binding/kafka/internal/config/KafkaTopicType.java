@@ -29,9 +29,9 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaTopicType
 {
-    private static final String TRANSFORM_PATH = "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
+    private static final String TRANSFORM_PATH = "\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}";
     private static final Pattern TRANSFORM_PATH_PATTERN = Pattern.compile(TRANSFORM_PATH);
-    private static final String TRANSFORM_INTERNAL_PATH = "$.%s";
+    private static final String TRANSFORM_INTERNAL_PATH = "\\$.%s";
 
     public static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
 
@@ -114,16 +114,16 @@ public class KafkaTopicType
         KafkaTopicTransformsConfig transforms)
     {
         String transformKey = Optional.ofNullable(transforms.extractKey)
-            .filter(key -> matcher.reset(key).matches())
-            .map(key -> String.format(TRANSFORM_INTERNAL_PATH, matcher.group(2)))
+            .filter(key -> matcher.reset(key).find())
+            .map(key -> matcher.replaceAll(r -> String.format(TRANSFORM_INTERNAL_PATH, r.group(2))))
             .orElse(transforms.extractKey);
 
         List<KafkaTopicHeaderType> transformHeaders = Optional.ofNullable(transforms.extractHeaders)
             .orElse(emptyList())
             .stream()
-            .filter(header -> matcher.reset(header.path).matches())
+            .filter(header -> matcher.reset(header.path).find())
             .map(header -> new KafkaTopicHeaderType(header.name,
-                String.format(TRANSFORM_INTERNAL_PATH, matcher.group(2))))
+                    matcher.replaceAll(r -> String.format(TRANSFORM_INTERNAL_PATH, r.group(2)))))
             .toList();
 
         return new KafkaTopicTransformsType(transformKey, transformHeaders);
