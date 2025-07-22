@@ -17,19 +17,12 @@ scope sse
 {
     scope stream
     {
-        struct Header
-        {
-            string8 name;
-            string16 value;
-        }
-
         struct SseBeginEx extends core::stream::Extension
         {
             string16 scheme;
             string16 authority;
             string16 path;
             string8 lastId;
-            Header[] headers;
         }
 
         struct SseDataEx extends core::stream::Extension

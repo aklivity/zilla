@@ -40,7 +40,6 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaCondition
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.HeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
@@ -123,30 +122,6 @@ public class SseKafkaWithResolverTest
     }
 
     @Test
-    public void shouldResolveWithHeaderReplacement()
-    {
-
-        // Given
-        SseKafkaWithConfig withConfig = SseKafkaWithConfig.builder()
-                .compositeId(COMPOSITE_ID)
-                .eventId(EVENT_ID)
-                .topic("topic-${headers.x-custom}")
-                .eventId(EVENT_ID)
-                .build();
-
-        mockHeader("x-custom", "custom-value");
-
-        SseKafkaWithResolver resolver = new SseKafkaWithResolver(identityReplacer, withConfig);
-
-        // When
-        SseKafkaWithResult result = resolver.resolve(AUTHORIZATION, sseBeginEx, sseEventId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals("topic-custom-value", result.topic().asString());
-    }
-
-    @Test
     public void shouldResolveWithIdentityReplacement()
     {
         // Given
@@ -218,54 +193,6 @@ public class SseKafkaWithResolverTest
     }
 
     @Test
-    public void shouldResolveWithHeaderReplacementInFilter()
-    {
-        // Given
-        SseKafkaWithFilterHeaderConfig headerConfig =
-                new SseKafkaWithFilterHeaderConfig("header1", "value-${headers.x-custom}");
-
-        List<SseKafkaWithFilterHeaderConfig> headerConfigs = new ArrayList<>();
-        headerConfigs.add(headerConfig);
-
-        SseKafkaWithFilterConfig filter = SseKafkaWithFilterConfig.builder()
-                .key("key-${headers.x-custom}")
-                .headers(headerConfigs)
-                .build();
-
-        List<SseKafkaWithFilterConfig> filters = new ArrayList<>();
-        filters.add(filter);
-
-        withConfig = SseKafkaWithConfig.builder()
-                .compositeId(COMPOSITE_ID)
-                .eventId(EVENT_ID)
-                .topic("test-topic")
-                .filters(filters)
-                .build();
-
-        mockHeader("x-custom", "custom-value");
-        SseKafkaWithResolver resolver = new SseKafkaWithResolver(identityReplacer, withConfig);
-
-        // When
-        SseKafkaWithResult result = resolver.resolve(AUTHORIZATION, sseBeginEx, sseEventId);
-
-        // Then
-        assertNotNull(result);
-        var filtersBuilder = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW());
-        filtersBuilder = wrap(filtersBuilder);
-        result.filters(filtersBuilder);
-        Array32FW<KafkaFilterFW> filtersResult = filtersBuilder.build();
-        assertEquals(1, filtersResult.fieldCount());
-        KafkaFilterFW kafkaFilterFW = filtersResult.matchFirst(x -> true);
-        Array32FW<KafkaConditionFW> conditions = kafkaFilterFW.conditions();
-        assertEquals(2, conditions.fieldCount());
-        var keyCondition = conditions.matchFirst(c -> c.key() != null && !octetToString(c.key().value()).isEmpty());
-        assertEquals("key-custom-value", octetToString(keyCondition.key().value()));
-        var headerCondition = conditions.matchFirst(c -> c.header() != null && !octetToString(c.header().name()).isEmpty());
-        assertEquals("header1", octetToString(headerCondition.header().name()));
-        assertEquals("value-custom-value", octetToString(headerCondition.header().value()));
-    }
-
-    @Test
     public void shouldResolveWithIdentityReplacementInFilter()
     {
         // Given
@@ -320,14 +247,11 @@ public class SseKafkaWithResolverTest
         SseKafkaWithFilterHeaderConfig headerConfig1 =
                 new SseKafkaWithFilterHeaderConfig("user-id", "${guarded['user'].identity}");
         SseKafkaWithFilterHeaderConfig headerConfig2 =
-                new SseKafkaWithFilterHeaderConfig("tenant", "${headers.x-tenant}");
-        SseKafkaWithFilterHeaderConfig headerConfig3 =
                 new SseKafkaWithFilterHeaderConfig("region", "${params.region}");
 
         List<SseKafkaWithFilterHeaderConfig> headerConfigs = new ArrayList<>();
         headerConfigs.add(headerConfig1);
         headerConfigs.add(headerConfig2);
-        headerConfigs.add(headerConfig3);
 
         SseKafkaWithFilterConfig filter = SseKafkaWithFilterConfig.builder()
                 .key("${guarded['user'].identity}-${params.region}")
@@ -340,11 +264,10 @@ public class SseKafkaWithResolverTest
         withConfig = SseKafkaWithConfig.builder()
                 .compositeId(COMPOSITE_ID)
                 .eventId(EVENT_ID)
-                .topic("${params.region}-topic-${headers.x-tenant}")
+                .topic("${params.region}-topic")
                 .filters(filters)
                 .build();
 
-        mockHeader("x-tenant", "tenant-e");
         when(identityReplacer.apply(Mockito.eq(AUTHORIZATION), any())).thenReturn("test-user");
 
         SseKafkaWithResolver resolver = new SseKafkaWithResolver(identityReplacer, withConfig);
@@ -357,7 +280,7 @@ public class SseKafkaWithResolverTest
         assertNotNull(result);
 
         // Check topic
-        assertEquals("us-west-topic-tenant-e", result.topic().asString());
+        assertEquals("us-west-topic", result.topic().asString());
 
         // Check filters
         var filtersBuilder = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW());
@@ -368,7 +291,7 @@ public class SseKafkaWithResolverTest
 
         KafkaFilterFW kafkaFilterFW = filtersResult.matchFirst(x -> true);
         Array32FW<KafkaConditionFW> conditions = kafkaFilterFW.conditions();
-        assertEquals(4, conditions.fieldCount());
+        assertEquals(3, conditions.fieldCount());
 
         // Check key
         var keyCondition = conditions.matchFirst(c -> c.key() != null && !octetToString(c.key().value()).isEmpty());
@@ -380,11 +303,6 @@ public class SseKafkaWithResolverTest
                 "user-id".equals(octetToString(c.header().name())));
         assertNotNull(userId);
         assertEquals("test-user", octetToString(userId.header().value()));
-
-        KafkaConditionFW tenant = conditions.matchFirst(c -> c.header() != null &&
-                "tenant".equals(octetToString(c.header().name())));
-        assertNotNull(tenant);
-        assertEquals("tenant-e", octetToString(tenant.header().value()));
 
         KafkaConditionFW region = conditions.matchFirst(c -> c.header() != null &&
                 "region".equals(octetToString(c.header().name())));
@@ -399,20 +317,6 @@ public class SseKafkaWithResolverTest
         SseKafkaConditionMatcher matcher = mock(SseKafkaConditionMatcher.class);
         when(matcher.parameter(name)).thenReturn(value);
         return matcher;
-    }
-
-    private void mockHeader(
-            String name,
-            String value)
-    {
-        HeaderFW header = mock(HeaderFW.class);
-        String8FW headerName = new String8FW(name);
-        String16FW headerValue = new String16FW(value);
-
-        when(header.name()).thenReturn(headerName);
-        when(header.value()).thenReturn(headerValue);
-
-        when(headers.matchFirst(any())).thenReturn(header);
     }
 
     private String octetToString(OctetsFW octetsFW)

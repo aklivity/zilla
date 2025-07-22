@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -32,20 +31,17 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.HeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class SseKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
-    private static final Pattern HEADERS_PATTERN = Pattern.compile("\\$\\{headers\\.([a-zA-Z_\\-]+)\\}");
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final SseKafkaWithConfig with;
     private final Matcher paramsMatcher;
-    private final Matcher headersMatcher;
     private final Matcher identityMatcher;
 
     private Function<MatchResult, String> paramsReplacer = r -> null;
@@ -57,7 +53,6 @@ public final class SseKafkaWithResolver
         this.identityReplacer = identityReplacer;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
-        this.headersMatcher = HEADERS_PATTERN.matcher("");
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
     }
 
@@ -81,7 +76,6 @@ public final class SseKafkaWithResolver
         String topic0 = with.topic;
 
         topic0 = findAndReplace(topic0, paramsMatcher, paramsReplacer);
-        topic0 = findAndReplace(topic0, headersMatcher, headerReplacer(sseBeginEx));
         topic0 = findAndReplace(topic0, identityMatcher, r -> identityReplacer.apply(authorization, r));
 
         String16FW topic = new String16FW(topic0);
@@ -99,7 +93,6 @@ public final class SseKafkaWithResolver
                     String key0 = filter.key.get();
 
                     key0 = findAndReplace(key0, paramsMatcher, paramsReplacer);
-                    key0 = findAndReplace(key0, headersMatcher, headerReplacer(sseBeginEx));
                     key0 = findAndReplace(key0, identityMatcher, r -> identityReplacer.apply(authorization, r));
 
                     key = new String16FW(key0).value();
@@ -118,7 +111,6 @@ public final class SseKafkaWithResolver
                         String value0 = header0.value;
 
                         value0 = findAndReplace(value0, paramsMatcher, paramsReplacer);
-                        value0 = findAndReplace(value0, headersMatcher, headerReplacer(sseBeginEx));
                         value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
 
                         DirectBuffer value = new String16FW(value0).value();
@@ -134,19 +126,6 @@ public final class SseKafkaWithResolver
         String eventId = with.eventId;
 
         return new SseKafkaWithResult(compositeId, topic, partitions, filters, eventId);
-    }
-
-    private static Function<MatchResult, String> headerReplacer(SseBeginExFW sseBeginEx)
-    {
-        return r ->
-                Optional.ofNullable(sseBeginEx)
-                        .map(SseBeginExFW::headers)
-                        .map(hs -> hs.matchFirst(
-                                h -> h.name().asString().equalsIgnoreCase(r.group(1))
-                                ))
-                        .map(HeaderFW::value)
-                        .map(String16FW::asString)
-                        .orElse("");
     }
 
     private static String findAndReplace(
