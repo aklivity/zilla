@@ -115,6 +115,10 @@
                                             "trust":
                                             {
                                                 "type": "String"
+                                            },
+                                            "trustcacerts":
+                                            {
+                                                "type": "boolean"
                                             }
                                         }
                                     }

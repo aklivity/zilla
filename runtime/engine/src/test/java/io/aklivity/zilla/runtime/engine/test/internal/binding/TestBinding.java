@@ -25,9 +25,12 @@ public final class TestBinding implements Binding
 {
     public static final String NAME = "test";
 
+    private final Configuration config;
+
     TestBinding(
         Configuration config)
     {
+        this.config = config;
     }
 
     @Override
@@ -46,6 +49,6 @@ public final class TestBinding implements Binding
     public TestBindingContext supply(
         EngineContext context)
     {
-        return new TestBindingContext(context);
+        return new TestBindingContext(config, context);
     }
 }
