@@ -14,7 +14,23 @@ To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) 
 docker compose up -d
 ```
 
-### Register Schema
+### Register Schemas
+
+```bash
+curl 'http://localhost:8081/subjects/items-snapshots-key/versions' \
+--header 'Content-Type: application/json' \
+--data '{
+  "schema":
+    "{\"fields\":[{\"name\":\"item_id\",\"type\":\"string\"},{\"name\":\"user_id\",\"type\":\"string\"}],\"name\":\"EventKey\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}",
+  "schemaType": "AVRO"
+}'
+```
+
+output:
+
+```text
+{"id":1}%
+```
 
 ```bash
 curl 'http://localhost:8081/subjects/items-snapshots-value/versions' \
@@ -29,16 +45,18 @@ curl 'http://localhost:8081/subjects/items-snapshots-value/versions' \
 output:
 
 ```text
-{"id":1}%
+{"id":2}%
 ```
 
 ## Validate created Schema
 
 ```bash
 curl 'http://localhost:8081/schemas/ids/1'
+curl 'http://localhost:8081/schemas/ids/2'
 ```
 
 ```bash
+curl 'http://localhost:8081/subjects/items-snapshots-key/versions/latest'
 curl 'http://localhost:8081/subjects/items-snapshots-value/versions/latest'
 ```
 
@@ -47,7 +65,7 @@ curl 'http://localhost:8081/subjects/items-snapshots-value/versions/latest'
 `POST` request
 
 ```bash
-curl -k -v http://localhost:7114/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"id": "123","status": "OK"}'
+curl -k -v http://localhost:7114/items -H 'X-User-ID: user1' -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d '{"id": "123","status": "OK"}'
 ```
 
 output:
@@ -69,7 +87,7 @@ output:
 `GET` request to fetch specific item.
 
 ```bash
-curl -k http://localhost:7114/items/1
+curl -k http://localhost:7114/items/1 -H 'X-User-ID: user1'
 ```
 
 output:
@@ -90,7 +108,7 @@ output:
 `POST` request.
 
 ```bash
-curl -k -v http://localhost:7114/items -H 'Idempotency-Key: 2'  -H 'Content-Type: application/json' -d '{"id": 123,"status": "OK"}'
+curl -k -v http://localhost:7114/items -H 'X-User-ID: user1' -H 'Idempotency-Key: 2'  -H 'Content-Type: application/json' -d '{"id": 123,"status": "OK"}'
 ```
 
 output:
@@ -112,7 +130,7 @@ output:
 `GET` request to verify whether Invalid event is produced
 
 ```bash
-curl -k -v http://localhost:7114/items/2
+curl -k -v http://localhost:7114/items/2 -H 'X-User-ID: user1'
 ```
 
 output:
