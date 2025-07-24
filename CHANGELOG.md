@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.153...HEAD)
+
+**Implemented enhancements:**
+
+- Automate `zilla` `develop-SNAPSHOT` acceptance tests for `zilla-examples` scenarios [\#1434](https://github.com/aklivity/zilla/issues/1434)
+
+**Merged pull requests:**
+
+- Support trustcacerts in test binding vault assertions [\#1522](https://github.com/aklivity/zilla/pull/1522) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.153](https://github.com/aklivity/zilla/tree/0.9.153) (2025-07-14)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.152...0.9.153)
