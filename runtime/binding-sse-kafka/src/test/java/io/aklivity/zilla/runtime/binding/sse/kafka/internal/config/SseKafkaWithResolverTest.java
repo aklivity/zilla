@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.HeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
@@ -54,7 +53,6 @@ public class SseKafkaWithResolverTest
     private SseBeginExFW sseBeginEx;
     private SseKafkaWithConfig withConfig;
     private LongObjectBiFunction<MatchResult, String> identityReplacer;
-    private Array32FW<HeaderFW> headers;
     private SseKafkaIdHelper sseEventId;
 
     @Before
@@ -72,8 +70,6 @@ public class SseKafkaWithResolverTest
                 .build();
 
         identityReplacer = mock(LongObjectBiFunction.class);
-        headers = mock(Array32FW.class);
-        when(sseBeginEx.headers()).thenReturn(headers);
 
         // Mock necessary behaviors for sseEventId
         DirectBuffer progressBuffer = new ExpandableArrayBuffer(0);
