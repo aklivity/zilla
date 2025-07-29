@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 
 import jakarta.json.bind.Jsonb;
@@ -80,6 +81,33 @@ public class SchemaRegistryOptionsConfigAdapterTest
         assertThat(catalog.trust, equalTo(List.of("serverca")));
         assertThat(catalog.keys, equalTo(List.of("client1")));
         assertThat(catalog.authorization, equalTo("Basic dXNlcjpzZWNyZXQ="));
+    }
+
+    @Test
+    public void shouldReadOptionsWithBasicCredentials()
+    {
+        String text = """
+            {
+              "url": "http://localhost:8081",
+              "context": "default",
+              "credentials":
+              {
+                "basic":
+                {
+                  "username": "user",
+                  "password": "secret"
+                }
+              }
+            }
+            """;
+
+        SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
+
+        assertThat(catalog, not(nullValue()));
+        assertThat(catalog.url, equalTo("http://localhost:8081"));
+        assertThat(catalog.context, equalTo("default"));
+        String base64Encoded = Base64.getEncoder().encodeToString("user:secret".getBytes());
+        assertThat(catalog.authorization, equalTo("Basic " + base64Encoded));
     }
 
     @Test
