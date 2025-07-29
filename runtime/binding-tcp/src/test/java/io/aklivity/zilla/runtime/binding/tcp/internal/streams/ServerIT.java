@@ -382,7 +382,7 @@ public class ServerIT
     @Configure(name = ENGINE_WORKER_CAPACITY_NAME, value = "4")
     public void shouldRejectOnConnectionLimit() throws Exception
     {
-        final LongSupplier utilization = engine.utilization();
+        final LongSupplier usage = engine.usage();
 
         k3po.start();
 
@@ -403,7 +403,7 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
 
-        while (utilization.getAsLong() != 100L)
+        while (usage.getAsLong() != 4L)
         {
             Thread.onSpinWait();
         }
@@ -421,7 +421,7 @@ public class ServerIT
 
         k3po.awaitBarrier("CLOSED");
 
-        while (utilization.getAsLong() != 0L)
+        while (usage.getAsLong() != 0L)
         {
             Thread.onSpinWait();
         }
@@ -443,7 +443,7 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_8");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_9");
 
-        while (utilization.getAsLong() != 100L)
+        while (usage.getAsLong() != 4L)
         {
             Thread.onSpinWait();
         }

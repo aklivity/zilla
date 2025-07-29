@@ -60,8 +60,6 @@ public final class TcpUsageTracker
     private void record(
         int newUsage)
     {
-        final int newUsageAsPercentage = newUsage * 100 / capacity;
-
-        recordUsage.accept(newUsageAsPercentage);
+        recordUsage.accept(newUsage);
     }
 }

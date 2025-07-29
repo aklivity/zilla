@@ -19,7 +19,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "2518"
+write http:header "Content-Length" "2506"
 write
 '{'
   '"resourceMetrics":[{'
@@ -78,9 +78,9 @@ write
           '}]'
         '}'
       '},{'
-        '"name":"engine.workers.utilization",'
+        '"name":"engine.workers.usage",'
         '"unit":"",'
-        '"description":"Engine workers utilization",'
+        '"description":"Engine workers usage",'
         '"gauge":{'
           '"dataPoints":[{'
             '"asInt":0,'
