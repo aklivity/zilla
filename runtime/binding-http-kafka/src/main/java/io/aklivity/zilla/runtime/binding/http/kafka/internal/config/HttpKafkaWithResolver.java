@@ -138,6 +138,10 @@ public final class HttpKafkaWithResolver
         {
             topic0 = topicMatcher.replaceAll(replacer);
         }
+        else if (identityMatcher.reset(topic0).matches())
+        {
+            topic0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+        }
         String16FW topic = new String16FW(topic0);
 
         long timeout = 0L;
@@ -335,6 +339,11 @@ public final class HttpKafkaWithResolver
         {
             topic0 = topicMatcher.replaceAll(replacer);
         }
+        else if (identityMatcher.reset(topic0).matches())
+        {
+            topic0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+        }
+
         String16FW topic = new String16FW(topic0);
 
         KafkaAckMode acks = produce.acks;
