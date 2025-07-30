@@ -182,6 +182,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.item.dynamic.topic/client",
+        "${kafka}/get.item.dynamic.topic/server"})
+    public void shouldGetItemDynamicTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item.empty/client",
         "${kafka}/get.item.empty/server"})
     public void shouldGetItemWhenEmpty() throws Exception
@@ -500,6 +509,15 @@ public class KafkaIT
         "${kafka}/post.items/client",
         "${kafka}/post.items/server"})
     public void shouldPostItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.items.dynamic.topic/client",
+        "${kafka}/post.items.dynamic.topic/server"})
+    public void shouldPostItemsDynamicTopic() throws Exception
     {
         k3po.finish();
     }

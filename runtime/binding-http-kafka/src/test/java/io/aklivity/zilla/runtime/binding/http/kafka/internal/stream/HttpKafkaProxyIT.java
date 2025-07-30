@@ -269,6 +269,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.get.item.dynamic.topic.yaml")
+    @Specification({
+        "${http}/get.item/client",
+        "${kafka}/get.item.dynamic.topic/server"})
+    public void shouldGetItemDynamicTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.get.item.yaml")
     @Specification({
         "${http}/get.item/client",
@@ -684,6 +694,16 @@ public class HttpKafkaProxyIT
         "${http}/post.items/client",
         "${kafka}/post.items/server"})
     public void shouldPostItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.post.items.dynamic.topic.yaml")
+    @Specification({
+        "${http}/post.items/client",
+        "${kafka}/post.items.dynamic.topic/server"})
+    public void shouldPostItemsDynamicTopic() throws Exception
     {
         k3po.finish();
     }
