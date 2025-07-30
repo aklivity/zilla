@@ -110,12 +110,6 @@ jobs:
         run: |
           docker load -i ~/docker-cache/docker.tar
 
-      - name: Cache Docker images
-        if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
-        uses: ScribeMD/docker-cache@0.5.0
-        with:
-          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) }}
-
       - name: Start Zilla and wait for it to be healthy
         working-directory: examples/${{ matrix.dir }}
         run: docker compose up -d --wait
