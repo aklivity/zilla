@@ -138,10 +138,13 @@ public final class HttpKafkaWithResolver
         {
             topic0 = topicMatcher.replaceAll(replacer);
         }
-        else if (identityMatcher.reset(topic0).matches())
+
+        topicMatcher = identityMatcher.reset(topic0);
+        if (topicMatcher.matches())
         {
-            topic0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+            topic0 = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
         }
+
         String16FW topic = new String16FW(topic0);
 
         long timeout = 0L;
@@ -187,9 +190,9 @@ public final class HttpKafkaWithResolver
                     }
 
                     keyMatcher = identityMatcher.reset(key0);
-                    if (identityMatcher.matches())
+                    if (keyMatcher.matches())
                     {
-                        key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                        key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                     }
 
                     key = new String16FW(key0).value();
@@ -213,9 +216,9 @@ public final class HttpKafkaWithResolver
                         }
 
                         valueMatcher = identityMatcher.reset(value0);
-                        if (identityMatcher.matches())
+                        if (valueMatcher.matches())
                         {
-                            value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                            value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                         }
 
                         DirectBuffer value = new String16FW(value0).value();
@@ -339,9 +342,11 @@ public final class HttpKafkaWithResolver
         {
             topic0 = topicMatcher.replaceAll(replacer);
         }
-        else if (identityMatcher.reset(topic0).matches())
+
+        topicMatcher = identityMatcher.reset(topic0);
+        if (topicMatcher.matches())
         {
-            topic0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+            topic0 = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
         }
 
         String16FW topic = new String16FW(topic0);
@@ -359,9 +364,9 @@ public final class HttpKafkaWithResolver
             }
 
             keyMatcher = identityMatcher.reset(key0);
-            if (identityMatcher.matches())
+            if (keyMatcher.matches())
             {
-                key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
             }
 
             String key = key0;
@@ -400,9 +405,9 @@ public final class HttpKafkaWithResolver
                 }
 
                 valueMatcher = identityMatcher.reset(value0);
-                if (identityMatcher.matches())
+                if (valueMatcher.matches())
                 {
-                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                    value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                 }
 
                 String value = value0;
