@@ -103,7 +103,9 @@ public final class CanonicalJsonDecoder extends JsonDecoder
 
             String label;
             final JsonToken currentToken = lin.getCurrentToken();
-            if (currentToken == JsonToken.VALUE_NULL)
+            if (currentToken == JsonToken.VALUE_NULL ||
+                    currentToken == JsonToken.END_OBJECT ||
+                    currentToken == JsonToken.FIELD_NAME)
             {
                 label = "null";
             }
@@ -140,6 +142,14 @@ public final class CanonicalJsonDecoder extends JsonDecoder
         }
         catch (InvocationTargetException ex)
         {
+            if (ex.getTargetException() instanceof IOException)
+            {
+                throw (IOException) ex.getTargetException();
+            }
+            else if (ex.getTargetException() instanceof RuntimeException)
+            {
+                throw (RuntimeException) ex.getTargetException();
+            }
             throw new RuntimeException(ex);
         }
     }
