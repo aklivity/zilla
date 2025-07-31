@@ -13,36 +13,39 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
+accept "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                 .capabilities("FETCH_ONLY")
-                                 .topic("test")
-                                 .filter()
-                                     .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                     .build()
-                                 .build()
-                             .build()}
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("PRODUCE_ONLY")
+                                  .topic("alice-items")
+                                  .partition(-1, -2)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
 
 connected
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
-                             .fetch()
-                               .partition(0, 1, 2)
-                               .progress(0, 2)
-                               .progress(1, 1)
+                             .produce()
+                               .deferred(20)
+                               .partition(-1, -1)
                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("content-type", "application/json")
-                               .header("etag", "revision=42")
                                .build()
                            .build()}
-read '{ "name": "gadget" }'
+read zilla:data.empty
+
+read '{ "name": "widget" }'
+
+read zilla:data.empty
 
 read closed
 write close

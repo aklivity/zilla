@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 
 import java.time.Duration;
@@ -32,6 +33,7 @@ public final class TestGuardHandler implements GuardHandler
     private final String credentials;
     private final Duration challenge;
     private final Duration lifetime;
+    private final String identity;
     private final List<String> roles;
 
     private final Long2LongHashMap sessions;
@@ -43,6 +45,7 @@ public final class TestGuardHandler implements GuardHandler
         this.credentials = config.options != null ? config.options.credentials : null;
         this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
+        this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
@@ -81,7 +84,7 @@ public final class TestGuardHandler implements GuardHandler
     public String identity(
         long sessionId)
     {
-        return "test";
+        return identity;
     }
 
     @Override

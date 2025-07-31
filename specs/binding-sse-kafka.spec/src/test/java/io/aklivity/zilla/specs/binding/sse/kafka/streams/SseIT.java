@@ -47,6 +47,15 @@ public class SseIT
 
     @Test
     @Specification({
+        "${sse}/handshake.my.stream/client",
+        "${sse}/handshake.my.stream/server"})
+    public void shouldCompleteHandshakeMyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${sse}/handshake.with.filters.dynamic/client",
         "${sse}/handshake.with.filters.dynamic/server"})
     public void shouldCompleteHandshakeWithDynamicFilters() throws Exception

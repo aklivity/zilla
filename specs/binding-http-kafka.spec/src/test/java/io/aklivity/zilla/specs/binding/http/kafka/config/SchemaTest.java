@@ -67,14 +67,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyGetItemDynamicTopic()
-    {
-        JsonObject config = schema.validate("proxy.get.item.dynamic.topic.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateProxyGetItemChild()
     {
         JsonObject config = schema.validate("proxy.get.item.child.yaml");
@@ -131,14 +123,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyPostItemsDynamicTopic()
-    {
-        JsonObject config = schema.validate("proxy.post.items.dynamic.topic.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateProxyPostItemsWithCorrelationId()
     {
         JsonObject config = schema.validate("proxy.post.items.with.correlationId.yaml");
@@ -182,5 +166,13 @@ public class SchemaTest
     public void shouldFailInvalidPath()
     {
         schema.validate("proxy.invalid.path.yaml");
+    }
+
+    @Test
+    public void shouldValidateProxyWithTopicDynamic()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.dynamic.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 }

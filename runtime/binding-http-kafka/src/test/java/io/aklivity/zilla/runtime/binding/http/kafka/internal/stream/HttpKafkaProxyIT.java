@@ -269,11 +269,11 @@ public class HttpKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.get.item.dynamic.topic.yaml")
+    @Configuration("proxy.with.topic.dynamic.yaml")
     @Specification({
-        "${http}/get.item/client",
-        "${kafka}/get.item.dynamic.topic/server"})
-    public void shouldGetItemDynamicTopic() throws Exception
+        "${http}/get.my.item/client",
+        "${kafka}/get.my.item/server"})
+    public void shouldGetMyItem() throws Exception
     {
         k3po.finish();
     }
@@ -699,16 +699,6 @@ public class HttpKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.post.items.dynamic.topic.yaml")
-    @Specification({
-        "${http}/post.items/client",
-        "${kafka}/post.items.dynamic.topic/server"})
-    public void shouldPostItemsDynamicTopic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.post.items.with.correlationId.yaml")
     @Specification({
         "${http}/post.items/client",
@@ -814,6 +804,16 @@ public class HttpKafkaProxyIT
         "${http}/put.item.prefer.async.ignored/client",
         "${kafka}/put.item/server"})
     public void shouldPutItemPreferAsyncIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.dynamic.yaml")
+    @Specification({
+        "${http}/put.my.item/client",
+        "${kafka}/put.my.item/server"})
+    public void shouldPutMyItem() throws Exception
     {
         k3po.finish();
     }

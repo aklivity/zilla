@@ -182,9 +182,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/get.item.dynamic.topic/client",
-        "${kafka}/get.item.dynamic.topic/server"})
-    public void shouldGetItemDynamicTopic() throws Exception
+        "${kafka}/get.my.item/client",
+        "${kafka}/get.my.item/server"})
+    public void shouldGetMyItem() throws Exception
     {
         k3po.finish();
     }
@@ -515,15 +515,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/post.items.dynamic.topic/client",
-        "${kafka}/post.items.dynamic.topic/server"})
-    public void shouldPostItemsDynamicTopic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/post.items.async/client",
         "${kafka}/post.items.async/server"})
     public void shouldPostItemsAsync() throws Exception
@@ -563,6 +554,15 @@ public class KafkaIT
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.my.item/client",
+        "${kafka}/put.my.item/server"})
+    public void shouldPutMyItem() throws Exception
     {
         k3po.finish();
     }

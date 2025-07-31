@@ -81,7 +81,7 @@ public final class SseKafkaWithResolver
         }
 
         topicMatcher = identityMatcher.reset(with.topic);
-        if (topicMatcher.matches())
+        if (topicMatcher.find())
         {
             topic0 = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
         }

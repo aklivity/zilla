@@ -444,7 +444,7 @@ public final class HttpKafkaWithResolver
         }
 
         topicMatcher = identityMatcher.reset(topic);
-        if (topicMatcher.matches())
+        if (topicMatcher.find())
         {
             topic = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
         }

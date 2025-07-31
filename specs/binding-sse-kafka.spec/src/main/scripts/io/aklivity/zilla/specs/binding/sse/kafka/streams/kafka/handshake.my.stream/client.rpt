@@ -13,29 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-guards:
-  test0:
-    type: test
-    options:
-      roles:
-        - write:items
-bindings:
-  http0:
-    type: http-kafka
-    kind: proxy
-    routes:
-      - guarded:
-          test0:
-            - write:items
-        exit: kafka0
-        when:
-          - method: POST
-            path: /items
-        with:
-          capability: produce
-          topic: ${guarded['test0'].identity}
-          acks: leader_only
-          key: ${idempotencyKey}
-          reply-to: items-replies
+connect "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("alice-topic")
+                                   .partition(-1, -2)
+                                   .build()
+                               .build()}
+
+connected
