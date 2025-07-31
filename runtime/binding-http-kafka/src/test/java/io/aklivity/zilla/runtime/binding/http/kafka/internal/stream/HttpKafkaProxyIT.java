@@ -269,6 +269,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.dynamic.yaml")
+    @Specification({
+        "${http}/get.my.item/client",
+        "${kafka}/get.my.item/server"})
+    public void shouldGetMyItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.get.item.yaml")
     @Specification({
         "${http}/get.item/client",
@@ -794,6 +804,16 @@ public class HttpKafkaProxyIT
         "${http}/put.item.prefer.async.ignored/client",
         "${kafka}/put.item/server"})
     public void shouldPutItemPreferAsyncIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.dynamic.yaml")
+    @Specification({
+        "${http}/put.my.item/client",
+        "${kafka}/put.my.item/server"})
+    public void shouldPutMyItem() throws Exception
     {
         k3po.finish();
     }

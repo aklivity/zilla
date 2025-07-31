@@ -132,13 +132,7 @@ public final class HttpKafkaWithResolver
         HttpKafkaWithFetchConfig fetch = with.fetch.get();
 
         // TODO: hoist to constructor if constant
-        String topic0 = fetch.topic;
-        Matcher topicMatcher = paramsMatcher.reset(fetch.topic);
-        if (topicMatcher.matches())
-        {
-            topic0 = topicMatcher.replaceAll(replacer);
-        }
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, fetch.topic);
 
         long timeout = 0L;
         Array32FW<KafkaOffsetFW> partitions = null;
@@ -183,9 +177,9 @@ public final class HttpKafkaWithResolver
                     }
 
                     keyMatcher = identityMatcher.reset(key0);
-                    if (identityMatcher.matches())
+                    if (keyMatcher.matches())
                     {
-                        key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                        key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                     }
 
                     key = new String16FW(key0).value();
@@ -209,9 +203,9 @@ public final class HttpKafkaWithResolver
                         }
 
                         valueMatcher = identityMatcher.reset(value0);
-                        if (identityMatcher.matches())
+                        if (valueMatcher.matches())
                         {
-                            value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                            value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                         }
 
                         DirectBuffer value = new String16FW(value0).value();
@@ -329,13 +323,7 @@ public final class HttpKafkaWithResolver
         }
 
         // TODO: hoist to constructor if constant
-        String topic0 = produce.topic;
-        Matcher topicMatcher = paramsMatcher.reset(topic0);
-        if (topicMatcher.matches())
-        {
-            topic0 = topicMatcher.replaceAll(replacer);
-        }
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, produce.topic);
 
         KafkaAckMode acks = produce.acks;
 
@@ -350,9 +338,9 @@ public final class HttpKafkaWithResolver
             }
 
             keyMatcher = identityMatcher.reset(key0);
-            if (identityMatcher.matches())
+            if (keyMatcher.matches())
             {
-                key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
             }
 
             String key = key0;
@@ -391,9 +379,9 @@ public final class HttpKafkaWithResolver
                 }
 
                 valueMatcher = identityMatcher.reset(value0);
-                if (identityMatcher.matches())
+                if (valueMatcher.matches())
                 {
-                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                    value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                 }
 
                 String value = value0;
@@ -443,5 +431,24 @@ public final class HttpKafkaWithResolver
         return new HttpKafkaWithProduceResult(
                 compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
                 produce.correlationId, idempotencyKey, async, hash, timeout);
+    }
+
+    private String16FW resolveTopic(
+        long authorization,
+        String topic)
+    {
+        Matcher topicMatcher = paramsMatcher.reset(topic);
+        if (topicMatcher.matches())
+        {
+            topic = topicMatcher.replaceAll(replacer);
+        }
+
+        topicMatcher = identityMatcher.reset(topic);
+        if (topicMatcher.find())
+        {
+            topic = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+        }
+
+        return new String16FW(topic);
     }
 }

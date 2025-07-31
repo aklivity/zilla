@@ -13,30 +13,16 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-guards:
-  test0:
-    type: test
-    options:
-      identity: alice
-      roles:
-        - read
-bindings:
-  sse0:
-    type: sse-kafka
-    kind: proxy
-    routes:
-      - guarded:
-          test0:
-            - read
-        exit: kafka0
-        when:
-          - path: /my-stream
-        with:
-          topic: ${guarded['test0'].identity}-topic
-      - exit: kafka0
-        when:
-          - path: /{topic}
-        with:
-          topic: ${params.topic}
+connect "zilla://streams/sse0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+write zilla:begin.ext ${sse:beginEx()
+                           .typeId(zilla:id("sse"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/my-stream")
+                           .lastId(null)
+                           .build()}
+
+connected
