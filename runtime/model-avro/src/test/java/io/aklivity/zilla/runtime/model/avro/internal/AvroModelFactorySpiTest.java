@@ -37,7 +37,7 @@ public class AvroModelFactorySpiTest
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("avro", config);
 
-        ModelContext context = new AvroModelContext(mock(EngineContext.class));
+        ModelContext context = new AvroModelContext(config, mock(EngineContext.class));
 
         ModelConfig modelConfig = AvroModelConfig.builder()
                 .subject("test-value")

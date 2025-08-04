@@ -14,29 +14,32 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
 
-public final class AvroModelFactorySpi implements ModelFactorySpi
+public class AvroModelConfiguration extends Configuration
 {
-    @Override
-    public String type()
+    private static final ConfigurationDef AVRO_MODEL_CONFIG;
+    private static final int DEFAULT_PADDING_MAX_ITEMS = 100;
+
+    static final IntPropertyDef PADDING_MAX_ITEMS;
+
+    static
     {
-        return AvroModel.NAME;
+        final ConfigurationDef config = new ConfigurationDef("zilla.model.avro");
+
+        PADDING_MAX_ITEMS = config.property("padding.max.items", DEFAULT_PADDING_MAX_ITEMS);
+
+        AVRO_MODEL_CONFIG = config;
     }
 
-    public URL schema()
-    {
-        return getClass().getResource("schema/avro.schema.patch.json");
-    }
-
-    @Override
-    public Model create(
+    public AvroModelConfiguration(
         Configuration config)
     {
-        return new AvroModel(config);
+        super(AVRO_MODEL_CONFIG, config);
+    }
+
+    public int paddingMaxItems()
+    {
+        return PADDING_MAX_ITEMS.getAsInt(this);
     }
 }

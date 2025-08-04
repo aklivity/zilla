@@ -25,6 +25,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -66,10 +67,13 @@ public class AvroModelTest
         "{\"name\":\"source\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
     private EngineContext context;
+    private AvroModelConfiguration config;
 
     @Before
     public void init()
     {
+        System.setProperty("zilla.model.avro.padding.max.items", "111");
+        config = new AvroModelConfiguration(new Configuration());
         context = mock(EngineContext.class);
     }
 
@@ -97,7 +101,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(model, context);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -131,7 +135,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(model, context);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -167,7 +171,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(model, context);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -201,7 +205,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(model, context);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -249,7 +253,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(model, context);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
 
         DirectBuffer expected = new UnsafeBuffer();
 
@@ -298,7 +302,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(model, context);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
 
         String payload =
             "{" +
@@ -337,7 +341,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(model, context);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -345,7 +349,7 @@ public class AvroModelTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(292, converter.padding(data, 0, data.capacity()));
+        assertEquals(525, converter.padding(data, 0, data.capacity()));
     }
 
     @Test
@@ -372,7 +376,7 @@ public class AvroModelTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(model, context);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
         String stringPath = "$.stringField";
         converter.extract(stringPath);
