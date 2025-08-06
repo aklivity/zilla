@@ -63,8 +63,7 @@ public abstract class AvroModelHandler
     private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_FIELD_UNION_LENGTH = "\"\":{\"DATA_TYPE\":\"\"},".length();
-    private static final int COMMA_LENGTH = ",".length();
-    private static final int JSON_FIELD_ARRAY_LENGTH = "\"\":[]," .length() + COMMA_LENGTH * 100;
+    private static final int JSON_FIELD_ARRAY_LENGTH = "\"\":[]," .length();
     private static final int JSON_FIELD_MAP_LENGTH = "\"\":{},".length();
 
     protected final SchemaConfig catalog;
@@ -91,24 +90,26 @@ public abstract class AvroModelHandler
     private final AvroFloatFW floatRO;
     private final AvroDoubleFW doubleRO;
     private final AvroUnionFW unionRO;
+    private final int paddingMaxItems;
 
     protected int progress;
 
     protected AvroModelHandler(
-        AvroModelConfig config,
+        AvroModelConfiguration config,
+        AvroModelConfig options,
         EngineContext context)
     {
         this.decoderFactory = DecoderFactory.get();
         this.decoder = decoderFactory.binaryDecoder(EMPTY_INPUT_STREAM, null);
         this.encoderFactory = EncoderFactory.get();
         this.encoder = encoderFactory.binaryEncoder(EMPTY_OUTPUT_STREAM, null);
-        CatalogedConfig cataloged = config.cataloged.get(0);
+        CatalogedConfig cataloged = options.cataloged.get(0);
         this.handler = context.supplyCatalog(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
-        this.view = config.view;
+        this.view = options.view;
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
-                : config.subject;
+                : options.subject;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.readers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
@@ -124,7 +125,7 @@ public abstract class AvroModelHandler
         this.floatRO = new AvroFloatFW();
         this.doubleRO = new AvroDoubleFW();
         this.unionRO = new AvroUnionFW();
-
+        this.paddingMaxItems = config.paddingMaxItems();
     }
 
     protected final boolean validate(
@@ -288,13 +289,13 @@ public abstract class AvroModelHandler
                     }
                     case MAP:
                     {
-                        padding += JSON_FIELD_MAP_LENGTH +
+                        padding += JSON_FIELD_MAP_LENGTH + paddingMaxItems +
                             calculatePadding(field.schema().getValueType());
                         break;
                     }
                     case ARRAY:
                     {
-                        padding += JSON_FIELD_ARRAY_LENGTH +
+                        padding += JSON_FIELD_ARRAY_LENGTH + paddingMaxItems +
                             calculatePadding(field.schema().getElementType());
                         break;
                     }
