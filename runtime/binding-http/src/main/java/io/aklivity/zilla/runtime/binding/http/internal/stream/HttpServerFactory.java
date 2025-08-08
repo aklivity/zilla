@@ -314,6 +314,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                  "HEAD",
                                  "POST",
                                  "PUT",
+                                 "PATCH",
                                  "DELETE",
                                  "CONNECT",
                                  "OPTIONS",

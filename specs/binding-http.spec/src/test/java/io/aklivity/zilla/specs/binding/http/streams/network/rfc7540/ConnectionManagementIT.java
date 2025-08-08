@@ -131,6 +131,39 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+
+
+    @Test
+    @Specification({
+        "${net}/http.patch.exchange/client",
+        "${net}/http.patch.exchange/server",
+    })
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.patch.exchange.before.settings.exchange/client",
+        "${net}/http.patch.exchange.before.settings.exchange/server"
+    })
+    public void httpPatchExchangeBeforeSettingsExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.patch.exchange.streaming/client",
+        "${net}/http.patch.exchange.streaming/server"
+    })
+    public void httpPatchExchangeWhenStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+
     @Test
     @Specification({
         "${net}/multiple.data.frames/client",

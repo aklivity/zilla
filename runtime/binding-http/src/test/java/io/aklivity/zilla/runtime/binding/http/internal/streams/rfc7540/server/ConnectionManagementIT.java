@@ -131,12 +131,35 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/http.post.exchange.streaming/client",
-        "${app}/http.post.exchange.streaming/server" })
-    public void httpPostExchangeWhenStreaming() throws Exception
+        "${net}/http.patch.exchange/client",
+        "${app}/http.patch.exchange/server" })
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/http.patch.exchange.before.settings.exchange/client",
+        "${app}/http.patch.exchange.before.settings.exchange/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    public void httpPatchExchangeBeforeSettingsExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/http.patch.exchange.streaming/client",
+        "${app}/http.patch.exchange.streaming/server" })
+    public void httpPatchExchangeWhenStreaming() throws Exception
     {
         k3po.finish();
     }
