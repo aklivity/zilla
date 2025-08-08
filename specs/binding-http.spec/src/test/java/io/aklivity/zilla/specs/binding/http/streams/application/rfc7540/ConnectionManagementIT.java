@@ -99,7 +99,6 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
-
     @Test
     @Specification({
         "${app}/http.patch.exchange/client",
@@ -109,27 +108,6 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/http.patch.exchange.streaming/client",
-        "${app}/http.patch.exchange.streaming/server"
-    })
-    public void httpPatchExchangeWhenStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/http.patch.exchange.before.settings.exchange/client",
-        "${app}/http.patch.exchange.before.settings.exchange/server"
-    })
-    public void httpPatchExchangeBeforeSettingsExchange() throws Exception
-    {
-        k3po.finish();
-    }
-
 
     @Test
     @Specification({

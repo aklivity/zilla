@@ -101,6 +101,17 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/http.patch.exchange/client",
+        "${net}/http.patch.exchange/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/connection.has.two.streams/client",
         "${net}/connection.has.two.streams/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")

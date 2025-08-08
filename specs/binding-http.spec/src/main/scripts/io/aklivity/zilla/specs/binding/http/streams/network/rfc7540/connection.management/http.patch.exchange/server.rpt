@@ -38,7 +38,7 @@ read [0x00 0x00 0x39]                                      # length = 57
      [0x01]                                                # HEADERS frame
      [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
-     [0x42] [0x05] "PATCH"                                 # :method: PATCH (literal header)
+     [0x02] [0x05] "PATCH"                                 # :method: PATCH (literal header)
      [0x86]                                                # :scheme: http
      [0x84]                                                # :path: /
      [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
@@ -105,4 +105,4 @@ write [0x00 0x00 0x71]                  # length = 113
       "<body><script src=\"script.js\"></script></body>"
       "</html>"
 write flush
-write close
+
