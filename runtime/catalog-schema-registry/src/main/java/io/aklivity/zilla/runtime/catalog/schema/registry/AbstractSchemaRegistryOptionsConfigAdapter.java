@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.catalog.schema.registry;
 import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -193,21 +192,20 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
                 JsonObject basic = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_BASIC_NAME);
 
-                String authorization;
 
                 if (headers != null)
                 {
-                    authorization = headers.getString(AUTHORIZATION_NAME);
-                }
-                else
-                {
-                    String username = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME);
-                    String password = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME);
-                    authorization = "Basic " + Base64.getEncoder().encodeToString(
-                        (username + ":" + password).getBytes());
+                    String authorization = headers.getString(AUTHORIZATION_NAME, null);
+                    options.authorization(authorization);
                 }
 
-                options.authorization(authorization);
+                if (basic != null)
+                {
+                    String username = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME, null);
+                    options.username(username);
+                    String password = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME, null);
+                    options.password(password);
+                }
             }
         }
 
