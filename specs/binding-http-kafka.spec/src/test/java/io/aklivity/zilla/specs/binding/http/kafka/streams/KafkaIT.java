@@ -182,6 +182,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.my.item/client",
+        "${kafka}/get.my.item/server"})
+    public void shouldGetMyItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item.empty/client",
         "${kafka}/get.item.empty/server"})
     public void shouldGetItemWhenEmpty() throws Exception
@@ -545,6 +554,15 @@ public class KafkaIT
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.my.item/client",
+        "${kafka}/put.my.item/server"})
+    public void shouldPutMyItem() throws Exception
     {
         k3po.finish();
     }

@@ -73,7 +73,17 @@ public class SseKafkaProxyIT
     @Specification({
         "${sse}/handshake/client",
         "${kafka}/handshake/server"})
-    public void shouldCompleteHandshakeWithDyanamicTopic() throws Exception
+    public void shouldCompleteHandshakeWithDynamicTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.dynamic.yaml")
+    @Specification({
+        "${sse}/handshake.my.stream/client",
+        "${kafka}/handshake.my.stream/server"})
+    public void shouldCompleteHandshakeMyStream() throws Exception
     {
         k3po.finish();
     }

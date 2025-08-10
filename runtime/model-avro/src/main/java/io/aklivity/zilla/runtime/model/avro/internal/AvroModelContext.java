@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -23,24 +24,27 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroModelContext implements ModelContext
 {
     private final EngineContext context;
+    private final AvroModelConfiguration config;
 
     public AvroModelContext(
+        Configuration config,
         EngineContext context)
     {
+        this.config = new AvroModelConfiguration(config);
         this.context = context;
     }
 
     @Override
     public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
+        ModelConfig options)
     {
-        return new AvroReadConverterHandler(AvroModelConfig.class.cast(config), context);
+        return new AvroReadConverterHandler(config, AvroModelConfig.class.cast(options), context);
     }
 
     @Override
     public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
+        ModelConfig options)
     {
-        return new AvroWriteConverterHandler(AvroModelConfig.class.cast(config), context);
+        return new AvroWriteConverterHandler(config, AvroModelConfig.class.cast(options), context);
     }
 }

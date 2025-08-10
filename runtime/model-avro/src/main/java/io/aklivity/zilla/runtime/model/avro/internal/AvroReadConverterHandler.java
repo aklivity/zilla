@@ -50,10 +50,11 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     private final Matcher matcher;
 
     public AvroReadConverterHandler(
-        AvroModelConfig config,
+        AvroModelConfiguration config,
+        AvroModelConfig options,
         EngineContext context)
     {
-        super(config, context);
+        super(config, options, context);
         this.matcher = PATH_PATTERN.matcher("");
     }
 

@@ -45,6 +45,11 @@
                                 "type": "string",
                                 "pattern": "PT\\d+S"
                             },
+                            "identity":
+                            {
+                                "type": "string",
+                                "default": "test"
+                            },
                             "roles":
                             {
                                 "type": "array",

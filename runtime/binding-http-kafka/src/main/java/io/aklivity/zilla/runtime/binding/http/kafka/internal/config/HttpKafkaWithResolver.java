@@ -136,13 +136,7 @@ public final class HttpKafkaWithResolver
         HttpKafkaWithFetchConfig fetch = with.fetch.get();
 
         // TODO: hoist to constructor if constant
-        String topic0 = fetch.topic;
-
-        topic0 = findAndReplace(topic0, paramsMatcher, replacer);
-        topic0 = findAndReplace(topic0, headersMatcher, headerReplacer(httpBeginEx));
-        topic0 = findAndReplace(topic0, identityMatcher, r -> identityReplacer.apply(authorization, r));
-
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, httpBeginEx, fetch.topic);
 
         long timeout = 0L;
         Array32FW<KafkaOffsetFW> partitions = null;
@@ -311,13 +305,7 @@ public final class HttpKafkaWithResolver
         }
 
         // TODO: hoist to constructor if constant
-        String topic0 = produce.topic;
-
-        topic0 = findAndReplace(topic0, paramsMatcher, replacer);
-        topic0 = findAndReplace(topic0, headersMatcher, headerReplacer(httpBeginEx));
-        topic0 = findAndReplace(topic0, identityMatcher, r -> identityReplacer.apply(authorization, r));
-
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, httpBeginEx, produce.topic);
 
         KafkaAckMode acks = produce.acks;
 
@@ -398,6 +386,18 @@ public final class HttpKafkaWithResolver
         return new HttpKafkaWithProduceResult(
                 compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
                 produce.correlationId, idempotencyKey, async, hash, timeout);
+    }
+
+    private String16FW resolveTopic(
+        long authorization,
+        HttpBeginExFW httpBeginEx,
+        String topic)
+    {
+        topic = findAndReplace(topic, paramsMatcher, replacer);
+        topic = findAndReplace(topic, headersMatcher, headerReplacer(httpBeginEx));
+        topic = findAndReplace(topic, identityMatcher, r -> identityReplacer.apply(authorization, r));
+
+        return new String16FW(topic);
     }
 
     private static Function<MatchResult, String> headerReplacer(HttpBeginExFW httpBeginEx)

@@ -200,6 +200,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.my.item/client",
+        "${http}/get.my.item/server"})
+    public void shouldGetMyItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.item.with.body/client",
         "${http}/get.item.with.body/server"})
     public void shouldGetItemWithBody() throws Exception
@@ -572,6 +581,15 @@ public class HttpIT
         "${http}/put.item/client",
         "${http}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/put.my.item/client",
+        "${http}/put.my.item/server"})
+    public void shouldPutMyItem() throws Exception
     {
         k3po.finish();
     }

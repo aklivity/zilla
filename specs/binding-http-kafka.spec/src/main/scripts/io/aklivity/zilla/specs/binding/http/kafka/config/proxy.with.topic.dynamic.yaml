@@ -21,22 +21,34 @@ guards:
     options:
       identity: alice
       roles:
-        - read
+        - read:items
+        - write:items
 bindings:
-  sse0:
-    type: sse-kafka
+  http0:
+    type: http-kafka
     kind: proxy
     routes:
       - guarded:
           test0:
-            - read
+            - read:items
         exit: kafka0
         when:
-          - path: /my-stream
+          - method: GET
+            path: /my-items/{id}
         with:
-          topic: ${guarded['test0'].identity}-topic
-      - exit: kafka0
+          capability: fetch
+          topic: ${guarded['test0'].identity}-items
+          filters:
+            - key: ${params.id}
+      - guarded:
+          test0:
+            - write:items
+        exit: kafka0
         when:
-          - path: /{topic}
+          - method: PUT
+            path: /my-items/{id}
         with:
-          topic: ${params.topic}
+          capability: produce
+          topic: ${guarded['test0'].identity}-items
+          acks: leader_only
+          key: ${params.id}
