@@ -1,0 +1,92 @@
+#
+# Copyright 2021-2024 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property serverInitialWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${serverInitialWindow}
+  option zilla:transmission "duplex"
+
+accepted
+connected
+
+# Request 1 - valid path params with JSON body
+read "PATCH /valid/1234567890123/1234567890123 HTTP/1.1\r\n"
+read "Host: localhost:8080\r\n"
+read "Content-Length: 21\r\n"
+read "Content-Type: application/json\r\n"
+read "\r\n"
+read "{\"field\":\"newValue\"}"
+
+write "HTTP/1.1 200 OK\r\n"
+write "Content-Length: 9\r\n"
+write "\r\n"
+write "response1"
+
+
+# Request 2 - valid path params, query param with JSON body
+read "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
+read "Host: localhost:8080\r\n"
+read "Content-Length: 25\r\n"
+read "Content-Type: application/json\r\n"
+read "\r\n"
+read "{\"field\":\"updatedValue\"}"
+
+write "HTTP/1.1 200 OK\r\n"
+write "Content-Length: 9\r\n"
+write "\r\n"
+write "response2"
+
+
+# Request 3 - valid path params with If-Match header and JSON body
+read "PATCH /valid/1234567890123/1234567890123 HTTP/1.1\r\n"
+read "Host: localhost:8080\r\n"
+read "If-Match: \"etag-value\"\r\n"
+read "Content-Length: 37\r\n"
+read "Content-Type: application/json\r\n"
+read "\r\n"
+read "{\"partialField\":\"partiallyUpdated\"}"
+
+write "HTTP/1.1 200 OK\r\n"
+write "Content-Length: 9\r\n"
+write "\r\n"
+write "response3"
+
+
+# Request 4 - valid path params, query param, custom header with JSON body
+read "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
+read "Host: localhost:8080\r\n"
+read "Code: 1234567890123\r\n"
+read "Content-Length: 29\r\n"
+read "Content-Type: application/json\r\n"
+read "\r\n"
+read "{\"field\":\"newValueWithHeader\"}"
+
+write "HTTP/1.1 200 OK\r\n"
+write "Content-Length: 9\r\n"
+write "\r\n"
+write "response4"
+
+
+# Request 5 - valid path params, query param, header field, empty body
+read "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
+read "Host: localhost:8080\r\n"
+read "Code: 1234567890123\r\n"
+read "Content-Length: 0\r\n"
+read "\r\n"
+
+write "HTTP/1.1 400 Bad Request\r\n"
+write "\r\n"

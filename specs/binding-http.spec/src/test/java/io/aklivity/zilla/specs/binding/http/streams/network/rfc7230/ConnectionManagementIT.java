@@ -341,4 +341,15 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+
+    @Test
+    @Specification({
+        "${net}/http.patch.exchange/client",
+        "${net}/http.patch.exchange/server" })
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
