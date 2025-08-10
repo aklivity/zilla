@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal.events;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -31,12 +34,19 @@ public final class StdoutOutputRule implements TestRule
 {
     public static final PrintStream OUT;
 
-    private static final ByteArrayOutputStream BOS;
+    private static final PipedInputStream IN;
 
     static
     {
-        BOS = new ByteArrayOutputStream();
-        OUT = new PrintStream(BOS);
+        try
+        {
+            IN = new PipedInputStream();
+            OUT = new PrintStream(new PipedOutputStream(IN));
+        }
+        catch (IOException ex)
+        {
+            throw new RuntimeException(ex);
+        }
     }
 
     private volatile Pattern expected;
@@ -51,20 +61,16 @@ public final class StdoutOutputRule implements TestRule
             @Override
             public void evaluate() throws Throwable
             {
-                BOS.reset();
-
                 base.evaluate();
 
-                while (BOS.size() == 0)
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(IN)))
                 {
-                    OUT.flush();
-                    Thread.onSpinWait();
+
+                    final String actual = in.readLine();
+                    final Pattern expect = Objects.requireNonNull(expected);
+
+                    assertThat(actual, matchesPattern(expect));
                 }
-
-                final Pattern expect = Objects.requireNonNull(expected);
-                final String actual = BOS.toString(StandardCharsets.UTF_8);
-
-                assertThat(actual, matchesPattern(expect));
             }
         };
     }
