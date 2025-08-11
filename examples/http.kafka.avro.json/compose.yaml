@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     hostname: zilla.examples.dev
     ports:
-      - 7314:7114
+      - 7114:7114
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     hostname: kafka.examples.dev
     ports:
-      - 9392:9092
+      - 9092:9092
     healthcheck:
       test: /opt/bitnami/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
       interval: 1s
@@ -70,7 +70,7 @@ services:
     image: ghcr.io/kafbat/kafka-ui:v1.0.0
     restart: unless-stopped
     ports:
-      - 8380:8080
+      - 8080:8080
     depends_on:
       kafka:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
     depends_on:
       - kafka
     ports:
-      - 8381:8081
+      - 8081:8081
     environment:
       KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
       KARAPACE_BOOTSTRAP_URI: kafka.examples.dev:29092
