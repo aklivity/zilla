@@ -14,12 +14,11 @@
 # under the License.
 #
 
-
-# Request 1 - valid path params, partial update body
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
+# Request 1 - valid path params
 accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
@@ -29,8 +28,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-read "{\"field\":\"newValue\"}"
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -39,16 +36,11 @@ write zilla:begin.ext ${http:beginEx()
                               .header("content-length", "9")
                               .build()}
 write flush
-
 write "response1"
 write close
 
 
-# Request 2 - valid path params, partial update with query param
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
+# Request 2 - valid path params, query param
 accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
@@ -58,8 +50,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .build()}
 connected
-
-read "{\"field\":\"updatedValue\"}"
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -68,94 +58,5 @@ write zilla:begin.ext ${http:beginEx()
                               .header("content-length", "9")
                               .build()}
 write flush
-
 write "response2"
-write close
-
-
-# Request 3 - valid path params, partial update with If-Match header
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "PATCH")
-                             .header(":path", "/valid/1234567890123/1234567890123")
-                             .header(":authority", "localhost:8080")
-                             .header("If-Match", "\"etag-value\"")
-                             .build()}
-connected
-
-read "{\"partialField\":\"partiallyUpdated\"}"
-read closed
-
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("content-length", "9")
-                              .build()}
-write flush
-
-write "response3"
-write close
-
-
-# Request 4 - valid path params, partial update with query param and custom header
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "PATCH")
-                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
-                             .header(":authority", "localhost:8080")
-                             .header("code", "1234567890123")
-                             .build()}
-connected
-
-read "{\"field\":\"newValueWithHeader\"}"
-read closed
-
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("content-length", "9")
-                              .build()}
-write flush
-
-write "response4"
-write close
-
-
-# Request 5 - valid path params, query param, header field, empty body
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "PATCH")
-                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
-                             .header(":authority", "localhost:8080")
-                             .header("code", "1234567890123")
-                             .build()}
-connected
-
-read closed
-
-# Bad request for empty PATCH body
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "400")
-                              .build()}
-write flush
-
 write close

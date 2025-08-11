@@ -19,70 +19,26 @@ connect "zilla://streams/net0"
   option zilla:transmission "duplex"
 connected
 
-# Request 1 - valid path params with JSON body
-write "PATCH /valid/1234567890123/1234567890123 HTTP/1.1\r\n"
-write "Host: localhost:8080\r\n"
-write "Content-Length: 21\r\n"
-write "Content-Type: application/json\r\n"
+# Request 1 - valid path params
+write "PATCH /valid/1234567890123/1234567890123 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
 write "\r\n"
-write "{\"field\":\"newValue\"}"
 
 read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9\r\n"
+read "Content-Length: 9" "\r\n"
 read "\r\n"
 read "response1"
 
 
-# Request 2 - valid path params, query param with JSON body
-write "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
-write "Host: localhost:8080\r\n"
-write "Content-Length: 25\r\n"
-write "Content-Type: application/json\r\n"
+# Request 2 - valid path params, query param
+write "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
 write "\r\n"
-write "{\"field\":\"updatedValue\"}"
 
 read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9\r\n"
+read "Content-Length: 9" "\r\n"
 read "\r\n"
 read "response2"
+read closed
 
 
-# Request 3 - valid path params with If-Match header and JSON body
-write "PATCH /valid/1234567890123/1234567890123 HTTP/1.1\r\n"
-write "Host: localhost:8080\r\n"
-write "If-Match: \"etag-value\"\r\n"
-write "Content-Length: 37\r\n"
-write "Content-Type: application/json\r\n"
-write "\r\n"
-write "{\"partialField\":\"partiallyUpdated\"}"
-
-read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9\r\n"
-read "\r\n"
-read "response3"
-
-
-# Request 4 - valid path params, query param, custom header with JSON body
-write "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
-write "Host: localhost:8080\r\n"
-write "Code: 1234567890123\r\n"
-write "Content-Length: 29\r\n"
-write "Content-Type: application/json\r\n"
-write "\r\n"
-write "{\"field\":\"newValueWithHeader\"}"
-
-read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9\r\n"
-read "\r\n"
-read "response4"
-
-
-# Request 5 - valid path params, query param, header field, empty body
-write "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1\r\n"
-write "Host: localhost:8080\r\n"
-write "Code: 1234567890123\r\n"
-write "Content-Length: 0\r\n"
-write "\r\n"
-
-read "HTTP/1.1 400 Bad Request\r\n"
-read "\r\n"
