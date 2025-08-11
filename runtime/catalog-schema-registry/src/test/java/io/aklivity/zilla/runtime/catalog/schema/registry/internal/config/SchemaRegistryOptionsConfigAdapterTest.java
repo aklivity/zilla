@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 
 import jakarta.json.bind.Jsonb;
@@ -106,8 +105,8 @@ public class SchemaRegistryOptionsConfigAdapterTest
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
         assertThat(catalog.context, equalTo("default"));
-        String base64Encoded = Base64.getEncoder().encodeToString("user:secret".getBytes());
-        assertThat(catalog.authorization, equalTo("Basic " + base64Encoded));
+        assertThat(catalog.username, equalTo("user"));
+        assertThat(catalog.password, equalTo("secret"));
     }
 
     @Test
