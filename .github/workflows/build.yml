@@ -83,6 +83,7 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
+            ^examples/ws.reflect$
 
   testing:
     strategy:
