@@ -26,9 +26,11 @@ write zilla:begin.ext ${http:beginEx()
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
                               .header("code", "1234")
+                              .header("content-length", "4")
+                              .header("content-type", "text/plain")
                               .build()}
 connected
-
+write "1234" #updated data
 write close
 
 read zilla:begin.ext ${http:beginEx()

@@ -23,7 +23,10 @@ connected
 write "PATCH / HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "Code: 1234" "\r\n"
+write "Content-Length: 4" "\r\n"
+write "Content-Type: text/plain" "\r\n"
 write "\r\n"
+write "1234"
 
 read "HTTP/1.1 200 OK\r\n"
 read "Content-Length: 8" "\r\n"

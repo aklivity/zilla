@@ -29,9 +29,11 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":path", "/")
                              .header(":authority", "localhost:8080")
                              .header("code", "1234")
+                             .header("content-length", "4")
+                             .header("content-type", "text/plain")
                              .build()}
 connected
-
+read "1234"
 read closed
 
 write zilla:begin.ext ${http:beginEx()
