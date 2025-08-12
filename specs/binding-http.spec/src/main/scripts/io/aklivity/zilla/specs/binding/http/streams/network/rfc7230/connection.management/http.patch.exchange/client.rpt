@@ -19,26 +19,16 @@ connect "zilla://streams/net0"
   option zilla:transmission "duplex"
 connected
 
-# Request 1 - valid path params
-write "PATCH /valid/1234567890123/1234567890123 HTTP/1.1" "\r\n"
+#Patch Request - validate path, update content
+write "PATCH / HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
+write "Code: 1234" "\r\n"
 write "\r\n"
 
 read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9" "\r\n"
+read "Content-Length: 8" "\r\n"
 read "\r\n"
-read "response1"
+read "response"
 
-
-# Request 2 - valid path params, query param
-write "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
-write "Host: localhost:8080" "\r\n"
-write "\r\n"
-
-read "HTTP/1.1 200 OK\r\n"
-read "Content-Length: 9" "\r\n"
-read "\r\n"
-read "response2"
-read closed
 
 

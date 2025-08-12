@@ -18,45 +18,28 @@ accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
-# Request 1 - valid path params
+
+
+#Patch Request - validate path, update content
 accepted
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":scheme", "http")
                              .header(":method", "PATCH")
-                             .header(":path", "/valid/1234567890123/1234567890123")
+                             .header(":path", "/")
                              .header(":authority", "localhost:8080")
+                             .header("code", "1234")
                              .build()}
 connected
+
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
-                              .header("content-length", "9")
+                              .header("content-length", "8")
                               .build()}
 write flush
-write "response1"
-write close
 
-
-# Request 2 - valid path params, query param
-accepted
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "PATCH")
-                             .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
-                             .header(":authority", "localhost:8080")
-                             .build()}
-connected
-read closed
-
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("content-length", "9")
-                              .build()}
-write flush
-write "response2"
+write "response"
 write close

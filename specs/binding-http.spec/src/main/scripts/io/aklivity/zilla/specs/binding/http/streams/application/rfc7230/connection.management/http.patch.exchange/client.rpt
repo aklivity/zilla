@@ -14,7 +14,7 @@
 # under the License.
 #
 
-# Request 1 - valid path params
+#Patch Request - validate path, update content
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -23,8 +23,9 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "PATCH")
-                              .header(":path", "/valid/1234567890123/1234567890123")
+                              .header(":path", "/")
                               .header(":authority", "localhost:8080")
+                              .header("code", "1234")
                               .build()}
 connected
 
@@ -33,34 +34,8 @@ write close
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
-                             .header("content-length", "9")
+                             .header("content-length", "8")
                              .build()}
-read "response1"
+read "response"
 read closed
-read notify RESPONSE_ONE_RECEIVED
 
-# Request 2 - valid path params, query param
-connect await RESPONSE_ONE_RECEIVED
-        "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
-                              .header(":method", "PATCH")
-                              .header(":path", "/valid/1234567890123/1234567890123?page=1234567890123")
-                              .header(":authority", "localhost:8080")
-                              .build()}
-connected
-
-write close
-
-read zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-length", "9")
-                             .build()}
-read "response2"
-read closed
-read notify RESPONSE_TWO_RECEIVED

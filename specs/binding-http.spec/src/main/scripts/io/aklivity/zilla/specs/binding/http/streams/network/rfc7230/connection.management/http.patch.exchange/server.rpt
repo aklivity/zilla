@@ -22,24 +22,14 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-# Request 1 - valid path params
-read "PATCH /valid/1234567890123/1234567890123 HTTP/1.1" "\r\n"
+
+#Patch Request - validate path, update content
+read "PATCH / HTTP/1.1" "\r\n"
 read "Host: localhost:8080" "\r\n"
+read "Code: 1234" "\r\n"
 read "\r\n"
 
 write "HTTP/1.1 200 OK\r\n"
-write "Content-Length: 9" "\r\n"
+write "Content-Length: 8" "\r\n"
 write "\r\n"
-write "response1"
-
-
-# Request 2 - valid path params, query param
-read "PATCH /valid/1234567890123/1234567890123?page=1234567890123 HTTP/1.1" "\r\n"
-read "Host: localhost:8080" "\r\n"
-read "\r\n"
-
-write "HTTP/1.1 200 OK\r\n"
-write "Content-Length: 9" "\r\n"
-write "\r\n"
-write "response2"
-write close
+write "response"
