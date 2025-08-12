@@ -131,6 +131,15 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/http.post.exchange.streaming/client",
+        "${app}/http.post.exchange.streaming/server" })
+    public void httpPostExchangeWhenStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("server.yaml")
