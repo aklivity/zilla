@@ -15,13 +15,51 @@
 
 ---
 name: test
+catalogs:
+  test0:
+    type: test
+    options:
+      id: 1
+      subject: echo
+      schema: |
+        syntax = "proto3";
+
+        package example;
+
+        option java_multiple_files = true;
+        option java_outer_classname = "EchoProto";
+
+        service EchoService
+        {
+          rpc EchoUnary(EchoMessage) returns (EchoMessage);
+
+          rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
+
+          rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
+
+          rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
+
+          rpc ComplexMethod (EchoMessage) returns (EchoMessage) {
+            option (com.example.http) = {
+              delete : "/some/url"
+              additional_bindings {
+                delete: "/another/url"
+              }
+            };
+          }
+        }
+
+        message EchoMessage
+        {
+          string message = 1;
+        }
 bindings:
   net0:
     type: grpc
     kind: server
-    options:
-      services:
-        - protobuf/echo.proto
+    catalog:
+      test0:
+        - subject: echo
     routes:
       - exit: app0
         when:
