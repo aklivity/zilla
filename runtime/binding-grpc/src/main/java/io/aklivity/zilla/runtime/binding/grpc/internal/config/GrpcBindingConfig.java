@@ -130,11 +130,6 @@ public final class GrpcBindingConfig
 
             GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
 
-            if (method == null && options != null)
-            {
-                method = resolveMethod(options.protobufs, serviceName, methodName);
-            }
-
             if (method != null)
             {
                 methodResolver = new GrpcMethodResult(

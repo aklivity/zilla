@@ -12,31 +12,46 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package io.aklivity.zilla.runtime.binding.grpc.config;
 
+
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 import java.util.List;
 import java.util.function.Function;
 
-public final class GrpcOptionsConfig extends OptionsConfig
+public final class GrpcOptionsConfigBuilder<T> extends ConfigBuilder<T, GrpcOptionsConfigBuilder<T>>
 {
-    public final List<String> services;
+    private final Function<OptionsConfig, T> mapper;
 
-    public static GrpcOptionsConfigBuilder<GrpcOptionsConfig> builder()
+    private List<String> services;
+
+    GrpcOptionsConfigBuilder(
+        Function<OptionsConfig, T> mapper)
     {
-        return new GrpcOptionsConfigBuilder<>(GrpcOptionsConfig.class::cast);
+        this.mapper = mapper;
     }
 
-    public static <T> GrpcOptionsConfigBuilder<T> builder(
-            Function<OptionsConfig, T> mapper)
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GrpcOptionsConfigBuilder<T>> thisType()
     {
-        return new GrpcOptionsConfigBuilder<>(mapper);
+        return (Class<GrpcOptionsConfigBuilder<T>>) getClass();
     }
 
-    GrpcOptionsConfig(
+
+    public GrpcOptionsConfigBuilder<T> services(
         List<String> services)
     {
         this.services = services;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new GrpcOptionsConfig(services));
     }
 }
