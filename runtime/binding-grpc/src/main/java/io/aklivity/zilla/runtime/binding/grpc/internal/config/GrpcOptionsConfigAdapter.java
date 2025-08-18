@@ -14,14 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfigBuilder;
-import jakarta.json.*;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+
 
 public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

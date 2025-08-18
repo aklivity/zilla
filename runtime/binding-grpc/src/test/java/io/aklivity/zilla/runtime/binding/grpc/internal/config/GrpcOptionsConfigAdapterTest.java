@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -29,8 +30,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
-
-import static org.hamcrest.Matchers.equalTo;
 
 public class GrpcOptionsConfigAdapterTest
 {

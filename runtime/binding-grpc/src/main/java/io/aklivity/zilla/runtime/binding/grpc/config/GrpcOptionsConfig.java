@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
 import java.util.List;
 import java.util.function.Function;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class GrpcOptionsConfig extends OptionsConfig
 {

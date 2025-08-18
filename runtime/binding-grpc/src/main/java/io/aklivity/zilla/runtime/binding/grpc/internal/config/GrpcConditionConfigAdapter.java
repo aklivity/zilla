@@ -29,8 +29,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 

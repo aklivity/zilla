@@ -15,12 +15,11 @@
 
 package io.aklivity.zilla.runtime.binding.grpc.config;
 
+import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-import java.util.List;
-import java.util.function.Function;
 
 public final class GrpcOptionsConfigBuilder<T> extends ConfigBuilder<T, GrpcOptionsConfigBuilder<T>>
 {
