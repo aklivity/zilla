@@ -83,6 +83,7 @@ jobs:
             ^\.assets$
             ^\.git$
             ^\.vscode$
+            ^tcp.reflect$
             ^ws.reflect$
 
   testing:
