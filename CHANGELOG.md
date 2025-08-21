@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.154...HEAD)
+
+**Fixed bugs:**
+
+- Using Maps and Arrays with Avro, cause app to crash due to unsafe memory access operation [\#1525](https://github.com/aklivity/zilla/issues/1525)
+
+**Closed issues:**
+
+- Support JWT identity claims for dynamic `http-kafka` and `sse-kafka` topic routing [\#1511](https://github.com/aklivity/zilla/issues/1511)
+- Auth0 Identity Value Not Fetching Inside Identity Field [\#1475](https://github.com/aklivity/zilla/issues/1475)
+- Support PATCH as HTTP method [\#1419](https://github.com/aklivity/zilla/issues/1419)
+
+**Merged pull requests:**
+
+- Support remote\_client binding kind [\#1542](https://github.com/aklivity/zilla/pull/1542) ([jfallows](https://github.com/jfallows))
+- Disable tcp.reflect example [\#1540](https://github.com/aklivity/zilla/pull/1540) ([jfallows](https://github.com/jfallows))
+- Disable `ws.reflect` example [\#1536](https://github.com/aklivity/zilla/pull/1536) ([jfallows](https://github.com/jfallows))
+- fix `mqtt` & `mqtt-kafka` topic pattern to allow `.` [\#1532](https://github.com/aklivity/zilla/pull/1532) ([ankitk-me](https://github.com/ankitk-me))
+- Use piped input and output stream [\#1531](https://github.com/aklivity/zilla/pull/1531) ([jfallows](https://github.com/jfallows))
+- Support http patch [\#1530](https://github.com/aklivity/zilla/pull/1530) ([Qianyu2021](https://github.com/Qianyu2021))
+- config: support padding for arrays and maps in `JSON` view [\#1527](https://github.com/aklivity/zilla/pull/1527) ([ankitk-me](https://github.com/ankitk-me))
+- dynamic topic routing based on JWT identity claims [\#1524](https://github.com/aklivity/zilla/pull/1524) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.154](https://github.com/aklivity/zilla/tree/0.9.154) (2025-07-24)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.153...0.9.154)
