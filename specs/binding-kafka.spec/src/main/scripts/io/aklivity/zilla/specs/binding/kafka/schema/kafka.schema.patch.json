@@ -363,7 +363,6 @@
                                             "extract-key":
                                             {
                                                 "type": "string",
-                                                "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$",
                                                 "additionalProperties": false
                                             }
                                         }
@@ -380,8 +379,7 @@
                                                 {
                                                     "^[a-zA-Z:]+[a-zA-Z0-9\\._\\-:]*$":
                                                     {
-                                                        "type": "string",
-                                                        "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "additionalProperties": false
@@ -407,9 +405,7 @@
                                                 {
                                                     "^[a-zA-Z:]+[a-zA-Z0-9\\._\\-:]*$":
                                                     {
-                                                        "type": "string",
-                                                        "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                                    }
+                                                        "type": "string"}
                                                 },
                                                 "additionalProperties": false
                                             }
@@ -430,7 +426,6 @@
                                             "extract-key":
                                             {
                                                 "type": "string",
-                                                "pattern": "^\\$\\{message\\.(key|value)\\.([A-Za-z_][A-Za-z0-9_]*)\\}$",
                                                 "additionalProperties": false
                                             }
                                         }

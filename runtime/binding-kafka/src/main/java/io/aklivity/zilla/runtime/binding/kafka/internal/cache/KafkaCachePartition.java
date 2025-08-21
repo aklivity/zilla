@@ -496,7 +496,7 @@ public final class KafkaCachePartition
                 KafkaCachePaddedKeyFW paddedKey =
                     logFile.readBytes(position, paddedKeyRO::wrap);
                 final int paddedKeySize = paddedKey.sizeof();
-                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW.rewrap();
                 final int keySize = paddedKeyBuilder.key(k -> k.length(length).value(buffer, index, length)).sizeof();
                 paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
                 KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
