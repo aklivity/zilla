@@ -165,4 +165,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateServerWhenTopicValid()
+    {
+        JsonObject config = schema.validate("server.when.topic.valid.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

@@ -27,16 +27,17 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, TestGuardOptionsConfigBuilder<T>>
 {
+    public static final String DEFAULT_IDENTITY = "test";
+    public static final Duration DEFAULT_CHALLENGE_NEVER = Duration.ofMillis(0L);
+    public static final Duration DEFAULT_LIFETIME_FOREVER = Duration.ofMillis(Long.MAX_VALUE);
+
     private final Function<OptionsConfig, T> mapper;
 
     private String credentials;
     private Duration lifetime;
     private Duration challenge;
+    private String identity;
     private List<String> roles;
-
-    public static final Duration DEFAULT_CHALLENGE_NEVER = Duration.ofMillis(0L);
-
-    public static final Duration DEFAULT_LIFETIME_FOREVER = Duration.ofMillis(Long.MAX_VALUE);
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -72,6 +73,13 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardOptionsConfigBuilder<T> identity(
+        String identity)
+    {
+        this.identity = identity;
+        return this;
+    }
+
     public TestGuardOptionsConfigBuilder<T> role(
         String role)
     {
@@ -90,6 +98,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             credentials,
             Optional.ofNullable(lifetime).orElse(DEFAULT_LIFETIME_FOREVER),
             Optional.ofNullable(challenge).orElse(DEFAULT_CHALLENGE_NEVER),
+            this.identity != null ? this.identity : DEFAULT_IDENTITY,
             roles));
     }
 }

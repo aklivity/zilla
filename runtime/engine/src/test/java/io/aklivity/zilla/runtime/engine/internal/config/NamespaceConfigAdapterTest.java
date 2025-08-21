@@ -333,6 +333,7 @@ public class NamespaceConfigAdapterTest
                     .options(TestGuardOptionsConfig::builder)
                         .credentials("token")
                         .lifetime(Duration.ofSeconds(10))
+                        .identity("alice")
                         .build()
                     .build()
                 .build();
@@ -341,7 +342,7 @@ public class NamespaceConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"," +
-                "\"options\":{\"credentials\":\"token\",\"lifetime\":\"PT10S\"}}}}"));
+                "\"options\":{\"credentials\":\"token\",\"lifetime\":\"PT10S\",\"identity\":\"alice\"}}}}"));
     }
 
     @Test

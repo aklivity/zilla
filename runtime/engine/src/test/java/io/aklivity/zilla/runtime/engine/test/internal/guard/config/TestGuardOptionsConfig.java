@@ -27,6 +27,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final String credentials;
     public final Duration lifetime;
     public final Duration challenge;
+    public final String identity;
     public final List<String> roles;
 
     public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
@@ -44,11 +45,13 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         String credentials,
         Duration lifetime,
         Duration challenge,
+        String identity,
         List<String> roles)
     {
         this.credentials = credentials;
         this.lifetime = Objects.requireNonNull(lifetime);
         this.challenge = Objects.requireNonNull(challenge);
+        this.identity = identity;
         this.roles = roles;
     }
 }

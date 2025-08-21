@@ -15,11 +15,26 @@
 
 ---
 name: test
+guards:
+  test0:
+    type: test
+    options:
+      identity: alice
+      roles:
+        - read
 bindings:
   sse0:
     type: sse-kafka
     kind: proxy
     routes:
+      - guarded:
+          test0:
+            - read
+        exit: kafka0
+        when:
+          - path: /my-stream
+        with:
+          topic: ${guarded['test0'].identity}-topic
       - exit: kafka0
         when:
           - path: /{topic}

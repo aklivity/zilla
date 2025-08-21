@@ -167,4 +167,12 @@ public class SchemaTest
     {
         schema.validate("proxy.invalid.path.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyWithTopicDynamic()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.dynamic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

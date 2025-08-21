@@ -144,6 +144,16 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/http.patch.exchange/client",
+        "${app}/http.patch.exchange/server" })
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connection.has.two.streams/client",
         "${app}/connection.has.two.streams/server" })
     public void connectionHasTwoStreams() throws Exception
