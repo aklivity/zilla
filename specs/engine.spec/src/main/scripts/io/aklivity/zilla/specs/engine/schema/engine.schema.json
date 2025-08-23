@@ -336,7 +336,7 @@
                 "kind":
                 {
                     "title": "Kind",
-                    "enum": [ "client", "server", "proxy", "remote_server", "cache_client", "cache_server"]
+                    "enum": [ "client", "server", "proxy", "remote_client", "remote_server", "cache_client", "cache_server"]
                 },
                 "options":
                 {
@@ -432,6 +432,20 @@
                     {
                         "kind":
                         {
+                            "const": "remote_client"
+                        },
+                        "exit": false
+                    },
+                    "required":
+                    [
+                        "entry"
+                    ]
+                },
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
                             "const": "remote_server"
                         }
                     },
@@ -447,7 +461,7 @@
                         {
                             "not":
                             {
-                                "const": "remote_server"
+                                "enum": [ "remote_client", "remote_server" ]
                             }
                         },
                         "entry": false

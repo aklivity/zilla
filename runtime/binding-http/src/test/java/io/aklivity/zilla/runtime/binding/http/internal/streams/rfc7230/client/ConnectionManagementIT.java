@@ -212,4 +212,15 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/http.patch.exchange/client",
+        "${net}/http.patch.exchange/server"})
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

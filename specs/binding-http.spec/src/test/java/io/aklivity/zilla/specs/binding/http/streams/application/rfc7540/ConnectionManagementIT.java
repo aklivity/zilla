@@ -101,6 +101,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/http.patch.exchange/client",
+        "${app}/http.patch.exchange/server"
+    })
+    public void httpPatchExchange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/multiple.data.frames/client",
         "${app}/multiple.data.frames/server"
     })
