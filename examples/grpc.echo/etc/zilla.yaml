@@ -6,6 +6,9 @@ catalogs:
       subjects:
         echo:
           path: protos/echo.proto
+        health:
+          path: protos/health.proto
+
 bindings:
   north_tcp_server:
     type: tcp

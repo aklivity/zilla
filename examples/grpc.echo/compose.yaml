@@ -25,6 +25,7 @@ services:
       - on-demand
     volumes:
       - ./etc/protos/echo.proto:/echo.proto
+      - ./etc/protos/health.proto:/health.proto
 
 networks:
   default:

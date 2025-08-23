@@ -22,6 +22,7 @@ import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.time.Instant.now;
 
+import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -244,6 +245,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW message);
     }
 
+
     public GrpcServerFactory(
         GrpcConfiguration config,
         EngineContext context)
@@ -339,15 +341,66 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED, null);
             }
+            else if (method != null && "grpc.health.v1.health".equals(method.service))
+            {
+                newStream = newHealthCheckStream(begin, network, method);
+            }
             else
             {
                 newStream = newInitialGrpcStream(begin, network, contentType, method);
             }
         }
-
-
-
         return newStream;
+    }
+
+    private MessageConsumer newHealthCheckStream(
+            final BeginFW begin,
+            final MessageConsumer network,
+            final GrpcMethodResult method)
+    {
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
+        final long initialId = begin.streamId();
+        final long replyId = supplyReplyId.applyAsLong(initialId);
+        final long traceId = begin.traceId();
+        final long authorization = begin.authorization();
+
+        return (msgTypeId, buffer, index, length) ->
+        {
+            // Determine numeric enum instead of returning a raw string
+            int statusEnum = proxyHealthStatusEnum();
+
+            // Wrap the enum in a gRPC frame as a protobuf message
+            // Protobuf encoding for int32 field number 1: 0x08 (field 1, wire type 0)
+            // Followed by the varint value
+            byte[] response = new byte[] { 0x08, (byte) statusEnum };
+
+            // Wrap in gRPC frame: 1 byte compression flag + 4 bytes length
+            int len = response.length;
+            ByteBuffer grpcFrame = ByteBuffer.allocate(5 + len);
+            grpcFrame.put((byte) 0); // compression flag
+            grpcFrame.putInt(len);   // message length
+            grpcFrame.put(response);
+            grpcFrame.flip();
+
+            // Send the gRPC response
+            GrpcServer server = new GrpcServer(network, originId, routedId, initialId, replyId, 0, 0, ContentType.GRPC, method);
+            server.doNetData(traceId, authorization, 0, grpcFrame.remaining(), DATA_FLAG_INIT | DATA_FLAG_FIN,
+                    new UnsafeBuffer(grpcFrame), 0, grpcFrame.remaining());
+
+            // End the gRPC call
+            ContentType.GRPC.doNetEnd(server, traceId, authorization, 0);
+        };
+    }
+
+    private int proxyHealthStatusEnum()
+    {
+        // 1 = SERVING, 0 = UNKNOWN
+        if (bindings == null || grpcTypeId <= 0 || httpTypeId <= 0)
+        {
+            return 0;  // UNKNOWN
+        }
+        return 1;      // SERVING
     }
 
     private MessageConsumer  newInitialGrpcStream(
