@@ -36,11 +36,18 @@ bindings:
     catalog:
       host_filesystem:
         - subject: echo
+        - subject: health
     routes:
       - when:
           - method: example.EchoService/*
         exit: north_echo_server
+      - when:
+          - method: grpc.health.v1.Health/*
+        exit: north_health_server
   north_echo_server:
+    type: echo
+    kind: server
+  north_health_server: # add a handler for health checks
     type: echo
     kind: server
 telemetry:
