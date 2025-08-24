@@ -48,7 +48,7 @@ bindings:
     type: echo
     kind: server
   north_health_server: # add a handler for health checks
-    type: echo
+    type: health
     kind: server
 telemetry:
   exporters:

@@ -61,7 +61,7 @@ fi
 # Test Health Check
 # ---------------------------------------
 # Note: service = "" means check overall server health.
-HEALTH_INPUT='{"service":"example.EchoService"}'
+HEALTH_INPUT='{"service":"grpc.echo/example.EchoService"}'
 HEALTH_EXPECTED='{
   "status": "SERVING"
 }'
