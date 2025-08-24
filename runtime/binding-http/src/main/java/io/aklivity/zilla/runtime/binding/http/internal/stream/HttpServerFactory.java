@@ -218,6 +218,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String HEADER_NAME_ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
     private static final String HEADER_NAME_METHOD = ":method";
     private static final String HEADER_NAME_ORIGIN = "origin";
+    private static final String HEADER_NAME_PROTOCOL = ":protocol";
     private static final String HEADER_NAME_SCHEME = ":scheme";
     private static final String HEADER_NAME_AUTHORITY = ":authority";
     private static final String HEADER_NAME_CONTENT_TYPE = "content-type";
@@ -225,6 +226,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final String METHOD_NAME_OPTIONS = "OPTIONS";
     private static final String METHOD_NAME_POST = "POST";
+    private static final String METHOD_NAME_CONNECT = "CONNECT";
 
     private static final String CHALLENGE_RESPONSE_METHOD = METHOD_NAME_POST;
     private static final String CHALLENGE_RESPONSE_CONTENT_TYPE = "application/x-challenge-response";
@@ -239,6 +241,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
+    private static final String8FW HEADER_PROTOCOL = new String8FW(":protocol");
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_SERVER = new String8FW("server");
     private static final String8FW HEADER_STATUS = new String8FW(":status");
@@ -5516,6 +5519,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                     .initialWindowSize(initialSettings.initialWindowSize)
                     .maxHeaderListSize(initialSettings.maxHeaderListSize)
+                    .enableConnectProtocol()
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
@@ -6511,6 +6515,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int method;
         private int scheme;
         private int path;
+        private int protocol;
 
         Http2ErrorCode connectionError;
         Http2ErrorCode streamError;
@@ -6549,6 +6554,21 @@ public final class HttpServerFactory implements HttpStreamFactory
             // a CONNECT request (Section 8.3).  An HTTP request that omits
             // mandatory pseudo-header fields is malformed
             if (!error() && (method != 1 || scheme != 1 || path != 1))
+            {
+                streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                return;
+            }
+
+            boolean isConnect = METHOD_NAME_CONNECT.equals(headers.get(HEADER_NAME_METHOD));
+
+            // A CONNECT request MAY include a ":protocol" pseudo-header, and
+            // a ":protocol" pseudo-header must not appear in a non-CONNECT request.
+            // TODO: Add test
+            if (!isConnect && protocol > 0 || isConnect && protocol > 1 ||
+                // On requests that contain the :protocol pseudo-header field, the :scheme
+                // and :path pseudo-header fields of the target URI MUST also be included
+                // (RFC8441, Section 4).
+                protocol == 1 && (scheme != 1 || path != 1 || headers.get(HEADER_NAME_PROTOCOL).isBlank()))
             {
                 streamError = Http2ErrorCode.PROTOCOL_ERROR;
             }
@@ -6649,6 +6669,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         return;
                     }
                     // request pseudo-header fields MUST be one of :authority, :method, :path, :scheme,
+                    // and may be :protocol if the :method pseudo-header is CONNECT (RFC8441)
                     int index = context.index(name);
                     switch (index)
                     {
@@ -6671,8 +6692,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                         scheme++;
                         break;
                     default:
-                        streamError = Http2ErrorCode.PROTOCOL_ERROR;
-                        return;
+                        if (HEADER_PROTOCOL.value().compareTo(name) == 0)
+                        {
+                            protocol++;
+                            break;
+                        }
+                        else
+                        {
+                            streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                        }
                     }
                 }
                 else
