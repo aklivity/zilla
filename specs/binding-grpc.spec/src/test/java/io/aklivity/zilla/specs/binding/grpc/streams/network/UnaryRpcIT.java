@@ -146,4 +146,14 @@ public class UnaryRpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/grpc.health.check/client",
+        "${net}/grpc.health.check/server"
+    })
+    public void grpcHealthCheck() throws Exception
+    {
+        k3po.finish();
+    }
 }
