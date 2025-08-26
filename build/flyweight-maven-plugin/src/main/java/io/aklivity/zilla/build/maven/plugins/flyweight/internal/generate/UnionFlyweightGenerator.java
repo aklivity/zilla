@@ -1672,6 +1672,19 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                         .addParameter(resolver.resolveType(AstType.STRING), "value")
                         .addCode(codeBlock.build())
                         .build());
+
+                    ClassName consumerType = ClassName.get(Consumer.class);
+                    TypeName mutatorType = ParameterizedTypeName.get(consumerType, builderType);
+                    builder.addMethod(methodBuilder(methodName(name))
+                        .addModifiers(PUBLIC)
+                        .returns(thisType)
+                        .addParameter(mutatorType, "mutator")
+                        .addStatement("kind($L)", kind(name))
+                        .addStatement("$T $LRW = $L()", builderType, name, methodName(name))
+                        .addStatement("mutator.accept($LRW)", name)
+                        .addStatement("limit($LRW.build().limit())", name)
+                        .addStatement("return this")
+                        .build());
                 }
                 else if (DIRECT_BUFFER_TYPE.equals(className))
                 {
