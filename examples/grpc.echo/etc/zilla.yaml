@@ -47,8 +47,8 @@ bindings:
   north_echo_server:
     type: echo
     kind: server
-  north_health_server: # add a handler for health checks
-    type: health
+  north_health_server:
+    type: grpc
     kind: server
 telemetry:
   exporters:
