@@ -16,6 +16,7 @@
 package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import org.agrona.MutableDirectBuffer;
@@ -107,5 +108,44 @@ public class UnionStringFWTest
         final UnionStringFW unionString = flyweightRO.wrap(buffer,  0,  limit);
 
         assertEquals(14, unionString.string3().length());
+    }
+
+    @Test
+    public void shouldSetString8ViaMutator()
+    {
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .string1(b -> b.set("valueOfString1", UTF_8))
+            .build()
+            .limit();
+
+        final UnionStringFW unionString = flyweightRO.wrap(buffer,  0,  limit);
+
+        assertEquals("valueOfString1", unionString.string1().asString());
+    }
+
+    @Test
+    public void shouldSetString16ViaMutator()
+    {
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .string2(b -> b.set("valueOfString2", UTF_8))
+            .build()
+            .limit();
+
+        final UnionStringFW unionString = flyweightRO.wrap(buffer,  0,  limit);
+
+        assertEquals("valueOfString2", unionString.string2().asString());
+    }
+
+    @Test
+    public void shouldSetString32ViaMutator()
+    {
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .string3(b -> b.set("valueOfString3", UTF_8))
+            .build()
+            .limit();
+
+        final UnionStringFW unionString = flyweightRO.wrap(buffer,  0,  limit);
+
+        assertEquals("valueOfString3", unionString.string3().asString());
     }
 }
