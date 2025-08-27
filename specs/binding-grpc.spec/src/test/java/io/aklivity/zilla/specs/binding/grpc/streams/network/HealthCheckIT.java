@@ -33,7 +33,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 public class HealthCheckIT
 {
     private final K3poRule k3po = new K3poRule()
-            .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/networK/healthcheck.rpc");
+            .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network/grpc.health.check");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

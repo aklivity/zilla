@@ -341,7 +341,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED, null);
             }
-            else if (method != null && "grpc.health.v1.health".equals(method.service))
+            else if (method != null && "grpc.health.v1.Health".equals(method.service))
             {
                 newStream = newHealthCheckStream(begin, network, method);
             }
