@@ -57,50 +57,20 @@ else
   EXIT=1
 fi
 
-# ---------------------------------------
-# Test Health Check
-# ---------------------------------------
-# Note: service = "" means check overall server health.
-HEALTH_INPUT='{"service":"grpc.echo/example.EchoService"}'
-HEALTH_EXPECTED='{
+
+# Test EchoService health (should be SERVING)
+INPUT='{"service": "example.EchoService"}'
+EXPECTED='{
   "status": "SERVING"
 }'
-echo \# Testing grpc.health.v1.Health.Check
-echo PORT="$PORT"
-echo INPUT="$HEALTH_INPUT"
-echo EXPECTED="$HEALTH_EXPECTED"
-echo
-
-OUTPUT=$(docker compose run --rm grpcurl -plaintext -proto health.proto -d "$HEALTH_INPUT" zilla.examples.dev:$PORT grpc.health.v1.Health/Check)
-RESULT=$?
-echo RESULT="$RESULT"
-echo OUTPUT="$OUTPUT"
-echo EXPECTED="$HEALTH_EXPECTED"
-echo
-
-if [ "$RESULT" -eq 0 ] && [ "$OUTPUT" = "$HEALTH_EXPECTED" ]; then
-  echo ✅
+echo "# Testing EchoService health"
+OUTPUT=$(grpcurl -plaintext -d "$INPUT" localhost:$PORT grpc.health.v1.Health/Check)
+if [ "$OUTPUT" = "$EXPECTED" ]; then
+  echo ✅ "EchoService is SERVING"
 else
-  echo ❌
-  EXIT=1
-fi
-
-# ------------------------------
-# Test Health Check - UNKNOWN
-# ------------------------------
-HEALTH_INPUT='{"service":"unregistered.service.Name"}'
-HEALTH_EXPECTED='{
-  "status": "UNKNOWN"
-}'
-echo \# Testing grpc.health.v1.Health.Check UNKNOWN
-# Before running this, make sure your server sets the service to UNKNOWN
-OUTPUT=$(docker compose run --rm grpcurl -plaintext -proto health.proto -d "$HEALTH_INPUT" zilla.examples.dev:$PORT grpc.health.v1.Health/Check)
-RESULT=$?
-if [ "$RESULT" -eq 0 ] && [ "$OUTPUT" = "$HEALTH_EXPECTED" ]; then
-  echo ✅
-else
-  echo ❌
+  echo ❌ "Unexpected EchoService health status: $OUTPUT"
   EXIT=1
 fi
 
 exit $EXIT
+

@@ -16,7 +16,6 @@ services:
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
-
   grpcurl:
     image: fullstorydev/grpcurl
     stdin_open: true

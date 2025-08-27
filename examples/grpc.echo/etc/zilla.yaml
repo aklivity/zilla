@@ -1,3 +1,4 @@
+
 name: example
 catalogs:
   host_filesystem:
@@ -8,7 +9,6 @@ catalogs:
           path: protos/echo.proto
         health:
           path: protos/health.proto
-
 bindings:
   north_tcp_server:
     type: tcp
@@ -50,6 +50,10 @@ bindings:
   north_health_server:
     type: grpc
     kind: server
+    catalog:
+      host_filesystem:
+        - subject: health
+    routes: [ ]
 telemetry:
   exporters:
     stdout_logs_exporter:
