@@ -3125,6 +3125,19 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                         .addStatement("limit($LRW.build().limit())", name)
                         .addStatement("return this")
                         .build());
+
+                ClassName consumerType = ClassName.get(Consumer.class);
+                TypeName mutatorType = ParameterizedTypeName.get(consumerType, builderType);
+                builder.addMethod(methodBuilder(methodName(name))
+                        .addModifiers(PUBLIC)
+                        .returns(thisType)
+                        .addParameter(mutatorType, "mutator")
+                        .addStatement("$T $LRW = $L()", builderType, name, methodName(name))
+                        .addStatement("mutator.accept($LRW)", name)
+                        .addStatement("limit($LRW.build().limit())", name)
+                        .addStatement("lastFieldSet = $L", index(name))
+                        .addStatement("return this")
+                        .build());
             }
 
             private void addDirectBufferType(
