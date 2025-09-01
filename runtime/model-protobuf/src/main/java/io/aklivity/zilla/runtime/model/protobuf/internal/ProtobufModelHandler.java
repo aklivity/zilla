@@ -44,6 +44,8 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Lexer;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
+import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf2Lexer;
+import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf2Parser;
 
 public class ProtobufModelHandler
 {
@@ -57,6 +59,7 @@ public class ProtobufModelHandler
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
+    protected final String syntax;
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
     protected final ExpandableDirectBufferOutputStream out;
@@ -79,6 +82,7 @@ public class ProtobufModelHandler
                 ? catalog.subject
                 : config.subject;
         this.view = config.view;
+        this.syntax = config.syntax;
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
         this.tree = new Int2ObjectCache<>(1, 1024, i -> {});
         this.builders = new Object2ObjectHashMap<>();
@@ -238,26 +242,67 @@ public class ProtobufModelHandler
         if (schemaText != null)
         {
             CharStream input = CharStreams.fromString(schemaText);
-            Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-            Protobuf3Parser parser = new Protobuf3Parser(tokens);
-            parser.setErrorHandler(new BailErrorStrategy());
-            ParseTreeWalker walker = new ParseTreeWalker();
-
-            ProtoListener listener = new ProtoListener();
-            walker.walk(listener, parser.proto());
-
+            
+            // Detect protobuf syntax version
+            ProtobufSyntaxDetector.ProtoSyntax detectedSyntax = ProtobufSyntaxDetector.detectSyntax(schemaText);
+            
+            // Use configured syntax if provided, otherwise use detected syntax
+            ProtobufSyntaxDetector.ProtoSyntax syntax = this.syntax != null ? 
+                ProtobufSyntaxDetector.fromString(this.syntax) : detectedSyntax;
+            
             try
             {
-                descriptor = FileDescriptor.buildFrom(listener.build(), dependencies);
+                switch (syntax)
+                {
+                case PROTO2:
+                    descriptor = parseProto2(input);
+                    break;
+                case PROTO3:
+                    descriptor = parseProto3(input);
+                    break;
+                case UNKNOWN:
+                default:
+                    // Syntax could not be determined
+                    throw new IllegalArgumentException("Unable to determine protobuf syntax version. " +
+                        "Please ensure the schema includes a valid 'syntax' declaration.");
+                }
             }
-            catch (DescriptorValidationException ex)
+            catch (DescriptorValidationException | IllegalArgumentException ex)
             {
                 ex.printStackTrace();
             }
         }
         return descriptor;
+    }
+    
+    private FileDescriptor parseProto2(CharStream input) throws DescriptorValidationException
+    {
+        Protobuf2Lexer lexer = new Protobuf2Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+        Protobuf2Parser parser = new Protobuf2Parser(tokens);
+        parser.setErrorHandler(new BailErrorStrategy());
+        ParseTreeWalker walker = new ParseTreeWalker();
+
+        Proto2Listener listener = new Proto2Listener();
+        walker.walk(listener, parser.proto());
+
+        return FileDescriptor.buildFrom(listener.build(), dependencies);
+    }
+    
+    private FileDescriptor parseProto3(CharStream input) throws DescriptorValidationException
+    {
+        Protobuf3Lexer lexer = new Protobuf3Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+        Protobuf3Parser parser = new Protobuf3Parser(tokens);
+        parser.setErrorHandler(new BailErrorStrategy());
+        ParseTreeWalker walker = new ParseTreeWalker();
+
+        Proto3Listener listener = new Proto3Listener();
+        walker.walk(listener, parser.proto());
+
+        return FileDescriptor.buildFrom(listener.build(), dependencies);
     }
 
     private DescriptorTree createDescriptorTree(

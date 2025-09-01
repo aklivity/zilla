@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.protobuf.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -27,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class ProtobufModelConfigAdapterTest
 {
@@ -134,5 +136,73 @@ public class ProtobufModelConfigAdapterTest
         // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteProtobufWithProto2Syntax()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"protobuf\"," +
+                "\"syntax\":\"proto2\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"user\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+        ProtobufModelConfig converter = ProtobufModelConfig.builder()
+            .syntax("proto2")
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(converter);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldReadProtobufWithProto2Syntax()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\":\"protobuf\"," +
+                "\"syntax\":\"proto2\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"user\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
+
+        // THEN
+        assertThat(converter.model, equalTo("protobuf"));
+        assertThat(converter.syntax, equalTo("proto2"));
+        assertThat(converter.cataloged, hasSize(1));
+        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
     }
 }
