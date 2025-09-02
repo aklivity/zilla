@@ -50,6 +50,7 @@ public final class HttpWatchService implements WatchService
     private final WatchKey closeKey = new HttpWatchKey();
 
     private final Duration pollInterval;
+    private final String authorization;
     private final Collection<HttpWatchKey> watchKeys;
     private final BlockingQueue<WatchKey> pendingKeys;
     private final ScheduledExecutorService executor;
@@ -60,6 +61,7 @@ public final class HttpWatchService implements WatchService
         HttpFileSystemConfiguration config)
     {
         this.pollInterval = config.pollInterval();
+        this.authorization = config.authorization();
         this.watchKeys = new ConcurrentSkipListSet<>();
         this.pendingKeys = new LinkedBlockingQueue<>();
         this.executor = Executors.newScheduledThreadPool(2);
@@ -184,6 +186,7 @@ public final class HttpWatchService implements WatchService
     {
         private final HttpWatchService watcher;
         private final HttpPath path;
+        private final String authorization;
 
         private List<WatchEvent<?>> watchEvents = Collections.synchronizedList(new LinkedList<>());
 
@@ -194,6 +197,7 @@ public final class HttpWatchService implements WatchService
         private HttpWatchKey()
         {
             this.watcher = null;
+            this.authorization = null;
             this.path = null;
             this.valid = false;
         }
@@ -203,6 +207,7 @@ public final class HttpWatchService implements WatchService
             HttpPath path)
         {
             this.watcher = watcher;
+            this.authorization = watcher.authorization;
             this.path = path;
             this.valid = true;
         }
@@ -282,7 +287,7 @@ public final class HttpWatchService implements WatchService
         private void watchBody()
         {
             HttpClient client = path.getFileSystem().client();
-            HttpRequest request = path.newWatchRequest();
+            HttpRequest request = path.newWatchRequest(authorization);
 
             this.lastWatchAt = currentTimeMillis();
 

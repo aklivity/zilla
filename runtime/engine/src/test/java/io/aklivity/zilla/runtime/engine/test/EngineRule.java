@@ -40,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -363,7 +364,14 @@ public final class EngineRule implements TestRule
                     break;
                 case "http":
                     final String pollInterval = String.format("PT%dS", config.configPollIntervalSeconds());
-                    fs = FileSystems.newFileSystem(configURI, Map.of("zilla.filesystem.http.poll.interval", pollInterval));
+                    Map<String, String> fileSystemConfig = new HashMap<>();
+                    fileSystemConfig.put("zilla.filesystem.http.poll.interval", pollInterval);
+                    final String configAuth = config.configHttpAuthorization();
+                    if (configAuth != null)
+                    {
+                        fileSystemConfig.put("zilla.filesystem.http.config.authorization", configAuth);
+                    }
+                    fs = FileSystems.newFileSystem(configURI, fileSystemConfig);
                     break;
                 }
 

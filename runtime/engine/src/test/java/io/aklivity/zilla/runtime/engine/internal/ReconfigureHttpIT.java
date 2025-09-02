@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ReconfigureHttpIT
 {
     public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
+    public static final String ENGINE_CONFIG_CONFIG_HTTP_AUTHORIZATION = "zilla.engine.config.http.authorization";
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
@@ -77,6 +78,21 @@ public class ReconfigureHttpIT
         "${net}/reconfigure.create.via.http/client"
     })
     public void shouldReconfigureWhenCreatedViaHttp() throws Exception
+    {
+        k3po.start();
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CREATED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(name = ENGINE_CONFIG_CONFIG_HTTP_AUTHORIZATION, value = "Basic YWRtaW46dGVzdA==")
+    @Configuration("http://localhost:8080/zilla.yaml")
+    @Specification({
+        "${app}/reconfigure.create.via.http.basic.auth/server",
+        "${net}/reconfigure.create.via.http/client"
+    })
+    public void shouldReconfigureWhenCreatedViaHttpBasicAuth() throws Exception
     {
         k3po.start();
         EngineTest.TestEngineExt.registerLatch.await();

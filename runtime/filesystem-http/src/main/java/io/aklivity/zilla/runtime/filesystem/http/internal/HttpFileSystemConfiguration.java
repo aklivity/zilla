@@ -21,6 +21,7 @@ import java.util.Objects;
 public final class HttpFileSystemConfiguration
 {
     public static final String POLL_INTERVAL_PROPERTY_NAME = "zilla.filesystem.http.poll.interval";
+    public static final String CONFIG_AUTHORIZATION_PROPERTY_NAME = "zilla.filesystem.http.config.authorization";
 
     private static final Duration POLL_INTERVAL_PROPERTY_DEFAULT = Duration.parse("PT30S");
 
@@ -36,5 +37,10 @@ public final class HttpFileSystemConfiguration
     {
         String value = env != null ? (String) env.get(POLL_INTERVAL_PROPERTY_NAME) : null;
         return value != null ? Duration.parse(value) : POLL_INTERVAL_PROPERTY_DEFAULT;
+    }
+
+    public String authorization()
+    {
+        return (String) env.get(CONFIG_AUTHORIZATION_PROPERTY_NAME);
     }
 }

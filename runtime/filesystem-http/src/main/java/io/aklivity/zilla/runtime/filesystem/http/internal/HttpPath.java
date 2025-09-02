@@ -354,12 +354,18 @@ public final class HttpPath implements Path
         return request.build();
     }
 
-    HttpRequest newWatchRequest()
+    HttpRequest newWatchRequest(
+        String authorization)
     {
         HttpRequest.Builder request = HttpRequest.newBuilder()
             .GET()
             .uri(location)
             .header("Prefer", "wait=86400");
+
+        if (authorization != null)
+        {
+            request = request.header("Authorization", authorization);
+        }
 
         if (etag != null)
         {

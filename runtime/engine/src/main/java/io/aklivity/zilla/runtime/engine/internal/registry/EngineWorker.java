@@ -249,7 +249,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private volatile Thread thread;
 
-
     public EngineWorker(
         EngineConfiguration config,
         ExecutorService executor,
