@@ -327,7 +327,10 @@ public final class Engine implements Collector, AutoCloseable
             rethrowUnchecked(t);
         }
 
-        fileSystem.close();
+        if (fileSystem != null)
+        {
+            fileSystem.close();
+        }
     }
 
     // required for testing
