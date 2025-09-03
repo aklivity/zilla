@@ -43,6 +43,7 @@ public final class HttpPath implements Path
 
     private final HttpFileSystem fs;
     private final URI location;
+    private final String authorization;
 
     private volatile byte[] body;
     private volatile String etag;
@@ -52,10 +53,12 @@ public final class HttpPath implements Path
 
     HttpPath(
         HttpFileSystem fs,
-        URI location)
+        URI location,
+        String authorization)
     {
         this.fs = Objects.requireNonNull(fs);
         this.location = Objects.requireNonNull(location);
+        this.authorization = authorization;
     }
 
     @Override
@@ -168,7 +171,7 @@ public final class HttpPath implements Path
     public Path resolveSibling(
         String other)
     {
-        return new HttpPath(fs, location.resolve(URI.create(other)));
+        return new HttpPath(fs, location.resolve(URI.create(other)), authorization);
     }
 
     @Override
@@ -345,6 +348,11 @@ public final class HttpPath implements Path
         HttpRequest.Builder request = HttpRequest.newBuilder()
             .GET()
             .uri(location);
+
+        if (authorization != null)
+        {
+            request = request.header("Authorization", authorization);
+        }
 
         if (etag != null && !etag.isEmpty())
         {

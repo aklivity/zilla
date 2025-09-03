@@ -20,8 +20,8 @@ import java.util.Objects;
 
 public final class HttpFileSystemConfiguration
 {
-    public static final String POLL_INTERVAL_PROPERTY_NAME = "zilla.filesystem.http.poll.interval";
-    public static final String CONFIG_AUTHORIZATION_PROPERTY_NAME = "zilla.filesystem.http.config.authorization";
+    public static final String POLL_INTERVAL_PROPERTY_NAME = "zilla.engine.config.poll.interval";
+    public static final String CONFIG_AUTHORIZATION_PROPERTY_NAME = "zilla.engine.config.http.authorization";
 
     private static final Duration POLL_INTERVAL_PROPERTY_DEFAULT = Duration.parse("PT30S");
 

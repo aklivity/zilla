@@ -58,13 +58,14 @@ public final class HttpWatchService implements WatchService
     private volatile boolean closed;
 
     HttpWatchService(
-        HttpFileSystemConfiguration config)
+        HttpFileSystemConfiguration config,
+        String authorization)
     {
         this.pollInterval = config.pollInterval();
-        this.authorization = config.authorization();
         this.watchKeys = new ConcurrentSkipListSet<>();
         this.pendingKeys = new LinkedBlockingQueue<>();
         this.executor = Executors.newScheduledThreadPool(2);
+        this.authorization = authorization;
     }
 
     @Override
@@ -186,7 +187,6 @@ public final class HttpWatchService implements WatchService
     {
         private final HttpWatchService watcher;
         private final HttpPath path;
-        private final String authorization;
 
         private List<WatchEvent<?>> watchEvents = Collections.synchronizedList(new LinkedList<>());
 
@@ -197,7 +197,6 @@ public final class HttpWatchService implements WatchService
         private HttpWatchKey()
         {
             this.watcher = null;
-            this.authorization = null;
             this.path = null;
             this.valid = false;
         }
@@ -207,7 +206,6 @@ public final class HttpWatchService implements WatchService
             HttpPath path)
         {
             this.watcher = watcher;
-            this.authorization = watcher.authorization;
             this.path = path;
             this.valid = true;
         }
@@ -287,7 +285,7 @@ public final class HttpWatchService implements WatchService
         private void watchBody()
         {
             HttpClient client = path.getFileSystem().client();
-            HttpRequest request = path.newWatchRequest(authorization);
+            HttpRequest request = path.newWatchRequest(watcher.authorization);
 
             this.lastWatchAt = currentTimeMillis();
 

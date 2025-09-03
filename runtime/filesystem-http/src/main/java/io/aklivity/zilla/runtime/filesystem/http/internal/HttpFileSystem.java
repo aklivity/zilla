@@ -36,6 +36,7 @@ public final class HttpFileSystem extends FileSystem
     private final URI root;
     private final HttpFileSystemConfiguration config;
     private final HttpClient client;
+    private final String authorization;
 
     HttpFileSystem(
         HttpFileSystemProvider provider,
@@ -49,6 +50,7 @@ public final class HttpFileSystem extends FileSystem
             .version(HTTP_2)
             .followRedirects(NORMAL)
             .build();
+        this.authorization = (String) env.get("zilla.engine.config.http.authorization");
     }
 
     @Override
@@ -117,7 +119,7 @@ public final class HttpFileSystem extends FileSystem
     public HttpPath getPath(
         URI uri)
     {
-        return new HttpPath(this, uri);
+        return new HttpPath(this, uri, authorization);
     }
 
     @Override
@@ -136,7 +138,7 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        return new HttpWatchService(config);
+        return new HttpWatchService(config, authorization);
     }
 
     HttpClient client()

@@ -20,9 +20,12 @@ import static java.util.function.Function.identity;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -830,6 +833,53 @@ public class Configuration
                 defaultAction.accept(key.name, defaultValue);
             }
         }
+    }
+
+    public Map<String, Object> asMap()
+    {
+        return new AbstractMap<>()
+        {
+            @Override
+            public Set<Entry<String, Object>> entrySet()
+            {
+                Set<Entry<String, Object>> entries = new HashSet<>();
+                properties(
+                    (k, v) ->
+                    {
+                        if (v != null)
+                        {
+                            entries.add(Map.entry(k, v));
+                        }
+                    },
+                    (k, v) ->
+                    {
+                        if (v != null)
+                        {
+                            entries.add(Map.entry(k, v));
+                        }
+                    }
+                );
+                return entries;
+            }
+
+            @Override
+            public Object get(
+                Object key)
+            {
+                if (!(key instanceof String))
+                {
+                    return null;
+                }
+                for (Entry<String, Object> e : entrySet())
+                {
+                    if (e.getKey().equals(key))
+                    {
+                        return e.getValue();
+                    }
+                }
+                return null;
+            }
+        };
     }
 
     @Override
