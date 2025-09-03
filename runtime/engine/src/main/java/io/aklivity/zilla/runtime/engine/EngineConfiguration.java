@@ -409,7 +409,7 @@ public class EngineConfiguration extends Configuration
         int budgetsEntrySize = BudgetsLayout.SIZEOF_BUDGET_ENTRY;
         int bufferPoolEntrySize = bufferSlotSize + Long.BYTES;
         int streamsEntrySize = bufferSlotSize;
-        int aggregateEntrySize = bufferSlotSize + budgetsEntrySize + streamsEntrySize;
+        int aggregateEntrySize = bufferPoolEntrySize + budgetsEntrySize + streamsEntrySize;
 
         int bufferPoolMetadataSize = Integer.BYTES;
         int budgetsMetadataSize = 0;
@@ -419,9 +419,9 @@ public class EngineConfiguration extends Configuration
         long workerEntriesMemory = workerMemory - eventsBufferSize - aggregateMetadataSize;
         long workerEntriesCount = workerEntriesMemory / aggregateEntrySize;
 
-        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount + bufferPoolMetadataSize, Integer.MAX_VALUE);
-        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount + budgetsMetadataSize, Integer.MAX_VALUE);
-        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount + streamsMetadataSize, Integer.MAX_VALUE);
+        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
 
         assert bufferPoolMaxSize + budgetsMaxSize + streamsMaxSize <= workerEntriesMemory;
 
