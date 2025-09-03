@@ -361,9 +361,6 @@ public final class EngineRule implements TestRule
                     URI jarURI = new URI("jar", jarLocation, null);
                     fs = FileSystems.newFileSystem(jarURI, Map.of());
                     break;
-                case "http":
-                    fs = FileSystems.newFileSystem(configURI, config.asMap());
-                    break;
                 }
 
                 engine = builder.config(config)

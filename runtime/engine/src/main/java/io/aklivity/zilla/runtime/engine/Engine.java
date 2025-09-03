@@ -26,9 +26,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
-import java.nio.file.ProviderNotFoundException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -172,18 +170,11 @@ public final class Engine implements Collector, AutoCloseable
         {
             try
             {
-                FileSystems.getFileSystem(configURI);
+                fileSystem = FileSystems.newFileSystem(configURI, config.asMap());
             }
-            catch (FileSystemNotFoundException | ProviderNotFoundException e)
+            catch (IOException ex)
             {
-                try
-                {
-                    fileSystem = FileSystems.newFileSystem(configURI, config.asMap());
-                }
-                catch (IOException ex)
-                {
-                    rethrowUnchecked(ex);
-                }
+                rethrowUnchecked(ex);
             }
         }
 
