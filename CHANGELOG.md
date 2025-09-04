@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.156](https://github.com/aklivity/zilla/tree/0.9.156) (2025-08-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.155...0.9.156)
+
+**Merged pull requests:**
+
+- Add convenience setter for string field in union or struct builder [\#1545](https://github.com/aklivity/zilla/pull/1545) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.155](https://github.com/aklivity/zilla/tree/0.9.155) (2025-08-21)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.154...0.9.155)
