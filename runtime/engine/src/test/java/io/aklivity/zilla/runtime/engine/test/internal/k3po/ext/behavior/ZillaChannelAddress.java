@@ -103,7 +103,11 @@ public final class ZillaChannelAddress extends ChannelAddress
         URI location,
         ChannelAddress transport)
     {
-        return new ZillaChannelAddress(location, transport, true, ephemeralName, authorization, namespace, ephemeralName);
+        int lastColonAt = ephemeralName.lastIndexOf(':');
+        String ephemeralNamespace = lastColonAt != -1 ? ephemeralName.substring(0, lastColonAt) : namespace;
+        String ephemeralLocalName = ephemeralName.substring(lastColonAt + 1);
+        return new ZillaChannelAddress(location, transport, true, ephemeralName, authorization,
+            ephemeralNamespace, ephemeralLocalName);
     }
 
     private static String bindingName(
