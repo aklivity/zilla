@@ -1,4 +1,3 @@
-
 name: example
 catalogs:
   host_filesystem:
@@ -7,8 +6,7 @@ catalogs:
       subjects:
         echo:
           path: protos/echo.proto
-        health:
-          path: protos/health.proto
+
 bindings:
   north_tcp_server:
     type: tcp
@@ -33,27 +31,20 @@ bindings:
   north_grpc_server:
     type: grpc
     kind: server
+    options:
+      services:
+        - grpc.health.v1.Health
     catalog:
       host_filesystem:
         - subject: echo
-        - subject: health
     routes:
       - when:
           - method: example.EchoService/*
         exit: north_echo_server
-      - when:
-          - method: grpc.health.v1.Health/*
-        exit: north_health_server
   north_echo_server:
     type: echo
     kind: server
-  north_health_server:
-    type: grpc
-    kind: server
-    catalog:
-      host_filesystem:
-        - subject: health
-    routes: [ ]
+
 telemetry:
   exporters:
     stdout_logs_exporter:

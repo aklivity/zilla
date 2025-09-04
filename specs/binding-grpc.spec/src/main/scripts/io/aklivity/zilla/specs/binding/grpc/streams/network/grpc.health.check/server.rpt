@@ -22,8 +22,8 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
                              .header(":method", "POST")
                              .header(":scheme", "http")
-                             .header(":authority", "localhost:8080")
-                             .header(":path", "/grpc.health.v1.Health")
+                             .header(":authority", "localhost:7151")
+                             .header(":path", "/grpc.health.v1.Health/Check")
                              .header("content-type", "application/grpc")
                              .build()}
 
@@ -63,11 +63,13 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
-                             .header(":method", "POST")
-                             .header(":scheme", "http")
-                             .header(":authority", "localhost:8080")
-                             .header(":path", "/grpc.health.v1.Health/Check")
-                             .header("content-type", "application/grpc")
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:7151")
+                            .header(":path", "/grpc.health.v1.Health/Check")
+                            .header("content-type", "application/grpc")
+                            .header("te", "trailers")
+                            .header("custom", "test")
                              .build()}
 
 connected

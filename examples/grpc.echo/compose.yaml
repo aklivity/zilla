@@ -6,6 +6,7 @@ services:
     hostname: zilla.examples.dev
     ports:
       - 7151:7151
+      - 4444:4444
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -13,6 +14,7 @@ services:
       test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7151"]
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:4444"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e

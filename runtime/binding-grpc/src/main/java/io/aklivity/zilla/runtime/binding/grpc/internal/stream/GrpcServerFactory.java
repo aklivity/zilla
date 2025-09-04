@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.time.Instant.now;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -341,7 +342,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED, null);
             }
-            else if (method != null && "grpc.health.v1.Health".equals(method.service))
+            else if ("grpc.health.v1.Health".equals(method.service))
             {
                 newStream = newHealthCheckStream(begin, network, method);
             }
@@ -367,40 +368,56 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         return (msgTypeId, buffer, index, length) ->
         {
-            // Determine numeric enum instead of returning a raw string
-            int statusEnum = proxyHealthStatusEnum();
+            GrpcServer server = new GrpcServer(
+                    network, originId, routedId, initialId, replyId,
+                    0, 0, ContentType.GRPC, method);
 
-            // Wrap the enum in a gRPC frame as a protobuf message
-            // Protobuf encoding for int32 field number 1: 0x08 (field 1, wire type 0)
-            // Followed by the varint value
+            // Extract the requested service from the gRPC request payload
+            String requestedService = extractServiceFromPayload(buffer, index, length);
+
+            int statusEnum = proxyHealthStatusEnum(requestedService);
+
+            // Encode as protobuf HealthCheckResponse
             byte[] response = new byte[] { 0x08, (byte) statusEnum };
 
-            // Wrap in gRPC frame: 1 byte compression flag + 4 bytes length
-            int len = response.length;
-            ByteBuffer grpcFrame = ByteBuffer.allocate(5 + len);
-            grpcFrame.put((byte) 0); // compression flag
-            grpcFrame.putInt(len);   // message length
+            // Wrap in gRPC frame (compression flag + 4 bytes length)
+            ByteBuffer grpcFrame = ByteBuffer.allocate(5 + response.length);
+            grpcFrame.put((byte) 0);       // compression flag
+            grpcFrame.putInt(response.length); // message length
             grpcFrame.put(response);
             grpcFrame.flip();
 
-            // Send the gRPC response
-            GrpcServer server = new GrpcServer(network, originId, routedId, initialId, replyId, 0, 0, ContentType.GRPC, method);
-            server.doNetData(traceId, authorization, 0, grpcFrame.remaining(), DATA_FLAG_INIT | DATA_FLAG_FIN,
+            server.doNetData(traceId, authorization, 0,
+                    grpcFrame.remaining(),
+                    DATA_FLAG_INIT | DATA_FLAG_FIN,
                     new UnsafeBuffer(grpcFrame), 0, grpcFrame.remaining());
 
-            // End the gRPC call
-            ContentType.GRPC.doNetEnd(server, traceId, authorization, 0);
+            server.doNetEnd(traceId, authorization, 0);
         };
     }
 
-    private int proxyHealthStatusEnum()
+    private int proxyHealthStatusEnum(String serviceName)
     {
-        // 1 = SERVING, 0 = UNKNOWN
-        if (bindings == null || grpcTypeId <= 0 || httpTypeId <= 0)
+        // TODO: find real service status
+        return 1;
+    }
+
+    private String extractServiceFromPayload(DirectBuffer buffer, int offset, int length)
+    {
+        // For protobuf HealthCheckRequest, field 1 = service_name (string)
+        int fieldHeader = buffer.getByte(offset); // 0x0a for field 1, wire type 2
+        if (fieldHeader != 0x0a)
         {
-            return 0;  // UNKNOWN
+            return null;
         }
-        return 1;      // SERVING
+
+        int len = buffer.getByte(offset + 1); // length of service_name
+        byte[] bytes = new byte[len];
+        for (int i = 0; i < len; i++)
+        {
+            bytes[i] = buffer.getByte(offset + 2 + i);
+        }
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private MessageConsumer  newInitialGrpcStream(
