@@ -37,6 +37,6 @@ public final class AvroModelFactorySpi implements ModelFactorySpi
     public Model create(
         Configuration config)
     {
-        return new AvroModel();
+        return new AvroModel(config);
     }
 }

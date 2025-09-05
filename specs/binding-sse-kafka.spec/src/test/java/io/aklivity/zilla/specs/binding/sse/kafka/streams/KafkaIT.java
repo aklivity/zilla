@@ -47,6 +47,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/handshake.my.stream/client",
+        "${kafka}/handshake.my.stream/server"})
+    public void shouldCompleteHandshakeMyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/handshake.with.filters/client",
         "${kafka}/handshake.with.filters/server"})
     public void shouldCompleteHandshakeWithFilters() throws Exception

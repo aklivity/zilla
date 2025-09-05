@@ -294,9 +294,11 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             try
             {
-                key.clear(OP_CONNECT);
-                net.finishConnect();
-                onNetConnected();
+                if (net.finishConnect())
+                {
+                    key.clear(OP_CONNECT);
+                    onNetConnected();
+                }
             }
             catch (IOException ex)
             {

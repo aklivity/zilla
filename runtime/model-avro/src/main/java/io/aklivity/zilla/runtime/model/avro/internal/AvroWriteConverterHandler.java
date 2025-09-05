@@ -33,10 +33,11 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroWriteConverterHandler extends AvroModelHandler implements ConverterHandler
 {
     public AvroWriteConverterHandler(
-        AvroModelConfig config,
+        AvroModelConfiguration config,
+        AvroModelConfig options,
         EngineContext context)
     {
-        super(config, context);
+        super(config, options, context);
     }
 
     @Override

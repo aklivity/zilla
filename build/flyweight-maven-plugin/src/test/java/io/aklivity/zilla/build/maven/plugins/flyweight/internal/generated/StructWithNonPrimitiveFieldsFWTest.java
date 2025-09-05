@@ -16,6 +16,7 @@
 package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -148,7 +149,7 @@ public class StructWithNonPrimitiveFieldsFWTest
     public void shouldSetFieldsWithConsumer() throws Exception
     {
         int limit = structWithNonPrimitiveFieldsRW.wrap(buffer, 0, buffer.capacity())
-            .stringField("stringValue")
+            .stringField(b -> b.set("stringValue", UTF_8))
             .enumField(b -> b.set(EnumWithUint8.ICHI))
             .unionField(b -> b.string1("unionValue"))
             .arrayField(b -> b.item(i -> i.string1("arrayItem")))

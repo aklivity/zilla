@@ -116,7 +116,7 @@ public final class HttpFunctions
         String method)
     {
         Random random = ThreadLocalRandom.current();
-        String[] methods = new String[]{"GET", "OPTIONS", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"};
+        String[] methods = new String[]{"GET", "OPTIONS", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT", "PATCH"};
         String result;
         do
         {

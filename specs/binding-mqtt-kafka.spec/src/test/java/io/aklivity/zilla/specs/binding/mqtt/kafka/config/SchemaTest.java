@@ -93,4 +93,12 @@ public class SchemaTest
     {
         schema.validate("proxy.when.subscribe.topic.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyWhenTopicValid()
+    {
+        JsonObject config = schema.validate("proxy.when.topic.valid.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
