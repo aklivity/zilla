@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
+import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.AUTHORIZATION_PROPERTY_NAME;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
@@ -50,7 +51,12 @@ public final class HttpFileSystem extends FileSystem
             .version(HTTP_2)
             .followRedirects(NORMAL)
             .build();
-        this.authorization = (String) env.get("zilla.engine.config.http.authorization");
+        this.authorization = (String) env.get(AUTHORIZATION_PROPERTY_NAME);
+    }
+
+    public String authorization()
+    {
+        return authorization;
     }
 
     @Override
@@ -119,7 +125,7 @@ public final class HttpFileSystem extends FileSystem
     public HttpPath getPath(
         URI uri)
     {
-        return new HttpPath(this, uri, authorization);
+        return new HttpPath(this, uri);
     }
 
     @Override
@@ -138,7 +144,7 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        return new HttpWatchService(config, authorization);
+        return new HttpWatchService(config);
     }
 
     HttpClient client()

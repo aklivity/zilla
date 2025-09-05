@@ -39,8 +39,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 @Ignore
 public class ReconfigureHttpIT
 {
-    public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
-    public static final String ENGINE_CONFIG_CONFIG_HTTP_AUTHORIZATION = "zilla.engine.config.http.authorization";
+    public static final String HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS = "zilla.filesystem.http.poll.interval";
+    public static final String HTTP_FILESYSTEM_HTTP_AUTHORIZATION = "zilla.filesystem.http.authorization";
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
@@ -71,7 +71,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configure(name = HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.create.via.http/server",
@@ -86,7 +86,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_CONFIG_HTTP_AUTHORIZATION, value = "Basic YWRtaW46dGVzdA==")
+    @Configure(name = HTTP_FILESYSTEM_HTTP_AUTHORIZATION, value = "Basic YWRtaW46dGVzdA==")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.create.via.http.basic.auth/server",
@@ -101,7 +101,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configure(name = HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.delete.via.http/server",
@@ -116,7 +116,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configure(name = HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.modify.via.http/server",
@@ -132,7 +132,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configure(name = HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.modify.no.etag.via.http/server",
@@ -148,7 +148,7 @@ public class ReconfigureHttpIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configure(name = HTTP_FILESYSTEM_POLL_INTERVAL_SECONDS, value = "0")
     @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.server.error.via.http/server",

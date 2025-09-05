@@ -866,18 +866,7 @@ public class Configuration
             public Object get(
                 Object key)
             {
-                if (!(key instanceof String))
-                {
-                    return null;
-                }
-                for (Entry<String, Object> e : entrySet())
-                {
-                    if (e.getKey().equals(key))
-                    {
-                        return e.getValue();
-                    }
-                }
-                return null;
+                return getProperty((String) key, null);
             }
         };
     }

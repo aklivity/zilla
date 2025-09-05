@@ -166,7 +166,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final URI configURI = config.configURI();
 
-        if ("http".equals(configURI.getScheme()))
+        if (configURI.getScheme().startsWith("http"))
         {
             try
             {

@@ -58,7 +58,6 @@ public class EngineConfiguration extends Configuration
     public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
-    public static final PropertyDef<String> ENGINE_CONFIG_HTTP_AUTHORIZATION;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
     public static final PropertyDef<HostResolver> ENGINE_HOST_RESOLVER;
     public static final IntPropertyDef ENGINE_WORKER_CAPACITY;
@@ -110,7 +109,6 @@ public class EngineConfiguration extends Configuration
         ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", EngineConfiguration::defaultName);
         ENGINE_DIRECTORY = config.property("directory", EngineConfiguration::defaultDirectory);
-        ENGINE_CONFIG_HTTP_AUTHORIZATION = config.property("config.http.authorization");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
                 EngineConfiguration::decodeHostResolver, EngineConfiguration::defaultHostResolver);
@@ -212,10 +210,6 @@ public class EngineConfiguration extends Configuration
         return Paths.get(ENGINE_DIRECTORY.get(this));
     }
 
-    public final String configHttpAuthorization()
-    {
-        return ENGINE_CONFIG_HTTP_AUTHORIZATION.get(this);
-    }
 
     public final Path cacheDirectory()
     {

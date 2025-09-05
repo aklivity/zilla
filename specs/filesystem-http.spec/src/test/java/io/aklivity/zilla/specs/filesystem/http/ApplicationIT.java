@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/read.success.authorization/client",
+        "${app}/read.success.authorization/server" })
+    public void shouldReadStringWithAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.success.etag.not.modified/client",
         "${app}/read.success.etag.not.modified/server" })
     public void shouldReadStringEtagNotModified() throws Exception

@@ -58,14 +58,13 @@ public final class HttpWatchService implements WatchService
     private volatile boolean closed;
 
     HttpWatchService(
-        HttpFileSystemConfiguration config,
-        String authorization)
+        HttpFileSystemConfiguration config)
     {
         this.pollInterval = config.pollInterval();
         this.watchKeys = new ConcurrentSkipListSet<>();
         this.pendingKeys = new LinkedBlockingQueue<>();
         this.executor = Executors.newScheduledThreadPool(2);
-        this.authorization = authorization;
+        this.authorization = config.authorization();
     }
 
     @Override
