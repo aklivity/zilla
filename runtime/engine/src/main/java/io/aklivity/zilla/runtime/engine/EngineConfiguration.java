@@ -210,7 +210,6 @@ public class EngineConfiguration extends Configuration
         return Paths.get(ENGINE_DIRECTORY.get(this));
     }
 
-
     public final Path cacheDirectory()
     {
         return ENGINE_CACHE_DIRECTORY.get(this);
