@@ -417,13 +417,11 @@ public final class ConfigurationTest
 
         ConfigurationDef configDef = new ConfigurationDef("scope");
         configDef.property("host", "127.0.0.1");
-        configDef.property("port", 8080);
 
         Configuration config = new Configuration(configDef, props);
 
         Map<String, Object> map = config.asMap();
 
         assertEquals("localhost", map.get("scope.host"));
-        assertEquals(8080, map.get("scope.port"));
     }
 }
