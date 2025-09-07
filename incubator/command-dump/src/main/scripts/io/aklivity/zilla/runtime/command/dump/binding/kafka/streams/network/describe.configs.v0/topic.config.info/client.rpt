@@ -21,7 +21,7 @@ property fetchBytesMax 65535
 property partitionBytesMax 8192
 
 connect "zilla://streams/net0"
-  option zilla:ephemeral "test"
+  option zilla:ephemeral "net0"
   option zilla:timestamps "false"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"

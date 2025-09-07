@@ -2,7 +2,17 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.155...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.156...HEAD)
+
+**Merged pull requests:**
+
+- Use ephemeral name as sender binding [\#1551](https://github.com/aklivity/zilla/pull/1551) ([jfallows](https://github.com/jfallows))
+- Default worker capacity calculation fix [\#1550](https://github.com/aklivity/zilla/pull/1550) ([bmaidics](https://github.com/bmaidics))
+- Handle slow TCP client handshake [\#1546](https://github.com/aklivity/zilla/pull/1546) ([jfallows](https://github.com/jfallows))
+
+## [0.9.156](https://github.com/aklivity/zilla/tree/0.9.156) (2025-08-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.155...0.9.156)
 
 **Merged pull requests:**
 
