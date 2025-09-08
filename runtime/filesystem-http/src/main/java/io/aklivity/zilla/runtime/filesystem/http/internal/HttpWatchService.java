@@ -284,7 +284,7 @@ public final class HttpWatchService implements WatchService
         private void watchBody()
         {
             HttpClient client = path.getFileSystem().client();
-            HttpRequest request = path.newWatchRequest(watcher.authorization);
+            HttpRequest request = path.newWatchRequest();
 
             this.lastWatchAt = currentTimeMillis();
 
