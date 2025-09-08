@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
-import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.AUTHORIZATION_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFileSystemConfiguration.AUTHORIZATION_PROPERTY_NAME;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
@@ -28,6 +28,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.Map;
 import java.util.Set;
+
+import io.aklivity.zilla.runtime.filesystem.http.HttpFileSystemConfiguration;
 
 public final class HttpFileSystem extends FileSystem
 {

@@ -45,6 +45,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.aklivity.zilla.runtime.filesystem.http.HttpFileSystemConfiguration;
+
+
 public final class HttpWatchService implements WatchService
 {
     private final WatchKey closeKey = new HttpWatchKey();

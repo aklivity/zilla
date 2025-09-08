@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.filesystem.http.internal;
+package io.aklivity.zilla.runtime.filesystem.http;
 
 import java.time.Duration;
 import java.util.Map;
@@ -27,7 +27,7 @@ public final class HttpFileSystemConfiguration
 
     private final Map<String, ?> env;
 
-    HttpFileSystemConfiguration(
+    public HttpFileSystemConfiguration(
         Map<String, ?> env)
     {
         this.env = Objects.requireNonNull(env);
