@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.AUTHORIZATION_PROPERTY_NAME;
-import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.POLL_INTERVAL_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.concurrent.TimeUnit.SECONDS;

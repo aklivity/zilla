@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
-import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.AUTHORIZATION_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;

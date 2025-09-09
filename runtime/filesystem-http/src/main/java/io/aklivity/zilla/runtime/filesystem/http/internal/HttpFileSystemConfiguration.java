@@ -14,15 +14,15 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 
 public final class HttpFileSystemConfiguration
 {
-    public static final String POLL_INTERVAL_PROPERTY_NAME = "zilla.filesystem.http.poll.interval";
-    public static final String AUTHORIZATION_PROPERTY_NAME = "zilla.filesystem.http.authorization";
-
     private static final Duration POLL_INTERVAL_PROPERTY_DEFAULT = Duration.parse("PT30S");
 
     private final Map<String, ?> env;
