@@ -139,13 +139,12 @@ public class ProtobufModelConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteProtobufWithProto2Syntax()
+    public void shouldWriteProtobufConfig()
     {
         // GIVEN
         String expectedJson =
             "{" +
                 "\"model\":\"protobuf\"," +
-                "\"syntax\":\"proto2\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -158,7 +157,6 @@ public class ProtobufModelConfigAdapterTest
                 "}" +
             "}";
         ProtobufModelConfig converter = ProtobufModelConfig.builder()
-            .syntax("proto2")
             .catalog()
                 .name("test0")
                     .schema()
@@ -177,13 +175,12 @@ public class ProtobufModelConfigAdapterTest
     }
 
     @Test
-    public void shouldReadProtobufWithProto2Syntax()
+    public void shouldReadProtobufConfig()
     {
         // GIVEN
         String json =
             "{" +
                 "\"model\":\"protobuf\"," +
-                "\"syntax\":\"proto2\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -201,8 +198,37 @@ public class ProtobufModelConfigAdapterTest
 
         // THEN
         assertThat(converter.model, equalTo("protobuf"));
-        assertThat(converter.syntax, equalTo("proto2"));
         assertThat(converter.cataloged, hasSize(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
+    }
+    
+    @Test
+    public void shouldIgnoreLegacySyntaxFieldIfPresent()
+    {
+        // GIVEN - JSON with legacy syntax field (for backward compatibility)
+        String json =
+            "{" +
+                "\"model\":\"protobuf\"," +
+                "\"syntax\":\"proto2\"," +  // Legacy field, should be ignored
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"user\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
+
+        // THEN - Should parse successfully, ignoring the syntax field
+        assertThat(converter.model, equalTo("protobuf"));
+        assertThat(converter.cataloged, hasSize(1));
+        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
+        // No syntax field in the model anymore
     }
 }

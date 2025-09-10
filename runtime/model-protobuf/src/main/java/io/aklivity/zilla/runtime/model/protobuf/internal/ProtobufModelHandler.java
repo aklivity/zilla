@@ -26,14 +26,7 @@ import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 
@@ -42,10 +35,6 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Lexer;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf2Lexer;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf2Parser;
 
 public class ProtobufModelHandler
 {
@@ -59,7 +48,6 @@ public class ProtobufModelHandler
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
-    protected final String syntax;
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
     protected final ExpandableDirectBufferOutputStream out;
@@ -70,6 +58,7 @@ public class ProtobufModelHandler
     private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
     private final Int2IntHashMap paddings;
+    private final ProtobufParser parser;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -82,7 +71,6 @@ public class ProtobufModelHandler
                 ? catalog.subject
                 : config.subject;
         this.view = config.view;
-        this.syntax = config.syntax;
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
         this.tree = new Int2ObjectCache<>(1, 1024, i -> {});
         this.builders = new Object2ObjectHashMap<>();
@@ -92,6 +80,7 @@ public class ProtobufModelHandler
         this.paddings = new Int2IntHashMap(-1);
         this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.event = new ProtobufModelEventContext(context);
+        this.parser = new ProtobufParser(dependencies);
     }
 
     protected FileDescriptor supplyDescriptor(
@@ -241,68 +230,19 @@ public class ProtobufModelHandler
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
-            CharStream input = CharStreams.fromString(schemaText);
-            
-            // Detect protobuf syntax version
-            ProtobufSyntaxDetector.ProtoSyntax detectedSyntax = ProtobufSyntaxDetector.detectSyntax(schemaText);
-            
-            // Use configured syntax if provided, otherwise use detected syntax
-            ProtobufSyntaxDetector.ProtoSyntax syntax = this.syntax != null ? 
-                ProtobufSyntaxDetector.fromString(this.syntax) : detectedSyntax;
-            
             try
             {
-                switch (syntax)
-                {
-                case PROTO2:
-                    descriptor = parseProto2(input);
-                    break;
-                case PROTO3:
-                    descriptor = parseProto3(input);
-                    break;
-                case UNKNOWN:
-                default:
-                    // Syntax could not be determined
-                    throw new IllegalArgumentException("Unable to determine protobuf syntax version. " +
-                        "Please ensure the schema includes a valid 'syntax' declaration.");
-                }
+                // Use the unified parser to handle syntax detection and parsing
+                descriptor = parser.parse(schemaText);
             }
-            catch (DescriptorValidationException | IllegalArgumentException ex)
+            catch (ProtobufParser.ProtobufParseException ex)
             {
+                // Log the error (could enhance event context with parsing-specific method if needed)
+                // For now, just print the stack trace
                 ex.printStackTrace();
             }
         }
         return descriptor;
-    }
-    
-    private FileDescriptor parseProto2(CharStream input) throws DescriptorValidationException
-    {
-        Protobuf2Lexer lexer = new Protobuf2Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-        Protobuf2Parser parser = new Protobuf2Parser(tokens);
-        parser.setErrorHandler(new BailErrorStrategy());
-        ParseTreeWalker walker = new ParseTreeWalker();
-
-        Proto2Listener listener = new Proto2Listener();
-        walker.walk(listener, parser.proto());
-
-        return FileDescriptor.buildFrom(listener.build(), dependencies);
-    }
-    
-    private FileDescriptor parseProto3(CharStream input) throws DescriptorValidationException
-    {
-        Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-        Protobuf3Parser parser = new Protobuf3Parser(tokens);
-        parser.setErrorHandler(new BailErrorStrategy());
-        ParseTreeWalker walker = new ParseTreeWalker();
-
-        Proto3Listener listener = new Proto3Listener();
-        walker.walk(listener, parser.proto());
-
-        return FileDescriptor.buildFrom(listener.build(), dependencies);
     }
 
     private DescriptorTree createDescriptorTree(

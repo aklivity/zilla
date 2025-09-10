@@ -24,18 +24,15 @@ public final class ProtobufModelConfig extends ModelConfig
 {
     public final String subject;
     public final String view;
-    public final String syntax;
 
     public ProtobufModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
-        String view,
-        String syntax)
+        String view)
     {
         super("protobuf", cataloged);
         this.subject = subject;
         this.view = view;
-        this.syntax = syntax;
     }
 
     public static <T> ProtobufModelConfigBuilder<T> builder(

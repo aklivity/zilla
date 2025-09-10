@@ -29,7 +29,6 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
     private List<CatalogedConfig> catalogs;
     private String subject;
     private String view;
-    private String syntax;
 
     ProtobufModelConfigBuilder(
         Function<ProtobufModelConfig, T> mapper)
@@ -74,16 +73,9 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
         return this;
     }
 
-    public ProtobufModelConfigBuilder<T> syntax(
-        String syntax)
-    {
-        this.syntax = syntax;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, syntax));
+        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view));
     }
 }

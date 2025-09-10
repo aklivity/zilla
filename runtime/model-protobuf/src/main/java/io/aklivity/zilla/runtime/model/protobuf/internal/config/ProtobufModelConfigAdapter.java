@@ -39,7 +39,6 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VIEW = "view";
-    private static final String SYNTAX = "syntax";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -60,11 +59,6 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
         if (protobufConfig.view != null)
         {
             converter.add(VIEW, protobufConfig.view);
-        }
-
-        if (protobufConfig.syntax != null)
-        {
-            converter.add(SYNTAX, protobufConfig.syntax);
         }
 
         if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
@@ -115,10 +109,6 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 ? object.getString(VIEW)
                 : null;
 
-        String syntax = object.containsKey(SYNTAX)
-                ? object.getString(SYNTAX)
-                : null;
-
-        return new ProtobufModelConfig(catalogs, subject, view, syntax);
+        return new ProtobufModelConfig(catalogs, subject, view);
     }
 }
