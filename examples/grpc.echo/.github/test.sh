@@ -57,4 +57,20 @@ else
   EXIT=1
 fi
 
+
+# Test EchoService health (should be SERVING)
+INPUT='{"service": "example.EchoService"}'
+EXPECTED='{
+  "status": "SERVING"
+}'
+echo "# Testing EchoService health"
+OUTPUT=$(grpcurl -plaintext -d "$INPUT" localhost:$PORT grpc.health.v1.Health/Check)
+if [ "$OUTPUT" = "$EXPECTED" ]; then
+  echo ✅ "EchoService is SERVING"
+else
+  echo ❌ "Unexpected EchoService health status: $OUTPUT"
+  EXIT=1
+fi
+
 exit $EXIT
+

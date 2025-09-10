@@ -16,7 +16,6 @@ services:
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
-
   grpcurl:
     image: fullstorydev/grpcurl
     stdin_open: true
@@ -25,6 +24,7 @@ services:
       - on-demand
     volumes:
       - ./etc/protos/echo.proto:/echo.proto
+      - ./etc/protos/health.proto:/health.proto
 
 networks:
   default:
