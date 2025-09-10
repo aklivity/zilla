@@ -84,6 +84,7 @@ public abstract class AvroModelHandler
     private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
     private final Int2ObjectCache<GenericRecord> records;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap avroOverheads;
     private final AvroBytesFW bytesRO;
     private final AvroIntFW intRO;
     private final AvroLongFW longRO;
@@ -115,6 +116,7 @@ public abstract class AvroModelHandler
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
+        this.avroOverheads = new Int2IntHashMap(-1);
         this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
         this.event = new AvroModelEventContext(context);
@@ -193,6 +195,12 @@ public abstract class AvroModelHandler
         int schemaId)
     {
         return paddings.computeIfAbsent(schemaId, id -> calculatePadding(supplySchema(id)));
+    }
+
+    protected final int supplyAvroOverhead(
+        int schemaId)
+    {
+        return avroOverheads.computeIfAbsent(schemaId, id -> calculateAvroOverhead(supplySchema(id)));
     }
 
     protected final GenericDatumReader<GenericRecord> supplyReader(
@@ -309,6 +317,30 @@ public abstract class AvroModelHandler
             }
         }
         return padding;
+    }
+
+    private int calculateAvroOverhead(Schema schema)
+    {
+        int overhead = 0;
+        if (schema != null)
+        {
+            switch (schema.getType())
+            {
+            case RECORD:
+                for (Schema.Field field : schema.getFields())
+                {
+                    overhead += calculateAvroOverhead(field.schema());
+                }
+                break;
+            case UNION:
+                List<Schema> types = schema.getTypes();
+                for (Schema type : types)
+                {
+                    overhead += (type.getType().equals(Schema.Type.NULL)) ? calculateAvroOverhead(type) : 1;
+                }
+            }
+        }
+        return overhead;
     }
 
     private void extract(
