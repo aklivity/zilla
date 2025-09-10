@@ -45,6 +45,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment;
+
 public final class HttpWatchService implements WatchService
 {
     private final WatchKey closeKey = new HttpWatchKey();
@@ -58,13 +60,13 @@ public final class HttpWatchService implements WatchService
     private volatile boolean closed;
 
     HttpWatchService(
-        HttpFileSystemConfiguration config)
+        HttpFilesystemEnvironment env)
     {
-        this.pollInterval = config.pollInterval();
+        this.pollInterval = env.pollInterval();
         this.watchKeys = new ConcurrentSkipListSet<>();
         this.pendingKeys = new LinkedBlockingQueue<>();
         this.executor = Executors.newScheduledThreadPool(2);
-        this.authorization = config.authorization();
+        this.authorization = env.authorization();
     }
 
     @Override

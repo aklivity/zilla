@@ -14,20 +14,19 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
-import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
-import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
-
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 
-public final class HttpFileSystemConfiguration
+import io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment;
+
+public final class HttpFileSystemConfiguration implements HttpFilesystemEnvironment
 {
     private static final Duration POLL_INTERVAL_PROPERTY_DEFAULT = Duration.parse("PT30S");
 
     private final Map<String, ?> env;
 
-    HttpFileSystemConfiguration(
+    public HttpFileSystemConfiguration(
         Map<String, ?> env)
     {
         this.env = Objects.requireNonNull(env);
@@ -35,7 +34,7 @@ public final class HttpFileSystemConfiguration
 
     public Duration pollInterval()
     {
-        String value = env != null ? (String) env.get(POLL_INTERVAL_PROPERTY_NAME) : null;
+        String value = (String) env.get(POLL_INTERVAL_PROPERTY_NAME);
         return value != null ? Duration.parse(value) : POLL_INTERVAL_PROPERTY_DEFAULT;
     }
 

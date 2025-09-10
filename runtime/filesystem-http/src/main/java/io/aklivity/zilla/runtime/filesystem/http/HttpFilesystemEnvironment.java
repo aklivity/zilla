@@ -14,13 +14,23 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-public final class HttpFilesystemEnvironment
+import java.time.Duration;
+import java.util.Map;
+
+import io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration;
+
+public interface HttpFilesystemEnvironment
 {
-    private HttpFilesystemEnvironment()
+    String POLL_INTERVAL_PROPERTY_NAME = "zilla.filesystem.http.poll.interval";
+    String AUTHORIZATION_PROPERTY_NAME = "zilla.filesystem.http.authorization";
+
+    Duration pollInterval();
+
+    String authorization();
+
+    static HttpFilesystemEnvironment of(
+        Map<String, ?> env)
     {
-
+        return new HttpFileSystemConfiguration(env);
     }
-
-    public static final String POLL_INTERVAL_PROPERTY_NAME = "zilla.filesystem.http.poll.interval";
-    public static final String AUTHORIZATION_PROPERTY_NAME = "zilla.filesystem.http.authorization";
 }

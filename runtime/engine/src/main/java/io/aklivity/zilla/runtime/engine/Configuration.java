@@ -24,6 +24,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -843,22 +844,9 @@ public class Configuration
             public Set<Entry<String, Object>> entrySet()
             {
                 Set<Entry<String, Object>> entries = new HashSet<>();
-                properties(
-                    (k, v) ->
-                    {
-                        if (v != null)
-                        {
-                            entries.add(Map.entry(k, v));
-                        }
-                    },
-                    (k, v) ->
-                    {
-                        if (v != null)
-                        {
-                            entries.add(Map.entry(k, v));
-                        }
-                    }
-                );
+                BiConsumer<String, Object> action = (k, nv) ->
+                    Optional.ofNullable(nv).map(v -> Map.entry(k, v)).ifPresent(entries::add);
+                properties(action, action);
                 return entries;
             }
 
