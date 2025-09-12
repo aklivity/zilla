@@ -103,6 +103,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reconfigure.create.via.http.basic.auth/client",
+        "${app}/reconfigure.create.via.http.basic.auth/server" })
+    public void shouldReconfigureWhenCreatedViaHttpBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reconfigure.delete.via.http/client",
         "${app}/reconfigure.delete.via.http/server" })
     public void shouldReconfigureWhenDeletedViaHttp() throws Exception

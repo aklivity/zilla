@@ -22,7 +22,11 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,6 +96,8 @@ public final class Engine implements Collector, AutoCloseable
 
     private final EventsLayout eventsLayout;
 
+    private FileSystem fileSystem = null;
+
     Engine(
         EngineConfiguration config,
         Collection<Binding> bindings,
@@ -157,6 +163,20 @@ public final class Engine implements Collector, AutoCloseable
                 .build();
 
         this.boss = new EngineBoss(config, errorHandler, bindings);
+
+        final URI configURI = config.configURI();
+
+        if (configURI.getScheme().startsWith("http"))
+        {
+            try
+            {
+                fileSystem = FileSystems.newFileSystem(configURI, config.asMap());
+            }
+            catch (IOException ex)
+            {
+                rethrowUnchecked(ex);
+            }
+        }
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
@@ -296,6 +316,11 @@ public final class Engine implements Collector, AutoCloseable
             final Throwable t = errors.get(0);
             errors.stream().filter(x -> x != t).forEach(x -> t.addSuppressed(x));
             rethrowUnchecked(t);
+        }
+
+        if (fileSystem != null)
+        {
+            fileSystem.close();
         }
     }
 
