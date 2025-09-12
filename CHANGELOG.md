@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.158](https://github.com/aklivity/zilla/tree/0.9.158) (2025-09-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.157...0.9.158)
+
+**Merged pull requests:**
+
+- Add engine authorization config [\#1547](https://github.com/aklivity/zilla/pull/1547) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.157](https://github.com/aklivity/zilla/tree/0.9.157) (2025-09-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.156...0.9.157)
