@@ -6,7 +6,6 @@ services:
     hostname: zilla.examples.dev
     ports:
       - 7183:7183
-      - 4444:4444
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -17,7 +16,6 @@ services:
       MOSQUITTO_BROKER_PORT: 1883
       KEYSTORE_PASSWORD: generated
       ZILLA_INCUBATOR_ENABLED: "true"
-      JAVA_OPTIONS: "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:4444"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
