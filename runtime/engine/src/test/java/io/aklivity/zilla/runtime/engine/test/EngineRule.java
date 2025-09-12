@@ -361,10 +361,6 @@ public final class EngineRule implements TestRule
                     URI jarURI = new URI("jar", jarLocation, null);
                     fs = FileSystems.newFileSystem(jarURI, Map.of());
                     break;
-                case "http":
-                    final String pollInterval = String.format("PT%dS", config.configPollIntervalSeconds());
-                    fs = FileSystems.newFileSystem(configURI, Map.of("zilla.filesystem.http.poll.interval", pollInterval));
-                    break;
                 }
 
                 engine = builder.config(config)

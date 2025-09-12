@@ -20,9 +20,13 @@ import static java.util.function.Function.identity;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -830,6 +834,29 @@ public class Configuration
                 defaultAction.accept(key.name, defaultValue);
             }
         }
+    }
+
+    public Map<String, Object> asMap()
+    {
+        return new AbstractMap<>()
+        {
+            @Override
+            public Set<Entry<String, Object>> entrySet()
+            {
+                Set<Entry<String, Object>> entries = new HashSet<>();
+                BiConsumer<String, Object> action = (k, nv) ->
+                    Optional.ofNullable(nv).map(v -> Map.entry(k, v)).ifPresent(entries::add);
+                properties(action, action);
+                return entries;
+            }
+
+            @Override
+            public Object get(
+                Object key)
+            {
+                return getProperty((String) key, null);
+            }
+        };
     }
 
     @Override

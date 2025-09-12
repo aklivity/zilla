@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Map;
 import java.util.Properties;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
@@ -406,5 +407,21 @@ public final class ConfigurationTest
         Configuration config = new Configuration();
 
         assertEquals(0.1234, propertyDef.getAsDouble(config), 0.0);
+    }
+
+    @Test
+    public void shouldExposePropertiesAsMap()
+    {
+        Properties props = new Properties();
+        props.setProperty("scope.host", "localhost");
+
+        ConfigurationDef configDef = new ConfigurationDef("scope");
+        configDef.property("host", "127.0.0.1");
+
+        Configuration config = new Configuration(configDef, props);
+
+        Map<String, Object> map = config.asMap();
+
+        assertEquals("localhost", map.get("scope.host"));
     }
 }
