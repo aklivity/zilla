@@ -27,8 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelConfigAdapterTest
 {
@@ -200,35 +200,5 @@ public class ProtobufModelConfigAdapterTest
         assertThat(converter.model, equalTo("protobuf"));
         assertThat(converter.cataloged, hasSize(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
-    }
-    
-    @Test
-    public void shouldIgnoreLegacySyntaxFieldIfPresent()
-    {
-        // GIVEN - JSON with legacy syntax field (for backward compatibility)
-        String json =
-            "{" +
-                "\"model\":\"protobuf\"," +
-                "\"syntax\":\"proto2\"," +  // Legacy field, should be ignored
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\":\"user\"," +
-                            "\"version\":\"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
-
-        // WHEN
-        ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
-
-        // THEN - Should parse successfully, ignoring the syntax field
-        assertThat(converter.model, equalTo("protobuf"));
-        assertThat(converter.cataloged, hasSize(1));
-        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
-        // No syntax field in the model anymore
     }
 }

@@ -26,6 +26,7 @@ import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
+
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
@@ -232,13 +233,10 @@ public class ProtobufModelHandler
         {
             try
             {
-                // Use the unified parser to handle syntax detection and parsing
                 descriptor = parser.parse(schemaText);
             }
-            catch (ProtobufParser.ProtobufParseException ex)
+            catch (Exception ex)
             {
-                // Log the error (could enhance event context with parsing-specific method if needed)
-                // For now, just print the stack trace
                 ex.printStackTrace();
             }
         }

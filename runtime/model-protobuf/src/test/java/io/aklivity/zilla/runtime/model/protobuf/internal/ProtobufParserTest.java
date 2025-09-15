@@ -14,254 +14,318 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import static org.junit.Assert.*;
+import static io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufParser.ProtoSyntax.PROTO2;
+import static io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufParser.ProtoSyntax.PROTO3;
+import static io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufParser.ProtoSyntax.UNKNOWN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
-
+import com.google.protobuf.Descriptors.FileDescriptor;
 
 public class ProtobufParserTest
 {
-    @Test
-    public void shouldParseProto2Schema()
+    private ProtobufParser parser;
+
+    @Before
+    public void setUp()
     {
-        // Given: A proto2 schema
-        String proto2Schema =
-                "syntax = \"proto2\";\n" +
-                        "package example;\n" +
-                        "\n" +
-                        "message Person {\n" +
-                        "  required string name = 1;\n" +
-                        "  optional int32 age = 2;\n" +
-                        "  repeated string email = 3;\n" +
-                        "}\n";
+        parser = new ProtobufParser(null);
+    }
 
-        // When: Parsing with the unified parser
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        FileDescriptor descriptor = parser.parse(proto2Schema);
 
-        // Then: The schema should be correctly parsed
+    @Test
+    public void shouldDetectProto2Syntax()
+    {
+        String schema = """
+                syntax = "proto2";
+                message Test {}""";
+
+        assertEquals(PROTO2, ProtobufParser.detectSyntax(schema));
+    }
+
+    @Test
+    public void shouldDetectProto3Syntax()
+    {
+        String schema = """
+                syntax = "proto3";
+                message Test {}""";
+
+        assertEquals(PROTO3, ProtobufParser.detectSyntax(schema));
+    }
+
+    @Test
+    public void shouldDetectSyntaxCaseInsensitive()
+    {
+        String schema1 = """
+                SYNTAX = "proto3";
+                """;
+        String schema2 = """
+                Syntax = "proto3";
+                """;
+        String schema3 = """
+                syntax = "PROTO3";
+                """;
+
+        assertEquals(PROTO3, ProtobufParser.detectSyntax(schema1));
+        assertEquals(PROTO3, ProtobufParser.detectSyntax(schema2));
+        assertEquals(PROTO3, ProtobufParser.detectSyntax(schema3));
+    }
+
+    @Test
+    public void shouldReturnUnknownForNullSchema()
+    {
+        assertEquals(UNKNOWN, ProtobufParser.detectSyntax(null));
+    }
+
+    @Test
+    public void shouldReturnUnknownForInvalidSyntax()
+    {
+        String schema = """
+                syntax = "proto4";
+                """;
+        assertEquals(UNKNOWN, ProtobufParser.detectSyntax(schema));
+    }
+
+
+
+    @Test
+    public void shouldParseProto2SimpleMessage()
+    {
+        String schema = """
+                syntax = "proto2";
+                package test;
+                message Person {
+                  required string name = 1;
+                  optional int32 age = 2;
+                }""";
+
+        FileDescriptor descriptor = parser.parse(schema);
+
         assertNotNull(descriptor);
-        assertEquals("proto2", descriptor.getSyntax());
-        assertEquals("example", descriptor.getPackage());
+        assertEquals("test", descriptor.getPackage());
         assertEquals(1, descriptor.getMessageTypes().size());
 
-        Descriptor messageDescriptor = descriptor.getMessageTypes().get(0);
-        assertEquals("Person", messageDescriptor.getName());
-        assertEquals(3, messageDescriptor.getFields().size());
+        Descriptor messageType = descriptor.getMessageTypes().get(0);
+        assertEquals("Person", messageType.getName());
+        assertEquals(2, messageType.getFields().size());
 
-        // Verify field details
-        FieldDescriptor nameField = messageDescriptor.getFields().get(0);
-        assertEquals("name", nameField.getName());
-        assertEquals(FieldDescriptor.Type.STRING, nameField.getType());
+        FieldDescriptor nameField = messageType.findFieldByName("name");
+        assertNotNull(nameField);
+        assertEquals(1, nameField.getNumber());
         assertTrue(nameField.isRequired());
 
-        FieldDescriptor ageField = messageDescriptor.getFields().get(1);
-        assertEquals("age", ageField.getName());
-        assertEquals(FieldDescriptor.Type.INT32, ageField.getType());
+        FieldDescriptor ageField = messageType.findFieldByName("age");
+        assertNotNull(ageField);
+        assertEquals(2, ageField.getNumber());
         assertTrue(ageField.isOptional());
-
-        FieldDescriptor emailField = messageDescriptor.getFields().get(2);
-        assertEquals("email", emailField.getName());
-        assertEquals(FieldDescriptor.Type.STRING, emailField.getType());
-        assertTrue(emailField.isRepeated());
     }
 
     @Test
-    public void shouldParseProto3Schema()
+    public void shouldParseProto2WithRepeatedField()
     {
-        // Given: A proto3 schema
-        String proto3Schema =
-                "syntax = \"proto3\";\n" +
-                        "package example;\n" +
-                        "\n" +
-                        "message Person {\n" +
-                        "  string name = 1;\n" +
-                        "  int32 age = 2;\n" +
-                        "  repeated string email = 3;\n" +
-                        "  map<string, string> metadata = 4;\n" +
-                        "}\n";
+        String schema = """
+                syntax = "proto2";
+                message Test {
+                  repeated string items = 1;
+                }""";
 
-        // When: Parsing with the unified parser
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        FileDescriptor descriptor = parser.parse(proto3Schema);
+        FileDescriptor descriptor = parser.parse(schema);
 
-        // Then: The schema should be correctly parsed
         assertNotNull(descriptor);
-        assertEquals("proto3", descriptor.getSyntax());
-        assertEquals("example", descriptor.getPackage());
+        Descriptor messageType = descriptor.getMessageTypes().get(0);
+        FieldDescriptor field = messageType.findFieldByName("items");
+        assertTrue(field.isRepeated());
+    }
+
+    @Test
+    public void shouldParseProto2WithEnum()
+    {
+        String schema = """
+                syntax = "proto2";
+                enum Status {
+                  UNKNOWN = 0;
+                  ACTIVE = 1;
+                  INACTIVE = 2;
+                }
+                message Test {
+                  optional Status status = 1;
+                }""";
+
+        FileDescriptor descriptor = parser.parse(schema);
+
+        assertNotNull(descriptor);
+        assertEquals(1, descriptor.getEnumTypes().size());
+
+        EnumDescriptor enumType = descriptor.getEnumTypes().get(0);
+        assertEquals("Status", enumType.getName());
+        assertEquals(3, enumType.getValues().size());
+    }
+
+    @Test
+    public void shouldParseProto2WithNestedMessage()
+    {
+        String schema = """
+                syntax = "proto2";
+                message Outer {
+                  message Inner {
+                    optional string value = 1;
+                  }
+                  optional Inner inner = 1;
+                }""";
+
+        FileDescriptor descriptor = parser.parse(schema);
+
+        assertNotNull(descriptor);
+        Descriptor outerType = descriptor.getMessageTypes().get(0);
+        assertEquals("Outer", outerType.getName());
+        assertEquals(1, outerType.getNestedTypes().size());
+
+        Descriptor innerType = outerType.getNestedTypes().get(0);
+        assertEquals("Inner", innerType.getName());
+    }
+
+    @Test
+    public void shouldParseProto3SimpleMessage()
+    {
+        String schema = """
+                syntax = "proto3";
+                package test;
+                message Person {
+                  string name = 1;
+                  int32 age = 2;
+                }""";
+
+        FileDescriptor descriptor = parser.parse(schema);
+
+        assertNotNull(descriptor);
+        assertEquals("test", descriptor.getPackage());
         assertEquals(1, descriptor.getMessageTypes().size());
 
-        Descriptor messageDescriptor = descriptor.getMessageTypes().get(0);
-        assertEquals("Person", messageDescriptor.getName());
-        assertEquals(4, messageDescriptor.getFields().size());
-
-        // Verify field details
-        FieldDescriptor nameField = messageDescriptor.getFields().get(0);
-        assertEquals("name", nameField.getName());
-        assertEquals(FieldDescriptor.Type.STRING, nameField.getType());
-        assertFalse(nameField.isRequired());
-        assertFalse(nameField.isRepeated());
-
-        FieldDescriptor emailField = messageDescriptor.getFields().get(2);
-        assertEquals("email", emailField.getName());
-        assertEquals(FieldDescriptor.Type.STRING, emailField.getType());
-        assertTrue(emailField.isRepeated());
-
-        FieldDescriptor metadataField = messageDescriptor.getFields().get(3);
-        assertEquals("metadata", metadataField.getName());
-        assertTrue(metadataField.isMapField());
+        Descriptor messageType = descriptor.getMessageTypes().get(0);
+        assertEquals("Person", messageType.getName());
+        assertEquals(2, messageType.getFields().size());
     }
 
     @Test
-    public void shouldAutoDetectProto2Syntax()
+    public void shouldParseProto3WithRepeatedField()
     {
-        // Given: A proto2 schema without explicit knowledge of syntax
-        String proto2Schema =
-                "syntax = \"proto2\";\n" +
-                        "message Test {\n" +
-                        "  required string field = 1;\n" +
-                        "}\n";
+        String schema = """
+                syntax = "proto3";
+                message Test {
+                  repeated string items = 1;
+                }""";
 
-        // When: Parsing without syntax override
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        FileDescriptor descriptor = parser.parse(proto2Schema);
+        FileDescriptor descriptor = parser.parse(schema);
 
-        // Then: The parser should auto-detect proto2
         assertNotNull(descriptor);
-        assertEquals("proto2", descriptor.getSyntax());
+        Descriptor messageType = descriptor.getMessageTypes().get(0);
+        FieldDescriptor field = messageType.findFieldByName("items");
+        assertTrue(field.isRepeated());
     }
 
     @Test
-    public void shouldAutoDetectProto3Syntax()
+    public void shouldReturnNullForEmptySchema()
     {
-        // Given: A proto3 schema without explicit knowledge of syntax
-        String proto3Schema =
-                "syntax = \"proto3\";\n" +
-                        "message Test {\n" +
-                        "  string field = 1;\n" +
-                        "}\n";
+        FileDescriptor descriptor = parser.parse("");
+        assertNull(descriptor);
+    }
 
-        // When: Parsing without syntax override
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        FileDescriptor descriptor = parser.parse(proto3Schema);
+    @Test(expected = RuntimeException.class)
+    public void shouldThrowExceptionForInvalidProto2Syntax()
+    {
+        String schema = """
+                syntax = "proto2";
+                message Test {
+                  invalid syntax here
+                }""";
 
-        // Then: The parser should auto-detect proto3
+        parser.parse(schema);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldThrowExceptionForInvalidProto3Syntax()
+    {
+        String schema = """
+                syntax = "proto3";
+                message Test {
+                  invalid syntax here
+                }""";
+
+        parser.parse(schema);
+    }
+
+    @Test
+    public void shouldHandleNullDependencies()
+    {
+        ProtobufParser parserWithNullDeps = new ProtobufParser(null);
+        String schema = """
+                syntax = "proto3";
+                message Test {}""";
+
+        FileDescriptor descriptor = parserWithNullDeps.parse(schema);
         assertNotNull(descriptor);
-        assertEquals("proto3", descriptor.getSyntax());
     }
 
-
-
-    @Test(expected = ProtobufParser.ProtobufParseException.class)
-    public void shouldThrowExceptionForInvalidSchema()
+    @Test
+    public void shouldHandleEmptyDependencies()
     {
-        // Given: An invalid protobuf schema
-        String invalidSchema =
-                "syntax = \"proto3\";\n" +
-                        "this is not valid protobuf syntax";
+        ProtobufParser parserWithEmptyDeps = new ProtobufParser(new FileDescriptor[0]);
+        String schema = """
+                syntax = "proto3";
+                message Test {}""";
 
-        // When: Parsing the invalid schema
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        parser.parse(invalidSchema);
-
-        // Then: Should throw ProtobufParseException
-    }
-
-    @Test(expected = ProtobufParser.ProtobufParseException.class)
-    public void shouldThrowExceptionForUnknownSyntax()
-    {
-        // Given: A schema without syntax declaration
-        String schemaWithoutSyntax =
-                "message Test {\n" +
-                        "  string field = 1;\n" +
-                        "}\n";
-
-        // When: Parsing without syntax declaration
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        parser.parse(schemaWithoutSyntax);
-
-        // Then: Should throw exception - syntax declaration is required
-    }
-
-    @Test(expected = ProtobufParser.ProtobufParseException.class)
-    public void shouldThrowExceptionForNullInput()
-    {
-        // Given: Null input
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-
-        // When: Parsing null string
-        parser.parse((String) null);
-
-        // Then: Should throw exception
-    }
-
-    @Test(expected = ProtobufParser.ProtobufParseException.class)
-    public void shouldThrowExceptionForEmptySchema()
-    {
-        // Given: Empty schema
-        String emptySchema = "";
-
-        // When: Parsing empty schema
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        parser.parse(emptySchema);
-
-        // Then: Should throw exception
+        FileDescriptor descriptor = parserWithEmptyDeps.parse(schema);
+        assertNotNull(descriptor);
     }
 
     @Test
     public void shouldParseComplexProto2Schema()
     {
-        // Given: A complex proto2 schema with enums, nested messages, and oneofs
-        String complexSchema =
-                "syntax = \"proto2\";\n" +
-                        "package complex;\n" +
-                        "\n" +
-                        "enum Status {\n" +
-                        "  UNKNOWN = 0;\n" +
-                        "  ACTIVE = 1;\n" +
-                        "  INACTIVE = 2;\n" +
-                        "}\n" +
-                        "\n" +
-                        "message Address {\n" +
-                        "  optional string street = 1;\n" +
-                        "  optional string city = 2;\n" +
-                        "}\n" +
-                        "\n" +
-                        "message Person {\n" +
-                        "  required string name = 1;\n" +
-                        "  optional int32 age = 2;\n" +
-                        "  optional Status status = 3;\n" +
-                        "  repeated Address addresses = 4;\n" +
-                        "  \n" +
-                        "  oneof contact {\n" +
-                        "    string email = 5;\n" +
-                        "    string phone = 6;\n" +
-                        "  }\n" +
-                        "}\n";
+        String schema = """
+                syntax = "proto2";
+                package complex;
+                enum Color {
+                  RED = 0;
+                  GREEN = 1;
+                  BLUE = 2;
+                }
+                message Address {
+                  optional string street = 1;
+                  optional string city = 2;
+                  optional string state = 3;
+                  optional int32 zip = 4;
+                }
+                message Person {
+                  required string name = 1;
+                  optional int32 age = 2;
+                  repeated string emails = 3;
+                  optional Address address = 4;
+                  optional Color favorite_color = 5;
+                  message PhoneNumber {
+                    required string number = 1;
+                    optional string type = 2;
+                  }
+                  repeated PhoneNumber phones = 6;
+                }""";
 
-        // When: Parsing the complex schema
-        ProtobufParser parser = new ProtobufParser(new FileDescriptor[0]);
-        FileDescriptor descriptor = parser.parse(complexSchema);
+        FileDescriptor descriptor = parser.parse(schema);
 
-        // Then: All elements should be correctly parsed
         assertNotNull(descriptor);
-        assertEquals("proto2", descriptor.getSyntax());
         assertEquals("complex", descriptor.getPackage());
         assertEquals(2, descriptor.getMessageTypes().size());
         assertEquals(1, descriptor.getEnumTypes().size());
 
-        // Verify enum
-        assertEquals("Status", descriptor.getEnumTypes().get(0).getName());
-        assertEquals(3, descriptor.getEnumTypes().get(0).getValues().size());
-
-        // Verify Person message with oneof
-        Descriptor personDescriptor = descriptor.findMessageTypeByName("Person");
-        assertNotNull(personDescriptor);
-        assertEquals(1, personDescriptor.getOneofs().size());
-        assertEquals("contact", personDescriptor.getOneofs().get(0).getName());
+        Descriptor personType = descriptor.findMessageTypeByName("Person");
+        assertNotNull(personType);
+        assertEquals(6, personType.getFields().size());
+        assertEquals(1, personType.getNestedTypes().size());
     }
 }

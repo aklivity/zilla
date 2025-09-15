@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.agrona.LangUtil;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -32,6 +36,21 @@ public final class ProtobufParser
 {
     private final FileDescriptor[] dependencies;
 
+    private static final Pattern SYNTAX_PATTERN = Pattern.compile(
+            "^\\s*syntax\\s*=\\s*[\"'](proto2|proto3)[\"']\\s*;",
+            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE
+    );
+
+    private static final String PROTO2_SYNTAX = "proto2";
+    private static final String PROTO3_SYNTAX = "proto3";
+
+    public enum ProtoSyntax
+    {
+        PROTO2,
+        PROTO3,
+        UNKNOWN
+    }
+
     public ProtobufParser(FileDescriptor[] dependencies)
     {
         this.dependencies = dependencies != null ? dependencies : new FileDescriptor[0];
@@ -39,37 +58,33 @@ public final class ProtobufParser
 
     public FileDescriptor parse(String schemaText)
     {
-        if (schemaText == null || schemaText.isEmpty())
+        FileDescriptor descriptor = null;
+        if (schemaText != null || schemaText.isEmpty())
         {
-            throw new ProtobufParseException("Schema text cannot be null or empty");
-        }
 
-        // Detect syntax version from schema content
-        ProtobufSyntaxDetector.ProtoSyntax syntax = ProtobufSyntaxDetector.detectSyntax(schemaText);
+            // Detect syntax version from schema content
+            ProtoSyntax syntax = detectSyntax(schemaText);
 
-        // Create CharStream for parsing
-        CharStream input = CharStreams.fromString(schemaText);
+            // Create CharStream for parsing
+            CharStream input = CharStreams.fromString(schemaText);
 
-        // Dispatch to appropriate parser - no defaults
-        switch (syntax)
-        {
+            // Dispatch to appropriate parser - no defaults
+            switch (syntax)
+            {
             case PROTO2:
-                return parseProto2(input);
-
+                descriptor = parseProto2(input);
+                return descriptor;
             case PROTO3:
-                return parseProto3(input);
-
-            case UNKNOWN:
-            default:
-                throw new ProtobufParseException(
-                        "Unable to determine protobuf syntax version. " +
-                                "Schema must include an explicit syntax declaration: " +
-                                "syntax = \"proto2\"; or syntax = \"proto3\";");
+                descriptor = parseProto3(input);
+                return descriptor;
+            }
         }
+        return descriptor;
     }
 
     private FileDescriptor parseProto2(CharStream input)
     {
+        FileDescriptor descriptor = null;
         try
         {
             // Create lexer and token stream
@@ -90,16 +105,16 @@ public final class ProtobufParser
         }
         catch (DescriptorValidationException ex)
         {
-            throw new ProtobufParseException("Failed to parse Proto2 schema", ex);
+            LangUtil.rethrowUnchecked(ex);
         }
-        catch (Exception ex)
-        {
-            throw new ProtobufParseException("Unexpected error parsing Proto2 schema", ex);
-        }
+
+        return descriptor;
+
     }
 
     private FileDescriptor parseProto3(CharStream input)
     {
+        FileDescriptor descriptor = null;
         try
         {
             // Create lexer and token stream
@@ -120,26 +135,32 @@ public final class ProtobufParser
         }
         catch (DescriptorValidationException ex)
         {
-            throw new ProtobufParseException("Failed to parse Proto3 schema", ex);
+            LangUtil.rethrowUnchecked(ex);
         }
-        catch (Exception ex)
-        {
-            throw new ProtobufParseException("Unexpected error parsing Proto3 schema", ex);
-        }
+        return descriptor;
     }
 
-    public static class ProtobufParseException extends RuntimeException
+    public static ProtoSyntax detectSyntax(String schemaText)
     {
-        private static final long serialVersionUID = 1L;
-
-        public ProtobufParseException(String message)
+        if (schemaText == null || schemaText.isEmpty())
         {
-            super(message);
+            return ProtoSyntax.UNKNOWN;
         }
 
-        public ProtobufParseException(String message, Throwable cause)
+        Matcher matcher = SYNTAX_PATTERN.matcher(schemaText);
+        if (matcher.find())
         {
-            super(message, cause);
+            String syntax = matcher.group(1).toLowerCase();
+            if (PROTO2_SYNTAX.equals(syntax))
+            {
+                return ProtoSyntax.PROTO2;
+            }
+            else if (PROTO3_SYNTAX.equals(syntax))
+            {
+                return ProtoSyntax.PROTO3;
+            }
         }
+        return ProtoSyntax.UNKNOWN;
     }
+
 }
