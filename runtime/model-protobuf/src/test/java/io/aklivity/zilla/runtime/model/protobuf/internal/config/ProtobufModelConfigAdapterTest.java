@@ -38,7 +38,7 @@ public class ProtobufModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new ProtobufModelConfigAdapter());
+                .withAdapters(new ProtobufModelConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -46,27 +46,27 @@ public class ProtobufModelConfigAdapterTest
     public void shouldReadAvroConverter()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"protobuf\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"strategy\": \"topic\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"subject\": \"cat\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"id\": 42" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+                {
+                    "model": "protobuf",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "strategy": "topic",
+                                "version": "latest"
+                            },
+                            {
+                                "subject": "cat",
+                                "version": "latest"
+                            },
+                            {
+                                "id": 42
+                            }
+                        ]
+                    }
+                }""";
 
         // WHEN
         ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
@@ -92,48 +92,28 @@ public class ProtobufModelConfigAdapterTest
     public void shouldWriteAvroConverter()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"protobuf\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"strategy\":\"topic\"," +
-                            "\"version\":\"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"subject\":\"cat\"," +
-                            "\"version\":\"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"id\":42" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String expectedJson = """
+                {"model":"protobuf","catalog":{"test0":[{"strategy":"topic","version":"latest"},\
+                {"subject":"cat","version":"latest"},{"id":42}]}}""";
         ProtobufModelConfig converter = ProtobufModelConfig.builder()
-            .catalog()
+                .catalog()
                 .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .build()
-                    .schema()
-                        .subject("cat")
-                        .version("latest")
-                        .build()
-                    .schema()
-                        .id(42)
-                        .build()
-                    .build()
-            .build();
+                .schema()
+                .strategy("topic")
+                .version("latest")
+                .build()
+                .schema()
+                .subject("cat")
+                .version("latest")
+                .build()
+                .schema()
+                .id(42)
+                .build()
+                .build()
+                .build();
 
-        // WHEN
         String json = jsonb.toJson(converter);
 
-        // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
     }
@@ -141,35 +121,20 @@ public class ProtobufModelConfigAdapterTest
     @Test
     public void shouldWriteProtobufConfig()
     {
-        // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"protobuf\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\":\"user\"," +
-                            "\"version\":\"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String expectedJson = """
+                {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]}}""";
         ProtobufModelConfig converter = ProtobufModelConfig.builder()
-            .catalog()
+                .catalog()
                 .name("test0")
-                    .schema()
-                        .subject("user")
-                        .version("latest")
-                        .build()
-                    .build()
-            .build();
+                .schema()
+                .subject("user")
+                .version("latest")
+                .build()
+                .build()
+                .build();
 
-        // WHEN
         String json = jsonb.toJson(converter);
 
-        // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
     }
@@ -177,26 +142,23 @@ public class ProtobufModelConfigAdapterTest
     @Test
     public void shouldReadProtobufConfig()
     {
-        // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"protobuf\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\":\"user\"," +
-                            "\"version\":\"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+                {
+                    "model":"protobuf",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }""";
 
-        // WHEN
         ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
 
-        // THEN
         assertThat(converter.model, equalTo("protobuf"));
         assertThat(converter.cataloged, hasSize(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));

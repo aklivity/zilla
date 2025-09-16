@@ -31,7 +31,6 @@ import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Label;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto.Type;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.DescriptorProtos.FileOptions;
-import com.google.protobuf.DescriptorProtos.MethodDescriptorProto;
 import com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
 import com.google.protobuf.DescriptorProtos.ServiceDescriptorProto;
 
@@ -356,56 +355,6 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     @Override
-    public void enterReserved(
-            Protobuf2Parser.ReservedContext ctx)
-    {
-        if (!messageStack.isEmpty())
-        {
-            DescriptorProto.Builder msgBuilder = messageStack.peek();
-
-            if (ctx.ranges() != null)
-            {
-                // Reserved field numbers
-                for (Protobuf2Parser.Range_Context range : ctx.ranges().range_())
-                {
-                    DescriptorProto.ReservedRange.Builder rangeBuilder =
-                            DescriptorProto.ReservedRange.newBuilder();
-
-                    int start = Integer.parseInt(range.intLit(0).getText());
-                    rangeBuilder.setStart(start);
-
-                    if (range.TO() != null)
-                    {
-                        if (range.MAX() != null)
-                        {
-                            rangeBuilder.setEnd(536870912); // 2^29
-                        }
-                        else
-                        {
-                            int end = Integer.parseInt(range.intLit(1).getText());
-                            rangeBuilder.setEnd(end + 1); // End is exclusive
-                        }
-                    }
-                    else
-                    {
-                        rangeBuilder.setEnd(start + 1);
-                    }
-
-                    msgBuilder.addReservedRange(rangeBuilder.build());
-                }
-            }
-            else if (ctx.reservedFieldNames() != null)
-            {
-                // Reserved field names
-                for (Protobuf2Parser.StrLitContext strLit : ctx.reservedFieldNames().strLit())
-                {
-                    msgBuilder.addReservedName(stripQuotes(strLit.getText()));
-                }
-            }
-        }
-    }
-
-    @Override
     public void enterEnumDef(
             Protobuf2Parser.EnumDefContext ctx)
     {
@@ -485,35 +434,6 @@ public class Proto2Listener extends Protobuf2BaseListener
         }
     }
 
-    @Override
-    public void enterRpc(
-            Protobuf2Parser.RpcContext ctx)
-    {
-        if (!serviceStack.isEmpty())
-        {
-            MethodDescriptorProto.Builder methodBuilder = MethodDescriptorProto.newBuilder();
-            String name = ctx.rpcName().getText();
-            methodBuilder.setName(name);
-
-            // Input type
-            String inputType = ctx.messageType(0).getText();
-            methodBuilder.setInputType(inputType);
-            if (ctx.STREAM(0) != null)
-            {
-                methodBuilder.setClientStreaming(true);
-            }
-            // Output type
-            String outputType = ctx.messageType(1).getText();
-            methodBuilder.setOutputType(outputType);
-            if (ctx.STREAM(1) != null)
-            {
-                methodBuilder.setServerStreaming(true);
-            }
-
-            serviceStack.peek().addMethod(methodBuilder.build());
-        }
-    }
-
     public DescriptorProtos.FileDescriptorProto build()
     {
         return fileBuilder.build();
@@ -571,14 +491,6 @@ public class Proto2Listener extends Protobuf2BaseListener
             }
             // Add handling for other field options as needed
         }
-    }
-
-    private FieldDescriptorProto processGroupElement(
-            Protobuf2Parser.GroupContext ctx)
-    {
-        FieldDescriptorProto.Builder builder = FieldDescriptorProto.newBuilder();
-        processGroupFromContext(builder, ctx);
-        return builder.build();
     }
 
     private void processGroupFromContext(

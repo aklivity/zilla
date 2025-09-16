@@ -91,6 +91,10 @@ public class ProtobufModelTest
     private static final String PROTO2_SCHEMA = """
                                                     syntax = "proto2";
                                                     package io.aklivity.examples.proto2;
+                                                    import "google/protobuf/descriptor.proto";
+                                                       extend google.protobuf.MessageOptions {
+                                                           optional string enter_option_statement = 50001;
+                                                       }
                                                     message Proto2Message {
                                                         required string required_field = 1;
                                                         optional string optional_field = 2;
@@ -699,13 +703,15 @@ public class ProtobufModelTest
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
-        String json = "{" +
-                "\"required_field\":\"test\"," +
-                "\"optional_field\":\"optional\"," +
-                "\"repeated_field\":[\"one\",\"two\"]," +
-                "\"bool_field\":false," +
-                "\"status\":\"INACTIVE\"" +
-                "}";
+        String json = """
+                        {
+                            "required_field":"test",
+                            "optional_field":"optional",
+                            "repeated_field":["one","two"],
+                            "bool_field":false,
+                            "status":"INACTIVE"
+                        }
+                        """;
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
         int result = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
