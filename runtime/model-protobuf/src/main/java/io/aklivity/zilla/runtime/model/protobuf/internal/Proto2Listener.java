@@ -508,7 +508,8 @@ public class Proto2Listener extends Protobuf2BaseListener
         builder.setTypeName(name);
     }
 
-    private String stripQuotes(String str)
+    private String stripQuotes(
+            String str)
     {
         if (str.startsWith("\"") && str.endsWith("\"") ||
                 str.startsWith("'") && str.endsWith("'"))
@@ -518,7 +519,8 @@ public class Proto2Listener extends Protobuf2BaseListener
         return str;
     }
 
-    private String capitalize(String str)
+    private String capitalize(
+            String str)
     {
         if (str == null || str.isEmpty())
         {

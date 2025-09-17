@@ -51,17 +51,18 @@ public final class ProtobufParser
         UNKNOWN
     }
 
-    public ProtobufParser(FileDescriptor[] dependencies)
+    public ProtobufParser(
+            FileDescriptor[] dependencies)
     {
         this.dependencies = dependencies != null ? dependencies : new FileDescriptor[0];
     }
 
-    public FileDescriptor parse(String schemaText)
+    public FileDescriptor parse(
+            String schemaText)
     {
         FileDescriptor descriptor = null;
         if (schemaText != null || schemaText.isEmpty())
         {
-
             // Detect syntax version from schema content
             ProtoSyntax syntax = detectSyntax(schemaText);
 
@@ -69,20 +70,18 @@ public final class ProtobufParser
             CharStream input = CharStreams.fromString(schemaText);
 
             // Dispatch to appropriate parser - no defaults
-            switch (syntax)
+            descriptor = switch (syntax)
             {
-            case PROTO2:
-                descriptor = parseProto2(input);
-                return descriptor;
-            case PROTO3:
-                descriptor = parseProto3(input);
-                return descriptor;
-            }
+            case PROTO2 -> parseProto2(input);
+            case PROTO3 -> parseProto3(input);
+            default -> descriptor;
+            };
         }
         return descriptor;
     }
 
-    private FileDescriptor parseProto2(CharStream input)
+    private FileDescriptor parseProto2(
+            CharStream input)
     {
         FileDescriptor descriptor = null;
         try
@@ -112,7 +111,8 @@ public final class ProtobufParser
 
     }
 
-    private FileDescriptor parseProto3(CharStream input)
+    private FileDescriptor parseProto3(
+            CharStream input)
     {
         FileDescriptor descriptor = null;
         try
@@ -140,7 +140,8 @@ public final class ProtobufParser
         return descriptor;
     }
 
-    public static ProtoSyntax detectSyntax(String schemaText)
+    public static ProtoSyntax detectSyntax(
+            String schemaText)
     {
         if (schemaText == null || schemaText.isEmpty())
         {
@@ -148,19 +149,27 @@ public final class ProtobufParser
         }
 
         Matcher matcher = SYNTAX_PATTERN.matcher(schemaText);
-        if (matcher.find())
-        {
-            String syntax = matcher.group(1).toLowerCase();
-            if (PROTO2_SYNTAX.equals(syntax))
-            {
-                return ProtoSyntax.PROTO2;
-            }
-            else if (PROTO3_SYNTAX.equals(syntax))
-            {
-                return ProtoSyntax.PROTO3;
-            }
-        }
-        return ProtoSyntax.UNKNOWN;
+        return matcher.find() ? parseSyntax(matcher.group(1).toLowerCase()) : ProtoSyntax.UNKNOWN;
     }
 
+    private static ProtoSyntax parseSyntax(
+            String syntax)
+    {
+        if (syntax == null)
+        {
+            return ProtoSyntax.UNKNOWN;
+        }
+
+        String lowerSyntax = syntax.toLowerCase();
+        if (PROTO2_SYNTAX.equals(lowerSyntax))
+        {
+            return ProtoSyntax.PROTO2;
+        }
+        else if (PROTO3_SYNTAX.equals(lowerSyntax))
+        {
+            return ProtoSyntax.PROTO3;
+        }
+
+        return ProtoSyntax.UNKNOWN;
+    }
 }

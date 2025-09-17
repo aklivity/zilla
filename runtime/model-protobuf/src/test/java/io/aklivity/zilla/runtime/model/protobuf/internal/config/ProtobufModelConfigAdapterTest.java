@@ -66,7 +66,8 @@ public class ProtobufModelConfigAdapterTest
                             }
                         ]
                     }
-                }""";
+                }
+                """;
 
         // WHEN
         ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
@@ -97,19 +98,19 @@ public class ProtobufModelConfigAdapterTest
                 {"subject":"cat","version":"latest"},{"id":42}]}}""";
         ProtobufModelConfig converter = ProtobufModelConfig.builder()
                 .catalog()
-                .name("test0")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .build()
-                .schema()
-                .subject("cat")
-                .version("latest")
-                .build()
-                .schema()
-                .id(42)
-                .build()
-                .build()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .build()
+                    .schema()
+                        .subject("cat")
+                        .version("latest")
+                        .build()
+                    .schema()
+                        .id(42)
+                        .build()
+                    .build()
                 .build();
 
         String json = jsonb.toJson(converter);
@@ -125,12 +126,12 @@ public class ProtobufModelConfigAdapterTest
                 {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]}}""";
         ProtobufModelConfig converter = ProtobufModelConfig.builder()
                 .catalog()
-                .name("test0")
-                .schema()
-                .subject("user")
-                .version("latest")
-                .build()
-                .build()
+                    .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
                 .build();
 
         String json = jsonb.toJson(converter);
@@ -155,7 +156,8 @@ public class ProtobufModelConfigAdapterTest
                             }
                         ]
                     }
-                }""";
+                }
+                """;
 
         ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
 

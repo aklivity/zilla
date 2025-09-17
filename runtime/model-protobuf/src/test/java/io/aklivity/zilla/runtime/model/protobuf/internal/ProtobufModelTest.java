@@ -66,7 +66,8 @@ public class ProtobufModelTest
                                                     string content = 1;
                                                     optional string date_time = 2;
                                                 }
-                                            }""";
+                                            }
+                                            """;
 
     private static final String COMPLEX_SCHEMA = """
                                                     syntax = "proto3";
@@ -86,7 +87,8 @@ public class ProtobufModelTest
                                                         sfixed64 field_sfixed64 = 13;
                                                         sint32 field_sint32 = 14;
                                                         sint64 field_sint64 = 15;
-                                                    }""";
+                                                    }
+                                                    """;
 
     private static final String PROTO2_SCHEMA = """
                                                     syntax = "proto2";
@@ -131,7 +133,8 @@ public class ProtobufModelTest
                                                             optional int32 group_id = 5;
                                                             optional string group_name = 6;
                                                         }
-                                                    }""";
+                                                    }
+                                                    """;
 
     private EngineContext context;
 
@@ -530,22 +533,22 @@ public class ProtobufModelTest
                 .name("proto2test")
                 .type("test")
                 .options(TestCatalogOptionsConfig::builder)
-                .id(10)
-                .schema(PROTO2_SCHEMA)
-                .build()
+                    .id(10)
+                    .schema(PROTO2_SCHEMA)
+                    .build()
                 .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
         ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
-                .name("proto2test")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .subject("proto2-value")
-                .record("Proto2Message")
-                .build()
-                .build()
+                    .name("proto2test")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("proto2-value")
+                        .record("Proto2Message")
+                        .build()
+                    .build()
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
@@ -568,21 +571,21 @@ public class ProtobufModelTest
                 .name("proto2test")
                 .type("test")
                 .options(TestCatalogOptionsConfig::builder)
-                .id(10)
-                .schema(PROTO2_SCHEMA)
-                .build()
+                    .id(10)
+                    .schema(PROTO2_SCHEMA)
+                    .build()
                 .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
         ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
-                .name("proto2test")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .subject("proto2-value")
-                .build()
-                .build()
+                    .name("proto2test")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("proto2-value")
+                        .build()
+                    .build()
                 .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
@@ -604,22 +607,22 @@ public class ProtobufModelTest
                 .name("proto2test")
                 .type("test")
                 .options(TestCatalogOptionsConfig::builder)
-                .id(10)
-                .schema(PROTO2_SCHEMA)
-                .build()
+                    .id(10)
+                    .schema(PROTO2_SCHEMA)
+                    .build()
                 .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
         ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
-                .name("proto2test")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .subject("proto2-value")
-                .record("Proto2Message")
-                .build()
-                .build()
+                    .name("proto2test")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("proto2-value")
+                        .record("Proto2Message")
+                        .build()
+                    .build()
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
@@ -643,21 +646,21 @@ public class ProtobufModelTest
                 .name("proto2test")
                 .type("test")
                 .options(TestCatalogOptionsConfig::builder)
-                .id(10)
-                .schema(PROTO2_SCHEMA)
-                .build()
+                    .id(10)
+                    .schema(PROTO2_SCHEMA)
+                    .build()
                 .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
         ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
-                .name("proto2test")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .subject("proto2-value")
-                .build()
-                .build()
+                    .name("proto2test")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("proto2-value")
+                        .build()
+                    .build()
                 .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
@@ -682,23 +685,23 @@ public class ProtobufModelTest
                 .name("proto2test")
                 .type("test")
                 .options(TestCatalogOptionsConfig::builder)
-                .id(10)
-                .schema(PROTO2_SCHEMA)
-                .build()
+                    .id(10)
+                    .schema(PROTO2_SCHEMA)
+                    .build()
                 .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
         ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .view("json")
                 .catalog()
-                .name("proto2test")
-                .schema()
-                .strategy("topic")
-                .version("latest")
-                .subject("proto2-value")
-                .record("Proto2Message")
-                .build()
-                .build()
+                    .name("proto2test")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("proto2-value")
+                        .record("Proto2Message")
+                        .build()
+                    .build()
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 

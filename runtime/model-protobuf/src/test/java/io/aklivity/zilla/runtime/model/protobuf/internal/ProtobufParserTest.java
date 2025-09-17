@@ -40,13 +40,13 @@ public class ProtobufParserTest
         parser = new ProtobufParser(null);
     }
 
-
     @Test
     public void shouldDetectProto2Syntax()
     {
         String schema = """
                 syntax = "proto2";
-                message Test {}""";
+                message Test {}
+                """;
 
         assertEquals(PROTO2, ProtobufParser.detectSyntax(schema));
     }
@@ -56,7 +56,8 @@ public class ProtobufParserTest
     {
         String schema = """
                 syntax = "proto3";
-                message Test {}""";
+                message Test {}
+                """;
 
         assertEquals(PROTO3, ProtobufParser.detectSyntax(schema));
     }
@@ -94,8 +95,6 @@ public class ProtobufParserTest
         assertEquals(UNKNOWN, ProtobufParser.detectSyntax(schema));
     }
 
-
-
     @Test
     public void shouldParseProto2SimpleMessage()
     {
@@ -105,7 +104,8 @@ public class ProtobufParserTest
                 message Person {
                   required string name = 1;
                   optional int32 age = 2;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -135,7 +135,8 @@ public class ProtobufParserTest
                 syntax = "proto2";
                 message Test {
                   repeated string items = 1;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -157,7 +158,8 @@ public class ProtobufParserTest
                 }
                 message Test {
                   optional Status status = 1;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -179,7 +181,8 @@ public class ProtobufParserTest
                     optional string value = 1;
                   }
                   optional Inner inner = 1;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -201,7 +204,8 @@ public class ProtobufParserTest
                 message Person {
                   string name = 1;
                   int32 age = 2;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -221,7 +225,8 @@ public class ProtobufParserTest
                 syntax = "proto3";
                 message Test {
                   repeated string items = 1;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
@@ -245,7 +250,8 @@ public class ProtobufParserTest
                 syntax = "proto2";
                 message Test {
                   invalid syntax here
-                }""";
+                }
+                """;
 
         parser.parse(schema);
     }
@@ -257,7 +263,8 @@ public class ProtobufParserTest
                 syntax = "proto3";
                 message Test {
                   invalid syntax here
-                }""";
+                }
+                """;
 
         parser.parse(schema);
     }
@@ -268,7 +275,8 @@ public class ProtobufParserTest
         ProtobufParser parserWithNullDeps = new ProtobufParser(null);
         String schema = """
                 syntax = "proto3";
-                message Test {}""";
+                message Test {}
+                """;
 
         FileDescriptor descriptor = parserWithNullDeps.parse(schema);
         assertNotNull(descriptor);
@@ -280,7 +288,8 @@ public class ProtobufParserTest
         ProtobufParser parserWithEmptyDeps = new ProtobufParser(new FileDescriptor[0]);
         String schema = """
                 syntax = "proto3";
-                message Test {}""";
+                message Test {}
+                """;
 
         FileDescriptor descriptor = parserWithEmptyDeps.parse(schema);
         assertNotNull(descriptor);
@@ -314,7 +323,8 @@ public class ProtobufParserTest
                     optional string type = 2;
                   }
                   repeated PhoneNumber phones = 6;
-                }""";
+                }
+                """;
 
         FileDescriptor descriptor = parser.parse(schema);
 
