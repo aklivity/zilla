@@ -21,6 +21,8 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineConfigWatcherFailedExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventExFW;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EngineStartedExFW;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EngineStoppedExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 
 public final class EngineEventFormatter implements EventFormatterSpi
@@ -57,6 +59,14 @@ public final class EngineEventFormatter implements EventFormatterSpi
                 ? CONFIG_WATCHER_FAILED_WITH_REASON_FORMAT
                 : CONFIG_WATCHER_FAILED_FORMAT;
             text = String.format(format, reason);
+            break;
+        case STARTED:
+            EngineStartedExFW started = extension.started();
+            text = started.message().asString();
+            break;
+        case STOPPED:
+            EngineStoppedExFW stopped = extension.stopped();
+            text = stopped.message().asString();
             break;
         }
 

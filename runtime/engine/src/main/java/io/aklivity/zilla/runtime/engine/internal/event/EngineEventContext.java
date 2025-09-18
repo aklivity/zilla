@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.engine.internal.event;
 
 import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.CONFIG_WATCHER_FAILED;
+import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.STARTED;
+import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.STOPPED;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -41,6 +43,8 @@ public final class EngineEventContext
     private final long engineId;
     private final int engineTypeId;
     private final int configWatcherFailedEventId;
+    private final int startedEventId;
+    private final int stoppedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -50,8 +54,54 @@ public final class EngineEventContext
         this.engineId = engine.supplyNamespacedId(Engine.NAME, "events");
         this.engineTypeId = engine.supplyLabelId(Engine.NAME);
         this.configWatcherFailedEventId = engine.supplyLabelId("engine.config.watcher.failed");
+        this.startedEventId = engine.supplyLabelId("engine.started");
+        this.stoppedEventId = engine.supplyLabelId("engine.stopped");
         this.eventWriter = engine.supplyEventWriter();
         this.clock = engine.clock();
+    }
+
+    public void started(
+        long traceId)
+    {
+        EngineEventExFW extension = eventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .started(e -> e
+                .typeId(STARTED.value())
+                .message("Engine Started.")
+            )
+            .build();
+
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(startedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(engineId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void stopped(
+        long traceId)
+    {
+        EngineEventExFW extension = eventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .started(e -> e
+                .typeId(STOPPED.value())
+                .message("Engine Stopped.")
+            )
+            .build();
+
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(stoppedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(engineId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void configWatcherFailed(

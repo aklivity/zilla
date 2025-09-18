@@ -981,6 +981,9 @@ public class EngineWorker implements EngineContext, Agent
                 break;
             }
         }
+
+        //TODO: make progress on the exporters as well. Iterate through with an onSpinWait. events that are not exported.
+        // ask where each exporter is, and where is the events at. Have they caught up?
     }
 
     @Override

@@ -95,6 +95,7 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineManager manager;
 
     private final EventsLayout eventsLayout;
+    private final EngineEventContext events;
 
     private FileSystem fileSystem = null;
 
@@ -211,7 +212,7 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        EngineEventContext events = new EngineEventContext(this);
+        this.events = new EngineEventContext(this);
 
         EngineManager manager = new EngineManager(
             schemaTypes,
@@ -267,6 +268,8 @@ public final class Engine implements Collector, AutoCloseable
         {
             manager.start();
         }
+
+        events.started(supplyTraceId());
     }
 
     @Override
@@ -497,6 +500,12 @@ public final class Engine implements Collector, AutoCloseable
     public MessageReader supplyEventReader()
     {
         return new EventReader();
+    }
+
+    public long supplyTraceId()
+    {
+        EngineWorker worker = workers.get(0);
+        return worker.supplyTraceId();
     }
 
     public String supplyLocalName(
