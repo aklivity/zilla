@@ -38,6 +38,7 @@ import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -96,6 +97,7 @@ public final class Engine implements Collector, AutoCloseable
 
     private final EventsLayout eventsLayout;
     private final EngineEventContext events;
+    private final AtomicBoolean closed;
 
     private FileSystem fileSystem = null;
 
@@ -236,6 +238,7 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.readonly = readonly;
         this.manager = manager;
+        this.closed = new AtomicBoolean(false);
     }
 
     public <T> T binding(
@@ -275,6 +278,11 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public void close() throws Exception
     {
+        if (!closed.compareAndSet(false, true))
+        {
+            return;
+        }
+
         if (config.drainOnClose())
         {
             workers.forEach(EngineWorker::drain);

@@ -55,4 +55,9 @@ public class ExporterAgent implements Agent
     {
         return agentName;
     }
+
+    public ExporterHandler getHandler()
+    {
+        return handler;
+    }
 }

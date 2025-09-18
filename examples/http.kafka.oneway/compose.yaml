@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     ports:
       - 7114:7114
+      - 4444:4444
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -16,6 +17,7 @@ services:
       SASL_USERNAME: alice
       SASL_PASSWORD: alice-secret
       ZILLA_INCUBATOR_ENABLED: "true"
+      JAVA_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:4444
     volumes:
       - ./etc:/etc/zilla
       - ./truststore:/etc/zilla/tls

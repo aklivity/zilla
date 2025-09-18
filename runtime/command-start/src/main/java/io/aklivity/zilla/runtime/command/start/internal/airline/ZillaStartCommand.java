@@ -158,13 +158,9 @@ public final class ZillaStartCommand extends ZillaCommand
         {
             engine.start();
 
-            System.out.println("started");
-
             runtime.addShutdownHook(new Thread(this::onShutdown));
 
             stop.await();
-
-            System.out.println("stopped");
 
             stopped.countDown();
         }

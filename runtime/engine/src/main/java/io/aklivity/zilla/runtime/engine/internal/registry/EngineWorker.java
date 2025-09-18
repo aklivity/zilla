@@ -982,8 +982,31 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
-        //TODO: make progress on the exporters as well. Iterate through with an onSpinWait. events that are not exported.
-        // ask where each exporter is, and where is the events at. Have they caught up?
+        final long exporterDrainTimeout = Duration.ofSeconds(30).toNanos();
+        final long exporterStart = System.nanoTime();
+
+        boolean exportersDrained = false;
+
+        while (!exportersDrained && System.nanoTime() - exporterStart < exporterDrainTimeout)
+        {
+            exportersDrained = true;
+
+            for (AgentRunner runner : exportersById.values())
+            {
+                ExporterAgent agent = (ExporterAgent) runner.agent();
+                ExporterHandler handler = agent.getHandler();
+
+                if (handler.export() > 0)
+                {
+                    exportersDrained = false;
+                }
+            }
+
+            if (!exportersDrained)
+            {
+                ThreadHints.onSpinWait();
+            }
+        }
     }
 
     @Override

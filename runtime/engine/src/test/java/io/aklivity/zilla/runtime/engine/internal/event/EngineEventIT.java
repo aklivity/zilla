@@ -62,7 +62,7 @@ public class EngineEventIT
     public void shouldLogEvents() throws Exception
     {
         k3po.start();
-        // TODO: do the finally close a no-op in the engien if ti was already closed
-        // AtomicBoolean in the engine (compareandSet
+        engine.close();
+        k3po.finish();
     }
 }
