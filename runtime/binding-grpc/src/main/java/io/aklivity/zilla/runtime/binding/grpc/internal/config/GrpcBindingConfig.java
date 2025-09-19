@@ -77,10 +77,11 @@ public final class GrpcBindingConfig
     public final GrpcOptionsConfig options;
     public final List<GrpcRouteConfig> routes;
 
+
     private final GrpcProtobufParser parser;
     private final HttpGrpcHeaderHelper helper;
     private final Set<GrpcCatalogSchema> catalogs;
-    private final List<GrpcProtobufConfig> grpcServices;
+    public final List<GrpcProtobufConfig> grpcServices;
 
     public GrpcBindingConfig(
         BindingConfig binding,
@@ -109,7 +110,6 @@ public final class GrpcBindingConfig
 
         for (String serviceName : options.services)
         {
-            System.out.println("service name is " + serviceName);
             if ("grpc.health.v1.Health".equals(serviceName))
             {
                 String schema = loadProtoSchema("health.proto");
@@ -165,11 +165,10 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
 
-
             GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
             if (method == null)
             {
-                // TODO: this may not be best
+                // TODO: this may not the best
                 method = resolveMethod(grpcServices, serviceName, methodName);
             }
 

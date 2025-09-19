@@ -1429,6 +1429,7 @@ public class EngineWorker implements EngineContext, Agent
         case BeginFW.TYPE_ID:
             final MessageConsumer newHandler = handleBeginInitial(msgTypeId, buffer, index, length);
             if (newHandler != null)
+
             {
                 newHandler.accept(msgTypeId, buffer, index, length);
             }

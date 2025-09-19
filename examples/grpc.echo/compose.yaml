@@ -17,6 +17,7 @@ services:
       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:4444"
     volumes:
       - ./etc:/etc/zilla
+
     command: start -v -e
   grpcurl:
     image: fullstorydev/grpcurl
@@ -27,6 +28,7 @@ services:
     volumes:
       - ./etc/protos/echo.proto:/echo.proto
       - ./etc/protos/health.proto:/health.proto
+
 
 networks:
   default:

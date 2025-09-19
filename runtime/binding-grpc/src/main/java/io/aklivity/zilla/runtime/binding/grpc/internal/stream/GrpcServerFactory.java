@@ -22,7 +22,6 @@ import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.time.Instant.now;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -71,6 +70,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
 
 public final class GrpcServerFactory implements GrpcStreamFactory
 {
@@ -363,61 +363,554 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long replyId = supplyReplyId.applyAsLong(initialId);
+        final long affinity = begin.affinity();
         final long traceId = begin.traceId();
         final long authorization = begin.authorization();
+        final long sequence = begin.sequence();
+        final long acknowledge = begin.acknowledge();
 
-        return (msgTypeId, buffer, index, length) ->
+        GrpcHealthServer healthServer = new GrpcHealthServer(
+            network,
+            originId,
+            routedId,
+            initialId,
+            replyId,
+            affinity,
+            method
+        );
+
+        return healthServer::onNetMessage;
+    }
+
+    private final class GrpcHealthServer
+    {
+        private final MessageConsumer network;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final GrpcMethodResult method;
+
+        private boolean responseSent = false;
+        private boolean isCheckRequest = true;
+        private boolean serviceKnown = true;   //
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private long replyBud;
+        private int replyPad;
+        private int replyMax;
+
+        private int state;
+        private GrpcHealthServer(
+                MessageConsumer network,
+                long originId,
+                long routedId,
+                long initialId,
+                long replyId,
+                long affinity,
+                GrpcMethodResult method)
         {
-            GrpcServer server = new GrpcServer(
-                    network, originId, routedId, initialId, replyId,
-                    0, 0, ContentType.GRPC, method);
+            this.network = network;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = replyId;
+            this.affinity = affinity;
+            this.method = method;
+        }
 
-            // Extract the requested service from the gRPC request payload
-            String requestedService = extractServiceFromPayload(buffer, index, length);
+        private int replyWindow()
+        {
+            return replyMax - (int)(replySeq - replyAck);
+        }
 
-            int statusEnum = proxyHealthStatusEnum(requestedService);
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final long affinity = begin.affinity();
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
 
-            // Encode as protobuf HealthCheckResponse
-            byte[] response = new byte[] { 0x08, (byte) statusEnum };
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
 
-            // Wrap in gRPC frame (compression flag + 4 bytes length)
-            ByteBuffer grpcFrame = ByteBuffer.allocate(5 + response.length);
-            grpcFrame.put((byte) 0);       // compression flag
-            grpcFrame.putInt(response.length); // message length
-            grpcFrame.put(response);
-            grpcFrame.flip();
+            initialSeq = sequence;
+            initialAck = acknowledge;
 
-            server.doNetData(traceId, authorization, 0,
-                    grpcFrame.remaining(),
+            // mark initial state
+            state = GrpcState.openingInitial(state);
+
+            // health.proto only defines "Check" and "Watch"
+            if ("Check".equals(method.method))
+            {
+                isCheckRequest = true;
+            }
+            else
+            {
+                isCheckRequest = false; // unsupported streaming for now
+            }
+
+
+            // Ensure we advertise a non-zero receive window so the client can send DATA
+            if (this.initialMax == 0)
+            {
+                // Use writeBuffer.capacity() if available, or a default
+                this.initialMax = 64 * 1024; // 64 KB default
+            }
+
+
+            // send reply BEGIN back to the network
+            doNetBegin(traceId, authorization, affinity);
+
+            // send WINDOW so client can start sending DATA
+            final long budgetId = 0L;
+            final int padding = 0;
+            final int capabilities = 0;
+            doNetWindow(traceId, authorization, budgetId, padding, capabilities);
+        }
+
+        private void onNetData(
+                DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence + data.reserved();
+
+            assert initialAck <= initialSeq;
+            assert initialSeq <= initialAck + initialMax;
+
+            final DirectBuffer buffer = payload.buffer();
+            final int offset = payload.offset();
+            final int limit = payload.limit();
+            final int size = payload.sizeof();
+            GrpcBindingConfig binding = bindings.get(routedId);
+
+            if (offset < limit) // check if there is data
+            {
+                // Decode service name from request body
+                final String serviceName = decodeHealthCheckRequest(buffer, offset, limit);
+
+                // Check if this service is known
+                this.serviceKnown = binding.grpcServices.stream()
+                    .flatMap(p -> p.services.stream())
+                    .anyMatch(s -> s.service.equals(serviceName));
+
+                // Encode HealthCheckResponse
+                final byte status = (byte) (serviceKnown ? 1 : 3); // 1 = SERVING, 3 = SERVICE_UNKNOWN
+                final byte[] grpcResponse = new byte[] { 0x08, status };
+
+                // Send response
+                final MutableDirectBuffer replyBuffer = new UnsafeBuffer(new byte[grpcResponse.length]);
+                replyBuffer.putBytes(0, grpcResponse);
+
+                doNetData(traceId, authorization, budgetId, reserved,
                     DATA_FLAG_INIT | DATA_FLAG_FIN,
-                    new UnsafeBuffer(grpcFrame), 0, grpcFrame.remaining());
+                    replyBuffer, 0, grpcResponse.length);
 
-            server.doNetEnd(traceId, authorization, 0);
-        };
-    }
+                // End the stream (health check doesn’t need to delegate or route)
+                doNetEnd(traceId, authorization, reserved);
+            }
 
-    private int proxyHealthStatusEnum(String serviceName)
-    {
-        // TODO: find real service status
-        return 1;
-    }
-
-    private String extractServiceFromPayload(DirectBuffer buffer, int offset, int length)
-    {
-        // For protobuf HealthCheckRequest, field 1 = service_name (string)
-        int fieldHeader = buffer.getByte(offset); // 0x0a for field 1, wire type 2
-        if (fieldHeader != 0x0a)
-        {
-            return null;
         }
 
-        int len = buffer.getByte(offset + 1); // length of service_name
-        byte[] bytes = new byte[len];
-        for (int i = 0; i < len; i++)
+
+
+        private String decodeHealthCheckRequest(DirectBuffer buffer, int offset, int limit)
         {
-            bytes[i] = buffer.getByte(offset + 2 + i);
+            // Skip the 5-byte gRPC frame header (1-byte flag + 4-byte length)
+            int pos = offset + 5;
+
+            if (pos >= limit)
+            {
+                return ""; // empty request
+            }
+
+            // Read protobuf key (should be 0x0A)
+            int key = buffer.getByte(pos++) & 0xFF;
+            if (key != 0x0A)
+            {
+                return ""; // not the expected field
+            }
+
+            // Decode length (varint)
+            int length = 0;
+            int shift = 0;
+            int b;
+            do
+            {
+                b = buffer.getByte(pos++) & 0xFF;
+                length |= (b & 0x7F) << shift;
+                shift += 7;
+            } while ((b & 0x80) != 0);
+
+            if (pos + length > limit)
+            {
+                return ""; // malformed
+            }
+
+            byte[] strBytes = new byte[length];
+            buffer.getBytes(pos, strBytes, 0, length);
+
+            return new String(strBytes, StandardCharsets.UTF_8);
         }
-        return new String(bytes, StandardCharsets.UTF_8);
+
+
+
+        private void onNetEnd(
+                EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+            final int reserved = end.reserved();
+            // sanity checks
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            if (!GrpcState.replyClosed(state))
+            {
+                state = GrpcState.closeReply(state);
+                doNetEnd(traceId, authorization, reserved);
+            }
+
+            assert initialAck <= initialSeq;
+        }
+
+
+        private void onNetReset(
+                ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+            final int maximum = reset.maximum();
+
+            // sanity checks
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+
+            if (!GrpcState.replyClosed(state))
+            {
+                state = GrpcState.closeReply(state);
+                doNetReset(traceId, authorization);
+            }
+
+            assert replyAck <= replySeq;
+        }
+
+        private void onNetAbort(
+                AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            // sanity checks
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            if (!GrpcState.initialClosed(state))
+            {
+                state = GrpcState.closeInitial(state);
+                doNetAbort(traceId, authorization);
+            }
+
+            assert initialAck <= initialSeq;
+        }
+
+        private void onNetWindow(
+                WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyPad = padding;
+            replyBud = budgetId;
+
+            state = GrpcState.openReply(state);
+
+            if (!responseSent && replyMax > 0  && isCheckRequest)
+            {
+                if (serviceKnown)
+                {
+                    // Known service → send SERVING response
+                    final byte[] protoPayload = encodeHealthCheckResponse(1); // 1 = SERVING
+
+                    // Wrap with gRPC message framing (5-byte prefix)
+                    final int messageLength = protoPayload.length;
+                    final byte[] grpcFrame = new byte[5 + messageLength];
+                    grpcFrame[0] = 0; // compressed flag = 0
+                    grpcFrame[1] = (byte) ((messageLength >> 24) & 0xFF);
+                    grpcFrame[2] = (byte) ((messageLength >> 16) & 0xFF);
+                    grpcFrame[3] = (byte) ((messageLength >> 8) & 0xFF);
+                    grpcFrame[4] = (byte) (messageLength & 0xFF);
+                    System.arraycopy(protoPayload, 0, grpcFrame, 5, messageLength);
+
+                    final MutableDirectBuffer response = new UnsafeBuffer(grpcFrame);
+                    int reserved = grpcFrame.length + replyPad;
+
+                    doNetData(traceId, authorization, budgetId, reserved,
+                        DATA_FLAG_INIT | DATA_FLAG_FIN, response, 0, grpcFrame.length);
+                }
+                else
+                {
+                    // Unknown service → send grpc-status = NOT_FOUND (5) in trailers
+                    final byte[] trailers = encodeGrpcTrailers("grpc-status", "5", "grpc-message", "SERVICE_UNKNOWN");
+                    int reserved = trailers.length + replyPad;
+
+                    doNetData(traceId, authorization, budgetId, reserved,
+                              DATA_FLAG_FIN, new UnsafeBuffer(trailers), 0, trailers.length);
+                }
+
+                responseSent = true;
+
+                if (isCheckRequest)
+                {
+                    doNetEnd(traceId, authorization, 0);
+                }
+            }
+        }
+
+        private byte[] encodeGrpcTrailers(String... keyValues)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < keyValues.length; i += 2)
+            {
+                sb.append(keyValues[i]).append(": ").append(keyValues[i + 1]).append("\r\n");
+            }
+            return sb.toString().getBytes(StandardCharsets.US_ASCII);
+        }
+
+        private byte[] encodeHealthCheckResponse(int status)
+        {
+            // HealthCheckResponse has a single enum field: status = 1
+            // Protobuf encoding: field 1 (enum) = (1 << 3) | 0 = 0x08
+            int fieldKey = 0x08;
+
+            // Now build protobuf: [fieldKey][varint(status)]
+            // Worst case: 1 byte for key + up to 5 bytes for varint
+            byte[] buffer = new byte[6];
+            int offset = 0;
+
+            // Write field key
+            buffer[offset++] = (byte) fieldKey;
+
+            // Write varint for status
+            int value = status;
+            while ((value & ~0x7F) != 0)
+            {
+                buffer[offset++] = (byte) ((value & 0x7F) | 0x80);
+                value >>>= 7;
+            }
+            buffer[offset++] = (byte) value;
+
+            // Trim to actual size used
+            byte[] result = new byte[offset];
+            System.arraycopy(buffer, 0, result, 0, offset);
+
+            return result;
+        }
+
+
+        private void doNetBegin(long traceId, long authorization, long affinity)
+        {
+            BeginFW begin = beginRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .affinity(affinity)
+                    .build();
+
+            network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+            state = GrpcState.openingReply(state);
+        }
+
+        private void doNetWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+            initialAck = this.initialAck;
+            initialMax = this.initialMax;
+
+            doWindow(
+                network,
+                originId,
+                routedId,
+                initialId,
+                initialSeq,
+                initialAck,
+                initialMax,
+                traceId,
+                authorization,
+                budgetId,     // from WindowFW
+                padding,      // from WindowFW
+                capabilities  // from WindowFW
+            );
+        }
+
+        private void doNetData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                int reserved,
+                int flags,
+                DirectBuffer buffer,
+                int offset,
+                int length)
+        {
+            DataFW data = dataRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .budgetId(budgetId)
+                    .reserved(reserved)
+                    .flags(flags)
+                    .payload(buffer, offset, length)
+                    .build();
+
+            // send on the network reply stream
+            network.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+
+            replySeq += length;
+        }
+
+        private void doNetEnd(
+            long traceId,
+            long authorization,
+            int reserved)
+        {
+            if (!GrpcState.replyClosed(state))
+            {
+                state = GrpcState.closingReply(state);
+                EndFW end = endRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .reserved(reserved)
+                    .build();
+
+                network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+            }
+        }
+
+
+        private void doNetReset(
+            long traceId,
+            long authorization)
+        {
+
+            state = GrpcState.closingInitial(state);
+
+        }
+
+        private void doNetAbort(
+            long traceId,
+            long authorization)
+        {
+            // Mark the stream as closing due to abort
+            state = GrpcState.closingInitial(state);
+
+            // TODO: DO I need to Send clean up the expiring data?
+        }
+
     }
 
     private MessageConsumer  newInitialGrpcStream(
@@ -517,7 +1010,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.affinity = affinity;
             this.contentType = contentType;
             this.method = method;
-
             this.delegate = new GrpcStream(routedId, resolveId, this);
         }
 
@@ -1008,6 +1500,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
     private final class GrpcStream
     {
+        // The network-side handler for this stream. GrpcStream represents the application-facing
+        // side and delegates network operations (BEGIN/DATA/END/RESET etc.) to the GrpcServer instance.
         private final GrpcServer delegate;
         private final long originId;
         private final long routedId;
