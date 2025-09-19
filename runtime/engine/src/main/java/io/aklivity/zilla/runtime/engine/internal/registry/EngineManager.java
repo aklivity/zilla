@@ -18,14 +18,18 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +41,17 @@ import java.util.function.ToIntFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonPatch;
+import jakarta.json.JsonReader;
+import jakarta.json.spi.JsonProvider;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -74,6 +89,7 @@ public class EngineManager
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
     private final Collection<URL> schemaTypes;
+    private final Collection<URL> systemNamespacePatches;
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -95,6 +111,7 @@ public class EngineManager
 
     public EngineManager(
         Collection<URL> schemaTypes,
+        Collection<URL> systemNamespacePatches,
         Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -110,6 +127,7 @@ public class EngineManager
         List<EngineExtSpi> extensions)
     {
         this.schemaTypes = schemaTypes;
+        this.systemNamespacePatches = systemNamespacePatches;
         this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -156,6 +174,7 @@ public class EngineManager
         reconfigure:
         try
         {
+            attachSystemNamespaceIfNecessary();
             String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
             if (newConfigText == null || newConfigText.isEmpty())
             {
@@ -208,6 +227,55 @@ public class EngineManager
             {
                 throw new ConfigException("Engine configuration failed", ex);
             }
+        }
+    }
+
+    private void attachSystemNamespaceIfNecessary()
+    {
+        try
+        {
+            JsonObject systemBase = Json.createObjectBuilder()
+                .add("name", "system")
+                .build();
+
+            JsonObject systemPatched = systemBase;
+
+            JsonProvider schemaProvider = JsonProvider.provider();
+
+            for (URL patch : systemNamespacePatches)
+            {
+                InputStream schemaPatchInput = patch.openStream();
+                JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
+                JsonArray schemaPatchArray = schemaPatchReader.readArray();
+                JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
+
+                systemPatched = schemaPatch.apply(systemPatched);
+            }
+
+            if (systemPatched != null && !systemPatched.equals(systemBase))
+            {
+                String systemJson = systemPatched.toString();
+                ObjectMapper jsonMapper = new ObjectMapper();
+                Map<String, Object> systemMap = jsonMapper.readValue(systemJson, new TypeReference<>()
+                {
+                });
+
+                ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+                String systemYamlDoc = yamlMapper.writeValueAsString(systemMap);
+
+                try (BufferedWriter writer = Files.newBufferedWriter(
+                    configPath,
+                    StandardOpenOption.APPEND))
+                {
+                    writer.newLine();
+                    writer.write(systemYamlDoc);
+                    writer.newLine();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
         }
     }
 

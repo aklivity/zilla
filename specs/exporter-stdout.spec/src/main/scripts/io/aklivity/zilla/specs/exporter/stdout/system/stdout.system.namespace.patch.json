@@ -1,0 +1,9 @@
+[
+  { "op": "add", "path": "/telemetry", "value": {} },
+  { "op": "add", "path": "/telemetry/exporters", "value": {} },
+  {
+    "op": "add",
+    "path": "/telemetry/exporters/stdout_logs_exporter",
+    "value": { "type": "stdout" }
+  }
+]

@@ -45,6 +45,12 @@ public class StdoutExporter implements Exporter
     }
 
     @Override
+    public URL system()
+    {
+        return config.verboseEvents() ? getClass().getResource("system/stdout.system.namespace.patch.json") : null;
+    }
+
+    @Override
     public ExporterContext supply(
         EngineContext context)
     {

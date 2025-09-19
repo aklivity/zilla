@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.command.start.internal.airline;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EVENTS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EXCEPTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
@@ -77,6 +78,10 @@ public final class ZillaStartCommand extends ZillaCommand
         description = "Show exception traces")
     public boolean exceptions;
 
+    @Option(name = {"-o", "--stdout"},
+        description = "Enable stdout telemetry exporter")
+    public boolean stdout;
+
     @Override
     public void run()
     {
@@ -128,6 +133,11 @@ public final class ZillaStartCommand extends ZillaCommand
         if (exceptions)
         {
             props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
+        }
+
+        if (stdout)
+        {
+            props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(stdout));
         }
 
         EngineConfiguration config = new EngineConfiguration(props);

@@ -209,6 +209,9 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
+        final Collection<URL> systemNamespacePatches = new ArrayList<>();
+        systemNamespacePatches.addAll(exporters.stream().map(Exporter::system).filter(Objects::nonNull).collect(toList()));
+
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
@@ -218,6 +221,7 @@ public final class Engine implements Collector, AutoCloseable
 
         EngineManager manager = new EngineManager(
             schemaTypes,
+            systemNamespacePatches,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,

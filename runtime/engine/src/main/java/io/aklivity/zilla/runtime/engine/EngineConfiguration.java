@@ -86,6 +86,7 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_DEBUG;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_EXCEPTIONS;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_EVENTS;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
@@ -143,6 +144,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
         ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
+        ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);

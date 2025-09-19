@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -33,6 +34,8 @@ public class StdoutExporterContext implements ExporterContext
     private final StdoutConfiguration config;
     private final EngineContext context;
 
+    private final AtomicBoolean attached = new AtomicBoolean(false);
+
     public StdoutExporterContext(
         StdoutConfiguration config,
         EngineContext context)
@@ -48,6 +51,11 @@ public class StdoutExporterContext implements ExporterContext
         Collector collector,
         LongFunction<KindConfig> resolveKind)
     {
+        if (!attached.compareAndSet(false, true))
+        {
+            return NOOP_HANDLER;
+        }
+
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
         return new StdoutExporterHandler(config, context, stdoutExporter);
     }
@@ -79,4 +87,23 @@ public class StdoutExporterContext implements ExporterContext
     {
         return context.supplyEventReader();
     }
+
+    private static final ExporterHandler NOOP_HANDLER = new ExporterHandler()
+    {
+        @Override
+        public void start()
+        {
+        }
+
+        @Override
+        public int export()
+        {
+            return 0;
+        }
+
+        @Override
+        public void stop()
+        {
+        }
+    };
 }

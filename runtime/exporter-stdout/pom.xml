@@ -150,7 +150,10 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/exporter/stdout/schema/stdout.schema.patch.json</includes>
+              <includes>
+                io/aklivity/zilla/specs/exporter/stdout/schema/stdout.schema.patch.json,
+                io/aklivity/zilla/specs/exporter/stdout/system/stdout.system.namespace.patch.json
+              </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
