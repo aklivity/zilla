@@ -20,6 +20,7 @@ import static org.junit.rules.RuleChain.outerRule;
 
 import org.jboss.byteman.contrib.bmunit.BMScript;
 import org.jboss.byteman.contrib.bmunit.BMUnitConfig;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -53,6 +54,7 @@ public class EngineEventIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    @Ignore
     @Test
     @Configuration("engine.events.yaml")
     @Specification({

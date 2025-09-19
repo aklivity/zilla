@@ -28,6 +28,7 @@ import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 import static java.nio.file.Files.exists;
 import static java.util.Collections.synchronizedList;
 import static java.util.Objects.requireNonNull;
+import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
@@ -390,7 +391,25 @@ public final class EngineRule implements TestRule
                 }
                 finally
                 {
-                    close();
+                    try
+                    {
+                        engine.close();
+                    }
+                    catch (Throwable t)
+                    {
+                        errors.add(t);
+                    }
+                    finally
+                    {
+                        if (fs != null)
+                        {
+                            fs.close();
+                        }
+                        if (!allowErrors)
+                        {
+                            assertEmpty(errors);
+                        }
+                    }
                 }
             }
         };

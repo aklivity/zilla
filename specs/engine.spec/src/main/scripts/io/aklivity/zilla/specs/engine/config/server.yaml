@@ -16,16 +16,6 @@
 
 ---
 name: test
-telemetry:
-    exporters:
-        exporter0:
-            type: test
-            options:
-                events:
-                    - qname: engine:events
-                      id: engine.started
-                      name: ENGINE_STARTED
-                      message: Engine Started.
 vaults:
     test0:
         type: test
@@ -49,6 +39,12 @@ telemetry:
     exporters:
         test0:
             type: test
+            options:
+                events:
+                    - qname: engine:events
+                      id: engine.started
+                      name: ENGINE_STARTED
+                      message: Engine Started.
 bindings:
     net0:
         type: test
