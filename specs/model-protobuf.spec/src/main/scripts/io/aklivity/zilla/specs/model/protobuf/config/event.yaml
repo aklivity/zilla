@@ -21,6 +21,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:net0
             id: model.protobuf.validation.failed
             name: MODEL_PROTOBUF_VALIDATION_FAILED

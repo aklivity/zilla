@@ -21,6 +21,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:net0
             id: model.avro.validation.failed
             name: MODEL_AVRO_VALIDATION_FAILED

@@ -33,6 +33,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.time.Clock;
 import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -90,6 +91,7 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
+    public static final PropertyDef<Clock> ENGINE_CLOCK;
     public static final IntPropertyDef ENGINE_WORKERS;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
@@ -145,6 +147,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
         ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
         ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
+        ENGINE_CLOCK = config.property(Clock.class, "clock",
+            EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
@@ -330,6 +334,11 @@ public class EngineConfiguration extends Configuration
     public boolean verboseComposites()
     {
         return ENGINE_VERBOSE_COMPOSITES.getAsBoolean(this);
+    }
+
+    public Clock clock()
+    {
+        return ENGINE_CLOCK.get(this);
     }
 
     public int workers()
@@ -593,6 +602,12 @@ public class EngineConfiguration extends Configuration
             : e -> System.err.println(e.getMessage());
     }
 
+    private static Clock defaultClock(
+        Configuration config)
+    {
+        return Clock.systemUTC();
+    }
+
     private static ErrorReporter decodeErrorReporter(
         Configuration config,
         String value)
@@ -624,6 +639,29 @@ public class EngineConfiguration extends Configuration
         }
 
         return reporter;
+    }
+
+    private static Clock decodeCLock(
+        Configuration config,
+        String value)
+    {
+        Clock clock = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(Clock.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            clock = (Clock) method.invoke();
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return clock;
     }
 
     private static RevocationStrategy decodeRevocationStrategy(

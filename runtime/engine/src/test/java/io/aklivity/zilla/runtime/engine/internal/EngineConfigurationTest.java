@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACERTS_STORE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACERTS_STORE_PASS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACERTS_STORE_TYPE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CLOCK;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
@@ -27,6 +28,7 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_PASS_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_TYPE_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CONFIG_URL_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
@@ -45,5 +47,6 @@ public class EngineConfigurationTest
         assertEquals(ENGINE_CACERTS_STORE_PASS.name(), ENGINE_CACERTS_STORE_PASS_NAME);
         assertEquals(ENGINE_CONFIG_URL.name(), ENGINE_CONFIG_URL_NAME);
         assertEquals(ENGINE_WORKER_CAPACITY.name(), ENGINE_WORKER_CAPACITY_NAME);
+        assertEquals(ENGINE_CLOCK.name(), ENGINE_CLOCK_NAME);
     }
 }

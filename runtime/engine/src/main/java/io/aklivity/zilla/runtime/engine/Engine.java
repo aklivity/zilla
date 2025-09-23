@@ -357,7 +357,7 @@ public final class Engine implements Collector, AutoCloseable
 
     public Clock clock()
     {
-        return Clock.systemUTC();
+        return config.clock();
     }
 
     public static EngineBuilder builder()

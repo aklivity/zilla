@@ -22,6 +22,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:app0
             id: binding.kafka.cluster.authorization.failed
             name: BINDING_KAFKA_CLUSTER_AUTHORIZATION_FAILED
