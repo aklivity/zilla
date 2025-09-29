@@ -15,18 +15,22 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
+import static java.util.stream.Collectors.toList;
 
-import java.util.Set;
+import java.util.List;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;
 
 public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
@@ -34,6 +38,13 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String INTERVAL_NAME = "interval";
     private static final String SIGNALS_NAME = "signals";
     private static final String ENDPOINT_NAME = "endpoint";
+    private static final String KEYS_NAME = "keys";
+    private static final String TRUST_NAME = "trust";
+    private static final String TRUSTCACERTS_NAME = "trustcacerts";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String TLS_NAME = "tls";
 
     private final OtlpSignalsAdapter signals;
     private final OtlpEndpointAdapter endpoint;
@@ -62,9 +73,9 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         OtlpOptionsConfig otlpOptionsConfig = (OtlpOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
-        if (otlpOptionsConfig.interval != 0)
+        if (otlpOptionsConfig.interval != null)
         {
-            object.add(INTERVAL_NAME, otlpOptionsConfig.interval);
+            object.add(INTERVAL_NAME, otlpOptionsConfig.interval.toSeconds());
         }
         if (otlpOptionsConfig.signals != null)
         {
@@ -81,14 +92,74 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        long interval = object.containsKey(INTERVAL_NAME)
-            ? object.getInt(INTERVAL_NAME) : 0;
-        Set<OtlpOptionsConfig.OtlpSignalsConfig> signalsConfig = object.containsKey(SIGNALS_NAME)
-            ? signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME))
-            : null;
-        OtlpEndpointConfig endpointConfig = object.containsKey(ENDPOINT_NAME)
-            ? endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME))
-            : null;
-        return new OtlpOptionsConfig(interval, signalsConfig, endpointConfig);
+        OtlpOptionsConfigBuilder<OtlpOptionsConfig> builder = OtlpOptionsConfig.builder();
+
+        if (object.containsKey(INTERVAL_NAME))
+        {
+            builder.interval(object.getInt(INTERVAL_NAME));
+        }
+
+        if (object.containsKey(SIGNALS_NAME))
+        {
+            builder.signals(signals.adaptFromJson(object.getJsonArray(SIGNALS_NAME)));
+        }
+
+        if (object.containsKey(ENDPOINT_NAME))
+        {
+            builder.endpoint(endpoint.adaptFromJson(object.getJsonObject(ENDPOINT_NAME)));
+        }
+
+        if (object.containsKey(TLS_NAME))
+        {
+            JsonObject tls = object.getJsonObject(TLS_NAME);
+
+            if (tls.containsKey(KEYS_NAME))
+            {
+                builder.keys(asListString(tls.getJsonArray(KEYS_NAME)));
+            }
+
+            if (tls.containsKey(TRUST_NAME))
+            {
+                builder.trust(asListString(tls.getJsonArray(TRUST_NAME)));
+            }
+
+            if (tls.containsKey(TRUSTCACERTS_NAME))
+            {
+                builder.trustcacerts(tls.getBoolean(TRUSTCACERTS_NAME));
+            }
+        }
+
+        if (object.containsKey(AUTHORIZATION_CREDENTIALS_NAME))
+        {
+            JsonObject credentials = object.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+
+            JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+
+            builder.authorization(headers.getString(AUTHORIZATION_NAME));
+        }
+
+        return builder.build();
+    }
+
+    private static List<String> asListString(
+        JsonArray array)
+    {
+        return array.stream()
+            .map(OtlpOptionsConfigAdapter::asString)
+            .collect(toList());
+    }
+
+    private static String asString(
+        JsonValue value)
+    {
+        switch (value.getValueType())
+        {
+        case STRING:
+            return ((JsonString) value).getString();
+        case NULL:
+            return null;
+        default:
+            throw new IllegalArgumentException("Unexpected type: " + value.getValueType());
+        }
     }
 }

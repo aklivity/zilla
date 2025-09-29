@@ -185,6 +185,11 @@
                         "title": "Type",
                         "type": "string",
                         "enum": []
+                    },
+                    "vault":
+                    {
+                        "title": "Vault",
+                        "type": "string"
                     }
                 },
                 "required":

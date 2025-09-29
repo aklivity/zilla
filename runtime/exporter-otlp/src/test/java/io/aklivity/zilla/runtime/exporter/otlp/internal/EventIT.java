@@ -62,4 +62,30 @@ public class EventIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("secure/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${net}/handshake/server",
+        "${app}/event.with.authorization/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
+    public void shouldPostEventLogToOtlpCollectorWithAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("secure/mtls/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${net}/handshake/server",
+        "${app}/event.with.mtls.authorization/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
+    public void shouldPostEventLogToOtlpCollectorWithMtls() throws Exception
+    {
+        k3po.finish();
+    }
 }
