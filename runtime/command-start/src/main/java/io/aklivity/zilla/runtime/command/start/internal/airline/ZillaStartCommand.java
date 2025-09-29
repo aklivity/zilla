@@ -78,9 +78,9 @@ public final class ZillaStartCommand extends ZillaCommand
         description = "Show exception traces")
     public boolean exceptions;
 
-    @Option(name = {"-o", "--stdout"},
-        description = "Enable stdout telemetry exporter")
-    public boolean stdout;
+    @Option(name = {"-l", "--logs"},
+        description = "Show log events")
+    public boolean events;
 
     @Override
     public void run()
@@ -135,9 +135,9 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
         }
 
-        if (stdout)
+        if (events)
         {
-            props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(stdout));
+            props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(events));
         }
 
         EngineConfiguration config = new EngineConfiguration(props);

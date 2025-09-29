@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -23,10 +24,13 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStr
 
 public class StdoutExporterHandler implements ExporterHandler
 {
+    private static final AtomicBoolean ACTIVE = new AtomicBoolean(false);
+
     private final StdoutExporterContext context;
     private final PrintStream out;
 
     private StdoutEventsStream events;
+    private boolean active;
 
     public StdoutExporterHandler(
         StdoutConfiguration config,
@@ -40,18 +44,31 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        events = new StdoutEventsStream(context, out);
+        active = ACTIVE.compareAndSet(false, true);
+        if (active)
+        {
+            events = new StdoutEventsStream(context, out);
+        }
     }
 
     @Override
     public int export()
     {
+        if (!active || events == null)
+        {
+            return 0;
+        }
         return events.process();
     }
 
     @Override
     public void stop()
     {
+        if (active)
+        {
+            ACTIVE.set(false);
+            active = false;
+        }
         this.events = null;
     }
 }

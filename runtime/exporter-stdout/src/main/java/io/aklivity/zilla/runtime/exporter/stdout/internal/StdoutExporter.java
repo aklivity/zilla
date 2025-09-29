@@ -47,7 +47,7 @@ public class StdoutExporter implements Exporter
     @Override
     public URL system()
     {
-        return config.verboseEvents() ? getClass().getResource("system/stdout.system.namespace.patch.json") : null;
+        return config.verboseEvents() ? getClass().getResource("system/stdout.system.patch.json") : null;
     }
 
     @Override

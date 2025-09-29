@@ -96,7 +96,6 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineManager manager;
 
     private final EventsLayout eventsLayout;
-    private final EngineEventContext events;
     private final AtomicBoolean closed;
 
     private FileSystem fileSystem = null;
@@ -209,19 +208,19 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
-        final Collection<URL> systemNamespacePatches = new ArrayList<>();
-        systemNamespacePatches.addAll(exporters.stream().map(Exporter::system).filter(Objects::nonNull).collect(toList()));
+        final Collection<URL> systemConfigs =
+            exporters.stream().map(Exporter::system).filter(Objects::nonNull).collect(Collectors.toList());
 
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        this.events = new EngineEventContext(this);
+        EngineEventContext events = new EngineEventContext(this);
 
         EngineManager manager = new EngineManager(
             schemaTypes,
-            systemNamespacePatches,
+            systemConfigs,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,
@@ -275,8 +274,6 @@ public final class Engine implements Collector, AutoCloseable
         {
             manager.start();
         }
-
-        events.started(supplyTraceId());
     }
 
     @Override
@@ -512,12 +509,6 @@ public final class Engine implements Collector, AutoCloseable
     public MessageReader supplyEventReader()
     {
         return new EventReader();
-    }
-
-    public long supplyTraceId()
-    {
-        EngineWorker worker = workers.get(0);
-        return worker.supplyTraceId();
     }
 
     public String supplyLocalName(

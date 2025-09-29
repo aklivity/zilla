@@ -15,7 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.exporter;
 
+import java.time.Duration;
+
 import org.agrona.concurrent.Agent;
+import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 
@@ -47,6 +50,14 @@ public class ExporterAgent implements Agent
     @Override
     public void onClose()
     {
+        final long exporterDrainTimeout = Duration.ofSeconds(30).toNanos();
+        final long exporterStart = System.nanoTime();
+
+        while (handler.export() > 0 && System.nanoTime() - exporterStart < exporterDrainTimeout)
+        {
+            ThreadHints.onSpinWait();
+        }
+
         handler.stop();
     }
 
@@ -54,10 +65,5 @@ public class ExporterAgent implements Agent
     public String roleName()
     {
         return agentName;
-    }
-
-    public ExporterHandler getHandler()
-    {
-        return handler;
     }
 }

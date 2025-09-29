@@ -25,7 +25,7 @@
 
   <properties>
     <jacoco.coverage.ratio>0.74</jacoco.coverage.ratio>
-    <jacoco.missed.count>6</jacoco.missed.count>
+    <jacoco.missed.count>5</jacoco.missed.count>
   </properties>
 
   <dependencies>

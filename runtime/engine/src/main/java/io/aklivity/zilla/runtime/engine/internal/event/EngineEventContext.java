@@ -60,8 +60,7 @@ public final class EngineEventContext
         this.clock = engine.clock();
     }
 
-    public void started(
-        long traceId)
+    public void started()
     {
         EngineEventExFW extension = eventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
@@ -75,15 +74,14 @@ public final class EngineEventContext
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(startedEventId)
             .timestamp(clock.millis())
-            .traceId(traceId)
+            .traceId(0)
             .namespacedId(engineId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void stopped(
-        long traceId)
+    public void stopped()
     {
         EngineEventExFW extension = eventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
@@ -97,7 +95,7 @@ public final class EngineEventContext
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(stoppedEventId)
             .timestamp(clock.millis())
-            .traceId(traceId)
+            .traceId(0)
             .namespacedId(engineId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();

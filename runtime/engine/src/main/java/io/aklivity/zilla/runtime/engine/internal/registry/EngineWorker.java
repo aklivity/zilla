@@ -981,32 +981,6 @@ public class EngineWorker implements EngineContext, Agent
                 break;
             }
         }
-
-        final long exporterDrainTimeout = Duration.ofSeconds(30).toNanos();
-        final long exporterStart = System.nanoTime();
-
-        boolean exportersDrained = false;
-
-        while (!exportersDrained && System.nanoTime() - exporterStart < exporterDrainTimeout)
-        {
-            exportersDrained = true;
-
-            for (AgentRunner runner : exportersById.values())
-            {
-                ExporterAgent agent = (ExporterAgent) runner.agent();
-                ExporterHandler handler = agent.getHandler();
-
-                if (handler.export() > 0)
-                {
-                    exportersDrained = false;
-                }
-            }
-
-            if (!exportersDrained)
-            {
-                ThreadHints.onSpinWait();
-            }
-        }
     }
 
     @Override

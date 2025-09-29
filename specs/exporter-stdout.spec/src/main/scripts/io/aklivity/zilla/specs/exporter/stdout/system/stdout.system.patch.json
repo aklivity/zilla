@@ -3,7 +3,7 @@
   { "op": "add", "path": "/telemetry/exporters", "value": {} },
   {
     "op": "add",
-    "path": "/telemetry/exporters/stdout_logs_exporter",
+    "path": "/telemetry/exporters/stdout",
     "value": { "type": "stdout" }
   }
 ]

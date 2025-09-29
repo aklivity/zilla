@@ -139,7 +139,7 @@ scope core
 
         union EngineEventEx switch (EngineEventType)
         {
-            case CONFIG_WATCHER_FAILED: EngineConfigWatcherFailedEx configWatcherFailed; // TODO: metadata for started/stopped events
+            case CONFIG_WATCHER_FAILED: EngineConfigWatcherFailedEx configWatcherFailed;
             case STARTED: EngineStartedEx started;
             case STOPPED: EngineStoppedEx stopped;
         }
