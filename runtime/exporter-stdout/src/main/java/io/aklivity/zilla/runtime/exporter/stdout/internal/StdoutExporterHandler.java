@@ -15,9 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
-import java.util.SortedSet;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
@@ -26,25 +24,23 @@ public class StdoutExporterHandler implements ExporterHandler
 {
     private final StdoutExporterContext context;
     private final PrintStream out;
-    private final SortedSet<StdoutExporterHandler> handlers;
 
     private StdoutEventsStream events;
 
     public StdoutExporterHandler(
         StdoutConfiguration config,
-        EngineContext context,
-        StdoutExporterConfig exporter,
-        SortedSet<StdoutExporterHandler> handlers)
+        StdoutExporterContext context,
+        StdoutExporterConfig exporter)
     {
-        this.context = new StdoutExporterContext(config, context);
+        this.context = context;
         this.out = config.output();
-        this.handlers = handlers;
     }
 
     @Override
     public void start()
     {
-        handlers.add(this);
+        context.started(this);
+
         events = new StdoutEventsStream(context, out);
     }
 
@@ -52,17 +48,20 @@ public class StdoutExporterHandler implements ExporterHandler
     public int export()
     {
         int processed = 0;
-        if (handlers.first() == this)
+
+        if (context.enabled(this))
         {
             processed = events.process();
         }
+
         return processed;
     }
 
     @Override
     public void stop()
     {
-        handlers.remove(this);
+        context.stopped(this);
+
         this.events = null;
     }
 }

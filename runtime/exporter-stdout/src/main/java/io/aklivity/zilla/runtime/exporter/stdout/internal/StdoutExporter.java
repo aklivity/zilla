@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.net.URL;
+import java.util.Comparator;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -25,11 +28,13 @@ public class StdoutExporter implements Exporter
     public static final String NAME = "stdout";
 
     private final StdoutConfiguration config;
+    private final SortedSet<StdoutExporterHandler> handlers;
 
     public StdoutExporter(
         StdoutConfiguration config)
     {
         this.config = config;
+        this.handlers = new ConcurrentSkipListSet<>(Comparator.comparingInt(System::identityHashCode));
     }
 
     @Override
@@ -56,6 +61,6 @@ public class StdoutExporter implements Exporter
     public ExporterContext supply(
         EngineContext context)
     {
-        return new StdoutExporterContext(config, context);
+        return new StdoutExporterContext(config, context, handlers);
     }
 }
