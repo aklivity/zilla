@@ -19,9 +19,6 @@ import java.net.http.HttpClient;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.List;
-import java.util.function.LongFunction;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -44,14 +41,13 @@ import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpConfiguration;
 public class OtlpExporterConfig
 {
     private static final String HTTPS = "https";
-    private static final Pattern URI_PATTERN = Pattern.compile("^https?://\\S+$");
+
+    public final OtlpOptionsConfig options;
+    public final URI metrics;
+    public final URI logs;
 
     private final OltpConfiguration config;
-    private final OtlpOptionsConfig options;
     private final VaultHandler vault;
-    private final Matcher matcher;
-    private final URI location;
-    private final OtlpOverridesConfig overrides;
 
     public OtlpExporterConfig(
         OltpConfiguration config,
@@ -60,55 +56,15 @@ public class OtlpExporterConfig
     {
         this.config = config;
         this.options = (OtlpOptionsConfig)exporter.options;
-        LongFunction<VaultHandler> supplyVault = context::supplyVault;
-        vault = supplyVault.apply(exporter.vaultId);
-        this.matcher = URI_PATTERN.matcher("");
+        this.vault = context.supplyVault(exporter.vaultId);
         OtlpEndpointConfig endpoint = options.endpoint;
-        this.location = endpoint.location;
-        this.overrides = endpoint.overrides;
+        URI location = endpoint.location;
+        OtlpOverridesConfig overrides = endpoint.overrides;
+        this.metrics = location.resolve(overrides.metrics);
+        this.logs = location.resolve(overrides.logs);
     }
 
-    public URI resolveMetrics()
-    {
-        URI endpoint;
-        if (matcher.reset(overrides.metrics.toString()).matches())
-        {
-            endpoint = overrides.metrics;
-        }
-        else
-        {
-            endpoint = location.resolve(overrides.metrics);
-        }
-
-        return endpoint;
-    }
-
-    public URI resolveLogs()
-    {
-        URI endpoint;
-        if (matcher.reset(overrides.logs.toString()).matches())
-        {
-            endpoint = overrides.logs;
-        }
-        else
-        {
-            endpoint = location.resolve(overrides.logs);
-        }
-
-        return endpoint;
-    }
-
-    public HttpClient supplyMetricsClient()
-    {
-        return supplyHttpClient(resolveMetrics());
-    }
-
-    public HttpClient supplyLogsClient()
-    {
-        return supplyHttpClient(resolveLogs());
-    }
-
-    private HttpClient supplyHttpClient(
+    public HttpClient supplyHttpClient(
         URI location)
     {
         HttpClient client;

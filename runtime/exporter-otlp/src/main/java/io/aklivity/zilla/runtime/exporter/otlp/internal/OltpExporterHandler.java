@@ -74,7 +74,6 @@ public class OltpExporterHandler implements ExporterHandler
         OltpConfiguration config,
         EngineContext context,
         OtlpExporterConfig exporter,
-        OtlpOptionsConfig options,
         Collector collector,
         LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
@@ -83,10 +82,11 @@ public class OltpExporterHandler implements ExporterHandler
         this.timeoutInterval = config.timeoutInterval();
         this.warningInterval = config.warningInterval().toMillis();
         this.context = context;
-        this.metricsEndpoint = exporter.resolveMetrics();
-        this.logsEndpoint = exporter.resolveLogs();
-        this.metricsClient = exporter.supplyMetricsClient();
-        this.logsClient = exporter.supplyLogsClient();
+        this.metricsEndpoint = exporter.metrics;
+        this.logsEndpoint = exporter.logs;
+        this.metricsClient = exporter.supplyHttpClient(metricsEndpoint);
+        this.logsClient = exporter.supplyHttpClient(logsEndpoint);
+        OtlpOptionsConfig options = exporter.options;
         this.signals = options.signals;
         this.protocol = options.endpoint.protocol;
         this.interval = options.interval.toMillis();

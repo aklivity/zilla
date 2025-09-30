@@ -65,8 +65,8 @@ public class OtlpExporterConfigTest
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
 
         // WHEN
-        URI metrics = oltpExporter.resolveMetrics();
-        URI logs = oltpExporter.resolveLogs();
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v1/metrics")));
@@ -98,8 +98,8 @@ public class OtlpExporterConfigTest
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
 
         // WHEN
-        URI metrics = oltpExporter.resolveMetrics();
-        URI logs = oltpExporter.resolveLogs();
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://overridden.com/metrics")));
@@ -131,8 +131,8 @@ public class OtlpExporterConfigTest
         OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
 
         // WHEN
-        URI metrics = oltpExporter.resolveMetrics();
-        URI logs = oltpExporter.resolveLogs();
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v42/metrix")));

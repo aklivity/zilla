@@ -24,7 +24,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 
 public class OtlpExporterContext implements ExporterContext
@@ -48,8 +47,7 @@ public class OtlpExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         OtlpExporterConfig otlpExporter = new OtlpExporterConfig(config, context, exporter);
-        return new OltpExporterHandler(config, context, otlpExporter, (OtlpOptionsConfig) exporter.options,
-            collector, resolveKind, attributes);
+        return new OltpExporterHandler(config, context, otlpExporter, collector, resolveKind, attributes);
     }
 
     @Override
