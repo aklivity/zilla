@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...HEAD)
+
+**Closed issues:**
+
+- Support specifying credentials for OTLP exporter [\#1556](https://github.com/aklivity/zilla/issues/1556)
+- Migrate engine started and stopped to telemetry events [\#1491](https://github.com/aklivity/zilla/issues/1491)
+
+**Merged pull requests:**
+
+- support secure `otlp` exporter [\#1579](https://github.com/aklivity/zilla/pull/1579) ([ankitk-me](https://github.com/ankitk-me))
+- fix schema for catalog modules [\#1557](https://github.com/aklivity/zilla/pull/1557) ([ankitk-me](https://github.com/ankitk-me))
+- Migrate engine started and stopped to telemetry events [\#1555](https://github.com/aklivity/zilla/pull/1555) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.158](https://github.com/aklivity/zilla/tree/0.9.158) (2025-09-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.157...0.9.158)
