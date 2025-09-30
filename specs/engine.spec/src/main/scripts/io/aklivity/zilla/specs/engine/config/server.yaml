@@ -39,6 +39,12 @@ telemetry:
     exporters:
         test0:
             type: test
+            options:
+                events:
+                    - qname: engine:events
+                      id: engine.started
+                      name: ENGINE_STARTED
+                      message: Engine Started.
 bindings:
     net0:
         type: test

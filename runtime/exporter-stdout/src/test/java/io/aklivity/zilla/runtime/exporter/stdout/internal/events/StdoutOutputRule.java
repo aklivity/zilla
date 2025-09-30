@@ -23,7 +23,8 @@ import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
-import java.util.Objects;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.junit.rules.TestRule;
@@ -49,7 +50,7 @@ public final class StdoutOutputRule implements TestRule
         }
     }
 
-    private volatile Pattern expected;
+    private volatile List<Pattern> expecteds;
 
     @Override
     public Statement apply(
@@ -65,19 +66,19 @@ public final class StdoutOutputRule implements TestRule
 
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(IN)))
                 {
-
-                    final String actual = in.readLine();
-                    final Pattern expect = Objects.requireNonNull(expected);
-
-                    assertThat(actual, matchesPattern(expect));
+                    for (Pattern expected : expecteds)
+                    {
+                        String actual = in.readLine();
+                        assertThat(actual, matchesPattern(expected));
+                    }
                 }
             }
         };
     }
 
     public void expect(
-        Pattern expected)
+        Pattern... expected)
     {
-        this.expected = expected;
+        this.expecteds = Arrays.asList(expected);
     }
 }

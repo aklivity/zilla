@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.command.start.internal.airline;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EVENTS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EXCEPTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
@@ -77,6 +78,10 @@ public final class ZillaStartCommand extends ZillaCommand
         description = "Show exception traces")
     public boolean exceptions;
 
+    @Option(name = {"-l", "--logs"},
+        description = "Show log events")
+    public boolean events;
+
     @Override
     public void run()
     {
@@ -130,6 +135,11 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE_EXCEPTIONS.name(), Boolean.toString(exceptions));
         }
 
+        if (events)
+        {
+            props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(events));
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
 
         Path configPath = Path.of(config.configURI());
@@ -158,13 +168,9 @@ public final class ZillaStartCommand extends ZillaCommand
         {
             engine.start();
 
-            System.out.println("started");
-
             runtime.addShutdownHook(new Thread(this::onShutdown));
 
             stop.await();
-
-            System.out.println("stopped");
 
             stopped.countDown();
         }

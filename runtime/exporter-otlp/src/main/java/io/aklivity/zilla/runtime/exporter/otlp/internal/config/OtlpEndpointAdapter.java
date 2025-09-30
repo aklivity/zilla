@@ -22,7 +22,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfigBuilder;
 
 public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
 {
@@ -62,13 +62,18 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
     public OtlpEndpointConfig adaptFromJson(
         JsonObject object)
     {
-        String protocol = object.containsKey(PROTOCOL_NAME)
-            ? object.getString(PROTOCOL_NAME)
-            : PROTOCOL_DEFAULT;
-        URI url = URI.create(object.getString(LOCATION_NAME));
-        OtlpOverridesConfig overridesConfig = object.containsKey(OVERRIDES_NAME)
-            ? overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME))
-            : null;
-        return new OtlpEndpointConfig(protocol, url, overridesConfig);
+        OtlpEndpointConfigBuilder<OtlpEndpointConfig> builder = OtlpEndpointConfig.builder()
+            .location(URI.create(object.getString(LOCATION_NAME)));
+        if (object.containsKey(PROTOCOL_NAME))
+        {
+            builder.protocol(object.getString(PROTOCOL_NAME));
+        }
+
+        if (object.containsKey(OVERRIDES_NAME))
+        {
+            builder.overrides(overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME)));
+        }
+
+        return builder.build();
     }
 }

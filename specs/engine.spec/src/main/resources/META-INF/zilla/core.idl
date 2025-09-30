@@ -117,7 +117,9 @@ scope core
 
         enum EngineEventType (uint8)
         {
-            CONFIG_WATCHER_FAILED (1)
+            CONFIG_WATCHER_FAILED (1),
+            STARTED (2),
+            STOPPED (3)
         }
 
         struct EngineConfigWatcherFailedEx extends core::stream::Extension
@@ -125,9 +127,21 @@ scope core
             string16 reason;
         }
 
+        struct EngineStartedEx extends core::stream::Extension
+        {
+            string16 message;
+        }
+
+        struct EngineStoppedEx extends core::stream::Extension
+        {
+            string16 message;
+        }
+
         union EngineEventEx switch (EngineEventType)
         {
             case CONFIG_WATCHER_FAILED: EngineConfigWatcherFailedEx configWatcherFailed;
+            case STARTED: EngineStartedEx started;
+            case STOPPED: EngineStoppedEx stopped;
         }
     }
 }

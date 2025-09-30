@@ -38,6 +38,7 @@ import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -95,6 +96,7 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineManager manager;
 
     private final EventsLayout eventsLayout;
+    private final AtomicBoolean closed;
 
     private FileSystem fileSystem = null;
 
@@ -206,6 +208,11 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
+        final Collection<URL> systemConfigs = exporters.stream()
+            .map(Exporter::system)
+            .filter(Objects::nonNull)
+            .toList();
+
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
@@ -215,6 +222,7 @@ public final class Engine implements Collector, AutoCloseable
 
         EngineManager manager = new EngineManager(
             schemaTypes,
+            systemConfigs,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,
@@ -235,6 +243,7 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.readonly = readonly;
         this.manager = manager;
+        this.closed = new AtomicBoolean(false);
     }
 
     public <T> T binding(
@@ -272,6 +281,11 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public void close() throws Exception
     {
+        if (!closed.compareAndSet(false, true))
+        {
+            return;
+        }
+
         if (config.drainOnClose())
         {
             workers.forEach(EngineWorker::drain);
@@ -342,7 +356,7 @@ public final class Engine implements Collector, AutoCloseable
 
     public Clock clock()
     {
-        return Clock.systemUTC();
+        return config.clock();
     }
 
     public static EngineBuilder builder()

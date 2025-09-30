@@ -1103,7 +1103,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public Clock clock()
     {
-        return Clock.systemUTC();
+        return config.clock();
     }
 
     @Override

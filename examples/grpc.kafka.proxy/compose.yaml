@@ -34,7 +34,7 @@ services:
     command: --port 50051
 
   kafka:
-    image: bitnami/kafka:3.5
+    image: bitnamilegacy/kafka:3.5
     restart: unless-stopped
     hostname: kafka.examples.dev
     ports:
@@ -60,7 +60,7 @@ services:
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
 
   kafka-init:
-    image: bitnami/kafka:3.5
+    image: bitnamilegacy/kafka:3.5
     user: root
     depends_on:
       kafka:

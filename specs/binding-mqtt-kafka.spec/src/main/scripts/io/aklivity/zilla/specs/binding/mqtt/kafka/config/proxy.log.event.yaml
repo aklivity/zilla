@@ -21,6 +21,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:kafka0
             id: binding.mqtt.kafka.non.compact.sessions.topic
             name: BINDING_MQTT_KAFKA_NON_COMPACT_SESSIONS_TOPIC
