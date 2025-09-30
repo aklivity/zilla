@@ -22,6 +22,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
@@ -61,6 +62,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final HttpClient logsClient;
     private final String authorization;
     private final Consumer<HttpResponse<String>> responseHandler;
+    private final Clock clock;
 
     private OtlpMetricsSerializer metricsSerializer;
     private OtlpLogsSerializer logsSerializer;
@@ -95,6 +97,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.attributes = attributes;
         this.responseHandler = this::handleResponse;
         this.authorization = options.authorization;
+        this.clock = context.clock();
     }
 
     @Override
@@ -106,7 +109,7 @@ public class OltpExporterHandler implements ExporterHandler
         metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
         EventReader eventReader = new EventReader(context);
         logsSerializer = new OtlpLogsSerializer(attributes, eventReader);
-        lastSuccess = System.currentTimeMillis();
+        lastSuccess = clock.millis();
         nextAttempt = lastSuccess + interval;
     }
 
@@ -114,7 +117,7 @@ public class OltpExporterHandler implements ExporterHandler
     public int export()
     {
         int workDone = 0;
-        long now = System.currentTimeMillis();
+        long now = clock.millis();
         if (now >= nextAttempt)
         {
             exportMetrics(now);
@@ -182,7 +185,7 @@ public class OltpExporterHandler implements ExporterHandler
     {
         if (response.statusCode() == HttpURLConnection.HTTP_OK)
         {
-            lastSuccess = System.currentTimeMillis();
+            lastSuccess = clock.millis();
             nextAttempt = lastSuccess + interval;
             warningLogged = false;
         }

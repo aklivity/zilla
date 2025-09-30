@@ -20,7 +20,7 @@ connected
 read http:method "POST"
 read http:version "HTTP/1.1"
 read http:header "Host" "localhost:4318"
-read http:header "Content-Length" "394"
+read http:header "Content-Length" "606"
 read
 '{'
     '"resourceLogs":['
@@ -56,6 +56,21 @@ read
                                     '}'
                                 '}'
                             ']'
+                        '},'
+                       '{'
+                            '"timeUnixNano":2547527985000000000,'
+                            '"observedTimeUnixNano":2547527985000000000,'
+                            '"body":{'
+                                '"stringValue":"engine:events Engine Started."'
+                            '},'
+                            '"attributes":['
+                                '{'
+                                    '"key":"event.name",'
+                                    '"value":{'
+                                        '"stringValue":"ENGINE_STARTED"'
+                                    '}'
+                                '}'
+                            ']'
                         '}'
                     ']'
                 '}'
@@ -66,4 +81,5 @@ read
 read closed
 
 write http:status "200" "OK"
+write http:content-length
 write close

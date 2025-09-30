@@ -15,8 +15,14 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +49,8 @@ public class EventIT
     private final EngineRule engine = new EngineRule()
         .directory(ENGINE_DIRECTORY)
         .configure(ENGINE_WORKERS, 1)
+        .configure(ENGINE_CLOCK_NAME,
+            "io.aklivity.zilla.runtime.exporter.otlp.internal.EventIT::supplyClock")
         .configurationRoot("io/aklivity/zilla/specs/exporter/otlp/config")
         .external("app0")
         .clean();
@@ -87,5 +95,46 @@ public class EventIT
     public void shouldPostEventLogWithMtls() throws Exception
     {
         k3po.finish();
+    }
+
+    public static Clock supplyClock()
+    {
+        AtomicInteger iteration = new AtomicInteger(0);
+
+        return new Clock()
+        {
+            @Override
+            public ZoneId getZone()
+            {
+                return null;
+            }
+
+            @Override
+            public Clock withZone(
+                ZoneId zone)
+            {
+                return null;
+            }
+
+            @Override
+            public Instant instant()
+            {
+                return null;
+            }
+
+            @Override
+            public long millis()
+            {
+                try
+                {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e)
+                {
+                    throw new RuntimeException(e);
+                }
+                return 2547527985000L + iteration.getAndIncrement() * 1000L;
+            }
+        };
     }
 }

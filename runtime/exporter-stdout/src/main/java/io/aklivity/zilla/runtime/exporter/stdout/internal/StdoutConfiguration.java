@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EVENTS;
+
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 
@@ -44,6 +46,11 @@ public class StdoutConfiguration extends Configuration
     public PrintStream output()
     {
         return STDOUT_OUTPUT.get(this);
+    }
+
+    public boolean verboseEvents()
+    {
+        return ENGINE_VERBOSE_EVENTS.getAsBoolean(this);
     }
 
     private static PrintStream decodeOutput(

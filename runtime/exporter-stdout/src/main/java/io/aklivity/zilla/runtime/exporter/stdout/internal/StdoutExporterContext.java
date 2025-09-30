@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.util.List;
+import java.util.SortedSet;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -32,13 +33,16 @@ public class StdoutExporterContext implements ExporterContext
 {
     private final StdoutConfiguration config;
     private final EngineContext context;
+    private final SortedSet<StdoutExporterHandler> handlers;
 
     public StdoutExporterContext(
         StdoutConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        SortedSet<StdoutExporterHandler> handlers)
     {
         this.config = config;
         this.context = context;
+        this.handlers = handlers;
     }
 
     @Override
@@ -49,13 +53,31 @@ public class StdoutExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, context, stdoutExporter);
+        return new StdoutExporterHandler(config, this, stdoutExporter);
     }
 
     @Override
     public void detach(
         long exporterId)
     {
+    }
+
+    public void started(
+        StdoutExporterHandler handler)
+    {
+        handlers.add(handler);
+    }
+
+    public boolean enabled(
+        StdoutExporterHandler handler)
+    {
+        return handlers.first() == handler;
+    }
+
+    public void stopped(
+        StdoutExporterHandler handler)
+    {
+        handlers.remove(handler);
     }
 
     public String supplyQName(
@@ -65,7 +87,7 @@ public class StdoutExporterContext implements ExporterContext
     }
 
     public String supplyEventName(
-            int eventId)
+        int eventId)
     {
         return context.supplyEventName(eventId);
     }
