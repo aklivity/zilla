@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
 import static java.util.stream.Collectors.toList;
 
+import java.time.Duration;
 import java.util.List;
 
 import jakarta.json.Json;
@@ -96,7 +97,7 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
 
         if (object.containsKey(INTERVAL_NAME))
         {
-            builder.interval(object.getInt(INTERVAL_NAME));
+            builder.interval(Duration.ofSeconds(object.getInt(INTERVAL_NAME)));
         }
 
         if (object.containsKey(SIGNALS_NAME))

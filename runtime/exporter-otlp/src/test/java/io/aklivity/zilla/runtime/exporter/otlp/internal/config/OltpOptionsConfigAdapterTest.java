@@ -103,7 +103,7 @@ public class OltpOptionsConfigAdapterTest
             "}";
 
         OtlpOptionsConfig config = OtlpOptionsConfig.builder()
-            .interval(30)
+            .interval(Duration.ofSeconds(30))
             .signals(Set.of(METRICS))
             .endpoint()
                 .protocol("http")

@@ -32,7 +32,7 @@ public final class OtlpOptionsConfigBuilder<T> extends ConfigBuilder<T, OtlpOpti
 
     private final Function<OptionsConfig, T> mapper;
 
-    private Long interval;
+    private Duration interval;
     private Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
     private OtlpEndpointConfig endpoint;
     private List<String> keys;
@@ -54,7 +54,7 @@ public final class OtlpOptionsConfigBuilder<T> extends ConfigBuilder<T, OtlpOpti
     }
 
     public OtlpOptionsConfigBuilder<T> interval(
-        long interval)
+        Duration interval)
     {
         this.interval = interval;
         return this;
@@ -111,7 +111,7 @@ public final class OtlpOptionsConfigBuilder<T> extends ConfigBuilder<T, OtlpOpti
     public T build()
     {
         final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
-        final Duration interval = this.interval != null ? Duration.ofSeconds(this.interval) : DEFAULT_INTERVAL;
+        final Duration interval = this.interval != null ? this.interval : DEFAULT_INTERVAL;
         final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals = this.signals != null ? this.signals : DEFAULT_SIGNALS;
         return mapper.apply(new OtlpOptionsConfig(interval, signals, endpoint, keys, trust, trustcacerts, authorization));
     }

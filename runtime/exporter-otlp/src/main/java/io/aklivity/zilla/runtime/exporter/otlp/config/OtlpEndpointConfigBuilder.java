@@ -72,6 +72,7 @@ public final class OtlpEndpointConfigBuilder<T> extends ConfigBuilder<T, OtlpEnd
     public T build()
     {
         final String protocol = this.protocol != null ? this.protocol : DEFAULT_PROTOCOL;
+        final OtlpOverridesConfig overrides = this.overrides != null ? this.overrides : OtlpOverridesConfig.builder().build();
         return mapper.apply(new OtlpEndpointConfig(protocol, location, overrides));
     }
 }

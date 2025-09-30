@@ -71,7 +71,7 @@ public class EventIT
         "${app}/event.with.authorization/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
-    public void shouldPostEventLogToOtlpCollectorWithAuthorization() throws Exception
+    public void shouldPostEventLogWithAuthorization() throws Exception
     {
         k3po.finish();
     }
@@ -84,7 +84,7 @@ public class EventIT
         "${app}/event.with.mtls.authorization/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
-    public void shouldPostEventLogToOtlpCollectorWithMtls() throws Exception
+    public void shouldPostEventLogWithMtls() throws Exception
     {
         k3po.finish();
     }
