@@ -208,8 +208,10 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
-        final Collection<URL> systemConfigs =
-            exporters.stream().map(Exporter::system).filter(Objects::nonNull).collect(Collectors.toList());
+        final Collection<URL> systemConfigs = exporters.stream()
+            .map(Exporter::system)
+            .filter(Objects::nonNull)
+            .toList();
 
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));

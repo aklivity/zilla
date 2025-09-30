@@ -50,7 +50,7 @@ public final class StdoutOutputRule implements TestRule
         }
     }
 
-    private volatile List<Pattern> expectedPatterns;
+    private volatile List<Pattern> expecteds;
 
     @Override
     public Statement apply(
@@ -66,7 +66,7 @@ public final class StdoutOutputRule implements TestRule
 
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(IN)))
                 {
-                    for (Pattern expected : expectedPatterns)
+                    for (Pattern expected : expecteds)
                     {
                         String actual = in.readLine();
                         assertThat(actual, matchesPattern(expected));
@@ -79,6 +79,6 @@ public final class StdoutOutputRule implements TestRule
     public void expect(
         Pattern... expected)
     {
-        this.expectedPatterns = Arrays.asList(expected);
+        this.expecteds = Arrays.asList(expected);
     }
 }

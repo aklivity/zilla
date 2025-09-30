@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -33,8 +33,7 @@ public class StdoutExporterContext implements ExporterContext
 {
     private final StdoutConfiguration config;
     private final EngineContext context;
-
-    private final AtomicBoolean attached = new AtomicBoolean(false);
+    private final ConcurrentSkipListSet<StdoutExporterHandler> handlers;
 
     public StdoutExporterContext(
         StdoutConfiguration config,
@@ -42,6 +41,7 @@ public class StdoutExporterContext implements ExporterContext
     {
         this.config = config;
         this.context = context;
+        this.handlers = new ConcurrentSkipListSet<>();
     }
 
     @Override
@@ -51,13 +51,8 @@ public class StdoutExporterContext implements ExporterContext
         Collector collector,
         LongFunction<KindConfig> resolveKind)
     {
-        if (!attached.compareAndSet(false, true))
-        {
-            return NOOP_HANDLER;
-        }
-
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, context, stdoutExporter);
+        return new StdoutExporterHandler(config, context, stdoutExporter, handlers);
     }
 
     @Override
@@ -87,23 +82,4 @@ public class StdoutExporterContext implements ExporterContext
     {
         return context.supplyEventReader();
     }
-
-    private static final ExporterHandler NOOP_HANDLER = new ExporterHandler()
-    {
-        @Override
-        public void start()
-        {
-        }
-
-        @Override
-        public int export()
-        {
-            return 0;
-        }
-
-        @Override
-        public void stop()
-        {
-        }
-    };
 }

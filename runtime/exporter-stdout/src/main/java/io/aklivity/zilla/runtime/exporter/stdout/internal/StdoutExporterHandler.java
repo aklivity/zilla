@@ -15,60 +15,61 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
-public class StdoutExporterHandler implements ExporterHandler
+public class StdoutExporterHandler implements ExporterHandler, Comparable<StdoutExporterHandler>
 {
-    private static final AtomicBoolean ACTIVE = new AtomicBoolean(false);
-
     private final StdoutExporterContext context;
     private final PrintStream out;
+    private final ConcurrentSkipListSet<StdoutExporterHandler> handlers;
 
     private StdoutEventsStream events;
-    private boolean active;
 
     public StdoutExporterHandler(
         StdoutConfiguration config,
         EngineContext context,
-        StdoutExporterConfig exporter)
+        StdoutExporterConfig exporter,
+        ConcurrentSkipListSet<StdoutExporterHandler> handlers)
     {
         this.context = new StdoutExporterContext(config, context);
         this.out = config.output();
+        this.handlers = handlers;
     }
 
     @Override
     public void start()
     {
-        active = ACTIVE.compareAndSet(false, true);
-        if (active)
-        {
-            events = new StdoutEventsStream(context, out);
-        }
+        handlers.add(this);
+        events = new StdoutEventsStream(context, out);
     }
 
     @Override
     public int export()
     {
-        if (!active || events == null)
+        int processed = 0;
+        if (handlers.first() == this)
         {
-            return 0;
+            processed = events.process();
         }
-        return events.process();
+        return processed;
     }
 
     @Override
     public void stop()
     {
-        if (active)
-        {
-            ACTIVE.set(false);
-            active = false;
-        }
+        handlers.remove(this);
         this.events = null;
+    }
+
+    @Override
+    public int compareTo(
+        StdoutExporterHandler other)
+    {
+        return Integer.compare(System.identityHashCode(this), System.identityHashCode(other));
     }
 }
