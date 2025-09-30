@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.LongFunction;
@@ -41,7 +42,7 @@ public class StdoutExporterContext implements ExporterContext
     {
         this.config = config;
         this.context = context;
-        this.handlers = new ConcurrentSkipListSet<>();
+        this.handlers = new ConcurrentSkipListSet<>(Comparator.comparingInt(System::identityHashCode));
     }
 
     @Override
