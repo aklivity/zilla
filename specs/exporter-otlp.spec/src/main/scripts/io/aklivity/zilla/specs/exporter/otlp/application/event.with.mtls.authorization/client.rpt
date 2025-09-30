@@ -25,7 +25,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "394"
+write http:header "Content-Length" "606"
 write http:header "authorization" "Basic dXNlcjpzZWNyZXQ="
 write
 '{'
@@ -59,6 +59,21 @@ write
                                     '"key":"event.name",'
                                     '"value":{'
                                         '"stringValue":"BINDING_TEST_CONNECTED"'
+                                    '}'
+                                '}'
+                            ']'
+                        '},'
+                       '{'
+                            '"timeUnixNano":2547527985000000000,'
+                            '"observedTimeUnixNano":2547527985000000000,'
+                            '"body":{'
+                                '"stringValue":"engine:events Engine Started."'
+                            '},'
+                            '"attributes":['
+                                '{'
+                                    '"key":"event.name",'
+                                    '"value":{'
+                                        '"stringValue":"ENGINE_STARTED"'
                                     '}'
                                 '}'
                             ']'
