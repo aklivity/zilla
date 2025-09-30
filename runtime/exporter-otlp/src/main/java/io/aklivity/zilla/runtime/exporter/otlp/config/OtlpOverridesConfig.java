@@ -15,13 +15,25 @@
 package io.aklivity.zilla.runtime.exporter.otlp.config;
 
 import java.net.URI;
+import java.util.function.Function;
 
 public class OtlpOverridesConfig
 {
     public URI metrics;
     public URI logs;
 
-    public OtlpOverridesConfig(
+    public static OtlpOverridesConfigBuilder<OtlpOverridesConfig> builder()
+    {
+        return new OtlpOverridesConfigBuilder<>(OtlpOverridesConfig.class::cast);
+    }
+
+    public static <T> OtlpOverridesConfigBuilder<T> builder(
+        Function<OtlpOverridesConfig, T> mapper)
+    {
+        return new OtlpOverridesConfigBuilder<>(mapper);
+    }
+
+    protected OtlpOverridesConfig(
         URI metrics,
         URI logs)
     {

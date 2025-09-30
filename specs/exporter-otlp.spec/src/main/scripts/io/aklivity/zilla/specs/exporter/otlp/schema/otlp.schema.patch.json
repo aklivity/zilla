@@ -27,6 +27,7 @@
                     {
                         "const": "otlp"
                     },
+                    "vault": true,
                     "options":
                     {
                         "properties":
@@ -65,7 +66,8 @@
                                     },
                                     "location":
                                     {
-                                        "type": "string"
+                                        "type": "string",
+                                        "pattern": "^https?://"
                                     },
                                     "overrides":
                                     {
@@ -90,13 +92,90 @@
                                     "location"
                                 ],
                                 "additionalProperties": false
+                            },
+                            "tls":
+                            {
+                                "title": "TLS",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "keys":
+                                    {
+                                        "title": "Vault Keys",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "trust":
+                                    {
+                                        "title": "Vault Certificates",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "trustcacerts":
+                                    {
+                                        "title": "Trust CA Certificates",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "headers":
+                                    {
+                                        "title": "Headers",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "authorization":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "required":
                         [
                             "endpoint"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "endpoint":
+                                {
+                                    "properties":
+                                    {
+                                        "location":
+                                        {
+                                            "pattern": "^http:\/\/"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "tls": false
+                            }
+                        }
                     },
                     "additionalProperties": false
                 },
