@@ -1,0 +1,77 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "http://localhost:4318/v1/logs"
+    option http:transport "tls://localhost:4318"
+    option tls:keyStoreFile ${core:file('src/test/democa/server/keys')}
+    option tls:keyStorePassword "generated"
+    option tls:needClientAuth "true"
+    option tls:trustStoreFile ${core:file('src/test/democa/server/trust')}
+    option tls:trustStorePassword "generated"
+
+accepted
+connected
+
+read http:method "POST"
+read http:version "HTTP/1.1"
+read http:header "Host" "localhost:4318"
+read http:header "Content-Length" "394"
+read http:header "authorization" "Basic dXNlcjpzZWNyZXQ="
+read
+'{'
+    '"resourceLogs":['
+        '{'
+            '"resource":{'
+                '"attributes":['
+                    '{'
+                        '"key":"service.namespace",'
+                        '"value":{'
+                            '"stringValue":"example"'
+                        '}'
+                    '}'
+                ']'
+            '},'
+            '"scopeLogs":['
+                '{'
+                    '"scope":{'
+                        '"name":"OtlpLogsSerializer",'
+                        '"version":"1.0.0"'
+                    '},'
+                    '"logRecords":['
+                        '{'
+                            '"timeUnixNano":42000000,'
+                            '"observedTimeUnixNano":42000000,'
+                            '"body":{'
+                                '"stringValue":"test:net0 test event message"'
+                            '},'
+                            '"attributes":['
+                                '{'
+                                    '"key":"event.name",'
+                                    '"value":{'
+                                        '"stringValue":"BINDING_TEST_CONNECTED"'
+                                    '}'
+                                '}'
+                            ']'
+                        '}'
+                    ']'
+                '}'
+            ']'
+        '}'
+    ']'
+'}'
+read closed
+
+write http:status "200" "OK"
+write close

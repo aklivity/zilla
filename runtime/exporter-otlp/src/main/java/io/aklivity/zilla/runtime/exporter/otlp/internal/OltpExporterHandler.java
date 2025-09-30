@@ -58,7 +58,9 @@ public class OltpExporterHandler implements ExporterHandler
     private final Collector collector;
     private final LongFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
-    private final HttpClient httpClient;
+    private final HttpClient metricsClient;
+    private final HttpClient logsClient;
+    private final String authorization;
     private final Consumer<HttpResponse<String>> responseHandler;
     private final Clock clock;
 
@@ -82,16 +84,19 @@ public class OltpExporterHandler implements ExporterHandler
         this.timeoutInterval = config.timeoutInterval();
         this.warningInterval = config.warningInterval().toMillis();
         this.context = context;
-        this.metricsEndpoint = exporter.resolveMetrics();
-        this.logsEndpoint = exporter.resolveLogs();
-        this.signals = exporter.resolveSignals();
-        this.protocol = exporter.resolveProtocol();
-        this.interval = exporter.resolveInterval();
+        this.metricsEndpoint = exporter.metrics;
+        this.logsEndpoint = exporter.logs;
+        this.metricsClient = exporter.supplyHttpClient(metricsEndpoint);
+        this.logsClient = exporter.supplyHttpClient(logsEndpoint);
+        OtlpOptionsConfig options = exporter.options;
+        this.signals = options.signals;
+        this.protocol = options.endpoint.protocol;
+        this.interval = options.interval.toMillis();
         this.collector = collector;
         this.resolveKind = resolveKind;
         this.attributes = attributes;
-        this.httpClient = HttpClient.newBuilder().build();
         this.responseHandler = this::handleResponse;
+        this.authorization = options.authorization;
         this.clock = context.clock();
     }
 
@@ -135,13 +140,18 @@ public class OltpExporterHandler implements ExporterHandler
         if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
         {
             String metricsJson = metricsSerializer.serializeAll();
-            HttpRequest metricsRequest = HttpRequest.newBuilder()
+            HttpRequest.Builder metricsRequest = HttpRequest.newBuilder()
                 .uri(metricsEndpoint)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(metricsJson))
-                .timeout(timeoutInterval)
-                .build();
-            metricsResponse = httpClient.sendAsync(metricsRequest, HttpResponse.BodyHandlers.ofString());
+                .timeout(timeoutInterval);
+
+            if (authorization != null)
+            {
+                metricsRequest.header("authorization", authorization);
+            }
+
+            metricsResponse = metricsClient.sendAsync(metricsRequest.build(), HttpResponse.BodyHandlers.ofString());
             metricsResponse.thenAccept(responseHandler);
             nextAttempt = now + retryInterval;
         }
@@ -153,13 +163,18 @@ public class OltpExporterHandler implements ExporterHandler
         if (signals.contains(LOGS) && (logsResponse == null || logsResponse.isDone()))
         {
             String logsJson = logsSerializer.serializeAll();
-            HttpRequest logsRequest = HttpRequest.newBuilder()
+            HttpRequest.Builder logsRequest = HttpRequest.newBuilder()
                 .uri(logsEndpoint)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(logsJson))
-                .timeout(timeoutInterval)
-                .build();
-            logsResponse = httpClient.sendAsync(logsRequest, HttpResponse.BodyHandlers.ofString());
+                .timeout(timeoutInterval);
+
+            if (authorization != null)
+            {
+                logsRequest.header("authorization", authorization);
+            }
+
+            logsResponse = logsClient.sendAsync(logsRequest.build(), HttpResponse.BodyHandlers.ofString());
             logsResponse.thenAccept(responseHandler);
             nextAttempt = now + retryInterval;
         }

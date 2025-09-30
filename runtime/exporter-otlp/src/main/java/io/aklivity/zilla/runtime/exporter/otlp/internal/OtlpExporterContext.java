@@ -46,7 +46,7 @@ public class OtlpExporterContext implements ExporterContext
         Collector collector,
         LongFunction<KindConfig> resolveKind)
     {
-        OtlpExporterConfig otlpExporter = new OtlpExporterConfig(exporter);
+        OtlpExporterConfig otlpExporter = new OtlpExporterConfig(config, context, exporter);
         return new OltpExporterHandler(config, context, otlpExporter, collector, resolveKind, attributes);
     }
 

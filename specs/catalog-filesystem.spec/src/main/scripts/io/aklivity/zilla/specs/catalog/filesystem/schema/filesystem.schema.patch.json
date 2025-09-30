@@ -27,6 +27,7 @@
                     {
                         "const": "filesystem"
                     },
+                    "vault": false,
                     "options":
                     {
                         "properties":

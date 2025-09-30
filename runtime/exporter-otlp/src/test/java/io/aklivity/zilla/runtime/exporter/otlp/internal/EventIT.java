@@ -71,6 +71,32 @@ public class EventIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("secure/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${net}/handshake/server",
+        "${app}/event.with.authorization/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
+    public void shouldPostEventLogWithAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("secure/mtls/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${net}/handshake/server",
+        "${app}/event.with.mtls.authorization/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
+    public void shouldPostEventLogWithMtls() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static Clock supplyClock()
     {
         AtomicInteger iteration = new AtomicInteger(0);

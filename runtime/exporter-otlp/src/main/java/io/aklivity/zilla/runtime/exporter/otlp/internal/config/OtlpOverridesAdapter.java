@@ -22,6 +22,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfigBuilder;
 
 public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
 {
@@ -48,12 +49,17 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
     public OtlpOverridesConfig adaptFromJson(
         JsonObject object)
     {
-        URI metrics = object.containsKey(METRICS_NAME)
-            ? URI.create(object.getString(METRICS_NAME))
-            : null;
-        URI logs = object.containsKey(LOGS_NAME)
-            ? URI.create(object.getString(LOGS_NAME))
-            : null;
-        return new OtlpOverridesConfig(metrics, logs);
+        OtlpOverridesConfigBuilder<OtlpOverridesConfig> builder = OtlpOverridesConfig.builder();
+        if (object.containsKey(METRICS_NAME))
+        {
+            builder.metrics(URI.create(object.getString(METRICS_NAME)));
+        }
+
+        if (object.containsKey(LOGS_NAME))
+        {
+            builder.logs(URI.create(object.getString(LOGS_NAME)));
+        }
+
+        return builder.build();
     }
 }
