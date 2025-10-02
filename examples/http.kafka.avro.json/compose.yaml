@@ -17,7 +17,7 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-    command: start -v -e
+    command: start -v -e --config /etc/zilla/zilla.yaml
 
   kafka:
     image: bitnamilegacy/kafka:3.5
@@ -78,6 +78,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.examples.dev:29092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://karapace-registry:8081
 
   kafkacat:
     image: confluentinc/cp-kafkacat:7.1.9

@@ -33,7 +33,7 @@ public final class SseKafkaWithFilterConfig
 
     public static SseKafkaWithFilterConfigBuilder<SseKafkaWithFilterConfig> builder()
     {
-        return new SseKafkaWithFilterConfigBuilder<>(SseKafkaWithFilterConfig.class::cast);
+        return new SseKafkaWithFilterConfigBuilder<>(Function.identity());
     }
 
     public static <T> SseKafkaWithFilterConfigBuilder<T> builder(
