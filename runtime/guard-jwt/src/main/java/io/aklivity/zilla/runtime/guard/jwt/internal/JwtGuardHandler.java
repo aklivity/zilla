@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import static java.util.stream.Collectors.toMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -30,6 +31,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -55,6 +58,7 @@ public class JwtGuardHandler implements GuardHandler
 {
     private static final String SPLIT_VALUE_PATTERN = "\\s+";
     private static final String SPLIT_PATH_PATTERN = "\\.";
+    private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("^\\$\\.(\\S+)");
 
     private final JsonWebSignature signature = new JsonWebSignature();
 
@@ -68,6 +72,8 @@ public class JwtGuardHandler implements GuardHandler
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
     private final JwtEventContext event;
+    private final Map<String, String> attributes;
+    private final Matcher matcher;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
@@ -124,6 +130,12 @@ public class JwtGuardHandler implements GuardHandler
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
         this.event = new JwtEventContext(context);
+        this.matcher = ATTRIBUTE_PATTERN.matcher("");
+        this.attributes = Optional.ofNullable(options.attributes)
+            .map(attrs -> attrs.entrySet().stream()
+                .filter(entry -> matcher.reset(entry.getValue()).matches())
+                .collect(toMap(Map.Entry::getKey, entry -> matcher.group(1))))
+            .orElse(null);
     }
 
     @Override
@@ -136,6 +148,7 @@ public class JwtGuardHandler implements GuardHandler
         JwtSession session = null;
         String identity = null;
         String reason = "";
+        Map<String, String> attributes = new HashMap<>();
 
         authorize:
         try
@@ -194,8 +207,18 @@ public class JwtGuardHandler implements GuardHandler
                         .map(Arrays::asList)
                         .orElse(null);
 
+            if (this.attributes != null && !this.attributes.isEmpty())
+            {
+                this.attributes
+                    .forEach((name, attribute) ->
+                    {
+                        Object value = claimValue(claims, attribute);
+                        attributes.put(name, value != null ? value.toString() : null);
+                    });
+            }
+
             JwtSessionStore sessionStore = supplySessionStore(contextId);
-            session = sessionStore.supplySession(identity, roles);
+            session = sessionStore.supplySession(identity, roles, attributes);
 
             session.credentials = credentials;
             session.roles = roles;
@@ -242,6 +265,15 @@ public class JwtGuardHandler implements GuardHandler
     {
         JwtSession session = sessionsById.get(sessionId);
         return session != null ? session.identity : null;
+    }
+
+    @Override
+    public String attribute(
+        long sessionId,
+        String name)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.attributes.get(name) : null;
     }
 
     @Override
@@ -319,33 +351,36 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession supplySession(
             String identity,
-            List<String> roles)
+            List<String> roles,
+            Map<String, String> attributes)
         {
             String identityKey = identity != null ? identity.intern() : null;
             JwtSession session = sessionsByIdentity.get(identityKey);
 
             if (identityKey == null || session != null && roles != null && !supersetOf(session, roles))
             {
-                session = newSession(identityKey);
+                session = newSession(identityKey, attributes);
             }
             else
             {
-                session = sessionsByIdentity.computeIfAbsent(identityKey, this::newSharedSession);
+                session = sessionsByIdentity.computeIfAbsent(identityKey, key -> newSharedSession(key, attributes));
             }
 
             return session;
         }
 
         private JwtSession newSharedSession(
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared, attributes);
         }
 
         private JwtSession newSession(
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), identity);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes);
         }
 
         private void onUnshared(
@@ -364,6 +399,7 @@ public class JwtGuardHandler implements GuardHandler
         private final long authorized;
         private final String identity;
         private final Consumer<JwtSession> unshare;
+        private final Map<String, String> attributes;
 
         private String credentials;
         private long expiresAt;
@@ -376,19 +412,22 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession(
             long authorized,
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            this(authorized, identity, null);
+            this(authorized, identity, null, attributes);
         }
 
         private JwtSession(
             long authorized,
             String identity,
-            Consumer<JwtSession> unshare)
+            Consumer<JwtSession> unshare,
+            Map<String, String> attributes)
         {
             this.authorized = authorized;
             this.identity = identity;
             this.unshare = unshare;
+            this.attributes = attributes;
         }
 
         boolean challenge(

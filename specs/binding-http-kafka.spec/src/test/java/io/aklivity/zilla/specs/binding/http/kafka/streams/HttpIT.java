@@ -209,6 +209,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.attribute.item/client",
+        "${http}/get.attribute.item/server"})
+    public void shouldGetAttributeItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.item.with.body/client",
         "${http}/get.item.with.body/server"})
     public void shouldGetItemWithBody() throws Exception

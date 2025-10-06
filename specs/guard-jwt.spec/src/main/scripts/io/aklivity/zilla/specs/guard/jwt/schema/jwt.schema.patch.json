@@ -95,6 +95,19 @@
                                 "title": "Identity",
                                 "type": "string",
                                 "default": "sub"
+                            },
+                            "attributes":
+                            {
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\$\\.(\\S+)"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

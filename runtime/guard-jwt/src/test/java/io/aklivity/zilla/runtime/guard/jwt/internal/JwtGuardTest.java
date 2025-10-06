@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
@@ -41,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
@@ -482,5 +484,55 @@ public class JwtGuardTest
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertEquals("testSubject", identifier.apply(sessionId));
+    }
+
+    @Test
+    public void shouldResolveAttributes() throws Exception
+    {
+        EngineContext engine = Mockito.mock(EngineContext.class);
+
+        when(engine.index()).thenReturn(0);
+        when(engine.supplyAuthorizedId()).thenReturn(1L);
+
+        GuardedConfig guarded = GuardedConfig.builder()
+            .inject(identity())
+            .name("test0")
+            .build();
+
+        Configuration config = new Configuration();
+        GuardFactory factory = GuardFactory.instantiate();
+        Guard guard = factory.create("jwt", config);
+
+        GuardContext context = guard.supply(engine);
+
+        GuardHandler handler = context.attach(GuardConfig.builder()
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+            .inject(identity())
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .challenge(ofSeconds(3L))
+                .attributes(Map.of("limit", "$.plan"))
+                .build()
+            .build());
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", Instant.now().getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+        claims.setClaim("plan", "unlimited");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
+
+        LongObjectBiFunction<String, String> attributor = guard.attributor(s -> 0, guarded);
+        assertEquals("unlimited", attributor.apply(sessionId, "limit"));
     }
 }

@@ -43,6 +43,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String KEYS_NAME = "keys";
     private static final String CHALLENGE_NAME = "challenge";
     private static final String IDENTITY_NAME = "identity";
+    private static final String ATTRIBUTES_NAME = "attributes";
 
     private static final List<JwtKeyConfig> KEYS_DEFAULT = emptyList();
 
@@ -103,6 +104,15 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (jwtOptions.identity != null)
         {
             object.add(IDENTITY_NAME, jwtOptions.identity);
+        }
+
+        if (jwtOptions.attributes != null &&
+            !jwtOptions.attributes.isEmpty())
+        {
+            JsonObjectBuilder entries = Json.createObjectBuilder();
+            jwtOptions.attributes.forEach((k, v) -> entries.add(k, v));
+
+            object.add(ATTRIBUTES_NAME, entries);
         }
 
         return object.build();
@@ -170,6 +180,12 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(IDENTITY_NAME))
         {
             jwtOptions.identity(object.getString(IDENTITY_NAME));
+        }
+
+        if (object.containsKey(ATTRIBUTES_NAME))
+        {
+            object.getJsonObject(ATTRIBUTES_NAME)
+                .forEach((key, value) -> jwtOptions.attribute(key, ((JsonString) value).getString()));
         }
 
         return jwtOptions.build();

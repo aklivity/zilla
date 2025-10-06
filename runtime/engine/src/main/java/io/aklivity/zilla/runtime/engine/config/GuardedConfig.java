@@ -21,10 +21,13 @@ import static java.util.function.Function.identity;
 import java.util.List;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+
 public class GuardedConfig
 {
     public transient long id;
     public transient LongFunction<String> identity;
+    public transient LongObjectBiFunction<String, String> attributor;
     public transient String qname;
 
     public final String name;

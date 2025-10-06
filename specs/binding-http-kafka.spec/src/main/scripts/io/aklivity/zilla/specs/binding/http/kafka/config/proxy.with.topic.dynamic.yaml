@@ -23,6 +23,8 @@ guards:
       roles:
         - read:items
         - write:items
+      attributes:
+        topic: items
 bindings:
   http0:
     type: http-kafka
@@ -52,3 +54,15 @@ bindings:
           topic: ${guarded['test0'].identity}-items
           acks: leader_only
           key: ${params.id}
+      - guarded:
+          test0:
+            - read:items
+        exit: kafka0
+        when:
+          - method: GET
+            path: /items/{id}
+        with:
+          capability: fetch
+          topic: ${guarded['test0'].attributes.topic}
+          filters:
+            - key: ${params.id}
