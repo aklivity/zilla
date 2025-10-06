@@ -52,13 +52,13 @@ public final class ProtobufParser
     }
 
     public ProtobufParser(
-            FileDescriptor[] dependencies)
+        FileDescriptor[] dependencies)
     {
         this.dependencies = dependencies != null ? dependencies : new FileDescriptor[0];
     }
 
     public FileDescriptor parse(
-            String schemaText)
+        String schemaText)
     {
         FileDescriptor descriptor = null;
         if (schemaText != null || schemaText.isEmpty())
@@ -81,7 +81,7 @@ public final class ProtobufParser
     }
 
     private FileDescriptor parseProto2(
-            CharStream input)
+        CharStream input)
     {
         FileDescriptor descriptor = null;
         try
@@ -112,7 +112,7 @@ public final class ProtobufParser
     }
 
     private FileDescriptor parseProto3(
-            CharStream input)
+        CharStream input)
     {
         FileDescriptor descriptor = null;
         try
@@ -141,7 +141,7 @@ public final class ProtobufParser
     }
 
     public static ProtoSyntax detectSyntax(
-            String schemaText)
+        String schemaText)
     {
         if (schemaText == null || schemaText.isEmpty())
         {
@@ -153,7 +153,7 @@ public final class ProtobufParser
     }
 
     private static ProtoSyntax parseSyntax(
-            String syntax)
+        String syntax)
     {
         if (syntax == null)
         {

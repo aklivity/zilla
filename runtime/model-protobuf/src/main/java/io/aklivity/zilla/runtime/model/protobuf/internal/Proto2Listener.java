@@ -82,7 +82,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterSyntax(
-            Protobuf2Parser.SyntaxContext ctx)
+        Protobuf2Parser.SyntaxContext ctx)
     {
         String syntax = ctx.getChild(2).getText();
         // Remove quotes if present
@@ -96,7 +96,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterPackageStatement(
-            Protobuf2Parser.PackageStatementContext ctx)
+        Protobuf2Parser.PackageStatementContext ctx)
     {
         packageName = ctx.fullIdent().getText();
         fileBuilder.setPackage(packageName);
@@ -104,7 +104,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterImportStatement(
-            Protobuf2Parser.ImportStatementContext ctx)
+        Protobuf2Parser.ImportStatementContext ctx)
     {
         String importPath = stripQuotes(ctx.strLit().getText());
         imports.add(importPath);
@@ -122,7 +122,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterOptionStatement(
-            Protobuf2Parser.OptionStatementContext ctx)
+        Protobuf2Parser.OptionStatementContext ctx)
     {
         // Handle file-level options
         String optionName = ctx.optionName().getText();
@@ -148,7 +148,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterMessageDef(
-            Protobuf2Parser.MessageDefContext ctx)
+        Protobuf2Parser.MessageDefContext ctx)
     {
         DescriptorProto.Builder msgBuilder = DescriptorProto.newBuilder();
         String name = ctx.messageName().getText();
@@ -163,7 +163,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void exitMessageDef(
-            Protobuf2Parser.MessageDefContext ctx)
+        Protobuf2Parser.MessageDefContext ctx)
     {
         DescriptorProto.Builder msgBuilder = messageStack.pop();
         messageHierarchy.pop();
@@ -182,7 +182,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterField(
-            Protobuf2Parser.FieldContext ctx)
+        Protobuf2Parser.FieldContext ctx)
     {
         if (!messageStack.isEmpty())
         {
@@ -193,7 +193,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterOneof(
-            Protobuf2Parser.OneofContext ctx)
+        Protobuf2Parser.OneofContext ctx)
     {
         if (!messageStack.isEmpty())
         {
@@ -211,7 +211,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void exitOneof(
-            Protobuf2Parser.OneofContext ctx)
+        Protobuf2Parser.OneofContext ctx)
     {
         if (!oneofStack.isEmpty())
         {
@@ -221,7 +221,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterOneofField(
-            Protobuf2Parser.OneofFieldContext ctx)
+        Protobuf2Parser.OneofFieldContext ctx)
     {
         if (!messageStack.isEmpty() && !oneofStack.isEmpty())
         {
@@ -261,7 +261,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterMapField(
-            Protobuf2Parser.MapFieldContext ctx)
+        Protobuf2Parser.MapFieldContext ctx)
     {
         if (!messageStack.isEmpty())
         {
@@ -318,7 +318,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterExtensions(
-            Protobuf2Parser.ExtensionsContext ctx)
+        Protobuf2Parser.ExtensionsContext ctx)
     {
         if (!messageStack.isEmpty())
         {
@@ -356,7 +356,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterEnumDef(
-            Protobuf2Parser.EnumDefContext ctx)
+        Protobuf2Parser.EnumDefContext ctx)
     {
         EnumDescriptorProto.Builder enumBuilder = EnumDescriptorProto.newBuilder();
         String name = ctx.enumName().getText();
@@ -366,7 +366,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void exitEnumDef(
-            Protobuf2Parser.EnumDefContext ctx)
+        Protobuf2Parser.EnumDefContext ctx)
     {
         if (!enumStack.isEmpty())
         {
@@ -387,7 +387,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterEnumField(
-            Protobuf2Parser.EnumFieldContext ctx)
+        Protobuf2Parser.EnumFieldContext ctx)
     {
         if (!enumStack.isEmpty())
         {
@@ -415,7 +415,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void enterServiceDef(
-            Protobuf2Parser.ServiceDefContext ctx)
+        Protobuf2Parser.ServiceDefContext ctx)
     {
         ServiceDescriptorProto.Builder serviceBuilder = ServiceDescriptorProto.newBuilder();
         String name = ctx.serviceName().getText();
@@ -425,7 +425,7 @@ public class Proto2Listener extends Protobuf2BaseListener
 
     @Override
     public void exitServiceDef(
-            Protobuf2Parser.ServiceDefContext ctx)
+        Protobuf2Parser.ServiceDefContext ctx)
     {
         if (!serviceStack.isEmpty())
         {
@@ -442,7 +442,7 @@ public class Proto2Listener extends Protobuf2BaseListener
     // Helper methods
 
     private FieldDescriptorProto processFieldElement(
-            Protobuf2Parser.FieldContext ctx)
+        Protobuf2Parser.FieldContext ctx)
     {
         FieldDescriptorProto.Builder builder = FieldDescriptorProto.newBuilder();
         processFieldFromContext(builder, ctx);
@@ -450,8 +450,8 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     private void processFieldFromContext(
-            FieldDescriptorProto.Builder builder,
-            Protobuf2Parser.FieldContext ctx)
+        FieldDescriptorProto.Builder builder,
+        Protobuf2Parser.FieldContext ctx)
     {
         String type = ctx.type_().getText();
         String name = ctx.fieldName().getText();
@@ -478,8 +478,8 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     private void processFieldOptions(
-            FieldDescriptorProto.Builder builder,
-            Protobuf2Parser.FieldOptionsContext ctx)
+        FieldDescriptorProto.Builder builder,
+        Protobuf2Parser.FieldOptionsContext ctx)
     {
         for (Protobuf2Parser.FieldOptionContext option : ctx.fieldOption())
         {
@@ -494,8 +494,8 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     private void processGroupFromContext(
-            FieldDescriptorProto.Builder builder,
-            Protobuf2Parser.GroupContext ctx)
+        FieldDescriptorProto.Builder builder,
+        Protobuf2Parser.GroupContext ctx)
     {
         String name = ctx.groupName().getText();
         String label = ctx.fieldLabel().getText();
@@ -509,7 +509,7 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     private String stripQuotes(
-            String str)
+        String str)
     {
         if (str.startsWith("\"") && str.endsWith("\"") ||
                 str.startsWith("'") && str.endsWith("'"))
@@ -520,7 +520,7 @@ public class Proto2Listener extends Protobuf2BaseListener
     }
 
     private String capitalize(
-            String str)
+        String str)
     {
         if (str == null || str.isEmpty())
         {
