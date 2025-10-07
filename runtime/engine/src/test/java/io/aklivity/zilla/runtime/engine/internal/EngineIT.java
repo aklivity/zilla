@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_LOCAL_CONFIG_URI_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class EngineIT
 {
@@ -53,6 +55,16 @@ public class EngineIT
         "${net}/handshake/client",
         "${app}/handshake/server"})
     public void shouldHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(name = ENGINE_LOCAL_CONFIG_URI_NAME, value = "src/main/resources/config/local.server.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldHandshakeWithEngineLocalConfig() throws Exception
     {
         k3po.finish();
     }

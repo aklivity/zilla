@@ -101,6 +101,7 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final Resolver expressions;
     private final Path configPath;
+    private final Path localConfigPath;
     private final EngineConfigWatchTask watchTask;
     private final EngineEventContext events;
 
@@ -140,6 +141,7 @@ public class EngineManager
         this.extensions = extensions;
         this.expressions = Resolver.instantiate(config);
         this.configPath = Path.of(config.configURI());
+        this.localConfigPath = config.localConfigURI() != null ? Path.of(config.localConfigURI()) : null;
         this.watchTask = new WatchTaskImpl(config, events, configPath);
         this.events = events;
     }
@@ -179,6 +181,15 @@ public class EngineManager
             if (newConfigText == null || newConfigText.isEmpty())
             {
                 newConfigText = CONFIG_TEXT_DEFAULT;
+            }
+
+            if (localConfigPath != null)
+            {
+                String localYamlDoc = Files.exists(localConfigPath) ? Files.readString(localConfigPath) : null;
+                if (localYamlDoc != null)
+                {
+                    newConfigText = newConfigText + "\n" + localYamlDoc;
+                }
             }
 
             String systemYamlDoc = buildSystemNamespaceIfNecessary();

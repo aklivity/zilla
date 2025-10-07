@@ -55,6 +55,7 @@ public class EngineConfiguration extends Configuration
 
     public static final PropertyDef<URL> ENGINE_CONFIG_URL;
     public static final PropertyDef<URI> ENGINE_CONFIG_URI;
+    public static final PropertyDef<URI> ENGINE_LOCAL_CONFIG_URI;
     public static final BooleanPropertyDef ENGINE_CONFIG_WATCH;
     public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
@@ -108,6 +109,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.yaml");
         ENGINE_CONFIG_URI = config.property(URI.class, "config.uri", EngineConfiguration::decodeConfigURI,
             EngineConfiguration::defaultConfigURI);
+        ENGINE_LOCAL_CONFIG_URI =
+            config.property(URI.class, "local.config.uri", EngineConfiguration::localConfigUri, (String) null);
         ENGINE_CONFIG_WATCH = config.property("config.watch", true);
         ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", EngineConfiguration::defaultName);
@@ -193,6 +196,11 @@ public class EngineConfiguration extends Configuration
     public URI configURI()
     {
         return ENGINE_CONFIG_URI.get(this);
+    }
+
+    public URI localConfigURI()
+    {
+        return ENGINE_LOCAL_CONFIG_URI.get(this);
     }
 
     public boolean configWatch()
@@ -451,6 +459,13 @@ public class EngineConfiguration extends Configuration
         return ENGINE_WORKER_CAPACITY_UNBOUNDED.get(config)
             ? Integer.MAX_VALUE
             : ENGINE_WORKER_CAPACITY.get(config);
+    }
+
+    private static URI localConfigUri(
+        Configuration config,
+        String uri)
+    {
+        return uri != null ? Paths.get(uri).toUri() : null;
     }
 
     private static URL configURL(
