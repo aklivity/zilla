@@ -23,7 +23,7 @@ guards:
       audience: https://api.example.com
       roles: "realm_access.roles"
       attributes:
-        limit: $.plan
+        email: "test@example.com"
       keys:
         - kty: EC
           crv: P-256

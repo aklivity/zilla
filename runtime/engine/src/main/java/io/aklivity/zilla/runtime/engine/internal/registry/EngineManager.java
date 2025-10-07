@@ -438,7 +438,7 @@ public class EngineManager
                             .map(g -> g.attributor(EngineWorker::indexOfId, guarded))
                             .orElse((session, name) -> null);
 
-                        guarded.attributor = attributor;
+                        guarded.attributes = attributor;
 
                         guarded.qname = resolver.format(guarded.id);
 

@@ -65,6 +65,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/handshake.with.attributes/client",
+        "${kafka}/handshake.with.attributes/server"})
+    public void shouldCompleteHandshakeWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/handshake.reconnect/client",
         "${kafka}/handshake.reconnect/server"})
     public void shouldCompleteHandshakeThenReconnect() throws Exception

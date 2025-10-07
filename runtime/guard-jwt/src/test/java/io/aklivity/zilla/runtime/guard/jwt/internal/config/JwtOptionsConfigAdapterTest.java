@@ -71,7 +71,7 @@ public class JwtOptionsConfigAdapterTest
               "challenge": 30,
               "attributes":
               {
-                  "limit": "$.plan"
+                  "email": "email"
               }
             }
             """.formatted(
@@ -105,7 +105,7 @@ public class JwtOptionsConfigAdapterTest
         assertThat(options.keys.get(1).alg, equalTo("RS256"));
         assertThat(options.keys.get(1).kid, equalTo("2011-04-29"));
         assertThat(options.challenge.get(), equalTo(Duration.ofSeconds(30)));
-        assertThat(options.attributes.get("limit"), equalTo("$.plan"));
+        assertThat(options.attributes.get("email"), equalTo("email"));
     }
 
     @Test
@@ -135,7 +135,7 @@ public class JwtOptionsConfigAdapterTest
                     .alg("RS256")
                     .build()
                 .challenge(Duration.ofSeconds(30))
-                .attributes(Map.of("limit", "$.plan"))
+                .attributes(Map.of("email", "email"))
                 .build();
 
         String text = jsonb.toJson(options);
@@ -164,7 +164,7 @@ public class JwtOptionsConfigAdapterTest
               "challenge":30,
               "attributes":
               {
-                  "limit":"$.plan"
+                  "email":"email"
               }
             }
             """.formatted(

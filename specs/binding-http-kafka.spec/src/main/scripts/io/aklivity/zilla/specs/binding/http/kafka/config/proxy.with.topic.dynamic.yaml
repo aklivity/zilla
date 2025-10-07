@@ -25,6 +25,7 @@ guards:
         - write:items
       attributes:
         topic: items
+        key: 92d0bf92-63e0-4cfc-ae73-71dee92d1544
 bindings:
   http0:
     type: http-kafka
@@ -65,4 +66,4 @@ bindings:
           capability: fetch
           topic: ${guarded['test0'].attributes.topic}
           filters:
-            - key: ${params.id}
+            - key: ${guarded['test0'].attributes.key}

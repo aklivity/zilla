@@ -697,7 +697,7 @@ public class JwtGuardHandlerTest
             .inject(identity())
             .issuer("test issuer")
             .audience("testAudience")
-            .attributes(Map.of("limit", "$.plan", "user", "$.user.id"))
+            .attributes(Map.of("site", "website", "user", "user.id"))
             .key(RFC7515_RS256_CONFIG)
             .challenge(challenge)
             .build();
@@ -711,7 +711,7 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        claims.setClaim("plan", "unlimited");
+        claims.setClaim("website", "http://example.com");
 
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", "12345");
@@ -722,8 +722,8 @@ public class JwtGuardHandlerTest
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
 
         assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.attribute(sessionId, "limit"), equalTo("unlimited"));
-        assertThat(guard.attribute(sessionId, "topic"), equalTo(null));
+        assertThat(guard.attribute(sessionId, "site"), equalTo("http://example.com"));
+        assertThat(guard.attribute(sessionId, "given_name"), equalTo(null));
         assertThat(guard.attribute(sessionId, "user"), equalTo("12345"));
     }
 

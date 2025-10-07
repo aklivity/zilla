@@ -103,8 +103,7 @@
                                 {
                                     "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
                                     {
-                                        "type": "string",
-                                        "pattern": "^\\$\\.(\\S+)"
+                                        "type": "string"
                                     }
                                 },
                                 "additionalProperties": false

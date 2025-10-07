@@ -27,7 +27,7 @@ public class GuardedConfig
 {
     public transient long id;
     public transient LongFunction<String> identity;
-    public transient LongObjectBiFunction<String, String> attributor;
+    public transient LongObjectBiFunction<String, String> attributes;
     public transient String qname;
 
     public final String name;

@@ -57,7 +57,7 @@ public final class HttpKafkaRouteConfig
         };
 
         final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
-                .collect(Collectors.toMap(g -> g.name, g -> g.attributor));
+                .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
 
         final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
         final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import static java.util.stream.Collectors.toMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -31,8 +30,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -58,7 +55,6 @@ public class JwtGuardHandler implements GuardHandler
 {
     private static final String SPLIT_VALUE_PATTERN = "\\s+";
     private static final String SPLIT_PATH_PATTERN = "\\.";
-    private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("^\\$\\.(\\S+)");
 
     private final JsonWebSignature signature = new JsonWebSignature();
 
@@ -73,7 +69,6 @@ public class JwtGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
     private final JwtEventContext event;
     private final Map<String, String> attributes;
-    private final Matcher matcher;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
@@ -130,12 +125,7 @@ public class JwtGuardHandler implements GuardHandler
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
         this.event = new JwtEventContext(context);
-        this.matcher = ATTRIBUTE_PATTERN.matcher("");
-        this.attributes = Optional.ofNullable(options.attributes)
-            .map(attrs -> attrs.entrySet().stream()
-                .filter(entry -> matcher.reset(entry.getValue()).matches())
-                .collect(toMap(Map.Entry::getKey, entry -> matcher.group(1))))
-            .orElse(null);
+        this.attributes = options.attributes;
     }
 
     @Override
