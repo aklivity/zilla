@@ -15,8 +15,10 @@
 package io.aklivity.zilla.runtime.guard.jwt.config;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -35,6 +37,7 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     private Duration challenge;
     private String identity;
     private String keysURL;
+    private Map<String, String> attributes;
 
     JwtOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -114,11 +117,30 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
         return this;
     }
 
+    public JwtOptionsConfigBuilder<T> attribute(
+        String key,
+        String value)
+    {
+        if (attributes == null)
+        {
+            attributes = new HashMap<>();
+        }
+        attributes.put(key, value);
+        return this;
+    }
+
+    public JwtOptionsConfigBuilder<T> attributes(
+        Map<String, String> attributes)
+    {
+        this.attributes = attributes;
+        return this;
+    }
+
     @Override
     public T build()
     {
         String roles = this.roles != null ? this.roles : ROLES_DEFAULT;
 
-        return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL));
+        return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL, attributes));
     }
 }

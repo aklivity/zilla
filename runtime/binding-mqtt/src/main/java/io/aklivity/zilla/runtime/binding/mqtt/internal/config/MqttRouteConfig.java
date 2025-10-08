@@ -23,10 +23,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class MqttRouteConfig
@@ -37,6 +39,7 @@ public final class MqttRouteConfig
     private final MqttWithConfig with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String, LongFunction<String>> identities;
+    private final Map<String, LongObjectBiFunction<String, String>> attributors;
 
     public MqttRouteConfig(
         RouteConfig route)
@@ -44,9 +47,11 @@ public final class MqttRouteConfig
         this.id = route.id;
         this.identities = route.guarded.stream()
             .collect(toMap(g -> g.name, g -> g.identity));
+        this.attributors = route.guarded.stream()
+            .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
         this.when = route.when.stream()
             .map(MqttConditionConfig.class::cast)
-            .map(c -> new MqttConditionMatcher(this::identity, c))
+            .map(c -> new MqttConditionMatcher(this::identity, this::attributor, c))
             .collect(toList());
         this.with = (MqttWithConfig) route.with;
         this.authorized = route.authorized;
@@ -67,6 +72,12 @@ public final class MqttRouteConfig
         String guard)
     {
         return identities.get(guard);
+    }
+
+    LongObjectBiFunction<String, String> attributor(
+        String guard)
+    {
+        return attributors.get(guard);
     }
 
     boolean matchesSession(

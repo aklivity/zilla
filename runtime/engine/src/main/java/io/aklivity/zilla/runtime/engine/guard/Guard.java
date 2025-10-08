@@ -22,6 +22,7 @@ import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public interface Guard
@@ -52,6 +53,10 @@ public interface Guard
      * @return  the session identity function
      */
     LongFunction<String> identifier(
+        LongToIntFunction indexOf,
+        GuardedConfig config);
+
+    LongObjectBiFunction<String, String> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config);
 

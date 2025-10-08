@@ -79,6 +79,7 @@ import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class EngineManager
@@ -429,6 +430,16 @@ public class EngineManager
                             .orElse(session -> null);
 
                         guarded.identity = identifier;
+
+                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.attributor(EngineWorker::indexOfId, guarded))
+                            .orElse((session, name) -> null);
+
+                        guarded.attributes = attributor;
+
                         guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);

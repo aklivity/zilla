@@ -39,21 +39,29 @@ public final class SseKafkaWithResolver
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
+    private static final Pattern ATTRIBUTE_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
+            ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
+    private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final SseKafkaWithConfig with;
     private final Matcher paramsMatcher;
     private final Matcher identityMatcher;
+    private final Matcher attributeMatcher;
 
     private Function<MatchResult, String> paramsReplacer = r -> null;
 
     public SseKafkaWithResolver(
         LongObjectBiFunction<MatchResult, String> identityReplacer,
+        LongObjectBiFunction<MatchResult, String> attributeReplacer,
         SseKafkaWithConfig with)
     {
         this.identityReplacer = identityReplacer;
+        this.attributeReplacer = attributeReplacer;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
     }
 
     public void onConditionMatched(
@@ -73,20 +81,7 @@ public final class SseKafkaWithResolver
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
 
         // TODO: hoist to constructor if constant
-        String topic0 = with.topic;
-        Matcher topicMatcher = paramsMatcher.reset(with.topic);
-        if (topicMatcher.matches())
-        {
-            topic0 = topicMatcher.replaceAll(paramsReplacer);
-        }
-
-        topicMatcher = identityMatcher.reset(with.topic);
-        if (topicMatcher.find())
-        {
-            topic0 = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-        }
-
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, with.topic);
 
         List<SseKafkaWithFilterResult> filters = null;
         if (with.filters.isPresent())
@@ -110,6 +105,8 @@ public final class SseKafkaWithResolver
                     {
                         key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                     }
+
+                    key0 = resolveAttribute(authorization, keyMatcher, key0);
 
                     key = new String16FW(key0).value();
                 }
@@ -137,6 +134,8 @@ public final class SseKafkaWithResolver
                             value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                         }
 
+                        value0 = resolveAttribute(authorization, valueMatcher, value0);
+
                         DirectBuffer value = new String16FW(value0).value();
 
                         headers.add(new SseKafkaWithFilterHeaderResult(name, value));
@@ -150,5 +149,43 @@ public final class SseKafkaWithResolver
         String eventId = with.eventId;
 
         return new SseKafkaWithResult(compositeId, topic, partitions, filters, eventId);
+    }
+
+    private String16FW resolveTopic(
+        long authorization,
+        String topic)
+    {
+        Matcher matcher = paramsMatcher.reset(topic);
+        if (matcher.matches())
+        {
+            topic = matcher.replaceAll(paramsReplacer);
+        }
+
+        matcher = identityMatcher.reset(topic);
+        if (matcher.find())
+        {
+            topic = matcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+        }
+
+        matcher = attributeMatcher.reset(topic);
+        if (matcher.find())
+        {
+            topic = matcher.replaceAll(r -> attributeReplacer.apply(authorization, r));
+        }
+
+        return new String16FW(topic);
+    }
+
+    private String resolveAttribute(
+        long authorization,
+        Matcher matcher,
+        String value)
+    {
+        matcher = attributeMatcher.reset(value);
+        if (matcher.matches())
+        {
+            value = matcher.replaceAll(r -> attributeReplacer.apply(authorization, r));
+        }
+        return value;
     }
 }

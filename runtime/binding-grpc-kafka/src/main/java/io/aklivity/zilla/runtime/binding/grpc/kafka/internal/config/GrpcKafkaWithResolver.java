@@ -43,6 +43,9 @@ public final class GrpcKafkaWithResolver
     private static final int BYTES_WIRE_TYPE = 2;
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
+    private static final Pattern ATTRIBUTE_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
+            ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
 
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
@@ -54,18 +57,23 @@ public final class GrpcKafkaWithResolver
     private final Varuint32FW fieldId;
     private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
+    private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final GrpcKafkaWithConfig with;
     private final Matcher identityMatcher;
+    private final Matcher attributeMatcher;
 
     public GrpcKafkaWithResolver(
         GrpcKafkaOptionsConfig options,
         LongObjectBiFunction<MatchResult, String> identityReplacer,
+        LongObjectBiFunction<MatchResult, String> attributeReplacer,
         GrpcKafkaWithConfig with)
     {
         this.options = options;
         this.identityReplacer = identityReplacer;
+        this.attributeReplacer = attributeReplacer;
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
         this.fieldId = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
             .set(options.reliability.field << 3 | BYTES_WIRE_TYPE).build();
     }
@@ -113,6 +121,8 @@ public final class GrpcKafkaWithResolver
                         key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                     }
 
+                    key0 = resolveAttribute(authorization, key0);
+
                     key = new String16FW(key0).value();
                 }
 
@@ -132,6 +142,8 @@ public final class GrpcKafkaWithResolver
                         {
                             value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                         }
+
+                        value0 = resolveAttribute(authorization, value0);
 
                         DirectBuffer value = new String16FW(value0).value();
 
@@ -212,6 +224,8 @@ public final class GrpcKafkaWithResolver
                 key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
             }
 
+            key0 = resolveAttribute(authorization, key0);
+
             String key = key0;
             keyRef = () -> new String16FW(key).value();
         }
@@ -240,6 +254,8 @@ public final class GrpcKafkaWithResolver
                     value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                 }
 
+                value0 = resolveAttribute(authorization, value0);
+
                 String value = value0;
                 Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
 
@@ -247,5 +263,17 @@ public final class GrpcKafkaWithResolver
             }
         }
         return overrides;
+    }
+
+    private String resolveAttribute(
+        long authorization,
+        String value)
+    {
+        Matcher matcher = attributeMatcher.reset(value);
+        if (matcher.matches())
+        {
+            value = matcher.replaceAll(r -> attributeReplacer.apply(authorization, r));
+        }
+        return value;
     }
 }

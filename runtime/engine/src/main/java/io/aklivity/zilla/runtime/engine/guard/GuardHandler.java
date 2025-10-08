@@ -53,6 +53,10 @@ public interface GuardHandler
     String identity(
         long sessionId);
 
+    String attribute(
+        long sessionId,
+        String name);
+
     /*
      * Returns the authorized credentials.
      *

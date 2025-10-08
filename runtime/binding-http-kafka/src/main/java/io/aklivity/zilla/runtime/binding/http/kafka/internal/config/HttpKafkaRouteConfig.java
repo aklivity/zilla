@@ -56,9 +56,22 @@ public final class HttpKafkaRouteConfig
             return identity != null ? identity : "";
         };
 
+        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
+                .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
+
+        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
+        {
+            final LongObjectBiFunction<String, String> attributor =
+                attributors.getOrDefault(match.group(1), defaultAttributor);
+
+            final String value = attributor.apply(sessionId, match.group(2));
+            return value != null ? value : "";
+        };
+
         this.with = Optional.of(route.with)
             .map(HttpKafkaWithConfig.class::cast)
-            .map(c -> new HttpKafkaWithResolver(options, identityReplacer, c))
+            .map(c -> new HttpKafkaWithResolver(options, identityReplacer, attributeReplacer, c))
             .get();
         this.when = route.when.stream()
                 .map(HttpKafkaConditionConfig.class::cast)

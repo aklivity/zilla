@@ -22,6 +22,8 @@ guards:
       issuer: https://auth.example.com
       audience: https://api.example.com
       roles: "realm_access.roles"
+      attributes:
+        email: "recipient@email.address"
       keys:
         - kty: EC
           crv: P-256

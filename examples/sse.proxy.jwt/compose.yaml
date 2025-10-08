@@ -35,7 +35,7 @@ services:
     command: -v -p 8001 -i 7001
 
   jwt-cli:
-    image: bitnami/jwt-cli
+    image: bitnamilegacy/jwt-cli
     stdin_open: true
     tty: true
     profiles:
