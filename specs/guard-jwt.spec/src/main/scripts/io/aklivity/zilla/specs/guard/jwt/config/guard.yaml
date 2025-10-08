@@ -23,7 +23,7 @@ guards:
       audience: https://api.example.com
       roles: "realm_access.roles"
       attributes:
-        email: "test@example.com"
+        email: "recipient@email.address"
       keys:
         - kty: EC
           crv: P-256

@@ -715,7 +715,7 @@ public class JwtGuardHandlerTest
 
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", "12345");
-        userInfo.put("email", "user@example.com");
+        userInfo.put("email", "recipient@email.address");
         claims.setClaim("user", userInfo);
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 

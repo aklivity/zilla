@@ -516,7 +516,7 @@ public class JwtGuardTest
                 .audience("testAudience")
                 .key(RFC7515_RS256_CONFIG)
                 .challenge(ofSeconds(3L))
-                .attributes(Map.of("email", "email"))
+                .attributes(Map.of("mail_to", "email"))
                 .build()
             .build());
 
@@ -526,13 +526,13 @@ public class JwtGuardTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", Instant.now().getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        claims.setClaim("email", "test@example.com");
+        claims.setClaim("email", "recipient@email.address");
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         LongObjectBiFunction<String, String> attributor = guard.attributor(s -> 0, guarded);
-        assertEquals("test@example.com", attributor.apply(sessionId, "email"));
+        assertEquals(attributor.apply(sessionId, "mail_to"), "recipient@email.address");
     }
 }

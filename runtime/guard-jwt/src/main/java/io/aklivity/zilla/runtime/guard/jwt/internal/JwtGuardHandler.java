@@ -363,7 +363,7 @@ public class JwtGuardHandler implements GuardHandler
             String identity,
             Map<String, String> attributes)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared, attributes);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes, this::onUnshared);
         }
 
         private JwtSession newSession(
@@ -405,14 +405,14 @@ public class JwtGuardHandler implements GuardHandler
             String identity,
             Map<String, String> attributes)
         {
-            this(authorized, identity, null, attributes);
+            this(authorized, identity, attributes, null);
         }
 
         private JwtSession(
             long authorized,
             String identity,
-            Consumer<JwtSession> unshare,
-            Map<String, String> attributes)
+            Map<String, String> attributes,
+            Consumer<JwtSession> unshare)
         {
             this.authorized = authorized;
             this.identity = identity;

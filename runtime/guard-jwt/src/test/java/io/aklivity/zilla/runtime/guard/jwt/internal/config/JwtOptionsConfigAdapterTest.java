@@ -71,16 +71,17 @@ public class JwtOptionsConfigAdapterTest
               "challenge": 30,
               "attributes":
               {
-                  "email": "email"
+                  "mail_to": "email"
               }
             }
-            """.formatted(
-                "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
-                "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst" +
-                "n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
-                "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
-                "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw" +
-                "0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw");
+            """.formatted("""
+                0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
+                4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
+                n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2
+                QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI
+                SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw
+                0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
+                """.replaceAll("\\n", ""));
 
         JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
 
@@ -105,7 +106,7 @@ public class JwtOptionsConfigAdapterTest
         assertThat(options.keys.get(1).alg, equalTo("RS256"));
         assertThat(options.keys.get(1).kid, equalTo("2011-04-29"));
         assertThat(options.challenge.get(), equalTo(Duration.ofSeconds(30)));
-        assertThat(options.attributes.get("email"), equalTo("email"));
+        assertThat(options.attributes.get("mail_to"), equalTo("email"));
     }
 
     @Test
@@ -135,7 +136,7 @@ public class JwtOptionsConfigAdapterTest
                     .alg("RS256")
                     .build()
                 .challenge(Duration.ofSeconds(30))
-                .attributes(Map.of("email", "email"))
+                .attributes(Map.of("mail_to", "email"))
                 .build();
 
         String text = jsonb.toJson(options);
@@ -164,16 +165,17 @@ public class JwtOptionsConfigAdapterTest
               "challenge":30,
               "attributes":
               {
-                  "email":"email"
+                  "mail_to":"email"
               }
             }
-            """.formatted(
-            "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
-                "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst" +
-                "n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
-                "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
-                "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw" +
-                "0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw")
+            """.formatted("""
+                0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
+                4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
+                n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2
+                QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI
+                SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw
+                0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
+                """.replaceAll("\\n", ""))
             .replaceAll("\\s*\\n\\s*", "");
 
         assertThat(text, not(nullValue()));
