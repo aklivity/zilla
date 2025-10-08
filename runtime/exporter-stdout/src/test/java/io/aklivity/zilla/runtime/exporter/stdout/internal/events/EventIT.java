@@ -63,6 +63,8 @@ public class EventIT
     public void shouldLogEvents() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] \\[[^\\]]+\\] BINDING_TEST_CONNECTED test event message"));
+        output.expect(
+            Pattern.compile("engine:events \\[[^\\]]+\\] \\[[^\\]]+\\] ENGINE_STARTED Engine Started."),
+            Pattern.compile("test.net0 \\[[^\\]]+\\] \\[[^\\]]+\\] BINDING_TEST_CONNECTED test event message"));
     }
 }

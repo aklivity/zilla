@@ -93,6 +93,12 @@
       <artifactId>jmh-generator-annprocess</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.testcontainers</groupId>
+          <artifactId>testcontainers</artifactId>
+          <version>1.19.7</version>
+          <scope>test</scope>
+      </dependency>
   </dependencies>
 
   <build>
@@ -150,7 +156,10 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/exporter/stdout/schema/stdout.schema.patch.json</includes>
+              <includes>
+                io/aklivity/zilla/specs/exporter/stdout/schema/stdout.schema.patch.json,
+                io/aklivity/zilla/specs/exporter/stdout/system/stdout.system.patch.json
+              </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

@@ -14,106 +14,152 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
-import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
-
 import java.net.URI;
-import java.time.Duration;
-import java.util.Set;
+import java.net.http.HttpClient;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.util.List;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.agrona.LangUtil;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.security.Trusted;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpConfiguration;
 
 public class OtlpExporterConfig
 {
-    private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
-    private static final String DEFAULT_LOGS_PATH = "/v1/logs";
-    private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS, LOGS);
-    private static final long DEFAULT_INTERVAL = Duration.ofSeconds(30).toMillis();
+    private static final String HTTPS = "https";
 
-    private final OtlpOptionsConfig options;
+    public final OtlpOptionsConfig options;
+    public final URI metrics;
+    public final URI logs;
+
+    private final OltpConfiguration config;
+    private final VaultHandler vault;
 
     public OtlpExporterConfig(
+        OltpConfiguration config,
+        EngineContext context,
         ExporterConfig exporter)
     {
+        this.config = config;
         this.options = (OtlpOptionsConfig)exporter.options;
+        this.vault = context.supplyVault(exporter.vaultId);
+        OtlpEndpointConfig endpoint = options.endpoint;
+        URI location = endpoint.location;
+        OtlpOverridesConfig overrides = endpoint.overrides;
+        this.metrics = location.resolve(overrides.metrics);
+        this.logs = location.resolve(overrides.logs);
     }
 
-    public URI resolveMetrics()
+    public HttpClient supplyHttpClient(
+        URI location)
     {
-        assert options != null;
-        assert options.endpoint != null;
-        assert options.endpoint.location != null;
-
-        URI result;
-        URI location = options.endpoint.location;
-        if (options.endpoint.overrides != null && options.endpoint.overrides.metrics != null)
+        HttpClient client;
+        if (HTTPS.equalsIgnoreCase(location.getScheme()))
         {
-            result = location.resolve(options.endpoint.overrides.metrics);
+            try
+            {
+                KeyManagerFactory keys = newKeys(vault, options.keys);
+                TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts);
+
+                KeyManager[] keyManagers = null;
+                if (keys != null)
+                {
+                    keyManagers = keys.getKeyManagers();
+                }
+
+                TrustManager[] trustManagers = null;
+                if (trust != null)
+                {
+                    trustManagers = trust.getTrustManagers();
+                }
+
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(keyManagers, trustManagers, new SecureRandom());
+
+                client = HttpClient.newBuilder().sslContext(sslContext).build();
+            }
+            catch (Exception ex)
+            {
+                client = HttpClient.newHttpClient();
+                LangUtil.rethrowUnchecked(ex);
+            }
         }
         else
         {
-            result = location.resolve(DEFAULT_METRICS_PATH);
+            client = HttpClient.newHttpClient();
         }
-        return result;
+        return client;
     }
 
-    public URI resolveLogs()
+    private TrustManagerFactory newTrust(
+        Configuration config,
+        VaultHandler vault,
+        List<String> trustNames,
+        boolean trustcacerts)
     {
-        assert options != null;
-        assert options.endpoint != null;
-        assert options.endpoint.location != null;
+        TrustManagerFactory trust = null;
 
-        URI result;
-        URI location = options.endpoint.location;
-        if (options.endpoint.overrides != null && options.endpoint.overrides.logs != null)
+        try
         {
-            result = location.resolve(options.endpoint.overrides.logs);
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
+
+            if (vault != null)
+            {
+                trust = vault.initTrust(trustNames, cacerts);
+            }
+            else if (cacerts != null)
+            {
+                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(cacerts);
+                trust = factory;
+            }
         }
-        else
+        catch (Exception ex)
         {
-            result = location.resolve(DEFAULT_LOGS_PATH);
+            LangUtil.rethrowUnchecked(ex);
         }
-        return result;
+
+        return trust;
     }
 
-    public Set<OtlpOptionsConfig.OtlpSignalsConfig> resolveSignals()
+    private KeyManagerFactory newKeys(
+        VaultHandler vault,
+        List<String> keyNames)
     {
-        assert options != null;
+        KeyManagerFactory keys = null;
 
-        Set<OtlpOptionsConfig.OtlpSignalsConfig> result;
-        if (options.signals == null)
+        keys:
+        try
         {
-            result = DEFAULT_SIGNALS;
+            if (vault == null)
+            {
+                break keys;
+            }
+
+            if (keyNames != null)
+            {
+                keys = vault.initKeys(keyNames);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            result = options.signals;
+            LangUtil.rethrowUnchecked(ex);
         }
-        return result;
-    }
 
-    public String resolveProtocol()
-    {
-        assert options != null;
-        assert options.endpoint != null;
-
-        return options.endpoint.protocol;
-    }
-
-    public long resolveInterval()
-    {
-        assert options != null;
-
-        long result;
-        if (options.interval == 0)
-        {
-            result = DEFAULT_INTERVAL;
-        }
-        else
-        {
-            result = Duration.ofSeconds(options.interval).toMillis();
-        }
-        return result;
+        return keys;
     }
 }

@@ -25,6 +25,11 @@ public interface Exporter
 
     URL type();
 
+    default URL system()
+    {
+        return null;
+    }
+
     ExporterContext supply(
         EngineContext context);
 }

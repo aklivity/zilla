@@ -74,6 +74,7 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_CACERTS_STORE_PASS_NAME = "zilla.engine.cacerts.store.pass";
     public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
+    public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
@@ -172,6 +173,18 @@ public final class EngineRule implements TestRule
     {
         this.clean = true;
         return this;
+    }
+
+    public void close()
+    {
+        try
+        {
+            engine.close();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 
     public <T extends Binding> T binding(
@@ -360,10 +373,6 @@ public final class EngineRule implements TestRule
                             ).toUri().toString();
                     URI jarURI = new URI("jar", jarLocation, null);
                     fs = FileSystems.newFileSystem(jarURI, Map.of());
-                    break;
-                case "http":
-                    final String pollInterval = String.format("PT%dS", config.configPollIntervalSeconds());
-                    fs = FileSystems.newFileSystem(configURI, Map.of("zilla.filesystem.http.poll.interval", pollInterval));
                     break;
                 }
 

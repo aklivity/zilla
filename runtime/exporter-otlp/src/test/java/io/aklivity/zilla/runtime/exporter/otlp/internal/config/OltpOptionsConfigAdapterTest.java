@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Set;
 
 import jakarta.json.bind.Jsonb;
@@ -31,9 +32,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 
 public class OltpOptionsConfigAdapterTest
 {
@@ -74,7 +73,7 @@ public class OltpOptionsConfigAdapterTest
 
         // THEN
         assertThat(options, not(nullValue()));
-        assertThat(options.interval, equalTo(30L));
+        assertThat(options.interval, equalTo(Duration.parse("PT30S")));
         assertThat(options.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
         assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
@@ -102,9 +101,19 @@ public class OltpOptionsConfigAdapterTest
                             "}" +
                     "}" +
             "}";
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"), URI.create("/v1/logs"));
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"), overrides);
-        OtlpOptionsConfig config = new OtlpOptionsConfig(30, Set.of(METRICS), endpoint);
+
+        OtlpOptionsConfig config = OtlpOptionsConfig.builder()
+            .interval(Duration.ofSeconds(30))
+            .signals(Set.of(METRICS))
+            .endpoint()
+                .protocol("http")
+                .location(URI.create("http://localhost:4317"))
+                .overrides()
+                    .metrics(URI.create("/v1/metrics"))
+                    .logs(URI.create("/v1/logs"))
+                    .build()
+                .build()
+            .build();
 
         // WHEN
         String json = jsonb.toJson(config);

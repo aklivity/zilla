@@ -27,6 +27,7 @@
                     {
                         "const": "inline"
                     },
+                    "vault": false,
                     "options":
                     {
                         "properties":

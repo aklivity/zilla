@@ -346,6 +346,11 @@ public final class HttpPath implements Path
             .GET()
             .uri(location);
 
+        if (fs.authorization() != null)
+        {
+            request = request.header("Authorization", fs.authorization());
+        }
+
         if (etag != null && !etag.isEmpty())
         {
             request = request.headers("If-None-Match", etag);
@@ -360,6 +365,11 @@ public final class HttpPath implements Path
             .GET()
             .uri(location)
             .header("Prefer", "wait=86400");
+
+        if (fs.authorization() != null)
+        {
+            request = request.header("Authorization", fs.authorization());
+        }
 
         if (etag != null)
         {

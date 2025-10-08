@@ -21,6 +21,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:catalog0
             id: catalog.karapace.schema.registry.unretrievable.schema.id
             name: CATALOG_KARAPACE_SCHEMA_REGISTRY_UNRETRIEVABLE_SCHEMA_ID

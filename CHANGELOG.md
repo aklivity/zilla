@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.9.159](https://github.com/aklivity/zilla/tree/0.9.159) (2025-09-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...0.9.159)
+
+**Closed issues:**
+
+- Support specifying credentials for OTLP exporter [\#1556](https://github.com/aklivity/zilla/issues/1556)
+- Migrate engine started and stopped to telemetry events [\#1491](https://github.com/aklivity/zilla/issues/1491)
+
+**Merged pull requests:**
+
+- support secure `otlp` exporter [\#1579](https://github.com/aklivity/zilla/pull/1579) ([ankitk-me](https://github.com/ankitk-me))
+- fix schema for catalog modules [\#1557](https://github.com/aklivity/zilla/pull/1557) ([ankitk-me](https://github.com/ankitk-me))
+- Migrate engine started and stopped to telemetry events [\#1555](https://github.com/aklivity/zilla/pull/1555) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.158](https://github.com/aklivity/zilla/tree/0.9.158) (2025-09-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.157...0.9.158)
+
+**Merged pull requests:**
+
+- Add engine authorization config [\#1547](https://github.com/aklivity/zilla/pull/1547) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.157](https://github.com/aklivity/zilla/tree/0.9.157) (2025-09-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.156...0.9.157)
+
+**Merged pull requests:**
+
+- Use ephemeral name as sender binding [\#1551](https://github.com/aklivity/zilla/pull/1551) ([jfallows](https://github.com/jfallows))
+- Default worker capacity calculation fix [\#1550](https://github.com/aklivity/zilla/pull/1550) ([bmaidics](https://github.com/bmaidics))
+- Handle slow TCP client handshake [\#1546](https://github.com/aklivity/zilla/pull/1546) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.156](https://github.com/aklivity/zilla/tree/0.9.156) (2025-08-26)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.155...0.9.156)
