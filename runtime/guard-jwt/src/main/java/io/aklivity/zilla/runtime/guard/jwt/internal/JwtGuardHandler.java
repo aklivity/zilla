@@ -416,8 +416,8 @@ public class JwtGuardHandler implements GuardHandler
         {
             this.authorized = authorized;
             this.identity = identity;
-            this.unshare = unshare;
             this.attributes = attributes;
+            this.unshare = unshare;
         }
 
         boolean challenge(
