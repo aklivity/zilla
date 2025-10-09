@@ -1,0 +1,212 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+  issues: read
+  packages: write
+  pull-requests: read
+
+jobs:
+  prepare:
+    name: Prepare ${{ inputs.version }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Restrict workflow to maintainers/admins
+      uses: skjnldsv/check-actor-permission@v3.0
+      with:
+        require: admin
+
+    - name: Cache Homebrew
+      uses: actions/cache@v3
+      with:
+        path: /home/linuxbrew/.linuxbrew
+        key: ${{ runner.os }}-homebrew
+
+    - name: Install Homebrew
+      run: |
+        if ! command -v brew >/dev/null 2>&1; then
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        brew --version
+
+    - name: Install git-flow AVH
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        brew install git-flow-avh
+
+    - name: Configure git credentials
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global credential.helper store
+        echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
+
+    - name: Checkout sources on develop
+      uses: actions/checkout@v5
+      with:
+        ref: develop
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Initialize GitFlow
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        git fetch origin main
+        git branch main origin/main
+        git flow init -df
+
+    - name: Start GitFlow release
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        git flow release start ${{ inputs.version }}
+
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        java-version: 21
+        distribution: zulu
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Update POM versions on release branch
+      run: |
+        ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
+
+    - name: Generate CHANGELOG on release branch
+      uses: janheinrichmerker/action-github-changelog-generator@v2.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit POM versions and CHANGELOG on release branch
+      run: git commit -a -m "Prepare release ${{ inputs.version }}"
+
+    - name: No-merge release branch into develop branch
+      run: |
+        git config merge.ours.driver true
+        git fetch origin develop
+        git checkout develop
+        git merge -s ours release/${{ inputs.version }} \
+            -m "No-merge release ${{ inputs.version }} into develop"
+
+    - name: Push changes to develop and release branch
+      run: |
+        git push origin develop release/${{ inputs.version }}
+
+  deploy:
+    name: Deploy ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+    - name: Checkout GitHub sources
+      uses: actions/checkout@v5
+      with:
+        ref: release/${{ inputs.version }}
+        fetch-depth: 0
+
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        java-version: 21
+        distribution: zulu
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Deploy via Maven
+      run: |
+        ./mvnw -B -U -nsu clean deploy -U -Drelease
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  finalize:
+    name: Finalize ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+    - name: Cache Homebrew
+      uses: actions/cache@v3
+      with:
+        path: /home/linuxbrew/.linuxbrew
+        key: ${{ runner.os }}-homebrew
+
+    - name: Install Homebrew
+      run: |
+        if ! command -v brew >/dev/null 2>&1; then
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        brew --version
+
+    - name: Install git-flow AVH
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        brew install git-flow-avh
+
+    - name: Configure git credentials
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global credential.helper store
+        echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
+
+    - name: Checkout GitHub sources on release branch
+      uses: actions/checkout@v5
+      with:
+        ref: release/${{ inputs.version }}
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Initialize GitFlow
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        git fetch origin main
+        git branch main origin/main
+        git fetch origin develop
+        git branch develop origin/develop
+        git flow init -df
+
+    - name: Finish release
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        git flow release finish -p ${{ inputs.version }} -m "${{ inputs.version }}"
+
+    - name: Generate CHANGELOG on develop
+      uses: janheinrichmerker/action-github-changelog-generator@v2.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit CHANGELOG on develop branch
+      run: git commit -a -m "Update CHANGELOG.md"
