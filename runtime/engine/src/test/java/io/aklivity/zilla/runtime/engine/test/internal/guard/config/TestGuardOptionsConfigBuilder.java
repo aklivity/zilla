@@ -16,8 +16,10 @@
 package io.aklivity.zilla.runtime.engine.test.internal.guard.config;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -38,6 +40,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private Duration challenge;
     private String identity;
     private List<String> roles;
+    private Map<String, String> attributes;
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -91,6 +94,18 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardOptionsConfigBuilder<T> attribute(
+        String key,
+        String value)
+    {
+        if (attributes == null)
+        {
+            attributes = new HashMap<>();
+        }
+        attributes.put(key, value);
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -99,6 +114,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             Optional.ofNullable(lifetime).orElse(DEFAULT_LIFETIME_FOREVER),
             Optional.ofNullable(challenge).orElse(DEFAULT_CHALLENGE_NEVER),
             this.identity != null ? this.identity : DEFAULT_IDENTITY,
-            roles));
+            roles,
+            attributes));
     }
 }

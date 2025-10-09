@@ -279,6 +279,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.dynamic.yaml")
+    @Specification({
+        "${http}/get.attribute.item/client",
+        "${kafka}/get.attribute.item/server"})
+    public void shouldGetAttributeItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.get.item.yaml")
     @Specification({
         "${http}/get.item/client",

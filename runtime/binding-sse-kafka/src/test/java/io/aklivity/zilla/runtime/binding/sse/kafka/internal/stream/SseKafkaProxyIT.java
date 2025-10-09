@@ -99,6 +99,16 @@ public class SseKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.and.filters.dynamic.yaml")
+    @Specification({
+        "${sse}/handshake/client",
+        "${kafka}/handshake.with.attributes/server"})
+    public void shouldCompleteHandshakeWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/handshake.reconnect/client",

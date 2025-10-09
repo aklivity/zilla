@@ -21,6 +21,8 @@ guards:
     options:
       roles:
         - service:echo
+      attributes:
+        key: test
 bindings:
   grpc0:
     type: grpc-kafka
@@ -38,6 +40,6 @@ bindings:
           capability: fetch
           topic: responses
           filters:
-            - key: "test"
+            - key: "${guarded['test0'].attributes.key}"
               headers:
                 zilla:identity: "${guarded['test0'].identity}"

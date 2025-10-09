@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard.config;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -29,6 +30,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final Duration challenge;
     public final String identity;
     public final List<String> roles;
+    public final Map<String, String> attributes;
 
     public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
     {
@@ -46,12 +48,14 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         Duration lifetime,
         Duration challenge,
         String identity,
-        List<String> roles)
+        List<String> roles,
+        Map<String, String> attributes)
     {
         this.credentials = credentials;
         this.lifetime = Objects.requireNonNull(lifetime);
         this.challenge = Objects.requireNonNull(challenge);
         this.identity = identity;
         this.roles = roles;
+        this.attributes = attributes;
     }
 }

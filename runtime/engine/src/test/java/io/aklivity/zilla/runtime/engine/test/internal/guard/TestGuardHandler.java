@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGu
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
@@ -35,6 +36,7 @@ public final class TestGuardHandler implements GuardHandler
     private final Duration lifetime;
     private final String identity;
     private final List<String> roles;
+    private final Map<String, String> attributes;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
@@ -49,6 +51,7 @@ public final class TestGuardHandler implements GuardHandler
         this.roles = config.options != null ? config.options.roles : null;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
+        this.attributes = config.options != null ? config.options.attributes : null;
     }
 
     @Override
@@ -85,6 +88,14 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId)
     {
         return identity;
+    }
+
+    @Override
+    public String attribute(
+        long sessionId,
+        String name)
+    {
+        return attributes.get(name);
     }
 
     @Override

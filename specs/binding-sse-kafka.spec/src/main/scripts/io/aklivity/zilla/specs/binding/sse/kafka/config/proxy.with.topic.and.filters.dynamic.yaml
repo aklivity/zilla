@@ -21,6 +21,10 @@ guards:
     options:
       roles:
         - read
+      attributes:
+        topic: test
+        key: example-key
+        tag: example-tag
 bindings:
   sse0:
     type: sse-kafka
@@ -39,3 +43,15 @@ bindings:
               headers:
                 zilla:identity: ${guarded['test0'].identity}
                 tag: ${params.tag}
+      - guarded:
+          test0:
+            - read
+        exit: kafka0
+        when:
+          - path: /test
+        with:
+          topic: ${guarded['test0'].attributes.topic}
+          filters:
+            - key: ${guarded['test0'].attributes.key}
+              headers:
+                tag: ${guarded['test0'].attributes.tag}

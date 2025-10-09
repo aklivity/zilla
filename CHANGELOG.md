@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...HEAD)
+
+**Closed issues:**
+
+- Support guard attributes [\#1578](https://github.com/aklivity/zilla/issues/1578)
+
+**Merged pull requests:**
+
+- Support guard attributes [\#1582](https://github.com/aklivity/zilla/pull/1582) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.159](https://github.com/aklivity/zilla/tree/0.9.159) (2025-09-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...0.9.159)
 
 **Closed issues:**
 
