@@ -183,13 +183,11 @@ public class EngineManager
                 newConfigText = CONFIG_TEXT_DEFAULT;
             }
 
-            if (localConfigPath != null)
+            if (localConfigPath != null &&
+                Files.exists(localConfigPath))
             {
-                String localYamlDoc = Files.exists(localConfigPath) ? Files.readString(localConfigPath) : null;
-                if (localYamlDoc != null)
-                {
-                    newConfigText = newConfigText + "\n" + localYamlDoc;
-                }
+                String localYamlDoc = Files.readString(localConfigPath);
+                newConfigText = localYamlDoc + "\n" + newConfigText;
             }
 
             String systemYamlDoc = buildSystemNamespaceIfNecessary();
