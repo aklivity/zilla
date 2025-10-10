@@ -21,6 +21,7 @@ import static java.util.Collections.emptyList;
 import java.security.KeyStore;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongConsumer;
 
@@ -98,10 +99,12 @@ final class TestBindingFactory implements BindingHandler
     private List<CatalogAssertion> catalogAssertions;
     private GuardHandler guard;
     private String credentials;
+    private Map<String, String> attributes;
     private List<Event> events;
     private int eventIndex;
     private VaultHandler vault;
     private VaultAssertion vaultAssertion;
+    private long authorization;
 
     TestBindingFactory(
         Configuration config,
@@ -149,6 +152,7 @@ final class TestBindingFactory implements BindingHandler
                 int guardId = context.supplyTypeId(options.authorization.name);
                 this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
                 this.credentials = options.authorization.credentials;
+                this.attributes = options.authorization.attributes;
             }
 
             this.events = options.events;
@@ -198,7 +202,7 @@ final class TestBindingFactory implements BindingHandler
         MessageConsumer newStream =  null;
 
         TestBindingConfig binding = bindings.get(routedId);
-        long authorization = begin.authorization();
+        authorization = begin.authorization();
 
         if (guard != null)
         {
@@ -392,6 +396,17 @@ final class TestBindingFactory implements BindingHandler
                     else
                     {
                         handler.resolve(catalog.id);
+                    }
+                }
+            }
+
+            if (guard != null && attributes != null && !attributes.isEmpty())
+            {
+                for (Map.Entry<String, String> entry : attributes.entrySet())
+                {
+                    if (!entry.getValue().equals(guard.attribute(authorization, entry.getKey())))
+                    {
+                        doInitialReset(traceId);
                     }
                 }
             }
