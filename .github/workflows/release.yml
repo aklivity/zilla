@@ -25,7 +25,7 @@ jobs:
         require: admin
 
     - name: Cache Homebrew
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -156,7 +156,7 @@ jobs:
 
     steps:
     - name: Cache Homebrew
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
