@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...HEAD)
+
+**Merged pull requests:**
+
+- validate attributes in test binding [\#1587](https://github.com/aklivity/zilla/pull/1587) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.161](https://github.com/aklivity/zilla/tree/0.9.161) (2025-10-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...0.9.161)
 
 **Closed issues:**
 

@@ -15,8 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -24,6 +26,7 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -43,6 +46,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String CREDENTIALS_NAME = "credentials";
+    private static final String ATTRIBUTES_NAME = "attributes";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -155,10 +159,19 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
         if (testOptions.authorization != null)
         {
             JsonObjectBuilder credentials = Json.createObjectBuilder();
-            credentials.add(CREDENTIALS_NAME, testOptions.authorization.credentials);
-            JsonObjectBuilder authorization = Json.createObjectBuilder();
-            authorization.add(testOptions.authorization.name, credentials);
-            object.add(AUTHORIZATION_NAME, authorization);
+            TestAuthorizationConfig authorization = testOptions.authorization;
+            credentials.add(CREDENTIALS_NAME, authorization.credentials);
+            JsonObjectBuilder authorizationJson = Json.createObjectBuilder();
+            authorizationJson.add(authorization.name, credentials);
+            if (authorization.attributes != null &&
+                !authorization.attributes.isEmpty())
+            {
+                JsonObjectBuilder entries = Json.createObjectBuilder();
+                authorization.attributes.forEach((k, v) -> entries.add(k, v));
+                authorizationJson.add(ATTRIBUTES_NAME, entries);
+            }
+
+            object.add(AUTHORIZATION_NAME, authorizationJson);
         }
 
         if (testOptions.events != null)
@@ -265,7 +278,13 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     if (guard.containsKey(CREDENTIALS_NAME))
                     {
                         String credentials = guard.getString(CREDENTIALS_NAME);
-                        testOptions.authorization(name, credentials);
+                        Map<String, String> attributes = new HashMap<>();
+                        if (guard.containsKey(ATTRIBUTES_NAME))
+                        {
+                            guard.getJsonObject(ATTRIBUTES_NAME)
+                                .forEach((key, value) -> attributes.put(key, ((JsonString) value).getString()));
+                        }
+                        testOptions.authorization(name, credentials, attributes);
                     }
                 }
             }
