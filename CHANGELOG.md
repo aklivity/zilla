@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...HEAD)
+
+**Merged pull requests:**
+
+- Append local config if configured [\#1583](https://github.com/aklivity/zilla/pull/1583) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.162](https://github.com/aklivity/zilla/tree/0.9.162) (2025-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...0.9.162)
+
+**Merged pull requests:**
+
+- validate attributes in test binding [\#1587](https://github.com/aklivity/zilla/pull/1587) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.161](https://github.com/aklivity/zilla/tree/0.9.161) (2025-10-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...0.9.161)
+
+**Closed issues:**
+
+- Support guard attributes [\#1578](https://github.com/aklivity/zilla/issues/1578)
+
+**Merged pull requests:**
+
+- Support guard attributes [\#1582](https://github.com/aklivity/zilla/pull/1582) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.159](https://github.com/aklivity/zilla/tree/0.9.159) (2025-09-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...0.9.159)
