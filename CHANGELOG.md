@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...HEAD)
+
+**Merged pull requests:**
+
+- Append local config if configured [\#1583](https://github.com/aklivity/zilla/pull/1583) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.162](https://github.com/aklivity/zilla/tree/0.9.162) (2025-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...0.9.162)
 
 **Merged pull requests:**
 

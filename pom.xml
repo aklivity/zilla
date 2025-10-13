@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.162</version>
+  <version>0.9.164</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -34,14 +34,14 @@
 
   <repositories>
     <repository>
-      <id>aklivity</id>
+      <id>github</id>
       <url>https://maven.packages.aklivity.io/</url>
     </repository>
   </repositories>
 
   <pluginRepositories>
     <pluginRepository>
-      <id>aklivity</id>
+      <id>github</id>
       <url>https://maven.packages.aklivity.io/</url>
     </pluginRepository>
   </pluginRepositories>

@@ -73,6 +73,7 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_CACERTS_STORE_NAME = "zilla.engine.cacerts.store";
     public static final String ENGINE_CACERTS_STORE_PASS_NAME = "zilla.engine.cacerts.store.pass";
     public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
+    public static final String ENGINE_LOCAL_CONFIG_URI_NAME = "zilla.engine.local.config.uri";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
     public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
 
