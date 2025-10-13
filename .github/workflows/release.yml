@@ -25,7 +25,7 @@ jobs:
         require: admin
 
     - name: Cache Homebrew
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -88,7 +88,7 @@ jobs:
         ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
 
     - name: Generate CHANGELOG on release branch
-      uses: janheinrichmerker/action-github-changelog-generator@v2.3
+      uses: janheinrichmerker/action-github-changelog-generator@v2.4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -124,16 +124,10 @@ jobs:
       with:
         java-version: 21
         distribution: zulu
+        cache: maven
         server-id: github
         server-username: GITHUB_ACTOR
         server-password: GITHUB_TOKEN
-
-    - name: Cache Maven packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
@@ -149,6 +143,14 @@ jobs:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Uncache Maven project release artifacts
+      run: |
+        GROUP_ID=`./mvnw help:evaluate -Dexpression=project.groupId -q -DforceStdout`
+        rm -fr ~/.m2/repository/$(echo $GROUP_ID | tr . /)
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   finalize:
     name: Finalize ${{ inputs.version }}
     runs-on: ubuntu-latest
@@ -156,7 +158,7 @@ jobs:
 
     steps:
     - name: Cache Homebrew
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -204,7 +206,7 @@ jobs:
         git flow release finish -p ${{ inputs.version }} -m "${{ inputs.version }}"
 
     - name: Generate CHANGELOG on develop
-      uses: janheinrichmerker/action-github-changelog-generator@v2.3
+      uses: janheinrichmerker/action-github-changelog-generator@v2.4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
