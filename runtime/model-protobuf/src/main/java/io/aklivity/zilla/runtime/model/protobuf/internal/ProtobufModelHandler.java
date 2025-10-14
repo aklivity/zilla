@@ -26,14 +26,8 @@ import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 
@@ -42,8 +36,6 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Lexer;
-import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
 
 public class ProtobufModelHandler
 {
@@ -67,6 +59,7 @@ public class ProtobufModelHandler
     private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
     private final Int2IntHashMap paddings;
+    private final ProtobufParser parser;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -88,6 +81,7 @@ public class ProtobufModelHandler
         this.paddings = new Int2IntHashMap(-1);
         this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.event = new ProtobufModelEventContext(context);
+        this.parser = new ProtobufParser(dependencies);
     }
 
     protected FileDescriptor supplyDescriptor(
@@ -237,22 +231,11 @@ public class ProtobufModelHandler
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
-            CharStream input = CharStreams.fromString(schemaText);
-            Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-            Protobuf3Parser parser = new Protobuf3Parser(tokens);
-            parser.setErrorHandler(new BailErrorStrategy());
-            ParseTreeWalker walker = new ParseTreeWalker();
-
-            ProtoListener listener = new ProtoListener();
-            walker.walk(listener, parser.proto());
-
             try
             {
-                descriptor = FileDescriptor.buildFrom(listener.build(), dependencies);
+                descriptor = parser.parse(schemaText);
             }
-            catch (DescriptorValidationException ex)
+            catch (Exception ex)
             {
                 ex.printStackTrace();
             }
