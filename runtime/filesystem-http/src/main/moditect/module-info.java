@@ -17,6 +17,8 @@ module io.aklivity.zilla.runtime.filesystem.http
     requires java.net.http;
     requires org.agrona.core;
 
+    exports io.aklivity.zilla.runtime.filesystem.http;
+
     provides java.nio.file.spi.FileSystemProvider with
         io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemProvider,
         io.aklivity.zilla.runtime.filesystem.http.internal.HttpsFileSystemProvider;
