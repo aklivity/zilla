@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.164...HEAD)
+
+**Merged pull requests:**
+
+- Fix http filesystem module-info [\#1588](https://github.com/aklivity/zilla/pull/1588) ([jfallows](https://github.com/jfallows))
+- Protobuf2 Model Support in Zilla [\#1548](https://github.com/aklivity/zilla/pull/1548) ([nageshwaravijay1117](https://github.com/nageshwaravijay1117))
+
+## [0.9.164](https://github.com/aklivity/zilla/tree/0.9.164) (2025-10-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...0.9.164)
 
 **Merged pull requests:**
 
