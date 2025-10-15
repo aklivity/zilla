@@ -1,5 +1,42 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.164...HEAD)
+
+**Merged pull requests:**
+
+- Fix http filesystem module-info [\#1588](https://github.com/aklivity/zilla/pull/1588) ([jfallows](https://github.com/jfallows))
+- Protobuf2 Model Support in Zilla [\#1548](https://github.com/aklivity/zilla/pull/1548) ([nageshwaravijay1117](https://github.com/nageshwaravijay1117))
+
+## [0.9.164](https://github.com/aklivity/zilla/tree/0.9.164) (2025-10-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...0.9.164)
+
+**Merged pull requests:**
+
+- Append local config if configured [\#1583](https://github.com/aklivity/zilla/pull/1583) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.162](https://github.com/aklivity/zilla/tree/0.9.162) (2025-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...0.9.162)
+
+**Merged pull requests:**
+
+- validate attributes in test binding [\#1587](https://github.com/aklivity/zilla/pull/1587) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.161](https://github.com/aklivity/zilla/tree/0.9.161) (2025-10-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...0.9.161)
+
+**Closed issues:**
+
+- Support guard attributes [\#1578](https://github.com/aklivity/zilla/issues/1578)
+
+**Merged pull requests:**
+
+- Support guard attributes [\#1582](https://github.com/aklivity/zilla/pull/1582) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.159](https://github.com/aklivity/zilla/tree/0.9.159) (2025-09-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...0.9.159)
