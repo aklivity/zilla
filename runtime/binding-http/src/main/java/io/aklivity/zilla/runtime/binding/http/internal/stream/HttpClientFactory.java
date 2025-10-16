@@ -124,7 +124,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public final class HttpClientFactory implements HttpStreamFactory
 {
     private static final Pattern RESPONSE_LINE_PATTERN =
-            Pattern.compile("(?<version>HTTP/\\d\\.\\d)\\s+(?<status>\\d+)\\s+(?<reason>[^\\r\\n]+)\r\n");
+            Pattern.compile("(?<version>HTTP/\\d\\.\\d)\\s+(?<status>\\d+)\\s+(?<reason>[^\\r\\n]*)\r\n");
     private static final Pattern VERSION_PATTERN = Pattern.compile("HTTP/1\\.\\d");
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile("(?<name>[^\\s:]+):\\s*(?<value>[^\r\n]*)\r\n");
     private static final Pattern CONNECTION_CLOSE_PATTERN = Pattern.compile("(^|\\s*,\\s*)close(\\s*,\\s*|$)");

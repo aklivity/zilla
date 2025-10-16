@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.164...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.165...HEAD)
+
+**Merged pull requests:**
+
+- Fix http 1.1 client decode of response empty reason phrase [\#1589](https://github.com/aklivity/zilla/pull/1589) ([jfallows](https://github.com/jfallows))
+
+## [0.9.165](https://github.com/aklivity/zilla/tree/0.9.165) (2025-10-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.164...0.9.165)
 
 **Merged pull requests:**
 
