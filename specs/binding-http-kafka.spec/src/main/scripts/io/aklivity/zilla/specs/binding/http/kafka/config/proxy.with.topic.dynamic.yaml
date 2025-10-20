@@ -52,7 +52,7 @@ bindings:
             path: /my-items/{id}
         with:
           capability: produce
-          topic: ${guarded['test0'].identity}-items
+          topic: ${guarded['test0'].identity}/${guarded['test0'].attributes.topic}
           acks: leader_only
           key: ${params.id}
       - guarded:
