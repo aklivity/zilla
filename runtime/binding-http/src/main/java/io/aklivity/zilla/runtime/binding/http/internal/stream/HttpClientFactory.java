@@ -2510,14 +2510,23 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.closingReply(state);
 
-            pool.exchanges.forEach((id, exchange) ->
+            if (decoder == decodeHttp11Upgraded &&
+                exchange != null)
             {
-                if (!HttpState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
+                exchange.doResponseEnd(traceId, authorization, EMPTY_OCTETS);
+                cleanupDecodeSlotIfNecessary();
+            }
+            else
+            {
+                pool.exchanges.forEach((id, exchange) ->
                 {
-                    exchange.cleanup(traceId, authorization);
-                    cleanupDecodeSlotIfNecessary();
-                }
-            });
+                    if (!HttpState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
+                    {
+                        exchange.cleanup(traceId, authorization);
+                        cleanupDecodeSlotIfNecessary();
+                    }
+                });
+            }
 
             if (decodeSlot == NO_SLOT)
             {

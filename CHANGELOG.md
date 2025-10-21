@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.165...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.166...HEAD)
+
+**Merged pull requests:**
+
+- Fix http 1.1 client upgrade then close [\#1591](https://github.com/aklivity/zilla/pull/1591) ([jfallows](https://github.com/jfallows))
+- support multiple replacer with dynamic pattern [\#1590](https://github.com/aklivity/zilla/pull/1590) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.166](https://github.com/aklivity/zilla/tree/0.9.166) (2025-10-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.165...0.9.166)
 
 **Merged pull requests:**
 
