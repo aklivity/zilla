@@ -161,6 +161,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/upgrade.request.and.response.then.server.sent.close/client",
+        "${net}/upgrade.request.and.response.then.server.sent.close/server" })
+    public void shouldUpgradeThenServerSentClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.incomplete.response.headers.and.abort/client",
         "${net}/request.incomplete.response.headers.and.abort/server" })
     public void shouldReportResponseAbortedBeforeResponseHeadersComplete() throws Exception
