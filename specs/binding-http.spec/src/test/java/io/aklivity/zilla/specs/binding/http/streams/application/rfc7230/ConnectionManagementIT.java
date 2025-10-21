@@ -109,6 +109,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/upgrade.request.and.response.then.server.sent.close/client",
+        "${app}/upgrade.request.and.response.then.server.sent.close/server" })
+    public void upgradeRequestAndResponseThenServerSentClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${app}/request.and.503.response.with.retry/server" })
     public void requestAnd503ResponseWithRetry() throws Exception

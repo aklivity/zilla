@@ -166,6 +166,15 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/upgrade.request.and.response.then.server.sent.close/client",
+        "${net}/upgrade.request.and.response.then.server.sent.close/server" })
+    public void upgradeRequestAndResponseThenServerSentClose() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("client.yaml")
