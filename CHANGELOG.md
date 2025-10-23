@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.166...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.167...HEAD)
+
+**Merged pull requests:**
+
+- Fix TestGuardHandler when no attributes are specified [\#1592](https://github.com/aklivity/zilla/pull/1592) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.167](https://github.com/aklivity/zilla/tree/0.9.167) (2025-10-21)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.166...0.9.167)
 
 **Merged pull requests:**
 
