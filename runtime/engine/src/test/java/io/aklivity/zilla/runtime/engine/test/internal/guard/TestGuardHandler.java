@@ -95,7 +95,7 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId,
         String name)
     {
-        return attributes.get(name);
+        return attributes != null ? attributes.get(name) : null;
     }
 
     @Override
