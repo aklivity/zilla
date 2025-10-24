@@ -53,6 +53,9 @@ public final class HttpKafkaWithResolver
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
+    private static final Pattern ATTRIBUTE_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
+            ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
     private static final Pattern CORRELATION_ID_PATTERN = Pattern.compile("\\$\\{correlationId\\}");
     private static final Pattern IDEMPOTENCY_KEY_PATTERN = Pattern.compile("\\$\\{idempotencyKey\\}");
 
@@ -85,9 +88,11 @@ public final class HttpKafkaWithResolver
 
     private final HttpKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
+    private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final HttpKafkaWithConfig with;
     private final Matcher paramsMatcher;
     private final Matcher identityMatcher;
+    private final Matcher attributeMatcher;
     private final Matcher correlationIdMatcher;
     private final Matcher idempotencyKeyMatcher;
     private final Matcher preferWaitMatcher;
@@ -99,13 +104,16 @@ public final class HttpKafkaWithResolver
     public HttpKafkaWithResolver(
         HttpKafkaOptionsConfig options,
         LongObjectBiFunction<MatchResult, String> identityReplacer,
+        LongObjectBiFunction<MatchResult, String> attributeReplacer,
         HttpKafkaWithConfig with)
     {
         this.options = options;
         this.identityReplacer = identityReplacer;
+        this.attributeReplacer = attributeReplacer;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
         this.correlationIdMatcher = CORRELATION_ID_PATTERN.matcher("");
         this.idempotencyKeyMatcher = IDEMPOTENCY_KEY_PATTERN.matcher("");
         this.preferWaitMatcher = HEADER_VALUE_PREFER_WAIT_PATTERN.matcher("");
@@ -170,17 +178,9 @@ public final class HttpKafkaWithResolver
                 if (filter.key.isPresent())
                 {
                     String key0 = filter.key.get();
-                    Matcher keyMatcher = paramsMatcher.reset(key0);
-                    if (keyMatcher.matches())
-                    {
-                        key0 = keyMatcher.replaceAll(replacer);
-                    }
-
-                    keyMatcher = identityMatcher.reset(key0);
-                    if (keyMatcher.matches())
-                    {
-                        key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                    }
+                    key0 = findAndReplace(key0, paramsMatcher, replacer);
+                    key0 = findAndReplace(key0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+                    key0 = findAndReplace(key0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                     key = new String16FW(key0).value();
                 }
@@ -196,17 +196,9 @@ public final class HttpKafkaWithResolver
                         DirectBuffer name = new String16FW(name0).value();
 
                         String value0 = header0.value;
-                        Matcher valueMatcher = paramsMatcher.reset(value0);
-                        if (valueMatcher.matches())
-                        {
-                            value0 = valueMatcher.replaceAll(replacer);
-                        }
-
-                        valueMatcher = identityMatcher.reset(value0);
-                        if (valueMatcher.matches())
-                        {
-                            value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                        }
+                        value0 = findAndReplace(value0, paramsMatcher, replacer);
+                        value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+                        value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                         DirectBuffer value = new String16FW(value0).value();
 
@@ -293,12 +285,7 @@ public final class HttpKafkaWithResolver
                 String name0 = header.name;
                 String8FW name = new String8FW(name0);
 
-                String value0 = header.value;
-                Matcher valueMatcher = paramsMatcher.reset(value0);
-                if (valueMatcher.find())
-                {
-                    value0 = valueMatcher.replaceAll(replacer);
-                }
+                String value0 = findAndReplace(header.value, paramsMatcher, replacer);
 
                 String value = value0;
                 Supplier<String16FW> valueRef = () -> new String16FW(value);
@@ -308,11 +295,7 @@ public final class HttpKafkaWithResolver
                     valueRef = () ->
                     {
                         String value1 = value;
-                        Matcher value1Matcher = correlationIdMatcher.reset(value1);
-                        if (value1Matcher.find())
-                        {
-                            value1 = value1Matcher.replaceAll(hash.correlationId().asString());
-                        }
+                        value1 = findAndReplace(value1, correlationIdMatcher, r -> hash.correlationId().asString());
 
                         return new String16FW(value1);
                     };
@@ -331,17 +314,9 @@ public final class HttpKafkaWithResolver
         if (produce.key.isPresent())
         {
             String key0 = produce.key.get();
-            Matcher keyMatcher = paramsMatcher.reset(key0);
-            if (keyMatcher.matches())
-            {
-                key0 = keyMatcher.replaceAll(replacer);
-            }
-
-            keyMatcher = identityMatcher.reset(key0);
-            if (keyMatcher.matches())
-            {
-                key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-            }
+            key0 = findAndReplace(key0, paramsMatcher, replacer);
+            key0 = findAndReplace(key0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+            key0 = findAndReplace(key0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
             String key = key0;
             keyRef = () -> new String16FW(key).value();
@@ -351,11 +326,7 @@ public final class HttpKafkaWithResolver
                 keyRef = () ->
                 {
                     String key1 = key;
-                    Matcher key1Matcher = idempotencyKeyMatcher.reset(key1);
-                    if (key1Matcher.find())
-                    {
-                        key1 = key1Matcher.replaceAll(idempotencyKey.asString());
-                    }
+                    key1 = findAndReplace(key1, idempotencyKeyMatcher, r -> idempotencyKey.asString());
                     return new String16FW(key1).value();
                 };
             }
@@ -372,17 +343,9 @@ public final class HttpKafkaWithResolver
                 DirectBuffer name = new String16FW(name0).value();
 
                 String value0 = override.value;
-                Matcher valueMatcher = paramsMatcher.reset(value0);
-                if (valueMatcher.matches())
-                {
-                    value0 = valueMatcher.replaceAll(replacer);
-                }
-
-                valueMatcher = identityMatcher.reset(value0);
-                if (valueMatcher.matches())
-                {
-                    value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                }
+                value0 = findAndReplace(value0, paramsMatcher, replacer);
+                value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+                value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                 String value = value0;
                 Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
@@ -391,11 +354,7 @@ public final class HttpKafkaWithResolver
                     valueRef = () ->
                     {
                         String value1 = value;
-                        Matcher value1Matcher = correlationIdMatcher.reset(value1);
-                        if (value1Matcher.find())
-                        {
-                            value1 = value1Matcher.replaceAll(hash.correlationId().asString());
-                        }
+                        value1 = findAndReplace(value1, idempotencyKeyMatcher, r -> idempotencyKey.asString());
                         return new String16FW(value1).value();
                     };
                 }
@@ -408,11 +367,7 @@ public final class HttpKafkaWithResolver
         if (produce.replyTo.isPresent())
         {
             String replyTo0 = produce.replyTo.get();
-            Matcher replyToMatcher = paramsMatcher.reset(replyTo0);
-            if (replyToMatcher.matches())
-            {
-                replyTo0 = replyToMatcher.replaceAll(replacer);
-            }
+            replyTo0 = findAndReplace(replyTo0, paramsMatcher, replacer);
             replyTo = new String16FW(replyTo0);
         }
 
@@ -437,18 +392,24 @@ public final class HttpKafkaWithResolver
         long authorization,
         String topic)
     {
-        Matcher topicMatcher = paramsMatcher.reset(topic);
-        if (topicMatcher.matches())
-        {
-            topic = topicMatcher.replaceAll(replacer);
-        }
-
-        topicMatcher = identityMatcher.reset(topic);
-        if (topicMatcher.find())
-        {
-            topic = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-        }
+        topic = findAndReplace(topic, paramsMatcher, replacer);
+        topic = findAndReplace(topic, identityMatcher, r -> identityReplacer.apply(authorization, r));
+        topic = findAndReplace(topic, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
         return new String16FW(topic);
+    }
+
+    private static String findAndReplace(
+        String value,
+        Matcher matcher,
+        Function<MatchResult, String> replacer)
+    {
+        matcher.reset(value);
+        while (matcher.find())
+        {
+            value = matcher.replaceAll(replacer);
+            matcher.reset(value);
+        }
+        return value;
     }
 }

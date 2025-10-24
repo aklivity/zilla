@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class JwtGuard implements Guard
@@ -94,6 +95,20 @@ public final class JwtGuard implements Guard
         return session -> identity(guardIndex, guardId, indexOf.applyAsInt(session), session);
     }
 
+    @Override
+    public LongObjectBiFunction<String, String> attributor(
+        LongToIntFunction indexOf,
+        GuardedConfig config)
+    {
+        Objects.requireNonNull(indexOf);
+
+        final long guardId = config.id;
+
+        final int guardIndex = indexOf.applyAsInt(guardId);
+
+        return (session, name) -> attribute(guardIndex, guardId, indexOf.applyAsInt(session), session, name);
+    }
+
     private boolean verify(
         int guardIndex,
         long guardId,
@@ -123,5 +138,21 @@ public final class JwtGuard implements Guard
         final JwtGuardContext context = contexts[sessionIndex];
         final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null ? handler.identity(sessionId) : null;
+    }
+
+    private String attribute(
+        int guardIndex,
+        long guardId,
+        int sessionIndex,
+        long sessionId,
+        String name)
+    {
+        if (sessionIndex != guardIndex)
+        {
+            VarHandle.fullFence();
+        }
+        final JwtGuardContext context = contexts[sessionIndex];
+        final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
+        return handler != null ? handler.attribute(sessionId, name) : null;
     }
 }

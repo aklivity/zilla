@@ -14,7 +14,7 @@
 #
 
 connect "zilla://streams/app0"
-        option zilla:ephemeral "test"
+        option zilla:ephemeral "app0"
         option zilla:timestamps "false"
         option zilla:window 8192
         option zilla:transmission "duplex"

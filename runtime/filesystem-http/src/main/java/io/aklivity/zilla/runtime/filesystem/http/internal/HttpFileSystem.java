@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
@@ -28,14 +29,17 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.Map;
 import java.util.Set;
 
+import io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment;
+
 public final class HttpFileSystem extends FileSystem
 {
     private static final String HTTP_PATH_SEPARATOR = "/";
 
     private final HttpFileSystemProvider provider;
     private final URI root;
-    private final HttpFileSystemConfiguration config;
+    private final HttpFilesystemEnvironment env;
     private final HttpClient client;
+    private final String authorization;
 
     HttpFileSystem(
         HttpFileSystemProvider provider,
@@ -44,11 +48,17 @@ public final class HttpFileSystem extends FileSystem
     {
         this.provider = provider;
         this.root = root;
-        this.config = new HttpFileSystemConfiguration(env);
+        this.env =  HttpFilesystemEnvironment.of(env);
         this.client = HttpClient.newBuilder()
             .version(HTTP_2)
             .followRedirects(NORMAL)
             .build();
+        this.authorization = (String) env.get(AUTHORIZATION_PROPERTY_NAME);
+    }
+
+    public String authorization()
+    {
+        return authorization;
     }
 
     @Override
@@ -136,7 +146,7 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        return new HttpWatchService(config);
+        return new HttpWatchService(env);
     }
 
     HttpClient client()

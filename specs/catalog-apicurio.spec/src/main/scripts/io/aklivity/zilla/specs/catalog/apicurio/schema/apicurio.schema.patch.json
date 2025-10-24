@@ -32,6 +32,7 @@
                     {
                         "enum": [ "apicurio-registry", "apicurio" ]
                     },
+                    "vault": false,
                     "options":
                     {
                         "properties":

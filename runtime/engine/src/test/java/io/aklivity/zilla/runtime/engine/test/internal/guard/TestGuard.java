@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TestGuard implements Guard
@@ -79,7 +80,16 @@ public final class TestGuard implements Guard
         GuardedConfig config)
     {
         long guardId = config.id;
-        return sessionId -> identitfy(guardId, indexOf.applyAsInt(sessionId), sessionId);
+        return sessionId -> identify(guardId, indexOf.applyAsInt(sessionId), sessionId);
+    }
+
+    @Override
+    public LongObjectBiFunction<String, String> attributor(
+        LongToIntFunction indexOf,
+        GuardedConfig config)
+    {
+        long guardId = config.id;
+        return (sessionId, name) -> attribute(guardId, indexOf.applyAsInt(sessionId), sessionId, name);
     }
 
     private boolean verify(
@@ -93,7 +103,7 @@ public final class TestGuard implements Guard
         return handler.verify(sessionId, roles);
     }
 
-    private String identitfy(
+    private String identify(
         long guardId,
         int index,
         long sessionId)
@@ -101,5 +111,16 @@ public final class TestGuard implements Guard
         TestGuardContext context = contexts[index];
         TestGuardHandler handler = context.handler(guardId);
         return handler.identity(sessionId);
+    }
+
+    private String attribute(
+        long guardId,
+        int index,
+        long sessionId,
+        String name)
+    {
+        TestGuardContext context = contexts[index];
+        TestGuardHandler handler = context.handler(guardId);
+        return handler.attribute(sessionId, name);
     }
 }

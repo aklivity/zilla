@@ -18,6 +18,7 @@ import static java.util.Optional.ofNullable;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -32,6 +33,7 @@ public class JwtOptionsConfig extends OptionsConfig
     public final Optional<Duration> challenge;
     public final String identity;
     public final Optional<String> keysURL;
+    public final Map<String, String> attributes;
 
     public static JwtOptionsConfigBuilder<JwtOptionsConfig> builder()
     {
@@ -51,7 +53,8 @@ public class JwtOptionsConfig extends OptionsConfig
         List<JwtKeyConfig> keys,
         Duration challenge,
         String identity,
-        String keysURL)
+        String keysURL,
+        Map<String, String> attributes)
     {
         this.issuer = issuer;
         this.audience = audience;
@@ -60,5 +63,6 @@ public class JwtOptionsConfig extends OptionsConfig
         this.challenge = ofNullable(challenge);
         this.identity = identity;
         this.keysURL = ofNullable(keysURL);
+        this.attributes = attributes;
     }
 }

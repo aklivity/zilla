@@ -68,6 +68,7 @@ public class JwtGuardHandler implements GuardHandler
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
     private final JwtEventContext event;
+    private final Map<String, String> attributes;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
@@ -124,6 +125,7 @@ public class JwtGuardHandler implements GuardHandler
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
         this.event = new JwtEventContext(context);
+        this.attributes = options.attributes;
     }
 
     @Override
@@ -136,6 +138,7 @@ public class JwtGuardHandler implements GuardHandler
         JwtSession session = null;
         String identity = null;
         String reason = "";
+        Map<String, String> attributes = new HashMap<>();
 
         authorize:
         try
@@ -194,8 +197,18 @@ public class JwtGuardHandler implements GuardHandler
                         .map(Arrays::asList)
                         .orElse(null);
 
+            if (this.attributes != null && !this.attributes.isEmpty())
+            {
+                this.attributes
+                    .forEach((name, attribute) ->
+                    {
+                        Object value = claimValue(claims, attribute);
+                        attributes.put(name, value != null ? value.toString() : null);
+                    });
+            }
+
             JwtSessionStore sessionStore = supplySessionStore(contextId);
-            session = sessionStore.supplySession(identity, roles);
+            session = sessionStore.supplySession(identity, roles, attributes);
 
             session.credentials = credentials;
             session.roles = roles;
@@ -242,6 +255,15 @@ public class JwtGuardHandler implements GuardHandler
     {
         JwtSession session = sessionsById.get(sessionId);
         return session != null ? session.identity : null;
+    }
+
+    @Override
+    public String attribute(
+        long sessionId,
+        String name)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.attributes.get(name) : null;
     }
 
     @Override
@@ -319,33 +341,36 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession supplySession(
             String identity,
-            List<String> roles)
+            List<String> roles,
+            Map<String, String> attributes)
         {
             String identityKey = identity != null ? identity.intern() : null;
             JwtSession session = sessionsByIdentity.get(identityKey);
 
             if (identityKey == null || session != null && roles != null && !supersetOf(session, roles))
             {
-                session = newSession(identityKey);
+                session = newSession(identityKey, attributes);
             }
             else
             {
-                session = sessionsByIdentity.computeIfAbsent(identityKey, this::newSharedSession);
+                session = sessionsByIdentity.computeIfAbsent(identityKey, key -> newSharedSession(key, attributes));
             }
 
             return session;
         }
 
         private JwtSession newSharedSession(
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes, this::onUnshared);
         }
 
         private JwtSession newSession(
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), identity);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes);
         }
 
         private void onUnshared(
@@ -364,6 +389,7 @@ public class JwtGuardHandler implements GuardHandler
         private final long authorized;
         private final String identity;
         private final Consumer<JwtSession> unshare;
+        private final Map<String, String> attributes;
 
         private String credentials;
         private long expiresAt;
@@ -376,18 +402,21 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession(
             long authorized,
-            String identity)
+            String identity,
+            Map<String, String> attributes)
         {
-            this(authorized, identity, null);
+            this(authorized, identity, attributes, null);
         }
 
         private JwtSession(
             long authorized,
             String identity,
+            Map<String, String> attributes,
             Consumer<JwtSession> unshare)
         {
             this.authorized = authorized;
             this.identity = identity;
+            this.attributes = attributes;
             this.unshare = unshare;
         }
 

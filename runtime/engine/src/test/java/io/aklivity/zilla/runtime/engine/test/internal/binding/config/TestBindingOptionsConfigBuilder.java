@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -82,9 +83,10 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
 
     public TestBindingOptionsConfigBuilder<T> authorization(
         String name,
-        String credentials)
+        String credentials,
+        Map<String, String> attributes)
     {
-        this.authorization = new TestAuthorizationConfig(name, credentials);
+        this.authorization = new TestAuthorizationConfig(name, credentials, attributes);
         return this;
     }
 

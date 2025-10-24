@@ -15,14 +15,26 @@
 package io.aklivity.zilla.runtime.exporter.otlp.config;
 
 import java.net.URI;
+import java.util.function.Function;
 
 public class OtlpEndpointConfig
 {
-    public String protocol;
-    public URI location;
-    public OtlpOverridesConfig overrides;
+    public final String protocol;
+    public final URI location;
+    public final OtlpOverridesConfig overrides;
 
-    public OtlpEndpointConfig(
+    public static OtlpEndpointConfigBuilder<OtlpEndpointConfig> builder()
+    {
+        return new OtlpEndpointConfigBuilder<>(OtlpEndpointConfig.class::cast);
+    }
+
+    public static <T> OtlpEndpointConfigBuilder<T> builder(
+        Function<OtlpEndpointConfig, T> mapper)
+    {
+        return new OtlpEndpointConfigBuilder<>(mapper);
+    }
+
+    protected OtlpEndpointConfig(
         String protocol,
         URI location,
         OtlpOverridesConfig overrides)

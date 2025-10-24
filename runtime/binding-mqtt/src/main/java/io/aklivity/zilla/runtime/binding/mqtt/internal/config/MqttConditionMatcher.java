@@ -29,13 +29,18 @@ import org.agrona.collections.LongObjPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicParamConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class MqttConditionMatcher
 {
     private static final Pattern IDENTITY_PATTERN =
         Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
+    private static final Pattern ATTRIBUTE_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
+            ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
 
     private final Matcher identityMatcher = IDENTITY_PATTERN.matcher("");
+    private final Matcher attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
 
     private final List<Matcher> sessionMatchers;
     private final List<TopicMatcher> subscribeMatchers;
@@ -43,16 +48,17 @@ public final class MqttConditionMatcher
 
     public MqttConditionMatcher(
         Function<String, LongFunction<String>> identities,
+        Function<String, LongObjectBiFunction<String, String>> attributor,
         MqttConditionConfig condition)
     {
         this.sessionMatchers = condition.sessions != null && !condition.sessions.isEmpty()
             ? asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList()))
             : null;
         this.subscribeMatchers = condition.subscribes != null && !condition.subscribes.isEmpty()
-            ? condition.subscribes.stream().map(s -> new TopicMatcher(identities, s.topic, s.params)).toList()
+            ? condition.subscribes.stream().map(s -> new TopicMatcher(identities, attributor, s.topic, s.params)).toList()
             : null;
         this.publishMatchers = condition.publishes != null && !condition.publishes.isEmpty()
-            ? condition.publishes.stream().map(p -> new TopicMatcher(identities, p.topic, p.params)).toList()
+            ? condition.publishes.stream().map(p -> new TopicMatcher(identities, attributor, p.topic, p.params)).toList()
             : null;
     }
 
@@ -138,6 +144,7 @@ public final class MqttConditionMatcher
 
         private TopicMatcher(
             Function<String, LongFunction<String>> identities,
+            Function<String, LongObjectBiFunction<String, String>> attributor,
             String wildcard,
             List<MqttTopicParamConfig> params)
         {
@@ -150,7 +157,7 @@ public final class MqttConditionMatcher
             this.matchParams = params != null
                 ? params.stream().collect(Collectors.toMap(
                     p -> p.name,
-                    p -> asTopicParamMatcher(identities, p.value)))
+                    p -> asTopicParamMatcher(identities, attributor, p.value)))
                 : null;
 
             Collection<String> topicParams = matchTopic.namedGroups().keySet();
@@ -194,17 +201,36 @@ public final class MqttConditionMatcher
 
         private LongObjPredicate<String> asTopicParamMatcher(
             Function<String, LongFunction<String>> identities,
+            Function<String, LongObjectBiFunction<String, String>> attributor,
             String value)
         {
-            return (identityMatcher.reset(value).matches())
-                ? asTopicParamIdentityMatcher(identities.apply(identityMatcher.group(1)))
-                : asTopicParamValueMatcher(value);
+            LongObjPredicate<String> topic;
+            if (identityMatcher.reset(value).matches())
+            {
+                topic = asTopicParamIdentityMatcher(identities.apply(identityMatcher.group(1)));
+            }
+            else if (attributeMatcher.reset(value).matches())
+            {
+                topic = asTopicParamAttributeMatcher(attributor.apply(attributeMatcher.group(1)), attributeMatcher.group(2));
+            }
+            else
+            {
+                topic = asTopicParamValueMatcher(value);
+            }
+            return topic;
         }
 
         private static LongObjPredicate<String> asTopicParamIdentityMatcher(
             LongFunction<String> identity)
         {
             return (a, v) -> v != null && identity != null && v.equals(identity.apply(a));
+        }
+
+        private static LongObjPredicate<String> asTopicParamAttributeMatcher(
+            LongObjectBiFunction<String, String> attributor,
+            String name)
+        {
+            return (a, v) -> v != null && attributor != null && v.equals(attributor.apply(a, name));
         }
 
         private static LongObjPredicate<String> asTopicParamValueMatcher(

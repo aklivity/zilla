@@ -31,7 +31,7 @@ import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3BaseListener;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
 
-public class ProtoListener extends Protobuf3BaseListener
+public class Proto3Listener extends Protobuf3BaseListener
 {
     private static final Map<String, Type> TYPES = Map.ofEntries(
         entry("double", Type.TYPE_DOUBLE),
@@ -62,7 +62,7 @@ public class ProtoListener extends Protobuf3BaseListener
     private final FileDescriptorProto.Builder builder;
     private Stack<String> messageHierarchy = new Stack<>();
 
-    public ProtoListener()
+    public Proto3Listener()
     {
         this.imports = new ArrayList<>();
         this.builder = FileDescriptorProto.newBuilder();

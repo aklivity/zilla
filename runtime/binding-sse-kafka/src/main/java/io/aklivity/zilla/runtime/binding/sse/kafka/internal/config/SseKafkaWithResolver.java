@@ -39,21 +39,29 @@ public final class SseKafkaWithResolver
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
+    private static final Pattern ATTRIBUTE_PATTERN =
+        Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
+            ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
+    private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final SseKafkaWithConfig with;
     private final Matcher paramsMatcher;
     private final Matcher identityMatcher;
+    private final Matcher attributeMatcher;
 
     private Function<MatchResult, String> paramsReplacer = r -> null;
 
     public SseKafkaWithResolver(
         LongObjectBiFunction<MatchResult, String> identityReplacer,
+        LongObjectBiFunction<MatchResult, String> attributeReplacer,
         SseKafkaWithConfig with)
     {
         this.identityReplacer = identityReplacer;
+        this.attributeReplacer = attributeReplacer;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
     }
 
     public void onConditionMatched(
@@ -73,20 +81,7 @@ public final class SseKafkaWithResolver
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
 
         // TODO: hoist to constructor if constant
-        String topic0 = with.topic;
-        Matcher topicMatcher = paramsMatcher.reset(with.topic);
-        if (topicMatcher.matches())
-        {
-            topic0 = topicMatcher.replaceAll(paramsReplacer);
-        }
-
-        topicMatcher = identityMatcher.reset(with.topic);
-        if (topicMatcher.find())
-        {
-            topic0 = topicMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-        }
-
-        String16FW topic = new String16FW(topic0);
+        String16FW topic = resolveTopic(authorization, with.topic);
 
         List<SseKafkaWithFilterResult> filters = null;
         if (with.filters.isPresent())
@@ -99,17 +94,9 @@ public final class SseKafkaWithResolver
                 if (filter.key.isPresent())
                 {
                     String key0 = filter.key.get();
-                    Matcher keyMatcher = paramsMatcher.reset(key0);
-                    if (keyMatcher.matches())
-                    {
-                        key0 = keyMatcher.replaceAll(paramsReplacer);
-                    }
-
-                    keyMatcher = identityMatcher.reset(key0);
-                    if (keyMatcher.matches())
-                    {
-                        key0 = keyMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                    }
+                    key0 = findAndReplace(key0, paramsMatcher, paramsReplacer);
+                    key0 = findAndReplace(key0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+                    key0 = findAndReplace(key0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                     key = new String16FW(key0).value();
                 }
@@ -125,17 +112,9 @@ public final class SseKafkaWithResolver
                         DirectBuffer name = new String16FW(name0).value();
 
                         String value0 = header0.value;
-                        Matcher valueMatcher = paramsMatcher.reset(value0);
-                        if (valueMatcher.matches())
-                        {
-                            value0 = valueMatcher.replaceAll(paramsReplacer);
-                        }
-
-                        valueMatcher = identityMatcher.reset(value0);
-                        if (valueMatcher.matches())
-                        {
-                            value0 = valueMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                        }
+                        value0 = findAndReplace(value0, paramsMatcher, paramsReplacer);
+                        value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
+                        value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                         DirectBuffer value = new String16FW(value0).value();
 
@@ -150,5 +129,30 @@ public final class SseKafkaWithResolver
         String eventId = with.eventId;
 
         return new SseKafkaWithResult(compositeId, topic, partitions, filters, eventId);
+    }
+
+    private String16FW resolveTopic(
+        long authorization,
+        String topic)
+    {
+        topic = findAndReplace(topic, paramsMatcher, paramsReplacer);
+        topic = findAndReplace(topic, identityMatcher, r -> identityReplacer.apply(authorization, r));
+        topic = findAndReplace(topic, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
+
+        return new String16FW(topic);
+    }
+
+    private static String findAndReplace(
+        String value,
+        Matcher matcher,
+        Function<MatchResult, String> replacer)
+    {
+        matcher.reset(value);
+        while (matcher.find())
+        {
+            value = matcher.replaceAll(replacer);
+            matcher.reset(value);
+        }
+        return value;
     }
 }

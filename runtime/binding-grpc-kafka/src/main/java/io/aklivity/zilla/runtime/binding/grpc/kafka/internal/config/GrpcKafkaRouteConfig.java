@@ -64,9 +64,22 @@ public final class GrpcKafkaRouteConfig
             return identity != null ? identity : "";
         };
 
+        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
+            .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
+
+        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
+        {
+            final LongObjectBiFunction<String, String> attributor =
+                attributors.getOrDefault(match.group(1), defaultAttributor);
+
+            final String value = attributor.apply(sessionId, match.group(2));
+            return value != null ? value : "";
+        };
+
         this.with = Optional.of(route.with)
             .map(GrpcKafkaWithConfig.class::cast)
-            .map(c -> new GrpcKafkaWithResolver(options, identityReplacer, c))
+            .map(c -> new GrpcKafkaWithResolver(options, identityReplacer, attributeReplacer, c))
             .get();
         this.authorized = route.authorized;
     }

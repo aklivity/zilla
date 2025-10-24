@@ -17,7 +17,7 @@ property deltaMillis 0L
 property newTimestamp ${kafka:timestamp() + deltaMillis}
 
 connect "zilla://streams/app0"
-    option zilla:ephemeral "test"
+    option zilla:ephemeral "app0"
     option zilla:timestamps "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
@@ -51,7 +51,7 @@ read notify ROUTED_BROKER_CLIENT
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
-    option zilla:ephemeral "test"
+    option zilla:ephemeral "app0"
     option zilla:timestamps "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"

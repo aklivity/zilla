@@ -23,6 +23,9 @@ guards:
       roles:
         - read:items
         - write:items
+      attributes:
+        topic: items
+        key: 92d0bf92-63e0-4cfc-ae73-71dee92d1544
 bindings:
   http0:
     type: http-kafka
@@ -49,6 +52,18 @@ bindings:
             path: /my-items/{id}
         with:
           capability: produce
-          topic: ${guarded['test0'].identity}-items
+          topic: ${guarded['test0'].identity}/${guarded['test0'].attributes.topic}
           acks: leader_only
           key: ${params.id}
+      - guarded:
+          test0:
+            - read:items
+        exit: kafka0
+        when:
+          - method: GET
+            path: /items/{id}
+        with:
+          capability: fetch
+          topic: ${guarded['test0'].attributes.topic}
+          filters:
+            - key: ${guarded['test0'].attributes.key}

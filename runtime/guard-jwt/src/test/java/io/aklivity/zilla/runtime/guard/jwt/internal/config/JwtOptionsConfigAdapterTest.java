@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
+import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -46,35 +47,41 @@ public class JwtOptionsConfigAdapterTest
     @Test
     public void shouldReadOptions()
     {
-        String text =
-                "{" +
-                    "\"issuer\":\"https://auth.example.com\"," +
-                    "\"audience\":\"https://api.example.com\"," +
-                    "\"keys\":" +
-                    "[" +
-                        "{" +
-                            "\"kty\":\"EC\"," +
-                            "\"crv\":\"P-256\"," +
-                            "\"x\":\"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4\"," +
-                            "\"y\":\"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM\"," +
-                            "\"use\":\"enc\"," +
-                            "\"kid\":\"1\"" +
-                        "}," +
-                        "{" +
-                            "\"kty\":\"RSA\"," +
-                            "\"n\":\"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
-                                    "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMs" +
-                                    "tn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
-                                    "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
-                                    "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqb" +
-                                    "w0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\"," +
-                            "\"e\":\"AQAB\"," +
-                            "\"alg\":\"RS256\"," +
-                            "\"kid\":\"2011-04-29\"" +
-                        "}" +
-                    "]," +
-                    "\"challenge\":30" +
-                "}";
+        String text = """
+            {
+              "issuer": "https://auth.example.com",
+              "audience": "https://api.example.com",
+              "keys": [
+                {
+                  "kty": "EC",
+                  "crv": "P-256",
+                  "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+                  "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+                  "use": "enc",
+                  "kid": "1"
+                },
+                {
+                  "kty": "RSA",
+                  "n": "%s",
+                  "e": "AQAB",
+                  "alg": "RS256",
+                  "kid": "2011-04-29"
+                }
+              ],
+              "challenge": 30,
+              "attributes":
+              {
+                  "mail_to": "email"
+              }
+            }
+            """.formatted("""
+                0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
+                4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
+                n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2
+                QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI
+                SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw
+                0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
+                """.replaceAll("\\n", ""));
 
         JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
 
@@ -99,6 +106,7 @@ public class JwtOptionsConfigAdapterTest
         assertThat(options.keys.get(1).alg, equalTo("RS256"));
         assertThat(options.keys.get(1).kid, equalTo("2011-04-29"));
         assertThat(options.challenge.get(), equalTo(Duration.ofSeconds(30)));
+        assertThat(options.attributes.get("mail_to"), equalTo("email"));
     }
 
     @Test
@@ -128,40 +136,50 @@ public class JwtOptionsConfigAdapterTest
                     .alg("RS256")
                     .build()
                 .challenge(Duration.ofSeconds(30))
+                .attributes(Map.of("mail_to", "email"))
                 .build();
 
         String text = jsonb.toJson(options);
 
+        String expected = """
+            {
+              "issuer":"https://auth.example.com",
+              "audience":"https://api.example.com",
+              "keys":[
+                {
+                  "kty":"EC",
+                  "crv":"P-256",
+                  "x":"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+                  "y":"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+                  "use":"enc",
+                  "kid":"1"
+                },
+                {
+                  "kty":"RSA",
+                  "n":"%s",
+                  "e":"AQAB",
+                  "alg":"RS256",
+                  "kid":"2011-04-29"
+                }
+              ],
+              "challenge":30,
+              "attributes":
+              {
+                  "mail_to":"email"
+              }
+            }
+            """.formatted("""
+                0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx
+                4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMst
+                n64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2
+                QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI
+                SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw
+                0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw
+                """.replaceAll("\\n", ""))
+            .replaceAll("\\s*\\n\\s*", "");
+
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-                "{" +
-                        "\"issuer\":\"https://auth.example.com\"," +
-                        "\"audience\":\"https://api.example.com\"," +
-                        "\"keys\":" +
-                        "[" +
-                            "{" +
-                                "\"kty\":\"EC\"," +
-                                "\"crv\":\"P-256\"," +
-                                "\"x\":\"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4\"," +
-                                "\"y\":\"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM\"," +
-                                "\"use\":\"enc\"," +
-                                "\"kid\":\"1\"" +
-                            "}," +
-                            "{" +
-                                "\"kty\":\"RSA\"," +
-                                "\"n\":\"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx" +
-                                        "4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMs" +
-                                        "tn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2" +
-                                        "QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI" +
-                                        "SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqb" +
-                                        "w0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\"," +
-                                "\"e\":\"AQAB\"," +
-                                "\"alg\":\"RS256\"," +
-                                "\"kid\":\"2011-04-29\"" +
-                            "}" +
-                        "]," +
-                        "\"challenge\":30" +
-                    "}"));
+        assertThat(text, equalTo(expected));
     }
 
     @Test

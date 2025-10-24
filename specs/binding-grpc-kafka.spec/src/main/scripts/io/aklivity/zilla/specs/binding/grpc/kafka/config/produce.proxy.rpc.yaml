@@ -21,6 +21,8 @@ guards:
     options:
       roles:
         - service:echo
+      attributes:
+        key: test
 bindings:
   grpc0:
     type: grpc-kafka
@@ -38,7 +40,7 @@ bindings:
           capability: produce
           topic: requests
           acks: leader_only
-          key: test
+          key: "${guarded['test0'].attributes.key}"
           overrides:
             zilla:identity: "${guarded['test0'].identity}"
           reply-to: responses

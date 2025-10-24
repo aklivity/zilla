@@ -15,16 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.Map;
+
 public final class TestAuthorizationConfig
 {
     public final String name;
     public final String credentials;
+    public final Map<String, String> attributes;
 
     public TestAuthorizationConfig(
         String name,
-        String credentials)
+        String credentials,
+        Map<String, String> attributes)
     {
         this.name = name;
         this.credentials = credentials;
+        this.attributes = attributes;
     }
 }

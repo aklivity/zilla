@@ -249,7 +249,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private volatile Thread thread;
 
-
     public EngineWorker(
         EngineConfiguration config,
         ExecutorService executor,
@@ -1104,7 +1103,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public Clock clock()
     {
-        return Clock.systemUTC();
+        return config.clock();
     }
 
     @Override

@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.POLL_INTERVAL_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.AUTHORIZATION_PROPERTY_NAME;
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -178,6 +179,30 @@ public class HttpFileSystemIT
         // GIVEN
         URI helloURI = URI.create("http://localhost:8080/hello.txt");
         try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
+
+            // WHEN
+            k3po.start();
+            InputStream helloIs = Files.newInputStream(helloPath);
+            String helloBody = new String(helloIs.readAllBytes());
+            helloIs.close();
+            k3po.finish();
+
+            // THEN
+            assertThat(helloBody, equalTo("Hello World!"));
+        }
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.success.authorization/server",
+    })
+    public void shouldReadInputStreamWithAuthorization() throws Exception
+    {
+        // GIVEN
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of(AUTHORIZATION_PROPERTY_NAME, "Basic YWRtaW46dGVzdA==")))
         {
             Path helloPath = fs.getPath(helloURI.toString());
 

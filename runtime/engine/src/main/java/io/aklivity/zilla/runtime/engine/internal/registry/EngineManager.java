@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +39,16 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonPatch;
+import jakarta.json.JsonReader;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
+import jakarta.json.spi.JsonProvider;
+
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -47,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
+import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -67,6 +79,7 @@ import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class EngineManager
@@ -74,6 +87,7 @@ public class EngineManager
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
     private final Collection<URL> schemaTypes;
+    private final Collection<URL> systemConfigs;
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -88,13 +102,16 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final Resolver expressions;
     private final Path configPath;
+    private final Path localConfigPath;
     private final EngineConfigWatchTask watchTask;
+    private final EngineEventContext events;
 
     private String currentText;
     private EngineConfig current;
 
     public EngineManager(
         Collection<URL> schemaTypes,
+        Collection<URL> systemConfigs,
         Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -110,6 +127,7 @@ public class EngineManager
         List<EngineExtSpi> extensions)
     {
         this.schemaTypes = schemaTypes;
+        this.systemConfigs = systemConfigs;
         this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -124,17 +142,21 @@ public class EngineManager
         this.extensions = extensions;
         this.expressions = Resolver.instantiate(config);
         this.configPath = Path.of(config.configURI());
+        this.localConfigPath = config.localConfigURI() != null ? Path.of(config.localConfigURI()) : null;
         this.watchTask = new WatchTaskImpl(config, events, configPath);
+        this.events = events;
     }
 
     public void start() throws Exception
     {
         watchTask.submit();
+        events.started();
     }
 
     public void close()
     {
         watchTask.close();
+        events.stopped();
     }
 
     public void process(
@@ -157,9 +179,22 @@ public class EngineManager
         try
         {
             String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
+            if (localConfigPath != null &&
+                Files.exists(localConfigPath))
+            {
+                String localYamlDoc = Files.readString(localConfigPath);
+                newConfigText = newConfigText == null ? localYamlDoc : localYamlDoc + "\n" + newConfigText;
+            }
+
             if (newConfigText == null || newConfigText.isEmpty())
             {
                 newConfigText = CONFIG_TEXT_DEFAULT;
+            }
+
+            String systemYamlDoc = buildSystemNamespaceIfNecessary();
+            if (systemYamlDoc != null)
+            {
+                newConfigText = newConfigText + "\n" + "---\n" + systemYamlDoc;
             }
 
             if (Objects.equals(currentText, newConfigText))
@@ -209,6 +244,55 @@ public class EngineManager
                 throw new ConfigException("Engine configuration failed", ex);
             }
         }
+    }
+
+    private String buildSystemNamespaceIfNecessary()
+    {
+        String systemYaml = null;
+        try
+        {
+            JsonObject systemBase = Json.createObjectBuilder()
+                .add("name", "system")
+                .build();
+
+            JsonObject systemPatched = systemBase;
+
+            JsonProvider schemaProvider = JsonProvider.provider();
+
+            for (URL patch : systemConfigs)
+            {
+                try (InputStream systemPatchInput = patch.openStream();
+                     JsonReader systemPatchReader = schemaProvider.createReader(systemPatchInput))
+                {
+                    JsonArray systemPatchArray = systemPatchReader.readArray();
+                    JsonPatch systemPatch = schemaProvider.createPatch(systemPatchArray);
+
+                    systemPatched = systemPatch.apply(systemPatched);
+                }
+            }
+
+            if (!systemPatched.equals(systemBase))
+            {
+                JsonbConfig config = new JsonbConfig()
+                    .withAdapters(new NamespaceAdapter(null))
+                    .withFormatting(true);
+                Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withProvider(schemaProvider)
+                    .withConfig(config)
+                    .build();
+
+                NamespaceConfig namespace = jsonb.fromJson(systemPatched.toString(), NamespaceConfig.class);
+
+                EngineConfigWriter writer = new EngineConfigWriter(null);
+                systemYaml = writer.write(namespace);
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
+        return systemYaml;
     }
 
     private EngineConfig parse(
@@ -355,6 +439,16 @@ public class EngineManager
                             .orElse(session -> null);
 
                         guarded.identity = identifier;
+
+                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.attributor(EngineWorker::indexOfId, guarded))
+                            .orElse((session, name) -> null);
+
+                        guarded.attributes = attributor;
+
                         guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);

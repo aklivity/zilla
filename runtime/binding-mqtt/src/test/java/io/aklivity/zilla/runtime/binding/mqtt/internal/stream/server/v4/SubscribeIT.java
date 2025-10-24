@@ -376,6 +376,16 @@ public class SubscribeIT
     }
 
     @Test
+    @Configuration("server.when.topic.params.attribute.yaml")
+    @Specification({
+        "${net}/subscribe.topic.guarded.identity.param/client",
+        "${app}/subscribe.topic.guarded.identity.param/server"})
+    public void shouldFilterGuardedAttributeParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.when.topic.params.yaml")
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",

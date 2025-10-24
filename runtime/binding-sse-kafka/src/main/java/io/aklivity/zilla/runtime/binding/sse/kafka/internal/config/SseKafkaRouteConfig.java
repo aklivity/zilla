@@ -55,9 +55,22 @@ public final class SseKafkaRouteConfig
             return identity != null ? identity : "";
         };
 
+        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
+            .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
+
+        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
+        {
+            final LongObjectBiFunction<String, String> attributor =
+                attributors.getOrDefault(match.group(1), defaultAttributor);
+
+            final String value = attributor.apply(sessionId, match.group(2));
+            return value != null ? value : "";
+        };
+
         this.with = Optional.ofNullable(route.with)
             .map(SseKafkaWithConfig.class::cast)
-            .map(c -> new SseKafkaWithResolver(identityReplacer, c));
+            .map(c -> new SseKafkaWithResolver(identityReplacer, attributeReplacer, c));
 
         Consumer<SseKafkaConditionMatcher> observer = with.isPresent() ? with.get()::onConditionMatched : null;
         this.when = route.when.stream()

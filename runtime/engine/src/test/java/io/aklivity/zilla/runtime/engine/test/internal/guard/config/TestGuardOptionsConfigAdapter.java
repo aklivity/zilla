@@ -36,6 +36,7 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String CHALLENGE_NAME = "challenge";
     private static final String ROLES_NAME = "roles";
     private static final String IDENTITY_NAME = "identity";
+    private static final String ATTRIBUTES_NAME = "attributes";
 
     @Override
     public Kind kind()
@@ -83,6 +84,15 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
             object.add(ROLES_NAME, entries);
         }
 
+        if (testOptions.attributes != null &&
+            !testOptions.attributes.isEmpty())
+        {
+            JsonObjectBuilder entries = Json.createObjectBuilder();
+            testOptions.attributes.forEach((k, v) -> entries.add(k, v));
+
+            object.add(ATTRIBUTES_NAME, entries);
+        }
+
         return object.build();
     }
 
@@ -120,6 +130,12 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
                     .map(JsonString.class::cast)
                     .map(JsonString::getString)
                     .forEach(testOptions::role);
+            }
+
+            if (object.containsKey(ATTRIBUTES_NAME))
+            {
+                object.getJsonObject(ATTRIBUTES_NAME)
+                    .forEach((key, value) -> testOptions.attribute(key, ((JsonString) value).getString()));
             }
         }
 

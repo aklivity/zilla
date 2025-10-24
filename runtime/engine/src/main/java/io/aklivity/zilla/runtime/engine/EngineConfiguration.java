@@ -33,6 +33,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.time.Clock;
 import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -54,6 +55,7 @@ public class EngineConfiguration extends Configuration
 
     public static final PropertyDef<URL> ENGINE_CONFIG_URL;
     public static final PropertyDef<URI> ENGINE_CONFIG_URI;
+    public static final PropertyDef<URI> ENGINE_LOCAL_CONFIG_URI;
     public static final BooleanPropertyDef ENGINE_CONFIG_WATCH;
     public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
@@ -86,9 +88,11 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_DEBUG;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_EXCEPTIONS;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_EVENTS;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
+    public static final PropertyDef<Clock> ENGINE_CLOCK;
     public static final IntPropertyDef ENGINE_WORKERS;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
@@ -105,6 +109,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.yaml");
         ENGINE_CONFIG_URI = config.property(URI.class, "config.uri", EngineConfiguration::decodeConfigURI,
             EngineConfiguration::defaultConfigURI);
+        ENGINE_LOCAL_CONFIG_URI =
+            config.property(URI.class, "local.config.uri", EngineConfiguration::localConfigUri, (String) null);
         ENGINE_CONFIG_WATCH = config.property("config.watch", true);
         ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", EngineConfiguration::defaultName);
@@ -143,6 +149,9 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
         ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
+        ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
+        ENGINE_CLOCK = config.property(Clock.class, "clock",
+            EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
@@ -187,6 +196,11 @@ public class EngineConfiguration extends Configuration
     public URI configURI()
     {
         return ENGINE_CONFIG_URI.get(this);
+    }
+
+    public URI localConfigURI()
+    {
+        return ENGINE_LOCAL_CONFIG_URI.get(this);
     }
 
     public boolean configWatch()
@@ -330,6 +344,11 @@ public class EngineConfiguration extends Configuration
         return ENGINE_VERBOSE_COMPOSITES.getAsBoolean(this);
     }
 
+    public Clock clock()
+    {
+        return ENGINE_CLOCK.get(this);
+    }
+
     public int workers()
     {
         return ENGINE_WORKERS.getAsInt(this);
@@ -409,7 +428,7 @@ public class EngineConfiguration extends Configuration
         int budgetsEntrySize = BudgetsLayout.SIZEOF_BUDGET_ENTRY;
         int bufferPoolEntrySize = bufferSlotSize + Long.BYTES;
         int streamsEntrySize = bufferSlotSize;
-        int aggregateEntrySize = bufferSlotSize + budgetsEntrySize + streamsEntrySize;
+        int aggregateEntrySize = bufferPoolEntrySize + budgetsEntrySize + streamsEntrySize;
 
         int bufferPoolMetadataSize = Integer.BYTES;
         int budgetsMetadataSize = 0;
@@ -419,9 +438,9 @@ public class EngineConfiguration extends Configuration
         long workerEntriesMemory = workerMemory - eventsBufferSize - aggregateMetadataSize;
         long workerEntriesCount = workerEntriesMemory / aggregateEntrySize;
 
-        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount + bufferPoolMetadataSize, Integer.MAX_VALUE);
-        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount + budgetsMetadataSize, Integer.MAX_VALUE);
-        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount + streamsMetadataSize, Integer.MAX_VALUE);
+        long bufferPoolMaxSize = min(bufferPoolEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long budgetsMaxSize = min(budgetsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
+        long streamsMaxSize = min(streamsEntrySize * workerEntriesCount, Integer.MAX_VALUE);
 
         assert bufferPoolMaxSize + budgetsMaxSize + streamsMaxSize <= workerEntriesMemory;
 
@@ -440,6 +459,13 @@ public class EngineConfiguration extends Configuration
         return ENGINE_WORKER_CAPACITY_UNBOUNDED.get(config)
             ? Integer.MAX_VALUE
             : ENGINE_WORKER_CAPACITY.get(config);
+    }
+
+    private static URI localConfigUri(
+        Configuration config,
+        String uri)
+    {
+        return uri != null ? Paths.get(uri).toUri() : null;
     }
 
     private static URL configURL(
@@ -591,6 +617,12 @@ public class EngineConfiguration extends Configuration
             : e -> System.err.println(e.getMessage());
     }
 
+    private static Clock defaultClock(
+        Configuration config)
+    {
+        return Clock.systemUTC();
+    }
+
     private static ErrorReporter decodeErrorReporter(
         Configuration config,
         String value)
@@ -622,6 +654,29 @@ public class EngineConfiguration extends Configuration
         }
 
         return reporter;
+    }
+
+    private static Clock decodeCLock(
+        Configuration config,
+        String value)
+    {
+        Clock clock = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(Clock.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            clock = (Clock) method.invoke();
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return clock;
     }
 
     private static RevocationStrategy decodeRevocationStrategy(

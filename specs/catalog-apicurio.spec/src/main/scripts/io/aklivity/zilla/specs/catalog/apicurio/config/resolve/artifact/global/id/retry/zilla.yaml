@@ -21,6 +21,10 @@ telemetry:
       type: test
       options:
         events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
           - qname: test:catalog0
             id: catalog.apicurio.registry.unretrievable.artifact.id
             name: CATALOG_APICURIO_REGISTRY_UNRETRIEVABLE_ARTIFACT_ID
