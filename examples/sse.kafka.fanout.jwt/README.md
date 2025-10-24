@@ -92,7 +92,7 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
 ```bash
-docker compose -p zilla-sse-kafka-fanout stop zilla
+docker compose stop zilla
 ```
 
 This causes errors to be logged in the browser console during repeated attempts to automatically reconnect.
@@ -100,7 +100,7 @@ This causes errors to be logged in the browser console during repeated attempts 
 Simulate connection recovery by starting the `zilla` service again.
 
 ```bash
-docker compose -p zilla-sse-kafka-fanout start zilla
+docker compose start zilla
 ```
 
 Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
