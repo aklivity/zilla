@@ -5,15 +5,7 @@ Listens on https port `7143` and will stream back whatever is published to the `
 ## Requirements
 
 - docker compose
-- sse-cat
-
-### Install sse-cat client
-
-Requires Server-Sent Events client, such as `sse-cat` version `2.0.5` or higher on `node` version `14` or higher.
-
-```bash
-npm install -g sse-cat
-```
+- jwt-cli
 
 ### Install jwt-cli client
 
