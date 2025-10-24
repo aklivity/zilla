@@ -85,6 +85,7 @@ jobs:
             ^\.vscode$
             ^tcp.reflect$
             ^ws.reflect$
+            ^sse.kafka.fanout.jwt$
 
   testing:
     strategy:

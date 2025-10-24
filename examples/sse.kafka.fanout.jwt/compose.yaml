@@ -5,15 +5,16 @@ services:
     restart: unless-stopped
     hostname: zilla.examples.dev
     ports:
-      - 7114:7114
+      - 7143:7143
     healthcheck:
       interval: 5s
       timeout: 3s
       retries: 5
-      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7143"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
       ZILLA_INCUBATOR_ENABLED: "true"
+      KEYSTORE_PASSWORD: generated
     volumes:
       - ./etc:/etc/zilla
       - ./www:/var/www
@@ -84,6 +85,15 @@ services:
     command: "bash"
     stdin_open: true
     tty: true
+
+  jwt-cli:
+    image: bitnamilegacy/jwt-cli
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./private.pem:/private.pem
 
 networks:
   default:

@@ -33,7 +33,7 @@ Use **Zilla** as a:
 
 | Zilla Use Case | Description |
 | -------- | ------- |
-| [Data broadcasting (Kafka fan-out) →](examples/sse.kafka.fanout) | Broadcast real-time updates to end users at web-scale. Power live data feeds such as stock tickers, betting odds, travel updates, and auction prices. |
+| [Data broadcasting (Kafka fan-out) →](examples/sse.kafka.fanout.jwt) | Broadcast real-time updates to end users at web-scale. Power live data feeds such as stock tickers, betting odds, travel updates, and auction prices. |
 | [IoT Kafka ingestion →](https://docs.aklivity.io/zilla/latest/concepts/proxy/mqtt/kafka) | Ingest and process IoT data in real-time by turning Kafka into a fully-fledged MQTT broker. |
 | [Async workflows for sync microservices →](examples/http.kafka.async) | Make request-response microservice communication asynchronous by routing it over a pair of Kafka topics. |
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
