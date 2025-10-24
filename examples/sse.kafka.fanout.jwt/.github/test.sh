@@ -4,7 +4,7 @@ set -x
 EXIT=0
 
 # GIVEN
-PORT="7114"
+PORT="7143"
 KAFKA_BOOTSTRAP_SERVER="kafka.examples.dev:29092"
 INPUT='{"id":1,"name":"Hello World!"}'
 EXPECTED='data:{"id":1,"name":"Hello World!"}'
@@ -14,6 +14,17 @@ echo KAFKA_BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVER"
 echo INPUT="$INPUT"
 echo EXPECTED="$EXPECTED"
 echo
+
+JWT_TOKEN=$(docker compose run --rm \
+    jwt-cli encode \
+    --alg "RS256" \
+    --kid "example" \
+    --iss "https://auth.example.com" \
+    --aud "https://api.example.com" \
+    --exp=+1d \
+    --no-iat \
+    --payload "scope=proxy:stream" \
+    --secret @/private.pem | tr -d '\r\n')
 
 # WHEN
 
@@ -31,7 +42,7 @@ echo "$INPUT" |
 
 sleep 5
 # send request to zilla
-OUTPUT=$(timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events" | grep "^data:")
+OUTPUT=$(timeout 3s curl --cacert test-ca.crt -N --http2 -H "Accept:text/event-stream" "https://localhost:$PORT/events?access_token=${JWT_TOKEN}" | grep "^data:")
 
 # THEN
 echo OUTPUT="$OUTPUT"
