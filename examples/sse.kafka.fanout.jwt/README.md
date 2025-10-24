@@ -1,6 +1,6 @@
 # sse.kafka.fanout.jwt
 
-Listens on http port `7114` or https port `7114` and will stream back whatever is published to the `events` topic in Kafka.
+Listens on http port `7143` or https port `7143` and will stream back whatever is published to the `events` topic in Kafka.
 
 ## Requirements
 
