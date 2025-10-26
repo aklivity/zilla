@@ -493,8 +493,16 @@
                                         "type": "object",
                                         "additionalProperties":
                                         {
-                                            "type": "string",
-                                            "pattern": ".*\\{credentials\\}.*"
+                                          "type": "string",
+                                          "anyOf":
+                                          [
+                                            {
+                                              "pattern": ".*\\{credentials\\}.*"
+                                            },
+                                            {
+                                              "pattern": ".*\\{username\\}.*\\{password\\}.*"
+                                            }
+                                          ]
                                         }
                                     },
                                     "query":

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -44,6 +45,7 @@ public class AuthorizationIT
         .countersBufferCapacity(8192)
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configure(HTTP_SERVER_HEADER, "Zilla")
+        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
         .clean();
@@ -109,6 +111,17 @@ public class AuthorizationIT
         "${app}/authorize.credentials.header/server",
     })
     public void shouldAuthorizeCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.basic.yaml")
+    @Specification({
+        "${net}/authorize.credentials.header.basic/client",
+        "${app}/authorize.credentials.header.basic/server",
+    })
+    public void shouldAuthorizeCredentialsHeaderWithBasicAuth() throws Exception
     {
         k3po.finish();
     }
