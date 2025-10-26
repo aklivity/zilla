@@ -155,6 +155,7 @@ public final class HttpBindingConfig
 
             accessor = orElseIfNull(accessor, hs ->
             {
+                String result = null;
                 String header = hs.apply(headerName);
                 if (header != null)
                 {
@@ -173,19 +174,19 @@ public final class HttpBindingConfig
                             Matcher credentialsMatcher = Pattern.compile("^(?<username>[^:]+):(?<password>.*)$").matcher(decoded);
                             if (!credentialsMatcher.matches())
                             {
-                                return null;
+                                result = null;
                             }
 
                             String username = credentialsMatcher.group("username");
                             String password = credentialsMatcher.group("password");
 
-                            return formatPattern
+                            result = formatPattern
                                 .replace("{username}", username)
                                 .replace("{password}", password);
                         }
                         catch (IllegalArgumentException e)
                         {
-                            return null;
+                            result = null;
                         }
                     }
                     else
@@ -200,7 +201,7 @@ public final class HttpBindingConfig
                         }
                     }
                 }
-                return null;
+                return result;
             });
         }
 
