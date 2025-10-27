@@ -29,14 +29,16 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 final class FileSystemContext implements VaultContext
 {
-    private final Function<String, Path> resolvePath;
+    private final Function<String, Path> resolveLocalPath;
+    private final Function<String, Path> resolveNonLocalPath;
     private final RevocationStrategy revocation;
 
     FileSystemContext(
         Configuration config,
         EngineContext context)
     {
-        this.resolvePath = context::resolvePath;
+        this.resolveLocalPath = context::resolveLocalPath;
+        this.resolveNonLocalPath = context::resolvePath;
         this.revocation = ENGINE_CERTIFICATE_REVOCATION_STRATEGY.get(config);
     }
 
@@ -45,6 +47,7 @@ final class FileSystemContext implements VaultContext
         VaultConfig vault)
     {
         FileSystemOptionsConfig options = (FileSystemOptionsConfig) vault.options;
+        Function<String, Path> resolvePath =  vault.local ? resolveLocalPath : resolveNonLocalPath;
         return new FileSystemVaultHandler(options, resolvePath, revocation);
     }
 

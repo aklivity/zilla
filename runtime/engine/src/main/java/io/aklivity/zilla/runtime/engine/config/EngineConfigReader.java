@@ -161,6 +161,7 @@ public final class EngineConfigReader
                 reader.reset();
                 reader.skip(configAt);
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
+                namespace.configAt = configAt;
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())
