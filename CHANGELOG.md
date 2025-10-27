@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.168...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.169...HEAD)
+
+**Merged pull requests:**
+
+- Fix filesystem vault in local config [\#1598](https://github.com/aklivity/zilla/pull/1598) ([jfallows](https://github.com/jfallows))
+
+## [0.9.169](https://github.com/aklivity/zilla/tree/0.9.169) (2025-10-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.168...0.9.169)
 
 **Merged pull requests:**
 

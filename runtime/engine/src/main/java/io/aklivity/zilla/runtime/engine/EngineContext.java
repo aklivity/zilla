@@ -166,6 +166,9 @@ public interface EngineContext
     Path resolvePath(
         String location);
 
+    Path resolveLocalPath(
+            String location);
+
     Metric resolveMetric(
         String name);
 
