@@ -54,11 +54,12 @@ import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public final class HttpBindingConfig
 {
-    private static final Pattern BASIC_FORMAT_PATTERN = Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]*}[^\\\\{]*)+)$");
+    private static final Pattern BASIC_FORMAT_PATTERN =
+        Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]*}[^\\\\{]*)+)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
-            HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
+        HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
