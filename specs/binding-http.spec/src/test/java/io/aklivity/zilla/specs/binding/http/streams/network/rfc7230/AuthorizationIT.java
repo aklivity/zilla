@@ -99,6 +99,16 @@ public class AuthorizationIT
 
     @Test
     @Specification({
+        "${net}/authorize.credentials.header.basic/client",
+        "${net}/authorize.credentials.header.basic/server",
+    })
+    public void shouldAuthorizeCredentialsHeaderWithBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/authorize.credentials.query/client",
         "${net}/authorize.credentials.query/server",
     })

@@ -112,6 +112,17 @@ public class AuthorizationIT
     }
 
     @Test
+    @Configuration("server.authorization.credentials.basic.yaml")
+    @Specification({
+        "${net}/authorize.credentials.header.basic/client",
+        "${app}/authorize.credentials.header.basic/server",
+    })
+    public void shouldAuthorizeCredentialsHeaderWithBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/authorize.credentials.query/client",
