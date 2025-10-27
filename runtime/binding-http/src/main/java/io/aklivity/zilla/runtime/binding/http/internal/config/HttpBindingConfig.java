@@ -16,15 +16,16 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -53,8 +54,7 @@ import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public final class HttpBindingConfig
 {
-    private static final Pattern BASIC_AUTH_PATTERN = Pattern.compile("^\\s*Basic\\s+(?<b64>[A-Za-z0-9+/=]+)\\s*$");
-    private static final Pattern BASIC_AUTH_FORMAT_PATTERN = Pattern.compile("^\\s*Basic\\s+(?<format>.*)$");
+    private static final Pattern BASIC_FORMAT_PATTERN = Pattern.compile("^\\s*Basic\\s+(?<format>(:?.*\\{.+}.*)+)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
@@ -148,57 +148,56 @@ public final class HttpBindingConfig
         {
             HttpPatternConfig config = headers.get(0);
             String headerName = config.name;
-            String pattern = config.pattern;
+            Matcher headerMatch =
+                Pattern.compile(config.pattern
+                    .replace("{credentials}", "(?<credentials>[^\\s]+)")
+                    .replaceFirst("Basic\\s+(:?.*\\{.+}.*)+", "Basic\\\\s+(?<base64>[A-Za-z0-9+/=]+)"))
+                    .matcher("");
 
-            Matcher basicMatch = BASIC_AUTH_PATTERN.matcher("");
-            Matcher basicPatternMatch = BASIC_AUTH_FORMAT_PATTERN.matcher(pattern);
+            Set<String> groupNames  = headerMatch.namedGroups().keySet();
+
+            Matcher formatMatch = BASIC_FORMAT_PATTERN.matcher(config.pattern);
+
+            Matcher userpassMatch = formatMatch.matches()
+                ? Pattern.compile(formatMatch.group("format")
+                    .replace("{username}", "(?<username>[^\\s]+)")
+                    .replace("{password}", "(?<password>[^\\s]+)"))
+                    .matcher("")
+                : null;
 
             accessor = orElseIfNull(accessor, hs ->
             {
                 String result = null;
                 String header = hs.apply(headerName);
-                if (header != null)
+                if (header != null && headerMatch.reset(header).matches() &&
+                    groupNames.contains("credentials"))
                 {
-                    if (basicMatch.reset(header).matches())
+                    result = headerMatch.group("credentials");
+                }
+                else if (header != null && headerMatch.reset(header).matches() &&
+                    groupNames.contains("base64") && userpassMatch != null)
+                {
+                    try
                     {
-                        String b64 = basicMatch.group("b64");
-                        String formatPattern = basicPatternMatch.matches()
-                            ? basicPatternMatch.group("format")
-                            : "{username}:{password}";
+                        String base64 = headerMatch.group("base64");
+                        byte[] decodedBytes = Base64.getDecoder().decode(base64);
+                        String decoded = new String(decodedBytes, UTF_8);
 
-                        try
+                        if (userpassMatch.reset(decoded).matches())
                         {
-                            byte[] decodedBytes = Base64.getDecoder().decode(b64);
-                            String decoded = new String(decodedBytes, StandardCharsets.UTF_8);
+                            String format = formatMatch.group("format");
 
-                            Matcher credentialsMatcher = Pattern.compile("^(?<username>[^:]+):(?<password>.*)$").matcher(decoded);
-                            if (!credentialsMatcher.matches())
-                            {
-                                result = null;
-                            }
+                            String username = userpassMatch.group("username");
+                            String password = userpassMatch.group("password");
 
-                            String username = credentialsMatcher.group("username");
-                            String password = credentialsMatcher.group("password");
-
-                            result = formatPattern
+                            result = format
                                 .replace("{username}", username)
                                 .replace("{password}", password);
                         }
-                        catch (IllegalArgumentException e)
-                        {
-                            result = null;
-                        }
                     }
-                    else
+                    catch (IllegalArgumentException e)
                     {
-                        Matcher headerMatch = Pattern.compile(
-                                pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
-                            .matcher("");
-
-                        if (headerMatch.reset(header).matches())
-                        {
-                            return headerMatch.group("credentials");
-                        }
+                        // ignore
                     }
                 }
                 return result;
