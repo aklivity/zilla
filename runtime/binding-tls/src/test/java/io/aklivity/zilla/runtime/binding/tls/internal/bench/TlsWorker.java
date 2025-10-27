@@ -85,6 +85,7 @@ public class TlsWorker implements EngineContext
     private final VaultFactory vaultFactory;
     private final Configuration config;
     private final Path configPath;
+    private final Path localConfigPath;
 
     private final TlsSignaler signaler;
 
@@ -105,6 +106,7 @@ public class TlsWorker implements EngineContext
                 .build()
                 .bufferPool();
         this.configPath = Path.of(config.configURI());
+        this.localConfigPath = Path.of(config.localConfigURI());
 
         this.signaler = new TlsSignaler();
 
@@ -402,6 +404,13 @@ public class TlsWorker implements EngineContext
         String location)
     {
         return configPath.resolveSibling(location);
+    }
+
+    @Override
+    public Path resolveLocalPath(
+        String location)
+    {
+        return localConfigPath.resolveSibling(location);
     }
 
     @Override

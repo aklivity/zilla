@@ -339,6 +339,13 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public Path resolveLocalPath(
+        String location)
+    {
+        return null;
+    }
+
+    @Override
     public Metric resolveMetric(
         String name)
     {

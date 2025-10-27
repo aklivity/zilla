@@ -53,6 +53,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -224,6 +225,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
+    private final Optional<Path> localConfigPath;
     private final AgentRunner runner;
     private final Supplier<IdleStrategy> supplyIdleStrategy;
     private final EngineBoss boss;
@@ -273,6 +275,7 @@ public class EngineWorker implements EngineContext, Agent
         this.localIndex = index;
         this.config = config;
         this.configPath = Path.of(config.configURI());
+        this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
         this.labels = labels;
         this.affinityMask = affinityMask;
         this.readonly = readonly;
@@ -794,6 +797,15 @@ public class EngineWorker implements EngineContext, Agent
         return location.indexOf(':') == -1
             ? configPath.resolveSibling(location)
             : Path.of(configPath.toUri().resolve(location));
+    }
+
+    @Override
+    public Path resolveLocalPath(
+        String location)
+    {
+        return localConfigPath.map(location.indexOf(':') == -1
+            ? p -> p.resolveSibling(location)
+            : p -> Path.of(p.toUri().resolve(location))).orElse(null);
     }
 
     @Override

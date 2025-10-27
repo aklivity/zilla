@@ -21,6 +21,7 @@ import static java.util.function.Function.identity;
 public class VaultConfig
 {
     public transient long id;
+    public transient boolean local;
 
     public final String namespace;
     public final String name;
