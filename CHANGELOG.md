@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.167...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.168...HEAD)
+
+**Merged pull requests:**
+
+- Add basic auth username/password accessor to HTTP server [\#1596](https://github.com/aklivity/zilla/pull/1596) ([bmaidics](https://github.com/bmaidics))
+- update `sse.kafka.fanout` to support `jwt` [\#1593](https://github.com/aklivity/zilla/pull/1593) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.168](https://github.com/aklivity/zilla/tree/0.9.168) (2025-10-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.167...0.9.168)
 
 **Merged pull requests:**
 

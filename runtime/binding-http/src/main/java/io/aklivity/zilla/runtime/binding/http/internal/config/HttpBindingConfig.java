@@ -16,13 +16,16 @@
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -51,10 +54,12 @@ import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public final class HttpBindingConfig
 {
+    private static final Pattern BASIC_FORMAT_PATTERN =
+        Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]+}[^\\\\{]*)+)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
-            HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
+        HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
@@ -145,16 +150,56 @@ public final class HttpBindingConfig
             HttpPatternConfig config = headers.get(0);
             String headerName = config.name;
             Matcher headerMatch =
-                    Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
-                            .matcher("");
+                Pattern.compile(config.pattern
+                    .replace("{credentials}", "(?<credentials>[^\\s]+)")
+                    .replaceFirst("Basic\\s+(:?.*\\{.+}.*)+", "Basic\\\\s+(?<base64>[A-Za-z0-9+/=]+)"))
+                    .matcher("");
+
+            Set<String> groupNames  = headerMatch.namedGroups().keySet();
+
+            Matcher formatMatch = BASIC_FORMAT_PATTERN.matcher(config.pattern);
+
+            Matcher userpassMatch = formatMatch.matches()
+                ? Pattern.compile(formatMatch.group("format")
+                    .replace("{username}", "(?<username>[^\\s]+)")
+                    .replace("{password}", "(?<password>[^\\s]+)"))
+                    .matcher("")
+                : null;
 
             accessor = orElseIfNull(accessor, hs ->
             {
-                String header = hs.apply(headerName);
                 String result = null;
-                if (header != null && headerMatch.reset(header).matches())
+                String header = hs.apply(headerName);
+                if (header != null && headerMatch.reset(header).matches() &&
+                    groupNames.contains("credentials"))
                 {
                     result = headerMatch.group("credentials");
+                }
+                else if (header != null && headerMatch.reset(header).matches() &&
+                    groupNames.contains("base64") && userpassMatch != null)
+                {
+                    try
+                    {
+                        String base64 = headerMatch.group("base64");
+                        byte[] decodedBytes = Base64.getDecoder().decode(base64);
+                        String decoded = new String(decodedBytes, UTF_8);
+
+                        if (userpassMatch.reset(decoded).matches())
+                        {
+                            String format = formatMatch.group("format");
+
+                            String username = userpassMatch.group("username");
+                            String password = userpassMatch.group("password");
+
+                            result = format
+                                .replace("{username}", username)
+                                .replace("{password}", password);
+                        }
+                    }
+                    catch (IllegalArgumentException e)
+                    {
+                        // ignore
+                    }
                 }
                 return result;
             });

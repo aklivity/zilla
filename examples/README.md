@@ -55,7 +55,7 @@ Make sure you have the `latest` version of Zilla by running the `docker pull ghc
 | [openapi.asyncapi.kakfa.proxy](openapi.asyncapi.kakfa.proxy) | Create an HTTP to Kafka REST proxy using OpenAPI and AsyncAPI schemas                     |
 | [openapi.proxy](openapi.proxy)                               | Proxy requests defined in an OpenAPI schema sent to the HTTP server from an HTTP client   |
 | [sse.proxy.jwt](sse.proxy.jwt)                                           | Proxies messages delivered by the SSE server, enforcing streaming security constraints    |
-| [sse.kafka.fanout](sse.kafka.fanout)                         | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
+| [sse.kafka.fanout](sse.kafka.fanout.jwt)                         | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
 | [tcp.echo](tcp.echo)                                         | Echoes bytes sent to the TCP server                                                       |
 | [tcp.reflect](tcp.reflect)                                   | Echoes bytes sent to the TCP server, broadcasting to all TCP clients                      |
 | [tls.echo](tls.echo)                                         | Echoes encrypted bytes sent to the TLS server                                             |
