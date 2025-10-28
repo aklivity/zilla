@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.169...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.170...HEAD)
+
+**Merged pull requests:**
+
+- Enhance engine extensions API [\#1599](https://github.com/aklivity/zilla/pull/1599) ([jfallows](https://github.com/jfallows))
+
+## [0.9.170](https://github.com/aklivity/zilla/tree/0.9.170) (2025-10-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.169...0.9.170)
 
 **Merged pull requests:**
 
