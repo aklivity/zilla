@@ -150,12 +150,16 @@ public class EngineManager
 
     public void start() throws Exception
     {
+        extensions.forEach(e -> e.onStart(context));
+
         watchTask.submit();
         events.started();
     }
 
     public void close()
     {
+        extensions.forEach(e -> e.onClose(context));
+
         watchTask.close();
         events.stopped();
     }
