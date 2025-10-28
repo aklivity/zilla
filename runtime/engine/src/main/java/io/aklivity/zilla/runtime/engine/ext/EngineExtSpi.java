@@ -17,9 +17,24 @@ package io.aklivity.zilla.runtime.engine.ext;
 
 public interface EngineExtSpi
 {
-    void onRegistered(
-        EngineExtContext context);
+    default void onStart(
+        EngineExtContext context)
+    {
+    }
 
-    void onUnregistered(
-        EngineExtContext context);
+    default void onRegistered(
+        EngineExtContext context)
+    {
+    }
+
+    default void onUnregistered(
+        EngineExtContext context)
+    {
+    }
+
+    default void onClose(
+        EngineExtContext context)
+    {
+    }
+
 }
