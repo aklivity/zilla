@@ -23,7 +23,8 @@ public enum Http2Setting
     MAX_CONCURRENT_STREAMS(3),
     INITIAL_WINDOW_SIZE(4),
     MAX_FRAME_SIZE(5),
-    MAX_HEADER_LIST_SIZE(6);
+    MAX_HEADER_LIST_SIZE(6),
+    ENABLE_CONNECT_PROTOCOL(8);
 
     private final int id;
 
@@ -49,6 +50,7 @@ public enum Http2Setting
         case 4: return INITIAL_WINDOW_SIZE;
         case 5: return MAX_FRAME_SIZE;
         case 6: return MAX_HEADER_LIST_SIZE;
+        case 8: return ENABLE_CONNECT_PROTOCOL;
         default: return UNKNOWN;
         }
     }
