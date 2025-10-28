@@ -353,6 +353,38 @@ public class AvroModelTest
     }
 
     @Test
+    public void shouldVerifyWritePaddingLengthWithNull()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(SCHEMA_WITH_NULL)
+                .build()
+            .build();
+        AvroModelConfig model = AvroModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        assertEquals(1, converter.padding(data, 0, data.capacity()));
+    }
+
+    @Test
     public void shouldExtract()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
