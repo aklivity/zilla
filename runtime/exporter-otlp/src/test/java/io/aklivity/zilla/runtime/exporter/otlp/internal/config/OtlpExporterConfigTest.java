@@ -138,4 +138,70 @@ public class OtlpExporterConfigTest
         assertThat(metrics, equalTo(URI.create("http://example.com/v42/metrix")));
         assertThat(logs, equalTo(URI.create("http://example.com/v42/logz")));
     }
+
+    @Test
+    public void shouldAppendPathsWithNonRootBase()
+    {
+        // GIVEN
+        OtlpOptionsConfig options = OtlpOptionsConfig.builder()
+            .interval(Duration.ofSeconds(30L))
+            .signals(Set.of(METRICS))
+            .endpoint()
+                .protocol("http")
+                .location(URI.create("http://localhost:8080/telemetry"))
+                .overrides()
+                    .metrics("/v1/metrics")
+                    .logs("/v1/logs")
+                    .build()
+                .build()
+            .build();
+        ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
+
+        // WHEN
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
+
+        // THEN
+        assertThat(metrics, equalTo(URI.create("http://localhost:8080/telemetry/v1/metrics")));
+        assertThat(logs, equalTo(URI.create("http://localhost:8080/telemetry/v1/logs")));
+    }
+
+    @Test
+    public void shouldHandlePathsWithoutLeadingSlash()
+    {
+        // GIVEN
+        OtlpOptionsConfig options = OtlpOptionsConfig.builder()
+            .interval(Duration.ofSeconds(30L))
+            .signals(Set.of(METRICS))
+            .endpoint()
+                .protocol("http")
+                .location(URI.create("http://localhost:8080/telemetry"))
+                .overrides()
+                    .metrics("v1/metrics")
+                    .logs("v1/logs")
+                    .build()
+                .build()
+            .build();
+        ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
+
+        // WHEN
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
+
+        // THEN
+        assertThat(metrics, equalTo(URI.create("http://localhost:8080/telemetry/v1/metrics")));
+        assertThat(logs, equalTo(URI.create("http://localhost:8080/telemetry/v1/logs")));
+    }
 }

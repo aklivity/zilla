@@ -60,8 +60,39 @@ public class OtlpExporterConfig
         OtlpEndpointConfig endpoint = options.endpoint;
         URI location = endpoint.location;
         OtlpOverridesConfig overrides = endpoint.overrides;
-        this.metrics = location.resolve(overrides.metrics);
-        this.logs = location.resolve(overrides.logs);
+
+        this.metrics = normalizeAndJoinPaths(location, overrides.metrics);
+        this.logs = normalizeAndJoinPaths(location, overrides.logs);
+    }
+
+    private URI normalizeAndJoinPaths(URI base, String path) {
+        String basePath = base.getPath();
+        if (basePath == null) {
+            basePath = "/";
+        }
+        
+        String pathToAppend = path;
+        if (pathToAppend.startsWith("/")) {
+            pathToAppend = pathToAppend.substring(1);
+        }
+        
+        if (!basePath.endsWith("/")) {
+            basePath += "/";
+        }
+        
+        try {
+            return new URI(
+                base.getScheme(),
+                base.getUserInfo(),
+                base.getHost(),
+                base.getPort(),
+                basePath + pathToAppend,
+                base.getQuery(),
+                base.getFragment()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to join URI paths", e);
+        }
     }
 
     public HttpClient supplyHttpClient(
