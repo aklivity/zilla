@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -44,7 +45,8 @@ public final class HttpKafkaBindingConfig
     private final HttpKafkaHeaderHelper helper;
 
     public HttpKafkaBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -52,7 +54,7 @@ public final class HttpKafkaBindingConfig
         this.options = Optional.ofNullable(binding.options)
                 .map(HttpKafkaOptionsConfig.class::cast)
                 .orElse(HttpKafkaOptionsConfigAdapter.DEFAULT);
-        this.routes = binding.routes.stream().map(r -> new HttpKafkaRouteConfig(options, r)).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new HttpKafkaRouteConfig(options, r, context)).collect(toList());
         this.helper = new HttpKafkaHeaderHelper();
     }
 
