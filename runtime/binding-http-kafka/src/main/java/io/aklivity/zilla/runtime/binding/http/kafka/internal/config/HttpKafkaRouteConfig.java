@@ -16,18 +16,24 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
-import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -41,12 +47,53 @@ public final class HttpKafkaRouteConfig
 
     public HttpKafkaRouteConfig(
         HttpKafkaOptionsConfig options,
-        RouteConfig route)
+        RouteConfig route,
+        EngineContext context)
     {
         this.id = route.id;
 
-        final Map<String, LongFunction<String>> identifiers = route.guarded.stream()
-                .collect(Collectors.toMap(g -> g.name, g -> g.identity));
+        // Build identifiers and attributors maps using EngineContext
+        final Map<String, LongFunction<String>> identifiers = new HashMap<>();
+        final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+
+        // First, add explicitly guarded routes (from route.guarded)
+        for (var guarded : route.guarded)
+        {
+            identifiers.put(guarded.name, guarded.identity);
+            attributors.put(guarded.name, guarded.attributes);
+        }
+
+        // Second, extract guard names referenced in expressions and resolve them via EngineContext
+        if (route.with != null)
+        {
+            HttpKafkaWithConfig withConfig = (HttpKafkaWithConfig) route.with;
+            Set<String> referencedGuardNames = extractReferencedGuards(withConfig);
+
+            for (String guardName : referencedGuardNames)
+            {
+                // Skip if already added from route.guarded
+                if (!identifiers.containsKey(guardName))
+                {
+                    try
+                    {
+                        // Resolve guard using EngineContext
+                        long guardId = context.supplyTypeId(guardName);
+                        GuardHandler guard = context.supplyGuard(guardId);
+
+                        if (guard != null)
+                        {
+                            // Create identity and attribute functions that delegate to GuardHandler
+                            identifiers.put(guardName, guard::identity);
+                            attributors.put(guardName, guard::attribute);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Guard not found or invalid - ignore and continue
+                    }
+                }
+            }
+        }
 
         final LongFunction<String> defaultIdentifier = a -> null;
         final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
@@ -55,9 +102,6 @@ public final class HttpKafkaRouteConfig
             final String identity = identifier.apply(a);
             return identity != null ? identity : "";
         };
-
-        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
-                .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
 
         final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
         final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
@@ -80,6 +124,56 @@ public final class HttpKafkaRouteConfig
                 .collect(toList());
 
         this.authorized = route.authorized;
+    }
+
+    private Set<String> extractReferencedGuards(
+        HttpKafkaWithConfig withConfig)
+    {
+        Set<String> guardNames = new HashSet<>();
+
+        // Regex pattern matches ${guarded['<name>'].identity} and ${guarded['<name>'].attributes.*}
+        // Capture group (1) extracts the guard name
+        Pattern guardPattern = Pattern.compile("\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]");
+
+        // Extract from produce overrides
+        withConfig.produce.ifPresent(produce ->
+        {
+            produce.overrides.ifPresent(overrides ->
+            {
+                for (var override : overrides)
+                {
+                    Matcher matcher = guardPattern.matcher(override.value);
+                    while (matcher.find())
+                    {
+                        guardNames.add(matcher.group(1));
+                    }
+                }
+            });
+        });
+
+        // Extract from fetch filters
+        withConfig.fetch.ifPresent(fetch ->
+        {
+            fetch.filters.ifPresent(filters ->
+            {
+                for (var filter : filters)
+                {
+                    filter.headers.ifPresent(headers ->
+                    {
+                        for (var header : headers)
+                        {
+                            Matcher matcher = guardPattern.matcher(header.value);
+                            while (matcher.find())
+                            {
+                                guardNames.add(matcher.group(1));
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        return guardNames;
     }
 
     boolean authorized(
