@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -419,7 +418,42 @@ public class EngineManager
                 route.id = resolver.resolve(route.exit);
                 route.authorized = (session, resolve) -> true;
 
-                processRouteGuards(route, guards, resolver);
+                if (route.guarded != null)
+                {
+                    for (GuardedConfig guarded : route.guarded)
+                    {
+                        guarded.id = resolver.resolve(guarded.name);
+
+                        LongObjectPredicate<UnaryOperator<String>> authorizer = guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
+                            .orElse((session, resolve) -> false);
+
+                        LongFunction<String> identifier = guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
+                            .orElse(session -> null);
+
+                        guarded.identity = identifier;
+
+                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.attributor(EngineWorker::indexOfId, guarded))
+                            .orElse((session, name) -> null);
+
+                        guarded.attributes = attributor;
+
+                        guarded.qname = resolver.format(guarded.id);
+
+                        route.authorized = route.authorized.and(authorizer);
+                    }
+                }
             }
 
             Set<Long> metricIds = new HashSet<>();
@@ -453,109 +487,6 @@ public class EngineManager
 
             tuning.affinity(binding.id, affinity);
         }
-    }
-
-    private void processRouteGuards(
-        RouteConfig route,
-        List<GuardConfig> guards,
-        NameResolver resolver)
-    {
-        Set<Long> authorizedGuardIds = new HashSet<>();
-
-        for (GuardedConfig guarded : route.guarded)
-        {
-            guarded.id = resolver.resolve(guarded.name);
-            authorizedGuardIds.add(guarded.id);
-
-            LongObjectPredicate<UnaryOperator<String>> authorizer = guards.stream()
-                .filter(g -> g.id == guarded.id)
-                .findFirst()
-                .map(g -> guardByType.apply(g.type))
-                .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
-                .orElse((session, resolve) -> false);
-
-            LongFunction<String> identifier = guards.stream()
-                .filter(g -> g.id == guarded.id)
-                .findFirst()
-                .map(g -> guardByType.apply(g.type))
-                .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
-                .orElse(session -> null);
-
-            guarded.identity = identifier;
-
-            LongObjectBiFunction<String, String> attributor = guards.stream()
-                .filter(g -> g.id == guarded.id)
-                .findFirst()
-                .map(g -> guardByType.apply(g.type))
-                .map(g -> g.attributor(EngineWorker::indexOfId, guarded))
-                .orElse((session, name) -> null);
-
-            guarded.attributes = attributor;
-
-            guarded.qname = resolver.format(guarded.id);
-
-            route.authorized = route.authorized.and(authorizer);
-        }
-
-        if (route.with != null)
-        {
-            Set<String> referencedGuardNames = extractReferencedGuards(route.with.toString());
-
-            for (String guardName : referencedGuardNames)
-            {
-                GuardConfig guard = guards.stream()
-                    .filter(g -> g.name.equals(guardName))
-                    .findFirst()
-                    .orElse(null);
-
-                if (guard != null && !authorizedGuardIds.contains(guard.id))
-                {
-                    GuardedConfig expressionGuarded = GuardedConfig.builder()
-                        .name(guard.name)
-                        .roles(List.of())
-                        .build();
-
-                    expressionGuarded.id = guard.id;
-
-                    LongFunction<String> identifier = Optional.of(guard)
-                        .map(g -> guardByType.apply(g.type))
-                        .map(g -> g.identifier(EngineWorker::indexOfId, expressionGuarded))
-                        .orElse(session -> null);
-
-                    expressionGuarded.identity = identifier;
-
-                    LongObjectBiFunction<String, String> attributor = Optional.of(guard)
-                        .map(g -> guardByType.apply(g.type))
-                        .map(g -> g.attributor(EngineWorker::indexOfId, expressionGuarded))
-                        .orElse((session, name) -> null);
-
-                    expressionGuarded.attributes = attributor;
-
-                    expressionGuarded.qname = resolver.format(expressionGuarded.id);
-
-                    route.guarded.add(expressionGuarded);
-                    authorizedGuardIds.add(guard.id);
-                }
-            }
-        }
-    }
-
-    private Set<String> extractReferencedGuards(
-        String configText)
-    {
-        Set<String> guardNames = new HashSet<>();
-
-        // Regex pattern matches ${guarded['<name>'].identity} and ${guarded['<name>'].attributes.*}
-        // Capture group (1) extracts the guard name
-        Pattern guardPattern = Pattern.compile("\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]");
-        Matcher matcher = guardPattern.matcher(configText);
-
-        while (matcher.find())
-        {
-            guardNames.add(matcher.group(1));
-        }
-
-        return guardNames;
     }
 
     private void register(
