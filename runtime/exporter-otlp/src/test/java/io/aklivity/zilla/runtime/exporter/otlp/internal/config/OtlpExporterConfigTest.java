@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
 import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -84,8 +85,8 @@ public class OtlpExporterConfigTest
                 .protocol("http")
                 .location(URI.create("http://example.com"))
                 .overrides()
-                    .metrics(URI.create("http://overridden.com/metrics"))
-                    .logs(URI.create("http://overridden.com/logs"))
+                    .metrics("http://overridden.com/metrics")
+                    .logs("http://overridden.com/logs")
                     .build()
                 .build()
             .build();
@@ -117,8 +118,8 @@ public class OtlpExporterConfigTest
                 .protocol("http")
                 .location(URI.create("http://example.com"))
                 .overrides()
-                    .metrics(URI.create("/v42/metrix"))
-                    .logs(URI.create("/v42/logz"))
+                    .metrics("/v42/metrix")
+                    .logs("/v42/logz")
                     .build()
                 .build()
             .build();
@@ -203,5 +204,38 @@ public class OtlpExporterConfigTest
         // THEN
         assertThat(metrics, equalTo(URI.create("http://localhost:8080/telemetry/v1/metrics")));
         assertThat(logs, equalTo(URI.create("http://localhost:8080/telemetry/v1/logs")));
+    }
+
+    @Test
+    public void shouldAllowFullUriOverrideWithNonRootBase()
+    {
+        // GIVEN
+        OtlpOptionsConfig options = OtlpOptionsConfig.builder()
+            .interval(Duration.ofSeconds(30L))
+            .signals(Set.of(METRICS, LOGS))
+            .endpoint()
+                .protocol("http")
+                .location(URI.create("http://localhost:8080/telemetry"))
+                .overrides()
+                    .metrics("https://metrics-endpoint.com:9090/api/metrics")
+                    .logs("http://logs.other.com/v1/post")
+                    .build()
+                .build()
+            .build();
+        ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
+                .name("oltp0")
+                .type("oltp")
+                .options(options)
+                .build();
+        OtlpExporterConfig oltpExporter = new OtlpExporterConfig(config, context, exporter);
+
+        // WHEN
+        URI metrics = oltpExporter.metrics;
+        URI logs = oltpExporter.logs;
+
+        // THEN
+        assertThat(metrics, equalTo(URI.create("https://metrics-endpoint.com:9090/api/metrics")));
+        assertThat(logs, equalTo(URI.create("http://logs.other.com/v1/post")));
     }
 }

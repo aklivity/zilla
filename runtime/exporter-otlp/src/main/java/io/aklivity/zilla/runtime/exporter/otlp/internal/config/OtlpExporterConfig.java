@@ -60,38 +60,56 @@ public class OtlpExporterConfig
         OtlpEndpointConfig endpoint = options.endpoint;
         URI location = endpoint.location;
         OtlpOverridesConfig overrides = endpoint.overrides;
-
-        this.metrics = normalizeAndJoinPaths(location, overrides.metrics);
-        this.logs = normalizeAndJoinPaths(location, overrides.logs);
+        this.metrics = resolveOverride(location, overrides.metrics);
+        this.logs = resolveOverride(location, overrides.logs);
     }
 
-    private URI normalizeAndJoinPaths(URI base, String path) {
-        String basePath = base.getPath();
-        if (basePath == null) {
+        private URI resolveOverride(
+        URI location,
+        String override)
+    {
+        URI overrideURI = URI.create(override);
+        
+        if (overrideURI.isAbsolute() || overrideURI.getAuthority() != null)
+        {
+            return overrideURI;
+        }
+        
+        String basePath = location.getPath();
+        if (basePath == null || basePath.isEmpty())
+        {
             basePath = "/";
         }
         
-        String pathToAppend = path;
-        if (pathToAppend.startsWith("/")) {
-            pathToAppend = pathToAppend.substring(1);
-        }
-        
-        if (!basePath.endsWith("/")) {
+        if (!basePath.endsWith("/"))
+        {
             basePath += "/";
         }
         
-        try {
-            return new URI(
-                base.getScheme(),
-                base.getUserInfo(),
-                base.getHost(),
-                base.getPort(),
-                basePath + pathToAppend,
-                base.getQuery(),
-                base.getFragment()
+        String overridePath = override;
+        if (overridePath.startsWith("/"))
+        {
+            overridePath = overridePath.substring(1);
+        }
+        
+        try
+        {
+            URI normalizedBase = new URI(
+                location.getScheme(),
+                location.getUserInfo(),
+                location.getHost(),
+                location.getPort(),
+                basePath,
+                location.getQuery(),
+                location.getFragment()
             );
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to join URI paths", e);
+            
+            return normalizedBase.resolve(overridePath);
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+            return location;
         }
     }
 
