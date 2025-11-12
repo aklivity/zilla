@@ -116,7 +116,8 @@ public class TestCatalogHandler implements CatalogHandler
         Validator validator)
     {
         int schemaId = data.getInt(index, ByteOrder.BIG_ENDIAN);
-        return validator.accept(traceId, bindingId, schemaId, data, index + BitUtil.SIZE_OF_INT, length - BitUtil.SIZE_OF_INT, next);
+        return validator.accept(traceId, bindingId, schemaId, data,
+            index + BitUtil.SIZE_OF_INT, length - BitUtil.SIZE_OF_INT, next);
     }
 
     @Override
