@@ -423,6 +423,33 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         return MAX_PADDING_LENGTH;
     }
 
+    @Override
+    public boolean validate(
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Validator validator)
+    {
+        int schemaId = NO_SCHEMA_ID;
+        int progress = 0;
+        boolean status = false;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+            progress += BitUtil.SIZE_OF_INT;
+        }
+
+        if (schemaId > NO_SCHEMA_ID)
+        {
+            status = validator.accept(traceId, bindingId, schemaId, data, index + progress, length - progress, next);
+        }
+        return status;
+    }
+
     private String sendHttpRequest(
         String path)
     {

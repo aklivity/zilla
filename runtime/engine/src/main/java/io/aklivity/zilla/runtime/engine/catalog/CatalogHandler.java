@@ -62,6 +62,21 @@ public interface CatalogHandler
             ValueConsumer next);
     }
 
+    @FunctionalInterface
+    interface Validator
+    {
+        Validator IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) -> true;
+
+        boolean accept(
+            long traceId,
+            long bindingId,
+            int schemaId,
+            DirectBuffer data,
+            int index,
+            int length,
+            ValueConsumer next);
+    }
+
     default int register(
         String subject,
         String schema)
@@ -100,6 +115,18 @@ public interface CatalogHandler
         Decoder decoder)
     {
         return decoder.accept(traceId, bindingId, NO_SCHEMA_ID, data, index, length, next);
+    }
+
+    default boolean validate(
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Validator validator)
+    {
+        return validator.accept(traceId, bindingId, NO_SCHEMA_ID, data, index, length, next);
     }
 
     default int encode(
