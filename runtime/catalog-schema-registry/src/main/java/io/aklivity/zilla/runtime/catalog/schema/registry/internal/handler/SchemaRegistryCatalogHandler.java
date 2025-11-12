@@ -443,7 +443,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             progress += BitUtil.SIZE_OF_INT;
         }
 
-        if (schemaId > NO_SCHEMA_ID)
+        if (schemaId != NO_SCHEMA_ID)
         {
             status = validator.accept(traceId, bindingId, schemaId, data, index + progress, length - progress, next);
         }

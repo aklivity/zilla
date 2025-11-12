@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import java.io.InputStream;
+
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -80,7 +82,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
                         ? catalog.id
                         : handler.resolve(subject, catalog.version);
 
-                    status = parser(schemaId);
+                    status = validatePayload(schemaId, in);
                 }
             }
         }
@@ -103,11 +105,12 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         ValueConsumer next)
     {
         in.wrap(data, index, length);
-        return parser(schemaId);
+        return validatePayload(schemaId, in);
     }
 
-    private boolean parser(
-        int schemaId)
+    private boolean validatePayload(
+        int schemaId,
+        InputStream in)
     {
         boolean status = true;
         JsonProvider provider = supplyProvider(schemaId);
