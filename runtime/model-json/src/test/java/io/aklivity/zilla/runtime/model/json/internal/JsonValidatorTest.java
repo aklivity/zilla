@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -279,6 +280,47 @@ public class JsonValidatorTest
                 "]";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
+
+        assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidCompleteJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = """
+            {
+              "id": "123",
+              "status": "OK"
+            }""".getBytes();
+
+        int length = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
 
         assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }

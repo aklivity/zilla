@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
@@ -109,5 +110,20 @@ public class SchemaRegistryCatalogHandlerTest
         int schemaId = catalog.resolve(data, 0, data.capacity());
 
         assertEquals(9, schemaId);
+    }
+
+    @Test
+    public void shouldResolveSchemaIdAndValidate()
+    {
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertTrue(catalog.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Validator.IDENTITY));
     }
 }
