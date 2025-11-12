@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
-
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -70,7 +68,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
 
             if ((flags & FLAGS_FIN) != 0x00)
             {
-                if ("encoded".equals(catalog.strategy))
+                if (catalog != null && "encoded".equals(catalog.strategy))
                 {
                     status = handler.validate(traceId, bindingId, buffer, 0, progress, next, this::validatePayload);
                 }
@@ -89,8 +87,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         catch (JsonParsingException ex)
         {
             status = false;
-            //event.validationFailure(traceId, bindingId, ex.getMessage());
-            ex.printStackTrace();
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
 
         return status;
