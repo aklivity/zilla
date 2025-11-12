@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import java.io.InputStream;
+
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -68,23 +70,19 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
 
             if ((flags & FLAGS_FIN) != 0x00)
             {
-                in.wrap(buffer, 0, progress);
-
-                int schemaId = catalog != null && catalog.id > 0
-                    ? catalog.id
-                    : handler.resolve(subject, catalog.version);
-
-                JsonProvider provider = supplyProvider(schemaId);
-
-                status &= provider != null;
-
-                if (status)
+                if (catalog != null && "encoded".equals(catalog.strategy))
                 {
-                    parser = provider.createParser(in);
-                    while (parser.hasNext())
-                    {
-                        parser.next();
-                    }
+                    status = handler.validate(traceId, bindingId, buffer, 0, progress, next, this::validatePayload);
+                }
+                else
+                {
+                    in.wrap(buffer, 0, progress);
+
+                    int schemaId = catalog != null && catalog.id > 0
+                        ? catalog.id
+                        : handler.resolve(subject, catalog.version);
+
+                    status = validatePayload(schemaId, in);
                 }
             }
         }
@@ -94,6 +92,39 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
 
+        return status;
+    }
+
+    private boolean validatePayload(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        in.wrap(data, index, length);
+        return validatePayload(schemaId, in);
+    }
+
+    private boolean validatePayload(
+        int schemaId,
+        InputStream in)
+    {
+        boolean status = true;
+        JsonProvider provider = supplyProvider(schemaId);
+
+        status &= provider != null;
+
+        if (status)
+        {
+            parser = provider.createParser(in);
+            while (parser.hasNext())
+            {
+                parser.next();
+            }
+        }
         return status;
     }
 }
