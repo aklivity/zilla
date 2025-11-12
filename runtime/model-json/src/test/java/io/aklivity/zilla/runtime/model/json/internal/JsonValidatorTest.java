@@ -324,4 +324,41 @@ public class JsonValidatorTest
 
         assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
+
+    @Test
+    public void shouldVerifyInvalidCompleteJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] event = """
+            {
+              "id": "123",
+              "status": "OK"
+            }""".getBytes();
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(event, 0, event.length);
+
+        assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
 }
