@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.170...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.171...HEAD)
+
+**Merged pull requests:**
+
+- Support catalog handler validate [\#1606](https://github.com/aklivity/zilla/pull/1606) ([jfallows](https://github.com/jfallows))
+
+## [0.9.171](https://github.com/aklivity/zilla/tree/0.9.171) (2025-10-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.170...0.9.171)
+
+**Fixed bugs:**
+
+- Fix virtual cluster produce under load [\#1595](https://github.com/aklivity/zilla/issues/1595)
 
 **Merged pull requests:**
 
