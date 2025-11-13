@@ -51,7 +51,7 @@ jobs:
         key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
     - name: Conditional Artifact Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: failure()
       with:
         name: zilla-build-${{ matrix.java }}-${{ github.event.number }}
@@ -138,7 +138,7 @@ jobs:
         run: tar cvzf ./logs.tgz ./logs
       - name: Upload logs to GitHub
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.dir }}_logs.tgz
           path: ./logs.tgz
