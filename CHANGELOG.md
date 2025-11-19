@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.171...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.172...HEAD)
+
+**Closed issues:**
+
+- Support `model-json` validation where catalog expects prefix with schema id [\#1605](https://github.com/aklivity/zilla/issues/1605)
+
+**Merged pull requests:**
+
+- Handle abort aborted race condition in IT scripts [\#1608](https://github.com/aklivity/zilla/pull/1608) ([jfallows](https://github.com/jfallows))
+
+## [0.9.172](https://github.com/aklivity/zilla/tree/0.9.172) (2025-11-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.171...0.9.172)
 
 **Merged pull requests:**
 

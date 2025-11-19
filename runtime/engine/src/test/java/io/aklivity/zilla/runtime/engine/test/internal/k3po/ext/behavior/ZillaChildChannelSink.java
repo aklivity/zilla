@@ -72,6 +72,10 @@ public class ZillaChildChannelSink extends AbstractChannelSink
         {
             channel.engine.abortOutput(channel, abortFuture);
         }
+        else
+        {
+            abortFuture.setSuccess();
+        }
     }
 
     @Override
@@ -85,6 +89,10 @@ public class ZillaChildChannelSink extends AbstractChannelSink
         if (!channel.isReadClosed())
         {
             channel.engine.abortInput(channel, abortFuture);
+        }
+        else
+        {
+            abortFuture.setSuccess();
         }
     }
 
