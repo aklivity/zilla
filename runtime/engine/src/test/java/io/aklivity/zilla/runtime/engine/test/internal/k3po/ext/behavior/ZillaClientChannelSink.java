@@ -79,7 +79,11 @@ public class ZillaClientChannelSink extends AbstractChannelSink
         ZillaChannel channel = (ZillaChannel) evt.getChannel();
         ChannelFuture abortFuture = evt.getFuture();
 
-        if (!channel.isWriteClosed())
+        if (channel.isWriteAborted())
+        {
+            abortFuture.setSuccess();
+        }
+        else if (!channel.isWriteClosed())
         {
             channel.engine.abortOutput(channel, abortFuture);
         }
@@ -93,7 +97,11 @@ public class ZillaClientChannelSink extends AbstractChannelSink
         ZillaChannel channel = (ZillaChannel) evt.getChannel();
         ChannelFuture abortFuture = evt.getFuture();
 
-        if (!channel.isReadClosed())
+        if (channel.isReadAborted())
+        {
+            abortFuture.setSuccess();
+        }
+        else if (!channel.isReadClosed())
         {
             channel.engine.abortInput(channel, abortFuture);
         }

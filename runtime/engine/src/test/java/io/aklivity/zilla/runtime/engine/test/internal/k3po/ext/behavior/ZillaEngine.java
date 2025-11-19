@@ -617,7 +617,11 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         {
             try
             {
-                if (!channel.isWriteClosed())
+                if (channel.isWriteAborted())
+                {
+                    handlerFuture.setSuccess();
+                }
+                else if (!channel.isWriteClosed())
                 {
                     ZillaEngine engine = channel.engine;
                     int scopeIndex = channel.getLocalScope();  // ??
@@ -651,7 +655,11 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         {
             try
             {
-                if (!channel.isReadClosed())
+                if (channel.isReadAborted())
+                {
+                    handlerFuture.setSuccess();
+                }
+                else if (!channel.isReadClosed())
                 {
                     ZillaEngine engine = channel.engine;
                     int scopeIndex = channel.getLocalScope();
