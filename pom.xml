@@ -59,7 +59,7 @@
     <slf4j.version>1.7.36</slf4j.version>
     <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.23</byteman.version>
-    <jmock.version>2.6.0</jmock.version>
+    <jmock.version>2.13.1</jmock.version>
     <mockito.version>5.14.1</mockito.version>
     <k3po.version>3.3.0</k3po.version>
     <jmh.version>1.37</jmh.version>
