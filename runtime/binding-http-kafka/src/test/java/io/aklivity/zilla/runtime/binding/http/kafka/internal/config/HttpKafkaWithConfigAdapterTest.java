@@ -463,4 +463,138 @@ public class HttpKafkaWithConfigAdapterTest
         assertThat(text, equalTo("{\"capability\":\"produce\",\"topic\":\"test\"," +
                                   "\"async\":{\"location\":\"/items/${params.id};${correlationId}\"}}"));
     }
+
+    @Test
+    public void shouldReadWithProduceTopicAndOverridesWithGuardIdentity()
+    {
+        String text = """
+            {
+                "capability": "produce",
+                "topic": "test",
+                "key": "${params.id}",
+                "reply-to": "replies",
+                "overrides":
+                {
+                    "zilla:identity": "${guarded['lsauthgaurd'].identity}"
+                }
+            }
+            """;
+
+        HttpKafkaWithConfig with = jsonb.fromJson(text, HttpKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
+        assertThat(with.fetch, isEmpty());
+        assertThat(with.produce, isPresent());
+        assertThat(with.produce.get().topic, equalTo("test"));
+        assertThat(with.produce.get().key, isPresentAnd(equalTo("${params.id}")));
+        assertThat(with.produce.get().replyTo, isPresentAnd(equalTo("replies")));
+        assertThat(with.produce.get().overrides,
+                isPresentAnd(
+                    contains(
+                        allOf(hasField("name", equalTo("zilla:identity")),
+                              hasField("value", equalTo("${guarded['lsauthgaurd'].identity}"))))));
+    }
+
+    @Test
+    public void shouldWriteWithProduceTopicAndOverridesWithGuardIdentity()
+    {
+        HttpKafkaWithConfig with = HttpKafkaWithConfig.builder()
+            .produce(HttpKafkaWithProduceConfig.builder()
+                .topic("test")
+                .acks("in_sync_replicas")
+                .key("${params.id}")
+                .replyTo("replies")
+                .overrides(singletonList(HttpKafkaWithProduceOverrideConfig.builder()
+                    .name("zilla:identity")
+                    .value("${guarded['lsauthgaurd'].identity}")
+                    .build()))
+                .build())
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("""
+            {\
+            "capability":"produce",\
+            "topic":"test",\
+            "key":"${params.id}",\
+            "overrides":{\
+            "zilla:identity":"${guarded['lsauthgaurd'].identity}"\
+            },\
+            "reply-to":"replies"\
+            }\
+            """.trim()));
+    }
+
+    @Test
+    public void shouldReadWithProduceTopicAndOverridesWithGuardAttributes()
+    {
+        String text = """
+            {
+                "capability": "produce",
+                "topic": "test",
+                "overrides":
+                {
+                    "zilla:identity": "${guarded['jwt'].identity}",
+                    "zilla:username": "${guarded['jwt'].attributes.username}",
+                    "zilla:email": "${guarded['jwt'].attributes.email}"
+                }
+            }
+            """;
+
+        HttpKafkaWithConfig with = jsonb.fromJson(text, HttpKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
+        assertThat(with.produce.get().overrides,
+                isPresentAnd(
+                    contains(
+                        allOf(hasField("name", equalTo("zilla:identity")),
+                              hasField("value", equalTo("${guarded['jwt'].identity}"))),
+                        allOf(hasField("name", equalTo("zilla:username")),
+                              hasField("value", equalTo("${guarded['jwt'].attributes.username}"))),
+                        allOf(hasField("name", equalTo("zilla:email")),
+                              hasField("value", equalTo("${guarded['jwt'].attributes.email}"))))));
+    }
+
+    @Test
+    public void shouldWriteWithProduceTopicAndOverridesWithGuardAttributes()
+    {
+        HttpKafkaWithConfig with = HttpKafkaWithConfig.builder()
+            .produce(HttpKafkaWithProduceConfig.builder()
+                .topic("test")
+                .acks("in_sync_replicas")
+                .overrides(java.util.Arrays.asList(
+                    HttpKafkaWithProduceOverrideConfig.builder()
+                        .name("zilla:identity")
+                        .value("${guarded['jwt'].identity}")
+                        .build(),
+                    HttpKafkaWithProduceOverrideConfig.builder()
+                        .name("zilla:username")
+                        .value("${guarded['jwt'].attributes.username}")
+                        .build(),
+                    HttpKafkaWithProduceOverrideConfig.builder()
+                        .name("zilla:email")
+                        .value("${guarded['jwt'].attributes.email}")
+                        .build()))
+                .build())
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("""
+            {\
+            "capability":"produce",\
+            "topic":"test",\
+            "overrides":{\
+            "zilla:identity":"${guarded['jwt'].identity}",\
+            "zilla:username":"${guarded['jwt'].attributes.username}",\
+            "zilla:email":"${guarded['jwt'].attributes.email}"\
+            }\
+            }\
+            """.trim()));
+    }
 }

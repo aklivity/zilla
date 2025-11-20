@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -30,12 +31,13 @@ public final class SseKafkaBindingConfig
     public final List<SseKafkaRouteConfig> routes;
 
     public SseKafkaBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.routes = binding.routes.stream().map(SseKafkaRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new SseKafkaRouteConfig(r, context)).collect(toList());
     }
 
     public SseKafkaRouteConfig resolve(
