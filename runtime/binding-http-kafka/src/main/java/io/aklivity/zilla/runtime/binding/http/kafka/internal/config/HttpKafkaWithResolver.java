@@ -15,15 +15,18 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -78,6 +81,85 @@ public final class HttpKafkaWithResolver
     private static final OctetsFW MERGE_HEADER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("[").value(), 0, 1);
     private static final OctetsFW MERGE_SEPARATOR_JSON_ARRAY = new OctetsFW().wrap(new String8FW(",").value(), 0, 1);
     private static final OctetsFW MERGE_TRAILER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("]").value(), 0, 1);
+
+    public static Set<String> extractGuardNames(
+        HttpKafkaWithConfig withConfig)
+    {
+        // Helper to extract guard names from a string using both identity and attribute patterns
+        Function<String, Stream<String>> extractGuards = value ->
+        {
+            Stream.Builder<String> builder = Stream.builder();
+
+            Matcher identityMatcher = IDENTITY_PATTERN.matcher(value);
+            while (identityMatcher.find())
+            {
+                builder.add(identityMatcher.group(1));
+            }
+
+            Matcher attributeMatcher = ATTRIBUTE_PATTERN.matcher(value);
+            while (attributeMatcher.find())
+            {
+                builder.add(attributeMatcher.group(1));
+            }
+
+            return builder.build();
+        };
+
+        // Extract from produce configuration
+        Stream<String> produceGuards = withConfig.produce
+            .stream()
+            .flatMap(produce ->
+            {
+                Stream.Builder<Stream<String>> streams = Stream.builder();
+
+                // Extract from topic
+                streams.add(extractGuards.apply(produce.topic));
+
+                // Extract from key
+                produce.key.ifPresent(key -> streams.add(extractGuards.apply(key)));
+
+                // Extract from overrides
+                produce.overrides.ifPresent(overrides ->
+                    streams.add(overrides.stream()
+                        .flatMap(override -> extractGuards.apply(override.value))));
+
+                return streams.build().flatMap(s -> s);
+            });
+
+        // Extract from fetch configuration
+        Stream<String> fetchGuards = withConfig.fetch
+            .stream()
+            .flatMap(fetch ->
+            {
+                Stream.Builder<Stream<String>> streams = Stream.builder();
+
+                // Extract from topic
+                streams.add(extractGuards.apply(fetch.topic));
+
+                // Extract from filters
+                fetch.filters.ifPresent(filters ->
+                    streams.add(filters.stream()
+                        .flatMap(filter ->
+                        {
+                            Stream.Builder<Stream<String>> filterStreams = Stream.builder();
+
+                            // Extract from filter key
+                            filter.key.ifPresent(key -> filterStreams.add(extractGuards.apply(key)));
+
+                            // Extract from filter headers
+                            filter.headers.ifPresent(headers ->
+                                filterStreams.add(headers.stream()
+                                    .flatMap(header -> extractGuards.apply(header.value))));
+
+                            return filterStreams.build().flatMap(s -> s);
+                        })));
+
+                return streams.build().flatMap(s -> s);
+            });
+
+        return Stream.concat(produceGuards, fetchGuards)
+            .collect(toSet());
+    }
 
     private final String16FW.Builder stringRW = new String16FW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);

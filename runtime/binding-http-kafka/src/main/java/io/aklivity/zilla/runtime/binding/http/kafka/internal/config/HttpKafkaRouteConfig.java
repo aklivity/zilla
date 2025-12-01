@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
@@ -56,43 +54,40 @@ public final class HttpKafkaRouteConfig
         final Map<String, LongFunction<String>> identifiers = new HashMap<>();
         final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
 
-        // First, add explicitly guarded routes (from route.guarded)
-        for (var guarded : route.guarded)
-        {
-            identifiers.put(guarded.name, guarded.identity);
-            attributors.put(guarded.name, guarded.attributes);
-        }
-
-        // Second, extract guard names referenced in expressions and resolve them via EngineContext
+        // Extract guard names referenced in expressions
+        Set<String> referencedGuardNames = new HashSet<>();
         if (route.with != null)
         {
             HttpKafkaWithConfig withConfig = (HttpKafkaWithConfig) route.with;
-            Set<String> referencedGuardNames = extractReferencedGuards(withConfig);
+            referencedGuardNames = HttpKafkaWithResolver.extractGuardNames(withConfig);
+        }
 
-            for (String guardName : referencedGuardNames)
-            {
-                // Skip if already added from route.guarded
-                if (!identifiers.containsKey(guardName))
-                {
-                    try
+        // Only add guards that are actually referenced in expressions
+        for (String guardName : referencedGuardNames)
+        {
+            // Try to find guard in route.guarded first
+            route.guarded.stream()
+                .filter(guarded -> guarded.name.equals(guardName))
+                .findFirst()
+                .ifPresentOrElse(
+                    guarded ->
                     {
-                        // Resolve guard using EngineContext
+                        identifiers.put(guarded.name, guarded.identity);
+                        attributors.put(guarded.name, guarded.attributes);
+                    },
+                    () ->
+                    {
+                        // Not found in route.guarded, resolve via EngineContext
                         long guardId = context.supplyTypeId(guardName);
                         GuardHandler guard = context.supplyGuard(guardId);
 
                         if (guard != null)
                         {
-                            // Create identity and attribute functions that delegate to GuardHandler
                             identifiers.put(guardName, guard::identity);
                             attributors.put(guardName, guard::attribute);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        // Guard not found or invalid - ignore and continue
-                    }
-                }
-            }
+                );
         }
 
         final LongFunction<String> defaultIdentifier = a -> null;
@@ -124,56 +119,6 @@ public final class HttpKafkaRouteConfig
                 .collect(toList());
 
         this.authorized = route.authorized;
-    }
-
-    private Set<String> extractReferencedGuards(
-        HttpKafkaWithConfig withConfig)
-    {
-        Set<String> guardNames = new HashSet<>();
-
-        // Regex pattern matches ${guarded['<name>'].identity} and ${guarded['<name>'].attributes.*}
-        // Capture group (1) extracts the guard name
-        Pattern guardPattern = Pattern.compile("\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]");
-
-        // Extract from produce overrides
-        withConfig.produce.ifPresent(produce ->
-        {
-            produce.overrides.ifPresent(overrides ->
-            {
-                for (var override : overrides)
-                {
-                    Matcher matcher = guardPattern.matcher(override.value);
-                    while (matcher.find())
-                    {
-                        guardNames.add(matcher.group(1));
-                    }
-                }
-            });
-        });
-
-        // Extract from fetch filters
-        withConfig.fetch.ifPresent(fetch ->
-        {
-            fetch.filters.ifPresent(filters ->
-            {
-                for (var filter : filters)
-                {
-                    filter.headers.ifPresent(headers ->
-                    {
-                        for (var header : headers)
-                        {
-                            Matcher matcher = guardPattern.matcher(header.value);
-                            while (matcher.find())
-                            {
-                                guardNames.add(matcher.group(1));
-                            }
-                        }
-                    });
-                }
-            });
-        });
-
-        return guardNames;
     }
 
     boolean authorized(
