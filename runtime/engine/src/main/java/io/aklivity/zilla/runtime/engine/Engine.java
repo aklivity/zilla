@@ -125,11 +125,11 @@ public final class Engine implements Collector, AutoCloseable
         }
 
         Info info = new Info.Builder()
-            .path(config.directory())
-            .workerCount(config.workers())
+            .directory(config.directory())
+            .workers(config.workers())
             .readonly(readonly)
             .build();
-        int workerCount = info.workerCount();
+        int workerCount = info.workers();
 
         LabelManager labels = new LabelManager(config.directory());
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
