@@ -35,7 +35,7 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/model/avro/config");
 
     @Test
-    public void shouldValidateCatalog()
+    public void shouldValidateModel()
     {
         JsonObject config = schema.validate("model.yaml");
 
