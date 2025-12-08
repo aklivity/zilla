@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Setup JDK ${{ matrix.java }}
       uses: actions/setup-java@v4
       with:
@@ -68,7 +68,7 @@ jobs:
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -98,7 +98,7 @@ jobs:
       ZILLA_VERSION: develop-SNAPSHOT
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           sparse-checkout: examples/${{ matrix.dir }}
 
