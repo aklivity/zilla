@@ -2,7 +2,26 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.172...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.173...HEAD)
+
+**Closed issues:**
+
+- Support `model-avro` validation where catalog expects prefix with schema id [\#1611](https://github.com/aklivity/zilla/issues/1611)
+
+**Merged pull requests:**
+
+- Fix command dump pcap timestamps [\#1618](https://github.com/aklivity/zilla/pull/1618) ([jfallows](https://github.com/jfallows))
+- Fix testcontainers by upgrading [\#1616](https://github.com/aklivity/zilla/pull/1616) ([jfallows](https://github.com/jfallows))
+- `avro` validator implementation with `encoded` strategy [\#1615](https://github.com/aklivity/zilla/pull/1615) ([ankitk-me](https://github.com/ankitk-me))
+- Bump alpine from 3.21.3 to 3.23.0 in /cloud/docker-image/src/main/docker [\#1613](https://github.com/aklivity/zilla/pull/1613) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20250404 to jammy-20251013 in /cloud/docker-image/src/main/docker [\#1607](https://github.com/aklivity/zilla/pull/1607) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 2.4.1 to 2.7.0 [\#1601](https://github.com/aklivity/zilla/pull/1601) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 4 to 5 [\#1597](https://github.com/aklivity/zilla/pull/1597) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 4 to 5 [\#1535](https://github.com/aklivity/zilla/pull/1535) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.173](https://github.com/aklivity/zilla/tree/0.9.173) (2025-11-19)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.172...0.9.173)
 
 **Closed issues:**
 

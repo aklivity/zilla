@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelContext implements ModelContext
@@ -46,5 +47,12 @@ public class AvroModelContext implements ModelContext
         ModelConfig options)
     {
         return new AvroWriteConverterHandler(config, AvroModelConfig.class.cast(options), context);
+    }
+
+    @Override
+    public ValidatorHandler supplyValidatorHandler(
+        ModelConfig options)
+    {
+        return new AvroValidatorHandler(config, AvroModelConfig.class.cast(options), context);
     }
 }

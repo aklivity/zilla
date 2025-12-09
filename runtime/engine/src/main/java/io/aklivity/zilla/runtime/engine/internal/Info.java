@@ -17,30 +17,46 @@ package io.aklivity.zilla.runtime.engine.internal;
 
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.file.StandardOpenOption.APPEND;
+import static java.time.Instant.ofEpochSecond;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 
 import org.agrona.LangUtil;
 
 public final class Info implements AutoCloseable
 {
-    private final Path path;
-
-    private int workerCount;
+    private final Instant startTime;
+    private final long startNanos;
+    private final int workers;
 
     private Info(
-        Path directory)
+        Instant startTime,
+        long startNanos,
+        int workers)
     {
-        this.path = directory.resolve("info");
+        this.workers = workers;
+        this.startTime = startTime;
+        this.startNanos = startNanos;
     }
 
-    public int workerCount()
+    public int workers()
     {
-        return workerCount;
+        return workers;
+    }
+
+    public Instant startTime()
+    {
+        return startTime;
+    }
+
+    public long startNanos()
+    {
+        return startNanos;
     }
 
     @Override
@@ -50,21 +66,38 @@ public final class Info implements AutoCloseable
 
     public static final class Builder
     {
-        private Path path;
-        private int workerCount;
+        private static final int OFFSET_PROCESS_ID = 0;
+        private static final int LIMIT_PROCESS_ID = OFFSET_PROCESS_ID + Long.BYTES;
+
+        private static final int OFFSET_START_TIME_SECONDS = LIMIT_PROCESS_ID;
+        private static final int LIMIT_START_TIME_SECONDS = OFFSET_START_TIME_SECONDS + Long.BYTES;
+
+        private static final int OFFSET_START_TIME_NANOS = LIMIT_START_TIME_SECONDS;
+        private static final int LIMIT_START_TIME_NANOS = OFFSET_START_TIME_NANOS + Integer.BYTES;
+
+        private static final int OFFSET_START_NANOS = LIMIT_START_TIME_NANOS;
+        private static final int LIMIT_START_NANOS = OFFSET_START_NANOS + Long.BYTES;
+
+        private static final int OFFSET_WORKERS = LIMIT_START_NANOS;
+        private static final int LIMIT_WORKERS = OFFSET_WORKERS + Integer.BYTES;
+
+        private static final int SIZEOF_INFO = LIMIT_WORKERS;
+
+        private Path directory;
+        private int workers;
         private boolean readonly;
 
-        public Builder path(
-            Path path)
+        public Builder directory(
+            Path directory)
         {
-            this.path = path;
+            this.directory = directory;
             return this;
         }
 
-        public Builder workerCount(
-            int workerCount)
+        public Builder workers(
+            int workers)
         {
-            this.workerCount = workerCount;
+            this.workers = workers;
             return this;
         }
 
@@ -77,40 +110,53 @@ public final class Info implements AutoCloseable
 
         public Info build()
         {
-            Info info = new Info(path);
+            Path path = directory.resolve("info");
+
+            Info info = null;
+
             if (readonly)
             {
                 try
                 {
-                    byte[] bytes = Files.readAllBytes(info.path);
+                    byte[] bytes = Files.readAllBytes(path);
                     ByteBuffer byteBuf = ByteBuffer
-                        .wrap(bytes, Long.BYTES, Integer.BYTES)
+                        .wrap(bytes, Long.BYTES, SIZEOF_INFO)
                         .order(nativeOrder());
-                    info.workerCount = byteBuf.getInt();
+
+                    Instant startTime =
+                        ofEpochSecond(byteBuf.getLong(), byteBuf.getInt());
+                    long startNanos = byteBuf.getLong();
+                    int workers = byteBuf.getInt();
+
+                    info = new Info(startTime, startNanos, workers);
                 }
                 catch (IOException ex)
                 {
-                    System.out.printf("Error: %s is not readable\n", info.path);
+                    System.out.printf("Error: %s is not readable\n", path);
                     LangUtil.rethrowUnchecked(ex);
                 }
             }
             else
             {
-                info.workerCount = workerCount;
+                info = new Info(Instant.now(), System.nanoTime(), workers);
+
                 try
                 {
-                    Files.deleteIfExists(info.path);
-                    Files.createDirectories(info.path.getParent());
-                    Files.createFile(info.path);
+                    Files.deleteIfExists(path);
+                    Files.createDirectories(path.getParent());
+                    Files.createFile(path);
 
                     long processId = ProcessHandle.current().pid();
-                    try (SeekableByteChannel channel = Files.newByteChannel(info.path, APPEND))
+                    try (SeekableByteChannel channel = Files.newByteChannel(path, APPEND))
                     {
                         ByteBuffer byteBuf = ByteBuffer
-                                .wrap(new byte[Long.BYTES + Integer.BYTES])
+                                .wrap(new byte[Long.BYTES + SIZEOF_INFO])
                                 .order(nativeOrder());
                         byteBuf.putLong(processId);
-                        byteBuf.putInt(workerCount);
+                        byteBuf.putLong(info.startTime.getEpochSecond());
+                        byteBuf.putInt(info.startTime.getNano());
+                        byteBuf.putLong(info.startNanos);
+                        byteBuf.putInt(info.workers);
                         byteBuf.flip();
 
                         while (byteBuf.hasRemaining())
@@ -122,10 +168,11 @@ public final class Info implements AutoCloseable
                 }
                 catch (IOException ex)
                 {
-                    System.out.printf("Error: %s is not writeable\n", info.path);
+                    System.out.printf("Error: %s is not writeable\n", path);
                     LangUtil.rethrowUnchecked(ex);
                 }
             }
+
             return info;
         }
     }
