@@ -118,5 +118,117 @@
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "avro"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "avro"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "avro"
+                    },
+                    "catalog":
+                    {
+                        "title": "Catalog",
+                        "type": "object",
+                        "patternProperties":
+                        {
+                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "oneOf":
+                                    [
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "id":
+                                                {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "id"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "strategy":
+                                                {
+                                                    "type": "string",
+                                                    "enum": [ "topic", "encoded" ]
+                                                },
+                                                "version":
+                                                {
+                                                    "type": "string",
+                                                    "default": "latest"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "strategy"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "subject":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "version":
+                                                {
+                                                    "type": "string",
+                                                    "default": "latest"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "subject"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "maxProperties": 1
+                    }
+                },
+                "required":
+                [
+                    "catalog"
+                ],
+                "additionalProperties": false
+            }
+        }
     }
 ]

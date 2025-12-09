@@ -241,12 +241,9 @@ public abstract class AvroModelHandler
         int schemaId)
     {
         Schema schema = supplySchema(schemaId);
-        GenericRecord record = null;
-        if (schema != null)
-        {
-            record = new GenericData.Record(schema);
-        }
-        return record;
+        return schema != null && schema.getType() == Schema.Type.RECORD
+            ? new GenericData.Record(schema)
+            : null;
     }
 
     private Schema resolveSchema(
