@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,8 +44,8 @@ public final class DumpRule implements TestRule
     private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
     private static final Path BINDINGS_PATH = ENGINE_PATH.resolve("bindings");
     private static final Path LABELS_PATH = ENGINE_PATH.resolve("labels");
+    private static final Path INFO_PATH = ENGINE_PATH.resolve("info");
     private static final Path PCAP_PATH = ENGINE_PATH.resolve("actual.pcap");
-    private static final Path TXT_PATH = ENGINE_PATH.resolve("actual.txt");
     private static final DumpCommandRunner DUMP = new DumpCommandRunner();
     private static final TsharkRunner TSHARK = new TsharkRunner();
 
@@ -79,6 +80,7 @@ public final class DumpRule implements TestRule
             public void evaluate() throws Throwable
             {
                 Files.createDirectories(ENGINE_PATH);
+                writeInfo();
                 writeLabels();
                 writeBindings();
                 base.evaluate();
@@ -113,6 +115,26 @@ public final class DumpRule implements TestRule
     {
         this.bindings = bindings;
         return this;
+    }
+
+    private void writeInfo() throws Exception
+    {
+        Instant startTime = Instant.now();
+        long startNanos = System.nanoTime();
+
+        byte[] byteArray = new byte[Long.BYTES + Long.BYTES + Integer.BYTES + Long.BYTES + Integer.BYTES];
+        ByteBuffer byteBuf = ByteBuffer
+            .wrap(byteArray, 0, byteArray.length)
+            .order(nativeOrder());
+
+        byteBuf.putLong(-1L);
+        byteBuf.putLong(startTime.getEpochSecond());
+        byteBuf.putInt(startTime.getNano());
+        byteBuf.putLong(startNanos);
+        byteBuf.putInt(1);
+        byteBuf.flip();
+
+        Files.write(INFO_PATH, byteArray, CREATE, TRUNCATE_EXISTING);
     }
 
     private void writeLabels() throws Exception

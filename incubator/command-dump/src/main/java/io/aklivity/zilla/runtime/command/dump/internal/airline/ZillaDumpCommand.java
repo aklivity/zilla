@@ -31,11 +31,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,6 +60,7 @@ import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.Info;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
@@ -307,6 +310,14 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         if (output != null)
         {
+            final Info info = new Info.Builder()
+                .directory(directory)
+                .build();
+
+            final Instant t0Instant = info.startTime();
+            final long t0Nanos = info.startNanos();
+            final LongFunction<Instant> supplyInstant = timestamp -> t0Instant.plusNanos(timestamp - t0Nanos);
+
             try (Stream<Path> files = Files.walk(directory, 3);
                  WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
             {
@@ -323,10 +334,13 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final BindingsLayoutReader bindings = BindingsLayoutReader.builder()
                     .path(directory.resolve("bindings"))
                     .build();
+                final Function<Long, long[]> lookupBindingInfo = bindings.bindings()::get;
+                final IntFunction<String> lookupLabel = labels::lookupLabel;
+
                 final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
                 for (int i = 0; i < streamBufferCount; i++)
                 {
-                    dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, bindings.bindings()::get, writer);
+                    dumpHandlers[i] = new DumpHandler(i, filter, lookupLabel, lookupBindingInfo, writer, supplyInstant);
                 }
 
                 final MutableDirectBuffer buffer = writeBuffer;
@@ -470,6 +484,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final int worker;
         private final LongPredicate allowedBinding;
         private final WritableByteChannel writer;
+        private final LongFunction<Instant> supplyInstant;
         private final IntFunction<String> lookupLabel;
         private final Function<Long, long[]> lookupBindingInfo;
         private final CRC32C crc;
@@ -485,13 +500,15 @@ public final class ZillaDumpCommand extends ZillaCommand
             LongPredicate allowedBinding,
             IntFunction<String> lookupLabel,
             Function<Long, long[]> lookupBindingInfo,
-            WritableByteChannel writer)
+            WritableByteChannel writer,
+            LongFunction<Instant> supplyInstant)
         {
             this.worker = worker;
             this.allowedBinding = allowedBinding;
             this.lookupLabel = lookupLabel;
             this.lookupBindingInfo = lookupBindingInfo;
             this.writer = writer;
+            this.supplyInstant = supplyInstant;
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
             this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
@@ -839,9 +856,13 @@ public final class ZillaDumpCommand extends ZillaCommand
             long length,
             long timestamp)
         {
+            Instant absolute = supplyInstant.apply(timestamp);
+            long seconds = absolute.getEpochSecond();
+            int micros = absolute.getNano() / 1_000;
+
             pcapPacketHeaderRW.wrap(buffer, PCAP_HEADER_OFFSET, buffer.capacity())
-                .ts_sec(timestamp / 1000000)
-                .ts_usec(0)
+                .ts_sec(seconds)
+                .ts_usec(micros)
                 .incl_len(length)
                 .orig_len(length)
                 .build();
