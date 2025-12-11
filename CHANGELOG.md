@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.173...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.174...HEAD)
+
+**Merged pull requests:**
+
+- Include blocking select with timeout in doWork loops [\#1620](https://github.com/aklivity/zilla/pull/1620) ([jfallows](https://github.com/jfallows))
+
+## [0.9.174](https://github.com/aklivity/zilla/tree/0.9.174) (2025-12-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.173...0.9.174)
 
 **Closed issues:**
 
