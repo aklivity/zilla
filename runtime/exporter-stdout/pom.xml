@@ -93,12 +93,11 @@
       <artifactId>jmh-generator-annprocess</artifactId>
       <scope>test</scope>
     </dependency>
-      <dependency>
-          <groupId>org.testcontainers</groupId>
-          <artifactId>testcontainers</artifactId>
-          <version>1.19.7</version>
-          <scope>test</scope>
-      </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

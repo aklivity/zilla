@@ -13,28 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.ext;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
-public interface EngineExtSpi
+import static org.junit.Assert.assertTrue;
+
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+
+public class ValidatorTest
 {
-    default void onStart(
-        EngineExtContext context)
+    @Test
+    public void shouldCreateAndVerifyIdentityValidator()
     {
-    }
+        CatalogHandler.Validator validator = CatalogHandler.Validator.IDENTITY;
 
-    default void onRegistered(
-        EngineExtContext context)
-    {
+        assertTrue(validator.accept(0L, 0L, 1, new UnsafeBuffer(), 1, 1, ValueConsumer.NOP));
     }
-
-    default void onUnregistered(
-        EngineExtContext context)
-    {
-    }
-
-    default void onClose(
-        EngineExtContext context)
-    {
-    }
-
 }

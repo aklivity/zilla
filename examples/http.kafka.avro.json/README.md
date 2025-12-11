@@ -128,6 +128,50 @@ output:
 < content-length: 0
 ```
 
+## Verify behavior for a valid Avro event
+
+Use `/events` to validate avro event.
+
+```bash
+curl -k -v http://localhost:7114/events \
+  -H "Idempotency-Key: 1" \
+  -H "Content-Type: application/avro-binary" \
+  --data-binary @event.bin
+```
+
+```text
+...
+> Content-Type: application/avro-binary
+> Content-Length: 12
+>
+* upload completely sent off: 12 bytes
+< HTTP/1.1 204 No Content
+...
+```
+
+### Invalid Avro event
+
+```bash
+curl -k -v http://localhost:7114/events \
+  -H "Idempotency-Key: 1" \
+  -H "Content-Type: application/avro-binary" \
+  --data-binary @invalid_event.bin
+```
+
+```text
+> Content-Type: application/avro-binary
+> Content-Length: 9
+>
+* upload completely sent off: 9 bytes
+< HTTP/1.1 400 Bad Request
+```
+
+In the zilla container log, you can observe:
+
+```text
+MODEL_AVRO_VALIDATION_FAILED A message payload failed validation.
+```
+
 ## Teardown
 
 To remove any resources created by the Docker Compose stack, use:

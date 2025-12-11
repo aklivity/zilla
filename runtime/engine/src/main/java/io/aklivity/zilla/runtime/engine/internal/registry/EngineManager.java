@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -142,19 +143,23 @@ public class EngineManager
         this.extensions = extensions;
         this.expressions = Resolver.instantiate(config);
         this.configPath = Path.of(config.configURI());
-        this.localConfigPath = config.localConfigURI() != null ? Path.of(config.localConfigURI()) : null;
+        this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of).orElse(null);
         this.watchTask = new WatchTaskImpl(config, events, configPath);
         this.events = events;
     }
 
     public void start() throws Exception
     {
+        extensions.forEach(e -> e.onStart(context));
+
         watchTask.submit();
         events.started();
     }
 
     public void close()
     {
+        extensions.forEach(e -> e.onClose(context));
+
         watchTask.close();
         events.stopped();
     }
@@ -178,11 +183,16 @@ public class EngineManager
         reconfigure:
         try
         {
+            int nonLocalConfigAt = 0;
+
             String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
             if (localConfigPath != null &&
                 Files.exists(localConfigPath))
             {
                 String localYamlDoc = Files.readString(localConfigPath);
+
+                nonLocalConfigAt = localYamlDoc.length();
+
                 newConfigText = newConfigText == null ? localYamlDoc : localYamlDoc + "\n" + newConfigText;
             }
 
@@ -205,8 +215,19 @@ public class EngineManager
             logger.accept(newConfigText);
 
             newConfig = parse(newConfigText);
+
             if (newConfig != null)
             {
+                for (NamespaceConfig newNamespace : newConfig.namespaces)
+                {
+                    if (newNamespace.configAt >= nonLocalConfigAt)
+                    {
+                        break;
+                    }
+
+                    newNamespace.vaults.forEach(v -> v.local = true);
+                }
+
                 final String oldConfigText = currentText;
                 final EngineConfig oldConfig = current;
 

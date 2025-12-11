@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
+import java.nio.ByteOrder;
+
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -100,6 +103,21 @@ public class TestCatalogHandler implements CatalogHandler
         int length)
     {
         return prefix != null ? prefix.capacity() : 0;
+    }
+
+    @Override
+    public boolean validate(
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Validator validator)
+    {
+        int schemaId = data.getInt(index, ByteOrder.BIG_ENDIAN);
+        return validator.accept(traceId, bindingId, schemaId, data,
+            index + BitUtil.SIZE_OF_INT, length - BitUtil.SIZE_OF_INT, next);
     }
 
     @Override

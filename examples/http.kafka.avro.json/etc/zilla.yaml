@@ -21,6 +21,17 @@ bindings:
   north_http_server:
     type: http
     kind: server
+    options:
+      requests:
+        - path: /events
+          method: POST
+          content-type:
+            - application/avro-binary
+          content:
+            model: avro
+            catalog:
+              my_catalog:
+                - strategy: encoded
     routes:
       - when:
           - headers:
@@ -72,6 +83,14 @@ bindings:
           topic: items-snapshots
           filters:
             - key: ${params.id}
+      - when:
+          - method: POST
+            path: /events
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: events
+          key: ${idempotencyKey}
   north_kafka_cache_client:
     type: kafka
     kind: cache_client
@@ -92,6 +111,7 @@ bindings:
     options:
       bootstrap:
         - items-snapshots
+        - events
       topics:
         - name: items-snapshots
           value:

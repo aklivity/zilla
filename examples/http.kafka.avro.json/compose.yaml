@@ -63,6 +63,7 @@ services:
       - |
         echo "Creating kafka topic";
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic items-snapshots --config cleanup.policy=compact
+        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic events --config cleanup.policy=compact
         echo "Successfully created the following topics:";
         /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
 

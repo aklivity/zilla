@@ -26,6 +26,7 @@ public class NamespaceConfig
     public static final String FILESYSTEM = "filesystem";
 
     public transient int id;
+    public transient int configAt;
 
     public final String name;
     public final TelemetryConfig telemetry;

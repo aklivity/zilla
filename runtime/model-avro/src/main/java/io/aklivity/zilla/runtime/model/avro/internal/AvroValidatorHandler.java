@@ -12,38 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.internal;
+package io.aklivity.zilla.runtime.model.avro.internal;
 
+import java.io.IOException;
 import java.io.InputStream;
-
-import jakarta.json.spi.JsonProvider;
-import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.io.DirectBufferInputStream;
+import org.apache.avro.AvroRuntimeException;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public class JsonValidatorHandler extends JsonModelHandler implements ValidatorHandler
+public class AvroValidatorHandler extends AvroModelHandler implements ValidatorHandler
 {
-    private final DirectBufferInputStream in;
     private final ExpandableDirectByteBuffer buffer;
 
-    private int progress;
-    private JsonParser parser;
-
-    public JsonValidatorHandler(
-        JsonModelConfig config,
+    public AvroValidatorHandler(
+        AvroModelConfiguration config,
+        AvroModelConfig options,
         EngineContext context)
     {
-        super(config, context);
+        super(config, options, context);
         this.buffer = new ExpandableDirectByteBuffer();
-        this.in = new DirectBufferInputStream(buffer);
     }
 
     @Override
@@ -82,11 +78,11 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
                         ? catalog.id
                         : handler.resolve(subject, catalog.version);
 
-                    status = validatePayload(schemaId, in);
+                    status = validate(traceId, bindingId, schemaId, in);
                 }
             }
         }
-        catch (JsonParsingException ex)
+        catch (Exception ex)
         {
             status = false;
             event.validationFailure(traceId, bindingId, ex.getMessage());
@@ -105,25 +101,34 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         ValueConsumer next)
     {
         in.wrap(data, index, length);
-        return validatePayload(schemaId, in);
+        return validate(traceId, bindingId, schemaId, in);
     }
 
-    private boolean validatePayload(
+    private boolean validate(
+        long traceId,
+        long bindingId,
         int schemaId,
         InputStream in)
     {
-        boolean status = true;
-        JsonProvider provider = supplyProvider(schemaId);
-
-        status &= provider != null;
-
-        if (status)
+        boolean status = false;
+        try
         {
-            parser = provider.createParser(in);
-            while (parser.hasNext())
+            Schema schema = supplySchema(schemaId);
+            if (schema != null)
             {
-                parser.next();
+                GenericRecord record = supplyRecord(schemaId);
+                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                if (reader != null)
+                {
+                    decoderFactory.binaryDecoder(in, decoder);
+                    reader.read(record, decoder);
+                    status = true;
+                }
             }
+        }
+        catch (IOException | AvroRuntimeException ex)
+        {
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
     }

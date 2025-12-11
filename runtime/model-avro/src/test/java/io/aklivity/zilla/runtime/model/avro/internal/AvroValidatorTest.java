@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.internal;
+package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
@@ -24,11 +24,11 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -36,43 +36,39 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public class JsonValidatorTest
+public class AvroValidatorTest
 {
-    private static final String OBJECT_SCHEMA = "{" +
-            "\"type\": \"object\"," +
-            "\"properties\": " +
-            "{" +
-                "\"id\": {" +
-                    "\"type\": \"string\"" +
-                "}," +
-                "\"status\": {" +
-                    "\"type\": \"string\"" +
-                "}" +
-            "}," +
-            "\"required\": [" +
-                "\"id\"," +
-                "\"status\"" +
-            "]" +
-            "}";
-
-    private static final String ARRAY_SCHEMA = "{" +
-            "\"type\": \"array\"," +
-            "\"items\": " +
-            OBJECT_SCHEMA +
-            "}";
+    private static final String SCHEMA = """
+        {
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ],
+          "name": "Event",
+          "namespace": "io.aklivity.example",
+          "type": "record"
+        }""";
 
     private EngineContext context;
+    private AvroModelConfiguration config;
 
     @Before
     public void init()
     {
+        config = new AvroModelConfiguration(new Configuration());
         context = mock(EngineContext.class);
     }
 
     @Test
-    public void shouldVerifyValidCompleteJsonObject()
+    public void shouldVerifyValidCompleteAvroEvent()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -80,11 +76,11 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
             .name("test0")
                 .schema()
@@ -97,23 +93,19 @@ public class JsonValidatorTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload =
-                "{" +
-                    "\"id\": \"123\"," +
-                    "\"status\": \"OK\"" +
-                "}";
-        byte[] bytes = payload.getBytes();
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
         assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyInvalidCompleteJsonObject()
+    public void shouldVerifyInvalidCompleteAvroEvent()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -121,13 +113,13 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
-            .name("test0")
+                .name("test0")
                 .schema()
                     .strategy("topic")
                     .subject(null)
@@ -140,23 +132,18 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload =
-                "{" +
-                    "\"id\": 123," +
-                    "\"status\": \"OK\"" +
-                "}";
-        byte[] bytes = payload.getBytes();
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyValidFragmentedJsonObject()
+    public void shouldVerifyValidFragmentedAvroEvent()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -164,13 +151,13 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
-            .name("test0")
+                .name("test0")
                 .schema()
                     .strategy("topic")
                     .subject(null)
@@ -181,24 +168,20 @@ public class JsonValidatorTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload =
-                "{" +
-                    "\"id\": \"123\"," +
-                    "\"status\": \"OK\"" +
-                "}";
-        byte[] bytes = payload.getBytes();
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
-        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 10, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, data, 10, data.capacity() - 10, ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyInvalidFragmentedJsonObject()
+    public void shouldVerifyInvalidFragmentedAvroEvent()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -206,13 +189,13 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
-            .name("test0")
+                .name("test0")
                 .schema()
                     .strategy("topic")
                     .subject(null)
@@ -225,67 +208,19 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload =
-                "{" +
-                    "\"id\": 123," +
-                    "\"status\": \"OK\"" +
-                "}";
-        byte[] bytes = payload.getBytes();
+        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
-        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 3, ValueConsumer.NOP));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, data, 3, data.capacity() - 3, ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyValidJsonArray()
-    {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
-            .namespace("test")
-            .name("test0")
-            .type("test")
-            .options(TestCatalogOptionsConfig::builder)
-                .id(1)
-                .schema(ARRAY_SCHEMA)
-                .build()
-            .build();
-
-        JsonModelConfig model = JsonModelConfig.builder()
-            .catalog()
-            .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .subject(null)
-                    .version("latest")
-                    .id(1)
-                    .build()
-                .build()
-            .build();
-
-        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        String payload =
-                "[" +
-                    "{" +
-                        "\"id\": \"123\"," +
-                        "\"status\": \"OK\"" +
-                    "}" +
-                "]";
-        byte[] bytes = payload.getBytes();
-        data.wrap(bytes, 0, bytes.length);
-
-        assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
-    public void shouldVerifyValidCompleteJsonObjectWithEncoded()
+    public void shouldVerifyValidCompleteAvroEventWithEncoded()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -293,13 +228,13 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
-            .name("test0")
+                .name("test0")
                 .schema()
                     .strategy("encoded")
                     .build()
@@ -307,26 +242,19 @@ public class JsonValidatorTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
-        byte[] event = """
-            {
-              "id": "123",
-              "status": "OK"
-            }""".getBytes();
+        DirectBuffer data = new UnsafeBuffer();
 
-        int length = encoded.length + event.length;
-
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
-        data.putBytes(0, encoded, 0, encoded.length);
-        data.putBytes(encoded.length, event, 0, event.length);
+        byte[] bytes = {0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
 
         assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
-    public void shouldVerifyInvalidCompleteJsonObjectWithEncoded()
+    public void shouldVerifyInvalidCompleteAvroEventWithEncoded()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -334,13 +262,13 @@ public class JsonValidatorTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(OBJECT_SCHEMA)
+                .schema(SCHEMA)
                 .build()
             .build();
 
-        JsonModelConfig model = JsonModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
-            .name("test0")
+                .name("test0")
                 .schema()
                     .strategy("encoded")
                     .build()
@@ -348,16 +276,14 @@ public class JsonValidatorTest
             .build();
 
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
-
-        byte[] event = """
-            {
-              "id": "123",
-              "status": "OK"
-            }""".getBytes();
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
         DirectBuffer data = new UnsafeBuffer();
-        data.wrap(event, 0, event.length);
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
+        data.wrap(bytes, 0, bytes.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
