@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine;
 
 import static java.lang.Math.min;
 import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -77,10 +78,12 @@ public class EngineConfiguration extends Configuration
     public static final IntPropertyDef ENGINE_MAXIMUM_MESSAGES_PER_READ;
     public static final IntPropertyDef ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL;
     public static final IntPropertyDef ENGINE_TASK_PARALLELISM;
-    public static final LongPropertyDef ENGINE_BACKOFF_MAX_SPINS;
-    public static final LongPropertyDef ENGINE_BACKOFF_MAX_YIELDS;
+    public static final IntPropertyDef ENGINE_BACKOFF_MAX_SPINS;
+    public static final IntPropertyDef ENGINE_BACKOFF_MAX_YIELDS;
     public static final LongPropertyDef ENGINE_BACKOFF_MIN_PARK_NANOS;
     public static final LongPropertyDef ENGINE_BACKOFF_MAX_PARK_NANOS;
+    public static final LongPropertyDef ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT;
+    public static final IntPropertyDef ENGINE_BACKOFF_MAX_SELECT_MILLIS;
     public static final BooleanPropertyDef ENGINE_DRAIN_ON_CLOSE;
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
@@ -135,10 +138,13 @@ public class EngineConfiguration extends Configuration
         ENGINE_MAXIMUM_MESSAGES_PER_READ = config.property("maximum.messages.per.read", Integer.MAX_VALUE);
         ENGINE_MAXIMUM_EXPIRATIONS_PER_POLL = config.property("maximum.expirations.per.poll", Integer.MAX_VALUE);
         ENGINE_TASK_PARALLELISM = config.property("task.parallelism", EngineConfiguration::defaultTaskParallelism);
-        ENGINE_BACKOFF_MAX_SPINS = config.property("backoff.idle.strategy.max.spins", 64L);
-        ENGINE_BACKOFF_MAX_YIELDS = config.property("backoff.idle.strategy.max.yields", 64L);
+        ENGINE_BACKOFF_MAX_SPINS = config.property("backoff.idle.strategy.max.spins", 64);
+        ENGINE_BACKOFF_MAX_YIELDS = config.property("backoff.idle.strategy.max.yields", 64);
         ENGINE_BACKOFF_MIN_PARK_NANOS = config.property("backoff.min.park.nanos", NANOSECONDS.toNanos(64L));
+        ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT =
+            config.property("backoff.max.park.nanos.before.select", MICROSECONDS.toNanos(512L));
         ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.max.park.nanos", MILLISECONDS.toNanos(100L));
+        ENGINE_BACKOFF_MAX_SELECT_MILLIS = config.property("backoff.max.select.millis", 5);
         ENGINE_DRAIN_ON_CLOSE = config.property("drain.on.close", false);
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
@@ -279,14 +285,14 @@ public class EngineConfiguration extends Configuration
         return ENGINE_TIMESTAMPS.getAsBoolean(this);
     }
 
-    public long maxSpins()
+    public int maxSpins()
     {
-        return ENGINE_BACKOFF_MAX_SPINS.getAsLong(this);
+        return ENGINE_BACKOFF_MAX_SPINS.getAsInt(this);
     }
 
-    public long maxYields()
+    public int maxYields()
     {
-        return ENGINE_BACKOFF_MAX_YIELDS.getAsLong(this);
+        return ENGINE_BACKOFF_MAX_YIELDS.getAsInt(this);
     }
 
     public long minParkNanos()
@@ -294,9 +300,25 @@ public class EngineConfiguration extends Configuration
         return ENGINE_BACKOFF_MIN_PARK_NANOS.getAsLong(this);
     }
 
+    public long maxParkNanosBeforeSelect()
+    {
+        return ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT.getAsLong(this);
+    }
+
     public long maxParkNanos()
     {
         return ENGINE_BACKOFF_MAX_PARK_NANOS.getAsLong(this);
+    }
+
+    public int maxSelectMillis()
+    {
+        return ENGINE_BACKOFF_MAX_SELECT_MILLIS.getAsInt(this);
+    }
+
+    public int maxIdleCount()
+    {
+        int maxParks = (int)(Math.ceil(Math.log(maxParkNanosBeforeSelect() /  (double) minParkNanos()) / Math.log(2)));
+        return maxSpins() + maxYields() + maxParks;
     }
 
     public boolean drainOnClose()

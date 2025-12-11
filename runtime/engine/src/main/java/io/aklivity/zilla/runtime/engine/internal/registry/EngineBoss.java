@@ -57,9 +57,13 @@ public class EngineBoss implements EngineController, Agent
     private final Poller poller;
     private final Deque<Runnable> taskQueue;
     private final Map<String, BindingController> controllersByType;
+    private final int maxSelectMillis;
+    private final int maxIdleCount;
 
     private volatile Thread thread;
     private Set<NamespaceConfig> namespaces;
+
+    private int idleCount;
 
     public EngineBoss(
         EngineConfiguration config,
@@ -79,11 +83,12 @@ public class EngineBoss implements EngineController, Agent
         .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         IdleStrategy idleStrategy = new BackoffIdleStrategy(
-            config.maxSpins(),
-            config.maxYields(),
-            config.minParkNanos(),
-            config.maxParkNanos());
-
+                config.maxSpins(),
+                config.maxYields(),
+                config.minParkNanos(),
+                config.maxSelectMillis() != 0 ? config.maxParkNanosBeforeSelect() : config.maxParkNanos());
+        this.maxSelectMillis = config.maxSelectMillis();
+        this.maxIdleCount = config.maxIdleCount();
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
     }
 
@@ -103,6 +108,14 @@ public class EngineBoss implements EngineController, Agent
                     task.run();
                     workDone++;
                 }
+            }
+
+            if (maxSelectMillis != 0 &&
+                workDone == 0 &&
+                idleCount++ >= maxIdleCount)
+            {
+                idleCount = 0;
+                poller.doWork(maxSelectMillis);
             }
         }
         catch (Throwable ex)
