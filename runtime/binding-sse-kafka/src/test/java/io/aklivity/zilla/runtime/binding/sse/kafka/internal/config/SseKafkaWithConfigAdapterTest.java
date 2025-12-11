@@ -162,4 +162,171 @@ public class SseKafkaWithConfigAdapterTest
         assertThat(text,
                 equalTo("{\"topic\":\"test\",\"event\":{\"id\":\"[\\\"${base64(key)}\\\",\\\"${etag}\\\"]\"}}"));
     }
+
+    @Test
+    public void shouldReadWithTopicWithGuardIdentity()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"${guarded['jwt'].identity}-items\"" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("${guarded['jwt'].identity}-items"));
+        assertThat(with.filters, isEmpty());
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
+    }
+
+    @Test
+    public void shouldWriteWithTopicWithGuardIdentity()
+    {
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("${guarded['jwt'].identity}-items")
+            .eventId(EVENT_ID_DEFAULT)
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"topic\":\"${guarded['jwt'].identity}-items\"}"));
+    }
+
+    @Test
+    public void shouldReadWithTopicWithGuardAttributes()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"${guarded['jwt'].attributes.topic}\"" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("${guarded['jwt'].attributes.topic}"));
+        assertThat(with.filters, isEmpty());
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
+    }
+
+    @Test
+    public void shouldWriteWithTopicWithGuardAttributes()
+    {
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("${guarded['jwt'].attributes.topic}")
+            .eventId(EVENT_ID_DEFAULT)
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"topic\":\"${guarded['jwt'].attributes.topic}\"}"));
+    }
+
+    @Test
+    public void shouldReadWithTopicAndFiltersWithGuardIdentity()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"test\"," +
+                    "\"filters\":" +
+                    "[" +
+                        "{" +
+                            "\"key\": \"${guarded['jwt'].attributes.key}\"," +
+                            "\"headers\":" +
+                            "{" +
+                                "\"zilla:identity\": \"${guarded['jwt'].identity}\"" +
+                            "}" +
+                        "}" +
+                    "]" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("test"));
+        assertThat(with.filters.get(), contains(
+                both(hasField("key", isPresentAnd(equalTo("${guarded['jwt'].attributes.key}")))).
+                and(hasField("headers", isPresentAnd(contains(
+                    both(hasField("name", equalTo("zilla:identity"))).
+                    and(hasField("value", equalTo("${guarded['jwt'].identity}")))))))));
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
+    }
+
+    @Test
+    public void shouldWriteWithTopicAndFiltersWithGuardIdentity()
+    {
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("test")
+            .filter()
+                .key("${guarded['jwt'].attributes.key}")
+                .header()
+                    .name("zilla:identity")
+                    .value("${guarded['jwt'].identity}")
+                    .build()
+                .build()
+            .eventId(EVENT_ID_DEFAULT)
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text,
+                equalTo("{\"topic\":\"test\",\"filters\":[{\"key\":\"${guarded['jwt'].attributes.key}\"," +
+                        "\"headers\":{\"zilla:identity\":\"${guarded['jwt'].identity}\"}}]}"));
+    }
+
+    @Test
+    public void shouldReadWithTopicAndFiltersWithMultipleGuardAttributes()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"${guarded['jwt'].attributes.topic}\"," +
+                    "\"filters\":" +
+                    "[" +
+                        "{" +
+                            "\"key\": \"${guarded['jwt'].attributes.key}\"," +
+                            "\"headers\":" +
+                            "{" +
+                                "\"tag\": \"${guarded['jwt'].attributes.tag}\"" +
+                            "}" +
+                        "}" +
+                    "]" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("${guarded['jwt'].attributes.topic}"));
+        assertThat(with.filters.get(), contains(
+                both(hasField("key", isPresentAnd(equalTo("${guarded['jwt'].attributes.key}")))).
+                and(hasField("headers", isPresentAnd(contains(
+                    both(hasField("name", equalTo("tag"))).
+                    and(hasField("value", equalTo("${guarded['jwt'].attributes.tag}")))))))));
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
+    }
+
+    @Test
+    public void shouldWriteWithTopicAndFiltersWithMultipleGuardAttributes()
+    {
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("${guarded['jwt'].attributes.topic}")
+            .filter()
+                .key("${guarded['jwt'].attributes.key}")
+                .header()
+                    .name("tag")
+                    .value("${guarded['jwt'].attributes.tag}")
+                    .build()
+                .build()
+            .eventId(EVENT_ID_DEFAULT)
+            .build();
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text,
+                equalTo("{\"topic\":\"${guarded['jwt'].attributes.topic}\"," +
+                        "\"filters\":[{\"key\":\"${guarded['jwt'].attributes.key}\"," +
+                        "\"headers\":{\"tag\":\"${guarded['jwt'].attributes.tag}\"}}]}"));
+    }
 }

@@ -14,12 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import static java.util.stream.Collectors.toSet;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.agrona.DirectBuffer;
 
@@ -42,6 +46,58 @@ public final class SseKafkaWithResolver
     private static final Pattern ATTRIBUTE_PATTERN =
         Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
             ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
+
+    public static Set<String> extractGuardNames(
+        SseKafkaWithConfig withConfig)
+    {
+        // Helper to extract guard names from a string using both identity and attribute patterns
+        Function<String, Stream<String>> extractGuards = value ->
+        {
+            Stream.Builder<String> builder = Stream.builder();
+
+            Matcher identityMatcher = IDENTITY_PATTERN.matcher(value);
+            while (identityMatcher.find())
+            {
+                builder.add(identityMatcher.group(1));
+            }
+
+            Matcher attributeMatcher = ATTRIBUTE_PATTERN.matcher(value);
+            while (attributeMatcher.find())
+            {
+                builder.add(attributeMatcher.group(1));
+            }
+
+            return builder.build();
+        };
+
+        Stream.Builder<Stream<String>> streams = Stream.builder();
+
+        // Extract from topic
+        streams.add(extractGuards.apply(withConfig.topic));
+
+        // Extract from filters
+        withConfig.filters.ifPresent(filters ->
+            streams.add(filters.stream()
+                .flatMap(filter ->
+                {
+                    Stream.Builder<Stream<String>> filterStreams = Stream.builder();
+
+                    // Extract from filter key
+                    filter.key.ifPresent(key -> filterStreams.add(extractGuards.apply(key)));
+
+                    // Extract from filter headers
+                    filter.headers.ifPresent(headers ->
+                        filterStreams.add(headers.stream()
+                            .flatMap(header -> extractGuards.apply(header.value))));
+
+                    return filterStreams.build().flatMap(s -> s);
+                })));
+
+        return streams.build()
+            .flatMap(s -> s)
+            .collect(toSet());
+    }
+
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final SseKafkaWithConfig with;
