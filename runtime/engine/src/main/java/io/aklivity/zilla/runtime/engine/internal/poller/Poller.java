@@ -51,6 +51,23 @@ public final class Poller extends TransportPoller
         return workDone;
     }
 
+    public int doWork(
+        int timeout)
+    {
+        int workDone = 0;
+
+        try
+        {
+            workDone += selector.select(selectHandler, timeout);
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return workDone;
+    }
+
     public void onClose()
     {
         for (SelectionKey key : selector.keys())

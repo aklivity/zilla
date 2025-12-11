@@ -35,6 +35,8 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -227,7 +229,8 @@ public class EngineWorker implements EngineContext, Agent
     private final Path configPath;
     private final Optional<Path> localConfigPath;
     private final AgentRunner runner;
-    private final Supplier<IdleStrategy> supplyIdleStrategy;
+    private final Function<Boolean, IdleStrategy> supplyIdleStrategy;
+    private final int maxSelectMillis;
     private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
@@ -240,6 +243,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EventFormatterFactory eventFormatterFactory;
     private final LongSupplier usageMetric;
     private final boolean readonly;
+    private final int maxIdleCount;
 
     private long initialId;
     private long promiseId;
@@ -248,6 +252,8 @@ public class EngineWorker implements EngineContext, Agent
     private long authorizedId;
 
     private long lastReadStreamId;
+
+    private int idleCount;
 
     private volatile Thread thread;
 
@@ -280,11 +286,15 @@ public class EngineWorker implements EngineContext, Agent
         this.affinityMask = affinityMask;
         this.readonly = readonly;
 
-        this.supplyIdleStrategy = () -> new BackoffIdleStrategy(
+        this.supplyIdleStrategy = usesBlockingSelect -> new BackoffIdleStrategy(
                 config.maxSpins(),
                 config.maxYields(),
                 config.minParkNanos(),
-                config.maxParkNanos());
+                usesBlockingSelect
+                    ? config.maxSelectMillis() != 0 ? config.maxParkNanosBeforeSelect() : config.maxParkNanos()
+                    : config.maxParkNanos());
+        this.maxSelectMillis = config.maxSelectMillis();
+        this.maxIdleCount = config.maxIdleCount();
         this.boss = boss;
 
         this.countersLayout = new CountersLayout.Builder()
@@ -335,7 +345,7 @@ public class EngineWorker implements EngineContext, Agent
         this.agentName = String.format("engine/worker#%d", index);
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
-        this.runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, this);
+        this.runner = new AgentRunner(supplyIdleStrategy.apply(TRUE), errorHandler, null, this);
 
         this.resolveHost = config.hostResolver();
         this.timestamps = config.timestamps();
@@ -893,6 +903,14 @@ public class EngineWorker implements EngineContext, Agent
             }
 
             workDone += streamsBuffer.read(readHandler, readLimit);
+
+            if (workDone == 0 &&
+                maxSelectMillis != 0 &&
+                idleCount++ >= maxIdleCount)
+            {
+                idleCount = 0;
+                poller.doWork(maxSelectMillis);
+            }
         }
         catch (Throwable ex)
         {
@@ -1048,7 +1066,7 @@ public class EngineWorker implements EngineContext, Agent
             ExporterRegistry exporter = registry.resolveExporter(exporterId);
             ExporterHandler handler = exporter.handler();
             ExporterAgent agent = new ExporterAgent(exporterId, handler);
-            AgentRunner runner = new AgentRunner(supplyIdleStrategy.get(), errorHandler, null, agent);
+            AgentRunner runner = new AgentRunner(supplyIdleStrategy.apply(FALSE), errorHandler, null, agent);
             AgentRunner.startOnThread(runner);
             exportersById.put(exporterId, runner);
         }
