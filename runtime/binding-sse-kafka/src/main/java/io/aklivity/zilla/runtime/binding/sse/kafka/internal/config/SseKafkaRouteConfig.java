@@ -49,44 +49,26 @@ public final class SseKafkaRouteConfig
     {
         this.id = route.id;
 
-        // Build identifiers and attributors maps using EngineContext
         final Map<String, LongFunction<String>> identifiers = new HashMap<>();
         final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
 
-        // Extract guard names referenced in expressions
-        Set<String> referencedGuardNames = new HashSet<>();
+        Set<String> guardNames = new HashSet<>();
         if (route.with != null)
         {
             SseKafkaWithConfig withConfig = (SseKafkaWithConfig) route.with;
-            referencedGuardNames = SseKafkaWithResolver.extractGuardNames(withConfig);
+            guardNames = SseKafkaWithResolver.extractGuardNames(withConfig);
         }
 
-        // Only add guards that are actually referenced in expressions
-        for (String guardName : referencedGuardNames)
+        for (String guardName : guardNames)
         {
-            // Try to find guard in route.guarded first
-            route.guarded.stream()
-                .filter(guarded -> guarded.name.equals(guardName))
-                .findFirst()
-                .ifPresentOrElse(
-                    guarded ->
-                    {
-                        identifiers.put(guarded.name, guarded.identity);
-                        attributors.put(guarded.name, guarded.attributes);
-                    },
-                    () ->
-                    {
-                        // Not found in route.guarded, resolve via EngineContext
-                        long guardId = context.supplyTypeId(guardName);
-                        GuardHandler guard = context.supplyGuard(guardId);
+            long guardId = route.resolveId.applyAsLong(guardName);
+            GuardHandler guard = context.supplyGuard(guardId);
 
-                        if (guard != null)
-                        {
-                            identifiers.put(guardName, guard::identity);
-                            attributors.put(guardName, guard::attribute);
-                        }
-                    }
-                );
+            if (guard != null)
+            {
+                identifiers.put(guardName, guard::identity);
+                attributors.put(guardName, guard::attribute);
+            }
         }
 
         final LongFunction<String> defaultIdentifier = a -> null;
