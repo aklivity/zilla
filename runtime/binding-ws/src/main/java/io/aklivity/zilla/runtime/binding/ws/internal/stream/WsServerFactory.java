@@ -210,7 +210,7 @@ public final class WsServerFactory implements WsStreamFactory
             doHttpBegin(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
                 hs -> hs.item(h -> h.name(":status").value("400"))
                         .item(h -> h.name("connection").value("close")));
-            doHttpEnd(sender, originId, routedId, newReplyId, traceId);
+            doHttpEnd(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization);
             newStream = (t, b, o, l) -> {};
         }
         else if (key != null &&
@@ -1487,14 +1487,22 @@ public final class WsServerFactory implements WsStreamFactory
         long originId,
         long routedId,
         long streamId,
-        long traceId)
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .traceId(traceId)
-                .build();
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
