@@ -22,8 +22,6 @@ accepted
 read zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "GET")
-                              .header(":scheme", "http")
-                              .header(":path", "/")
                               .build()}
 
 write zilla:begin.ext ${http:beginEx()
@@ -31,3 +29,7 @@ write zilla:begin.ext ${http:beginEx()
                              .header(":status", "400")
                              .header("connection", "close")
                              .build()}
+
+connected
+
+write close

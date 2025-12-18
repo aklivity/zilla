@@ -210,6 +210,7 @@ public final class WsServerFactory implements WsStreamFactory
             doHttpBegin(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
                 hs -> hs.item(h -> h.name(":status").value("400"))
                         .item(h -> h.name("connection").value("close")));
+            doWindow(sender, originId, routedId, initialId, 0, 0, 0, traceId, authorization, 0, 0);
             doHttpEnd(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization);
             newStream = (t, b, o, l) -> {};
         }
@@ -1505,6 +1506,35 @@ public final class WsServerFactory implements WsStreamFactory
             .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding)
+    {
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .padding(padding)
+            .build();
+
+        receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
     private Flyweight.Builder.Visitor visitWsDataEx(

@@ -17,18 +17,20 @@
 property key ${ws:handshakeKey()}
 
 connect "zilla://streams/net0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+  option zilla:window 8192
+  option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "GET")
-                              .header(":scheme", "http")
-                              .header(":path", "/")
                               .build()}
+
+connected
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "400")
                              .header("connection", "close")
                              .build()}
+
+read closed
