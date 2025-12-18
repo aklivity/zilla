@@ -16,18 +16,22 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -40,12 +44,32 @@ public final class SseKafkaRouteConfig
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public SseKafkaRouteConfig(
-        RouteConfig route)
+        RouteConfig route,
+        EngineContext context)
     {
         this.id = route.id;
 
-        final Map<String, LongFunction<String>> identifiers = route.guarded.stream()
-                .collect(Collectors.toMap(g -> g.name, g -> g.identity));
+        final Map<String, LongFunction<String>> identifiers = new HashMap<>();
+        final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+
+        Set<String> guardNames = new HashSet<>();
+        if (route.with != null)
+        {
+            SseKafkaWithConfig withConfig = (SseKafkaWithConfig) route.with;
+            guardNames = SseKafkaWithResolver.extractGuardNames(withConfig);
+        }
+
+        for (String guardName : guardNames)
+        {
+            long guardId = route.resolveId.applyAsLong(guardName);
+            GuardHandler guard = context.supplyGuard(guardId);
+
+            if (guard != null)
+            {
+                identifiers.put(guardName, guard::identity);
+                attributors.put(guardName, guard::attribute);
+            }
+        }
 
         final LongFunction<String> defaultIdentifier = a -> null;
         final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
@@ -54,9 +78,6 @@ public final class SseKafkaRouteConfig
             final String identity = identifier.apply(a);
             return identity != null ? identity : "";
         };
-
-        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
-            .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
 
         final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
         final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->

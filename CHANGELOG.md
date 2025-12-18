@@ -2,7 +2,20 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.174...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.175...HEAD)
+
+**Implemented enhancements:**
+
+- Support populating identity override without guarded route [\#1518](https://github.com/aklivity/zilla/issues/1518)
+
+**Merged pull requests:**
+
+- Correctly send http end when no upgrade header [\#1626](https://github.com/aklivity/zilla/pull/1626) ([bmaidics](https://github.com/bmaidics))
+- Support populating identity override without guarded route [\#1600](https://github.com/aklivity/zilla/pull/1600) ([nageshwaravijay1117](https://github.com/nageshwaravijay1117))
+
+## [0.9.175](https://github.com/aklivity/zilla/tree/0.9.175) (2025-12-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.174...0.9.175)
 
 **Merged pull requests:**
 

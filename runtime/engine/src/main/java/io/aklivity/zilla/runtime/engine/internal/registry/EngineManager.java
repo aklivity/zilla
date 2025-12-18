@@ -438,6 +438,7 @@ public class EngineManager
             {
                 route.id = resolver.resolve(route.exit);
                 route.authorized = (session, resolve) -> true;
+                route.resolveId = binding.resolveId;
 
                 if (route.guarded != null)
                 {

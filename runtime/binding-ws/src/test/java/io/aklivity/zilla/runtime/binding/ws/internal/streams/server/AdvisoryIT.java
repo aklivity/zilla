@@ -91,4 +91,13 @@ public class AdvisoryIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.no.upgrade/client" })
+    public void shouldReceiveClientEndWhenNoUpdate() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -72,4 +72,13 @@ public class AdvisoryIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.no.upgrade/client",
+        "${net}/client.sent.no.upgrade/server" })
+    public void shouldReceiveClientEndWhenNoUpdate() throws Exception
+    {
+        k3po.finish();
+    }
 }

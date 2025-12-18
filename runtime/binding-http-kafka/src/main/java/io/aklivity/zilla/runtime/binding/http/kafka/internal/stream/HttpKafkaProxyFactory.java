@@ -125,11 +125,13 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final String8FW httpEtag;
 
     private final Long2ObjectHashMap<HttpKafkaBindingConfig> bindings;
+    private final EngineContext context;
 
     public HttpKafkaProxyFactory(
         HttpKafkaConfiguration config,
         EngineContext context)
     {
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
@@ -160,7 +162,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpKafkaBindingConfig newBinding = new HttpKafkaBindingConfig(binding);
+        HttpKafkaBindingConfig newBinding = new HttpKafkaBindingConfig(binding, context);
         bindings.put(binding.id, newBinding);
     }
 

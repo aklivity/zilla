@@ -106,11 +106,13 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     private final int kafkaReplyMin;
 
     private final Long2ObjectHashMap<SseKafkaBindingConfig> bindings;
+    private final EngineContext context;
 
     public SseKafkaProxyFactory(
         SseKafkaConfiguration config,
         EngineContext context)
     {
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
@@ -126,7 +128,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        SseKafkaBindingConfig sseKafkaBinding = new SseKafkaBindingConfig(binding);
+        SseKafkaBindingConfig sseKafkaBinding = new SseKafkaBindingConfig(binding, context);
         bindings.put(binding.id, sseKafkaBinding);
     }
 
