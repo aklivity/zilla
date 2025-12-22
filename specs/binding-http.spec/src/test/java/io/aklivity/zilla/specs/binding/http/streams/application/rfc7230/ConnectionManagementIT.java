@@ -238,6 +238,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/upgrade.request.and.response.with.data.and.padding/client",
+        "${app}/upgrade.request.and.response.with.data.and.padding/server" })
+    public void shouldUpgradeRequestAndResponseWithDataAndPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/proxy.must.not.forward.connection.header/client",
         "${app}/proxy.must.not.forward.connection.header/proxy",
         "${app}/proxy.must.not.forward.connection.header/backend" })
