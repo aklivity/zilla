@@ -1,0 +1,39 @@
+name: ${NAMESPACE:-zilla-ws-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7143:7143
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7143"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+      KEYSTORE_PASSWORD: generated
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      - backend
+
+  # WebSocket echo server with TLS using websocat
+  backend:
+    image: solsson/websocat
+    hostname: backend
+    volumes:
+      - ./etc/tls/backend.p12:/etc/ssl/backend.p12:ro
+    command: ["-E", "--text", "--pkcs12-der", "/etc/ssl/backend.p12", "--pkcs12-passwd", "generated", "wss-l:0.0.0.0:8443", "mirror:"]
+
+  # WebSocket test client
+  websocat:
+    image: solsson/websocat
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 3600; done"]
+
+networks:
+  default:
+    driver: bridge

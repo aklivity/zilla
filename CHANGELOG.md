@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.175...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.176...HEAD)
+
+**Merged pull requests:**
+
+- Fix integer overflow in http client [\#1627](https://github.com/aklivity/zilla/pull/1627) ([akrambek](https://github.com/akrambek))
+
+## [0.9.176](https://github.com/aklivity/zilla/tree/0.9.176) (2025-12-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.175...0.9.176)
 
 **Implemented enhancements:**
 

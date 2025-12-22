@@ -179,6 +179,16 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/upgrade.request.and.response.with.data.and.padding/client",
+        "${net}/upgrade.request.and.response.with.data.and.padding/server" })
+    public void shouldUpgradeRequestAndResponseWithDataAndPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${net}/proxy.must.not.forward.connection.header/client",
         "${net}/proxy.must.not.forward.connection.header/proxy",
         "${net}/proxy.must.not.forward.connection.header/backend" })
