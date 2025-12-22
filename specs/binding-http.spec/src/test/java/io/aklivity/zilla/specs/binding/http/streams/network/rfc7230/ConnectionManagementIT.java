@@ -170,6 +170,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/upgrade.request.and.response.with.data.and.padding/client",
+        "${net}/upgrade.request.and.response.with.data.and.padding/server" })
+    public void shouldUpgradeRequestAndResponseWithDataAndPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.incomplete.response.headers.and.abort/client",
         "${net}/request.incomplete.response.headers.and.abort/server" })
     public void shouldReportResponseAbortedBeforeResponseHeadersComplete() throws Exception

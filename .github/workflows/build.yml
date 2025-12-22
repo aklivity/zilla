@@ -84,6 +84,7 @@ jobs:
             ^\.git$
             ^\.vscode$
             ^tcp.reflect$
+            ^ws.proxy$
             ^ws.reflect$
 
   testing:
