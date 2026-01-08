@@ -27,7 +27,7 @@ RUN apk add --no-cache wget
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM alpine:3.23.0
+FROM alpine:3.23.2
 
 ENV ZILLA_VERSION ${project.version}
 
