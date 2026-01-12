@@ -30,7 +30,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 public class UnmergedIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/unmerged.p3.f5.d0.m5");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/unmerged.p3.f5.d1.m5");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

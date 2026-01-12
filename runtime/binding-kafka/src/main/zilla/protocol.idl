@@ -96,6 +96,11 @@ scope protocol
                 int32 configNamesCount;
             }
 
+            struct DescribeConfigsRequestCompleted
+            {
+                uint8 includeSynonyms;
+            }
+
             struct DescribeConfigsResponse
             {
                 int32 correlationId;
@@ -117,8 +122,16 @@ scope protocol
                 string16 name;
                 string16 value;
                 int8 isReadOnly;
-                int8 isDefault;
+                int8 configSource;
                 int8 isSensitive;
+                int32 synonyms;
+            }
+
+            struct SynonymResponse
+            {
+                string16 name;
+                string16 value;
+                int8 source;
             }
         }
 

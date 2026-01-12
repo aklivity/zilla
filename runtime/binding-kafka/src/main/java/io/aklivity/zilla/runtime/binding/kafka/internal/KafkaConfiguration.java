@@ -80,6 +80,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
     public static final BooleanPropertyDef KAFKA_VERBOSE;
+    public static final BooleanPropertyDef KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -133,6 +134,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
         KAFKA_VERBOSE = config.property("verbose", KafkaConfiguration::supplyVerbose);
+        KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS = config.property("client.describe.config.include.synonyms", false);
         KAFKA_CONFIG = config;
     }
 
@@ -329,6 +331,11 @@ public class KafkaConfiguration extends Configuration
     public int clientGroupInitialRebalanceDelayDefault()
     {
         return KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT.get(this);
+    }
+
+    public byte clientDescribeConfigIncludeSynonyms()
+    {
+        return KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS.get(this) ? (byte) 0x01 : (byte) 0x00;
     }
 
     private static boolean supplyVerbose(

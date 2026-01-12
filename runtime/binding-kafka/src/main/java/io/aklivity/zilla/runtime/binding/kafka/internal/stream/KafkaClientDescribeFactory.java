@@ -51,10 +51,12 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ConfigResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestCompletedFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.SynonymResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -86,7 +88,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
-    private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
+    private static final short DESCRIBE_CONFIGS_API_VERSION = 1;
     private static final byte RESOURCE_TYPE_TOPIC = 2;
 
     private final BeginFW beginRO = new BeginFW();
@@ -114,11 +116,14 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final DescribeConfigsRequestFW.Builder describeConfigsRequestRW = new DescribeConfigsRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
     private final String16FW.Builder configNameRW = new String16FW.Builder(ByteOrder.BIG_ENDIAN);
+    private final DescribeConfigsRequestCompletedFW.Builder describeConfigsRequestCompletedRW =
+        new DescribeConfigsRequestCompletedFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final DescribeConfigsResponseFW describeConfigsResponseRO = new DescribeConfigsResponseFW();
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
+    private final SynonymResponseFW synonymResponseRO = new SynonymResponseFW();
 
     private final Map<String, String> newConfigs = new LinkedHashMap<>();
     private final List<String> changedConfigs = new ArrayList<>();
@@ -145,6 +150,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final byte includeSynonyms;
 
     public KafkaClientDescribeFactory(
         KafkaConfiguration config,
@@ -168,6 +174,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms();
     }
 
     @Override
@@ -555,8 +562,21 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                         final String name = config.name().asString();
                         final String value = config.value().asString();
+                        final int synonymsCount = config.synonyms();
 
                         newConfigs.put(name, value);
+
+                        for (int synonymsIndex = 0; synonymsIndex < synonymsCount; synonymsIndex++)
+                        {
+                            final SynonymResponseFW synonym = synonymResponseRO.tryWrap(buffer, progress, limit);
+                            if (synonym == null)
+                            {
+                                client.decoder = decodeIgnoreAll;
+                                break decode;
+                            }
+
+                            progress = synonym.limit();
+                        }
                     }
 
                     client.onDecodeDescribeResponse(traceId, newConfigs);
@@ -1366,6 +1386,13 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                     encodeProgress = configName.limit();
                 }
+
+                final DescribeConfigsRequestCompletedFW requestCompleted =
+                    describeConfigsRequestCompletedRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .includeSynonyms(includeSynonyms)
+                        .build();
+
+                encodeProgress = requestCompleted.limit();
 
                 final int requestId = nextRequestId++;
                 final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
