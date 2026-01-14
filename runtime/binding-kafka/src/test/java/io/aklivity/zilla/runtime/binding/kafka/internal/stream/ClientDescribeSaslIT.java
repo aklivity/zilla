@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ClientDescribeSaslIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v0.sasl.handshake.v1")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v1.sasl.handshake.v1")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/describe");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));

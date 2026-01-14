@@ -61,9 +61,9 @@ accepted
 
 connected
 
-read 121                                                 # size
+read 122                                                 # size
      32s                                                # describe configs
-     0s                                                 # v0
+     1s                                                 # v1
      (int:requestId)
      5s "zilla"                                         # client id
      1                                                  # resources
@@ -73,8 +73,9 @@ read 121                                                 # size
          28s "group.min.session.timeout.ms"             # name
          28s "group.max.session.timeout.ms"             # name
          32s "group.initial.rebalance.delay.ms"         # name
+     [0x00]                                             # include synonyms
 
-write 143                                                # size
+write 155                                                # size
       ${requestId}
       0
       1                                                  # resources
@@ -86,18 +87,21 @@ write 143                                                # size
           28s "group.min.session.timeout.ms"             # name
           4s "6000"                                      # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
           28s "group.max.session.timeout.ms"              # name
           5s "30000"                                      # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
           32s "group.initial.rebalance.delay.ms"          # name
           1s "0"                                          # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
 
 read  82                               # size
       11s                               # join group
@@ -199,9 +203,9 @@ write 35                                           # size
 
 #Second try
 
-read 121                                                # size
+read 122                                                # size
      32s                                                # describe configs
-     0s                                                 # v0
+     1s                                                 # v1
      (int:requestId)
      5s "zilla"                                         # client id
      1                                                  # resources
@@ -211,8 +215,9 @@ read 121                                                # size
          28s "group.min.session.timeout.ms"             # name
          28s "group.max.session.timeout.ms"             # name
          32s "group.initial.rebalance.delay.ms"         # name
+     [0x00]                                             # include synonyms
 
-write 143                                                # size
+write 155                                                # size
       ${requestId}
       0
       1                                                  # resources
@@ -224,18 +229,21 @@ write 143                                                # size
           28s "group.min.session.timeout.ms"             # name
           4s "6000"                                      # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
           28s "group.max.session.timeout.ms"              # name
           5s "30000"                                      # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
           32s "group.initial.rebalance.delay.ms"          # name
           1s "0"                                          # value
           [0x00]                                          # not read only
-          [0x00]                                          # not default
+          [0x00]                                          # config source
           [0x00]                                          # not sensitive
+          0                                               # synonyms
 
 read  82                                # size
       11s                               # join group
