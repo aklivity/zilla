@@ -146,9 +146,7 @@ public final class EngineConfigWatcher implements AutoCloseable
     private WatchKey takeImpl() throws InterruptedException
     {
         WatchKey watchKey = watcher.take();
-        CompoundWatchKey compoundKey = compoundKeys.get(watchKey);
-
-        return compoundKey;
+        return compoundKeys.get(watchKey);
     }
 
     private final class CompoundWatchKey implements WatchKey

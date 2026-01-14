@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.176...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.177...HEAD)
+
+**Closed issues:**
+
+- Support `tls` deferring to vault for list of keys or trusted certificates, support `filesystem` vault [\#1576](https://github.com/aklivity/zilla/issues/1576)
+
+**Merged pull requests:**
+
+- Fix config watcher to skip unregistered watch keys [\#1630](https://github.com/aklivity/zilla/pull/1630) ([akrambek](https://github.com/akrambek))
+
+## [0.9.177](https://github.com/aklivity/zilla/tree/0.9.177) (2025-12-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.176...0.9.177)
 
 **Merged pull requests:**
 

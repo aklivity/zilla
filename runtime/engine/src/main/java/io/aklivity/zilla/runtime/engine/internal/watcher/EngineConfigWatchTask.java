@@ -88,8 +88,11 @@ public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<V
             try
             {
                 final WatchKey key = watcher.take();
-                final Path watchable = (Path) key.watchable();
-                onPathChanged(watchable);
+                if (key != null)
+                {
+                    final Path watchable = (Path) key.watchable();
+                    onPathChanged(watchable);
+                }
             }
             catch (InterruptedException ex)
             {
