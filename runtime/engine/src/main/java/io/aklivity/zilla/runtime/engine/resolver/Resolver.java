@@ -20,20 +20,19 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class Resolver
 {
-    private static final Pattern EXPRESSION_PATTERN =
-            Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
-
     private final Map<String, ResolverSpi> resolverSpis;
-    private Matcher matcher;
+    private final Matcher matcher;
 
     public static Resolver instantiate(
         Configuration config)
@@ -63,14 +62,24 @@ public final class Resolver
     {
         Map<String, ResolverSpi> resolversByName = new HashMap<>();
         factories.forEach(f -> resolversByName.put(f.type(), f.create(config)));
-        return new Resolver(unmodifiableMap(resolversByName));
+
+        String contexts = resolversByName.keySet()
+            .stream()
+            .sorted(Comparator.comparingInt(String::length).reversed())
+            .map(Pattern::quote)
+            .collect(Collectors.joining("|"));
+
+        Pattern expressionPattern = Pattern.compile(
+            "\\$\\{\\{\\s*(" + contexts + ")\\.([^\\s\\}]*)\\s*\\}\\}");
+
+        return new Resolver(unmodifiableMap(resolversByName), expressionPattern);
     }
 
     private Resolver(
-        Map<String, ResolverSpi> resolverSpis)
+        Map<String, ResolverSpi> resolverSpis,
+        Pattern expressionPattern)
     {
         this.resolverSpis = resolverSpis;
-        this.matcher = EXPRESSION_PATTERN.matcher("");
+        this.matcher = expressionPattern.matcher("");
     }
-
 }
