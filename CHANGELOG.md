@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.177...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.178...HEAD)
+
+**Merged pull requests:**
+
+- Dynamic context support for resolvers + change nonce generation [\#1632](https://github.com/aklivity/zilla/pull/1632) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.178](https://github.com/aklivity/zilla/tree/0.9.178) (2026-01-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.177...0.9.178)
 
 **Closed issues:**
 
