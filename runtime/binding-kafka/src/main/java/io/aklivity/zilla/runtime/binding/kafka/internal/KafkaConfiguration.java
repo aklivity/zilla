@@ -404,7 +404,7 @@ public class KafkaConfiguration extends Configuration
 
     private static String defaultNonceSupplier()
     {
-        return new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
+        return new BigInteger(144, new SecureRandom()).toString(Character.MAX_RADIX);
     }
 
     @FunctionalInterface
