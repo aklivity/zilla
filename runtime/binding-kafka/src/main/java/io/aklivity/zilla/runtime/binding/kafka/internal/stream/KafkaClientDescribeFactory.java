@@ -174,7 +174,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
-        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms();
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms() ? (byte) 0x01 : (byte) 0x00;
     }
 
     @Override
@@ -576,6 +576,11 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                             }
 
                             progress = synonym.limit();
+
+                            final String synonymName = synonym.name().asString();
+                            final String synonymValue = synonym.value().asString();
+
+                            newConfigs.put(synonymName, synonymValue);
                         }
                     }
 

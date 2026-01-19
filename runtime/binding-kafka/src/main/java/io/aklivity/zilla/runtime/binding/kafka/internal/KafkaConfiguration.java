@@ -333,9 +333,9 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT.get(this);
     }
 
-    public byte clientDescribeConfigIncludeSynonyms()
+    public boolean clientDescribeConfigIncludeSynonyms()
     {
-        return KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS.get(this) ? (byte) 0x01 : (byte) 0x00;
+        return KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS.get(this);
     }
 
     private static boolean supplyVerbose(

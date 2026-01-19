@@ -28,7 +28,7 @@ connect "zilla://streams/net0"
 
 connected
 
-write 47                                # size
+write 48                                # size
       32s                               # describe configs
       1s                                # v1
       ${newRequestId}
@@ -37,10 +37,10 @@ write 47                                # size
         [0x02]                          # topic resource
         4s "test"                       # "test" topic
         1                               # configs
-          14s "cleanup.policy"            # name
+          15s "retention.bytes"           # name
       [0x01]                            # include synonyms
 
-read 85                                 # size
+read 97                                 # size
      ${newRequestId}
      [0..4]
      1                                  # resources
@@ -49,12 +49,12 @@ read 85                                 # size
        [0x02]                             # topic resource
        4s "test"                          # "test" topic
        1                                  # configs
-         14s "cleanup.policy"               # name
-         7s "compact"                       # value
+         15s "retention.bytes"              # name
+         10s "1073741824"                   # value
         [0x00]                              # not read only
         [0x00]                              # config source
         [0x00]                              # not sensitive
         1                                   # synonyms
-            14s "cleanup.policy"               # name
-            7s "compact"                       # value
+            19s "log.retention.bytes"          # name
+            10s "1073741824"                   # value
             [0x00]                             # source

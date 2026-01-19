@@ -347,7 +347,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.groupMaxSessionTimeoutDefault = String.valueOf(config.clientGroupMaxSessionTimeoutDefault());
         this.groupInitialRebalanceDelayDefault = String.valueOf(config.clientGroupInitialRebalanceDelayDefault());
         this.encodeMaxBytes = encodePool.slotCapacity() - GROUP_RECORD_FRAME_MAX_SIZE;
-        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms();
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms() ? (byte) 0x01 : (byte) 0x00;
     }
 
     @Override
@@ -856,6 +856,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                                 }
 
                                 progress = synonym.limit();
+
+                                final String synonymName = synonym.name().asString();
+                                final String synonymValue = synonym.value().asString();
+
+                                configs.put(synonymName, synonymValue);
                             }
                         }
 
