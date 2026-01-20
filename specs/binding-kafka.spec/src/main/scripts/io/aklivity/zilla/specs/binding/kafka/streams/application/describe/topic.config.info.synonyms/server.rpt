@@ -37,6 +37,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .describe()
                                    .topic("test")
                                    .config("retention.bytes")
+                                   .config("log.retention.bytes")
                                    .build()
                                .build()}
 write flush
@@ -45,6 +46,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .describe()
                                   .config("retention.bytes", "1073741824")
+                                  .config("log.retention.bytes", "1073741824")
                                   .build()
                               .build()}
 write flush
