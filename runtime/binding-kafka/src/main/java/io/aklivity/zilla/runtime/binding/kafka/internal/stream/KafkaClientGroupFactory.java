@@ -147,6 +147,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short HEARTBEAT_API_KEY = 12;
     private static final short HEARTBEAT_VERSION = 3;
 
+    private static final byte DESCRIBE_CONFIG_INCLUDE_SYNONYMS = (byte) 0x01;
+    private static final byte DESCRIBE_CONFIG_EXCLUDE_SYNONYMS = (byte) 0x00;
+
     private static final String UNKNOWN_MEMBER_ID = "";
     private static final String HIGHLANDER_PROTOCOL = "highlander";
     private static final String GROUP_MIN_SESSION_TIMEOUT = "group.min.session.timeout.ms";
@@ -347,7 +350,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.groupMaxSessionTimeoutDefault = String.valueOf(config.clientGroupMaxSessionTimeoutDefault());
         this.groupInitialRebalanceDelayDefault = String.valueOf(config.clientGroupInitialRebalanceDelayDefault());
         this.encodeMaxBytes = encodePool.slotCapacity() - GROUP_RECORD_FRAME_MAX_SIZE;
-        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms() ? (byte) 0x01 : (byte) 0x00;
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms()
+            ? DESCRIBE_CONFIG_INCLUDE_SYNONYMS
+            : DESCRIBE_CONFIG_EXCLUDE_SYNONYMS;
     }
 
     @Override

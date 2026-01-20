@@ -92,6 +92,9 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private static final short DESCRIBE_CONFIGS_API_VERSION = 1;
     private static final byte RESOURCE_TYPE_TOPIC = 2;
 
+    private static final byte DESCRIBE_CONFIG_INCLUDE_SYNONYMS = (byte) 0x01;
+    private static final byte DESCRIBE_CONFIG_EXCLUDE_SYNONYMS = (byte) 0x00;
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -177,7 +180,9 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
-        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms() ? (byte) 0x01 : (byte) 0x00;
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms()
+            ? DESCRIBE_CONFIG_INCLUDE_SYNONYMS
+            : DESCRIBE_CONFIG_EXCLUDE_SYNONYMS;
     }
 
     @Override
