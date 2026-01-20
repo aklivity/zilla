@@ -30,7 +30,7 @@ timeout 60s curl \
 # fetch correlation id from kafka with kafkacat; try 5 times
 for i in $(seq 0 5); do
   sleep $i
-  CORRELATION_ID=$(docker compose -p zilla-http-kafka-sync exec kafkacat kafkacat -C -c 1 -o-1 -b $KAFKA_BOOTSTRAP_SERVER -t items-requests -J -u | jq -r '.headers | index("zilla:correlation-id") as $index | .[$index + 1]')
+  CORRELATION_ID=$(docker compose -p zilla-http-kafka-sync exec kafkacat kafkacat -C -c 1 -b $KAFKA_BOOTSTRAP_SERVER -t items-requests -J -u | jq -r '.headers | index("zilla:correlation-id") as $index | .[$index + 1]')
   if [ -n "$CORRELATION_ID" ]; then
     break
   fi
