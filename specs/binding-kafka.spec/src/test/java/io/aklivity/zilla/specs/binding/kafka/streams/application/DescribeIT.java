@@ -68,7 +68,7 @@ public class DescribeIT
     @Specification({
         "${app}/topic.config.info.synonyms/client",
         "${app}/topic.config.info.synonyms/server"})
-    public void shouldReceiveTopicConfigInfoSynonyms() throws Exception
+    public void shouldReceiveTopicConfigInfoWithSynonyms() throws Exception
     {
         k3po.finish();
     }

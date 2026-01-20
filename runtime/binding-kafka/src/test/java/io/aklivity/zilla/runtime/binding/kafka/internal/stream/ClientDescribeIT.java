@@ -76,7 +76,7 @@ public class ClientDescribeIT
         "${app}/topic.config.info.synonyms/client",
         "${net}/topic.config.info.synonyms/server"})
     @Configure(name = KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME, value = "true")
-    public void shouldReceiveTopicConfigInfoSynonyms() throws Exception
+    public void shouldReceiveTopicConfigInfoWithSynonyms() throws Exception
     {
         k3po.finish();
     }
