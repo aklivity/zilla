@@ -1,5 +1,196 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.179...HEAD)
+
+**Fixed bugs:**
+
+- Kafka DescribeConfigs uses API version 0 against brokers \(Kafka 4.1\) that require v1+ [\#1614](https://github.com/aklivity/zilla/issues/1614)
+
+**Merged pull requests:**
+
+- upgrade DescribeConfigs API `v1` [\#1629](https://github.com/aklivity/zilla/pull/1629) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.179](https://github.com/aklivity/zilla/tree/0.9.179) (2026-01-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.178...0.9.179)
+
+**Merged pull requests:**
+
+- Dynamic context support for resolvers + change nonce generation [\#1632](https://github.com/aklivity/zilla/pull/1632) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.178](https://github.com/aklivity/zilla/tree/0.9.178) (2026-01-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.177...0.9.178)
+
+**Closed issues:**
+
+- Support `tls` deferring to vault for list of keys or trusted certificates, support `filesystem` vault [\#1576](https://github.com/aklivity/zilla/issues/1576)
+
+**Merged pull requests:**
+
+- Fix config watcher to skip unregistered watch keys [\#1630](https://github.com/aklivity/zilla/pull/1630) ([akrambek](https://github.com/akrambek))
+
+## [0.9.177](https://github.com/aklivity/zilla/tree/0.9.177) (2025-12-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.176...0.9.177)
+
+**Merged pull requests:**
+
+- Fix integer overflow in http client [\#1627](https://github.com/aklivity/zilla/pull/1627) ([akrambek](https://github.com/akrambek))
+
+## [0.9.176](https://github.com/aklivity/zilla/tree/0.9.176) (2025-12-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.175...0.9.176)
+
+**Implemented enhancements:**
+
+- Support populating identity override without guarded route [\#1518](https://github.com/aklivity/zilla/issues/1518)
+
+**Merged pull requests:**
+
+- Correctly send http end when no upgrade header [\#1626](https://github.com/aklivity/zilla/pull/1626) ([bmaidics](https://github.com/bmaidics))
+- Support populating identity override without guarded route [\#1600](https://github.com/aklivity/zilla/pull/1600) ([nageshwaravijay1117](https://github.com/nageshwaravijay1117))
+
+## [0.9.175](https://github.com/aklivity/zilla/tree/0.9.175) (2025-12-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.174...0.9.175)
+
+**Merged pull requests:**
+
+- Include blocking select with timeout in doWork loops [\#1620](https://github.com/aklivity/zilla/pull/1620) ([jfallows](https://github.com/jfallows))
+
+## [0.9.174](https://github.com/aklivity/zilla/tree/0.9.174) (2025-12-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.173...0.9.174)
+
+**Closed issues:**
+
+- Support `model-avro` validation where catalog expects prefix with schema id [\#1611](https://github.com/aklivity/zilla/issues/1611)
+
+**Merged pull requests:**
+
+- Fix command dump pcap timestamps [\#1618](https://github.com/aklivity/zilla/pull/1618) ([jfallows](https://github.com/jfallows))
+- Fix testcontainers by upgrading [\#1616](https://github.com/aklivity/zilla/pull/1616) ([jfallows](https://github.com/jfallows))
+- `avro` validator implementation with `encoded` strategy [\#1615](https://github.com/aklivity/zilla/pull/1615) ([ankitk-me](https://github.com/ankitk-me))
+- Bump alpine from 3.21.3 to 3.23.0 in /cloud/docker-image/src/main/docker [\#1613](https://github.com/aklivity/zilla/pull/1613) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20250404 to jammy-20251013 in /cloud/docker-image/src/main/docker [\#1607](https://github.com/aklivity/zilla/pull/1607) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump lycheeverse/lychee-action from 2.4.1 to 2.7.0 [\#1601](https://github.com/aklivity/zilla/pull/1601) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 4 to 5 [\#1597](https://github.com/aklivity/zilla/pull/1597) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 4 to 5 [\#1535](https://github.com/aklivity/zilla/pull/1535) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.173](https://github.com/aklivity/zilla/tree/0.9.173) (2025-11-19)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.172...0.9.173)
+
+**Closed issues:**
+
+- Support `model-json` validation where catalog expects prefix with schema id [\#1605](https://github.com/aklivity/zilla/issues/1605)
+
+**Merged pull requests:**
+
+- Handle abort aborted race condition in IT scripts [\#1608](https://github.com/aklivity/zilla/pull/1608) ([jfallows](https://github.com/jfallows))
+
+## [0.9.172](https://github.com/aklivity/zilla/tree/0.9.172) (2025-11-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.171...0.9.172)
+
+**Merged pull requests:**
+
+- Support catalog handler validate [\#1606](https://github.com/aklivity/zilla/pull/1606) ([jfallows](https://github.com/jfallows))
+
+## [0.9.171](https://github.com/aklivity/zilla/tree/0.9.171) (2025-10-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.170...0.9.171)
+
+**Fixed bugs:**
+
+- Fix virtual cluster produce under load [\#1595](https://github.com/aklivity/zilla/issues/1595)
+
+**Merged pull requests:**
+
+- Enhance engine extensions API [\#1599](https://github.com/aklivity/zilla/pull/1599) ([jfallows](https://github.com/jfallows))
+
+## [0.9.170](https://github.com/aklivity/zilla/tree/0.9.170) (2025-10-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.169...0.9.170)
+
+**Merged pull requests:**
+
+- Fix filesystem vault in local config [\#1598](https://github.com/aklivity/zilla/pull/1598) ([jfallows](https://github.com/jfallows))
+
+## [0.9.169](https://github.com/aklivity/zilla/tree/0.9.169) (2025-10-27)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.168...0.9.169)
+
+**Merged pull requests:**
+
+- Add basic auth username/password accessor to HTTP server [\#1596](https://github.com/aklivity/zilla/pull/1596) ([bmaidics](https://github.com/bmaidics))
+- update `sse.kafka.fanout` to support `jwt` [\#1593](https://github.com/aklivity/zilla/pull/1593) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.168](https://github.com/aklivity/zilla/tree/0.9.168) (2025-10-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.167...0.9.168)
+
+**Merged pull requests:**
+
+- Fix TestGuardHandler when no attributes are specified [\#1592](https://github.com/aklivity/zilla/pull/1592) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.167](https://github.com/aklivity/zilla/tree/0.9.167) (2025-10-21)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.166...0.9.167)
+
+**Merged pull requests:**
+
+- Fix http 1.1 client upgrade then close [\#1591](https://github.com/aklivity/zilla/pull/1591) ([jfallows](https://github.com/jfallows))
+- support multiple replacer with dynamic pattern [\#1590](https://github.com/aklivity/zilla/pull/1590) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.166](https://github.com/aklivity/zilla/tree/0.9.166) (2025-10-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.165...0.9.166)
+
+**Merged pull requests:**
+
+- Fix http 1.1 client decode of response empty reason phrase [\#1589](https://github.com/aklivity/zilla/pull/1589) ([jfallows](https://github.com/jfallows))
+
+## [0.9.165](https://github.com/aklivity/zilla/tree/0.9.165) (2025-10-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.164...0.9.165)
+
+**Merged pull requests:**
+
+- Fix http filesystem module-info [\#1588](https://github.com/aklivity/zilla/pull/1588) ([jfallows](https://github.com/jfallows))
+- Protobuf2 Model Support in Zilla [\#1548](https://github.com/aklivity/zilla/pull/1548) ([nageshwaravijay1117](https://github.com/nageshwaravijay1117))
+
+## [0.9.164](https://github.com/aklivity/zilla/tree/0.9.164) (2025-10-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.162...0.9.164)
+
+**Merged pull requests:**
+
+- Append local config if configured [\#1583](https://github.com/aklivity/zilla/pull/1583) ([bmaidics](https://github.com/bmaidics))
+
+## [0.9.162](https://github.com/aklivity/zilla/tree/0.9.162) (2025-10-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.161...0.9.162)
+
+**Merged pull requests:**
+
+- validate attributes in test binding [\#1587](https://github.com/aklivity/zilla/pull/1587) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.161](https://github.com/aklivity/zilla/tree/0.9.161) (2025-10-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.159...0.9.161)
+
+**Closed issues:**
+
+- Support guard attributes [\#1578](https://github.com/aklivity/zilla/issues/1578)
+
+**Merged pull requests:**
+
+- Support guard attributes [\#1582](https://github.com/aklivity/zilla/pull/1582) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.159](https://github.com/aklivity/zilla/tree/0.9.159) (2025-09-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.158...0.9.159)
