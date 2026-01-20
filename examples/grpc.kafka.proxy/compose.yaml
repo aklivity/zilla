@@ -62,7 +62,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
   kafka-init:
-    image: bitnamilegacy/kafka:3.5
+    image: apache/kafka:4.1.1
     user: root
     depends_on:
       kafka:
@@ -78,10 +78,10 @@ services:
     command:
       - |
         echo "Creating kafka topic";
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic echo-requests
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic echo-responses
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic echo-requests
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic echo-responses
         echo "Successfully created the following topics:";
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
 
   kafka-ui:
     image: ghcr.io/kafbat/kafka-ui:v1.0.0
