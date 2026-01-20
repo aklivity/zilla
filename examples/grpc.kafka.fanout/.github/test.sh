@@ -17,7 +17,7 @@ echo
 
 # WHEN
 
-sleep 5
+sleep 10
 
 (docker compose -p zilla-grpc-kafka-fanout exec kafkacat kafkacat -P -b kafka.examples.dev:29092 -t messages -k -e /tmp/binary.data)
 

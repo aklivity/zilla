@@ -29,7 +29,7 @@ telemetry:
           - qname: test:app0
             id: binding.kafka.api.version.rejected
             name: BINDING_KAFKA_API_VERSION_REJECTED
-            message: "DescribeConfigs (Version: 0)"
+            message: "DescribeConfigs (Version: 1)"
 bindings:
   app0:
     type: kafka

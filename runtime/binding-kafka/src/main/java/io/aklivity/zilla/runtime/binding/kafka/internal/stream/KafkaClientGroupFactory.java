@@ -58,10 +58,12 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ConfigResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestCompletedFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.SynonymResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentTopicUserdataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.consumer.ConsumerAssignmentTopicsUserdataFW;
@@ -132,7 +134,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short SIGNAL_SYNC_GROUP_REQUEST = 2;
     private static final short SIGNAL_HEARTBEAT_REQUEST = 3;
     private static final short DESCRIBE_CONFIGS_API_KEY = 32;
-    private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
+    private static final short DESCRIBE_CONFIGS_API_VERSION = 1;
     private static final byte RESOURCE_TYPE_BROKER = 4;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 1;
@@ -144,6 +146,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final short LEAVE_GROUP_VERSION = 3;
     private static final short HEARTBEAT_API_KEY = 12;
     private static final short HEARTBEAT_VERSION = 3;
+
+    private static final byte DESCRIBE_CONFIG_INCLUDE_SYNONYMS = (byte) 0x01;
+    private static final byte DESCRIBE_CONFIG_EXCLUDE_SYNONYMS = (byte) 0x00;
 
     private static final String UNKNOWN_MEMBER_ID = "";
     private static final String HIGHLANDER_PROTOCOL = "highlander";
@@ -183,6 +188,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final DescribeConfigsRequestFW.Builder describeConfigsRequestRW = new DescribeConfigsRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
     private final String16FW.Builder configNameRW = new String16FW.Builder(ByteOrder.BIG_ENDIAN);
+    private final DescribeConfigsRequestCompletedFW.Builder describeConfigsRequestCompletedRW =
+        new DescribeConfigsRequestCompletedFW.Builder();
     private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
     private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
     private final ProtocolMetadataFW.Builder protocolMetadataRW = new ProtocolMetadataFW.Builder();
@@ -209,6 +216,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
+    private final SynonymResponseFW synonymResponseRO = new SynonymResponseFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final DescribeConfigsResponseFW describeConfigsResponseRO = new DescribeConfigsResponseFW();
     private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
@@ -308,6 +316,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final String groupMaxSessionTimeoutDefault;
     private final String groupInitialRebalanceDelayDefault;
     private final int encodeMaxBytes;
+    private final byte includeSynonyms;
 
     public KafkaClientGroupFactory(
         KafkaConfiguration config,
@@ -341,6 +350,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.groupMaxSessionTimeoutDefault = String.valueOf(config.clientGroupMaxSessionTimeoutDefault());
         this.groupInitialRebalanceDelayDefault = String.valueOf(config.clientGroupInitialRebalanceDelayDefault());
         this.encodeMaxBytes = encodePool.slotCapacity() - GROUP_RECORD_FRAME_MAX_SIZE;
+        this.includeSynonyms = config.clientDescribeConfigIncludeSynonyms()
+            ? DESCRIBE_CONFIG_INCLUDE_SYNONYMS
+            : DESCRIBE_CONFIG_EXCLUDE_SYNONYMS;
     }
 
     @Override
@@ -835,8 +847,26 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                             final String name = config.name().asString();
                             final String value = config.value().asString();
+                            final int synonymsCount = config.synonyms();
 
                             configs.put(name, value);
+
+                            for (int synonymsIndex = 0; synonymsIndex < synonymsCount; synonymsIndex++)
+                            {
+                                final SynonymResponseFW synonym = synonymResponseRO.tryWrap(buffer, progress, limit);
+                                if (synonym == null)
+                                {
+                                    client.decoder = decodeIgnoreAll;
+                                    break decode;
+                                }
+
+                                progress = synonym.limit();
+
+                                final String synonymName = synonym.name().asString();
+                                final String synonymValue = synonym.value().asString();
+
+                                configs.put(synonymName, synonymValue);
+                            }
                         }
 
                         client.onDecodeDescribeResponse(traceId, configs);
@@ -3044,6 +3074,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 encodeProgress = configName.limit();
             }
+
+            final DescribeConfigsRequestCompletedFW requestCompleted =
+                describeConfigsRequestCompletedRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .includeSynonyms(includeSynonyms)
+                    .build();
+
+            encodeProgress = requestCompleted.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
