@@ -2,7 +2,19 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.178...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.179...HEAD)
+
+**Fixed bugs:**
+
+- Kafka DescribeConfigs uses API version 0 against brokers \(Kafka 4.1\) that require v1+ [\#1614](https://github.com/aklivity/zilla/issues/1614)
+
+**Merged pull requests:**
+
+- upgrade DescribeConfigs API `v1` [\#1629](https://github.com/aklivity/zilla/pull/1629) ([ankitk-me](https://github.com/ankitk-me))
+
+## [0.9.179](https://github.com/aklivity/zilla/tree/0.9.179) (2026-01-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.178...0.9.179)
 
 **Merged pull requests:**
 

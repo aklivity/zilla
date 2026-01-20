@@ -30,7 +30,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 public class DescribeConfigsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v0");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v1");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,11 +30,12 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientDescribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v0")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.configs.v1")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/describe");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
@@ -64,6 +66,17 @@ public class ClientDescribeIT
         "${app}/topic.config.info.incomplete/client",
         "${net}/topic.config.info.incomplete/server"})
     public void shouldRejectWhenTopicConfigInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/topic.config.info.synonyms/client",
+        "${net}/topic.config.info.synonyms/server"})
+    @Configure(name = KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME, value = "true")
+    public void shouldReceiveTopicConfigInfoWithSynonyms() throws Exception
     {
         k3po.finish();
     }
