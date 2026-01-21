@@ -83,6 +83,33 @@ public class SchemaRegistryOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithBasicCredentials()
+    {
+        String text = """
+            {
+              "url": "http://localhost:8081",
+              "context": "default",
+              "credentials":
+              {
+                "basic":
+                {
+                  "username": "user",
+                  "password": "secret"
+                }
+              }
+            }
+            """;
+
+        SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
+
+        assertThat(catalog, not(nullValue()));
+        assertThat(catalog.url, equalTo("http://localhost:8081"));
+        assertThat(catalog.context, equalTo("default"));
+        assertThat(catalog.username, equalTo("user"));
+        assertThat(catalog.password, equalTo("secret"));
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         SchemaRegistryOptionsConfig catalog = SchemaRegistryOptionsConfig.builder()

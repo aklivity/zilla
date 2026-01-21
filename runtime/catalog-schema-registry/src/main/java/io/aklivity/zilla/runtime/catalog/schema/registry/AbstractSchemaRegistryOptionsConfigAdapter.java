@@ -47,6 +47,9 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_NAME = "basic";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME = "username";
+    private static final String AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME = "password";
     private static final String TLS_NAME = "tls";
 
     private final String type;
@@ -187,8 +190,22 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
                 JsonObject credentials = object.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
 
                 JsonObject headers = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+                JsonObject basic = credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_BASIC_NAME);
 
-                options.authorization(headers.getString(AUTHORIZATION_NAME));
+
+                if (headers != null)
+                {
+                    String authorization = headers.getString(AUTHORIZATION_NAME, null);
+                    options.authorization(authorization);
+                }
+
+                if (basic != null)
+                {
+                    String username = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_USERNAME_NAME, null);
+                    options.username(username);
+                    String password = basic.getString(AUTHORIZATION_CREDENTIALS_BASIC_PASSWORD_NAME, null);
+                    options.password(password);
+                }
             }
         }
 
