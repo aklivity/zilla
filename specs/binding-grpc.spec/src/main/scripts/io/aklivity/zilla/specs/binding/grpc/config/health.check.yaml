@@ -20,38 +20,41 @@ catalogs:
     type: test
     options:
       id: 1
-      subject: echo
+      subject: health
       schema: |
+        
         syntax = "proto3";
 
-        package example;
+        package grpc.health.v1;
 
+        option csharp_namespace = "Grpc.Health.V1";
+        option go_package = "google.golang.org/grpc/health/grpc_health_v1";
         option java_multiple_files = true;
-        option java_outer_classname = "EchoProto";
+        option java_outer_classname = "HealthProto";
+        option java_package = "io.grpc.health.v1";
 
-        service EchoService
+        message HealthCheckRequest 
         {
-          rpc EchoUnary(EchoMessage) returns (EchoMessage);
-
-          rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
-
-          rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
-
-          rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
-
-          rpc ComplexMethod (EchoMessage) returns (EchoMessage) {
-            option (com.example.http) = {
-              delete : "/some/url"
-              additional_bindings {
-                delete: "/another/url"
-              }
-            };
-          }
+          string service = 1;
         }
 
-        message EchoMessage
+        message HealthCheckResponse 
         {
-          string message = 1;
+          enum ServingStatus 
+        {
+            UNKNOWN = 0;
+            SERVING = 1;
+            NOT_SERVING = 2;
+            SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
+          }
+          ServingStatus status = 1;
+        }
+
+        service Health 
+        {
+          rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+        
+          rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
         }
 bindings:
   net0:
@@ -59,10 +62,10 @@ bindings:
     kind: server
     catalog:
       test0:
-        - subject: echo
+        - subject: health
     routes:
       - exit: app0
         when:
-          - method: example.EchoService/*
+          - method: example.grpc.health.v1.Health/*
             metadata:
               custom: test

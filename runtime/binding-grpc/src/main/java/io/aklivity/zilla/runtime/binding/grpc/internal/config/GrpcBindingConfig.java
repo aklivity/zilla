@@ -12,6 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.BASE64;
@@ -20,6 +21,10 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
+
 public final class GrpcBindingConfig
 {
     private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
@@ -71,9 +77,11 @@ public final class GrpcBindingConfig
     public final GrpcOptionsConfig options;
     public final List<GrpcRouteConfig> routes;
 
+
     private final GrpcProtobufParser parser;
     private final HttpGrpcHeaderHelper helper;
     private final Set<GrpcCatalogSchema> catalogs;
+    public final List<GrpcProtobufConfig> grpcServices;
 
     public GrpcBindingConfig(
         BindingConfig binding,
@@ -97,6 +105,35 @@ public final class GrpcBindingConfig
             }
         }
         this.catalogs = catalogs;
+
+        this.grpcServices = new ArrayList<>();
+
+        for (String serviceName : options.services)
+        {
+            if ("grpc.health.v1.Health".equals(serviceName))
+            {
+                String schema = loadProtoSchema("health.proto");
+                GrpcProtobufConfig protobufConfig = this.parser.parse("health.proto", schema);
+                this.grpcServices.add(protobufConfig);
+            }
+        }
+
+    }
+
+    private String loadProtoSchema(String resourcePath)
+    {
+        try (InputStream inputStream = getClass().getResourceAsStream(resourcePath))
+        {
+            if (inputStream == null)
+            {
+                throw new IllegalArgumentException("Could not find " + resourcePath + " on classpath");
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed to load proto schema", e);
+        }
     }
 
     public GrpcRouteConfig resolve(
@@ -129,11 +166,12 @@ public final class GrpcBindingConfig
             final String methodName = matcher.group(METHOD);
 
             GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
-
-            if (method == null && options != null)
+            if (method == null)
             {
-                method = resolveMethod(options.protobufs, serviceName, methodName);
+                // TODO: this may not the best
+                method = resolveMethod(grpcServices, serviceName, methodName);
             }
+
 
             if (method != null)
             {

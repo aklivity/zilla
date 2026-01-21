@@ -14,63 +14,32 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class GrpcOptionsConfigAdapterTest
 {
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule();
-    @Mock
-    private ConfigAdapterContext context;
-
-    private OptionsConfigAdapter adapter;
-
     private Jsonb jsonb;
 
-
     @Before
-    public void initJson() throws IOException
+    public void initJson()
     {
-        String content = null;
-        try (InputStream resource = GrpcOptionsConfigAdapterTest.class
-            .getResourceAsStream("../../../../../specs/binding/grpc/config/protobuf/echo.proto"))
-        {
-            content = new String(resource.readAllBytes(), UTF_8);
-        }
-        Mockito.doReturn(content).when(context).readResource("protobuf/echo.proto");
-        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-        adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(adapter);
+            .withAdapters(new GrpcOptionsConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -79,29 +48,26 @@ public class GrpcOptionsConfigAdapterTest
     {
         String text =
             "{" +
-                "\"services\": [\"protobuf/echo.proto\"]" +
+                "\"services\": [\"grpc.health.v1.Health\"]" +
             "}";
 
         GrpcOptionsConfig options = jsonb.fromJson(text, GrpcOptionsConfig.class);
-        GrpcProtobufConfig protobuf = options.protobufs.stream().findFirst().get();
-        GrpcServiceConfig service = protobuf.services.stream().findFirst().get();
-        GrpcMethodConfig method = service.methods.stream().filter(m -> "EchoUnary".equals(m.method)).findFirst().get();
 
         assertThat(options, not(nullValue()));
-        assertEquals("protobuf/echo.proto", protobuf.location);
-        assertEquals("example.EchoService", service.service);
-        assertEquals("EchoUnary", method.method);
+        assertThat(options.services, equalTo(List.of("grpc.health.v1.Health")));
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(
-            new GrpcProtobufConfig("protobuf/echo.proto", Collections.emptySet())));
+        GrpcOptionsConfig options = GrpcOptionsConfig.builder()
+                .services(List.of("grpc.health.v1.Health"))
+                .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertEquals("{\"services\":[\"protobuf/echo.proto\"]}", text);
+        assertEquals("{\"services\":[\"grpc.health.v1.Health\"]}", text);
     }
+
 }
