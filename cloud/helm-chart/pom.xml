@@ -68,6 +68,7 @@
           <execution>
             <goals>
               <goal>lint</goal>
+              <goal>registry-login</goal>
               <goal>push</goal>
             </goals>
           </execution>
