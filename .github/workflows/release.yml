@@ -212,3 +212,6 @@ jobs:
 
     - name: Commit CHANGELOG on develop branch
       run: git commit -a -m "Update CHANGELOG.md"
+
+    - name: Push CHANGELOG commit to develop
+      run: git push origin develop
