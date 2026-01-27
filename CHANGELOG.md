@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.179...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.180...HEAD)
+
+**Merged pull requests:**
+
+- Push CHANGELOG commit to develop [\#1634](https://github.com/aklivity/zilla/pull/1634) ([jfallows](https://github.com/jfallows))
+- Bump ubuntu from jammy-20251013 to jammy-20260109 in /cloud/docker-image/src/main/docker [\#1631](https://github.com/aklivity/zilla/pull/1631) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.23.0 to 3.23.2 in /cloud/docker-image/src/main/docker [\#1625](https://github.com/aklivity/zilla/pull/1625) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 5 to 6 [\#1624](https://github.com/aklivity/zilla/pull/1624) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/cache from 4 to 5 [\#1621](https://github.com/aklivity/zilla/pull/1621) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 5 to 6 [\#1619](https://github.com/aklivity/zilla/pull/1619) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/setup-java from 4 to 5 [\#1541](https://github.com/aklivity/zilla/pull/1541) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [0.9.180](https://github.com/aklivity/zilla/tree/0.9.180) (2026-01-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.179...0.9.180)
 
 **Fixed bugs:**
 

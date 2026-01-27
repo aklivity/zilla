@@ -17,14 +17,14 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     - name: Setup JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: zulu
         java-version: ${{ matrix.java }}
     - name: Cache Maven packages
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.m2/repository
@@ -44,14 +44,14 @@ jobs:
         docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
 
     - name: Cache Docker image
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       if: success()
       with:
         path: ~/docker-cache/docker.tar
         key: zilla-develop-SNAPSHOT-${{ github.run_id }}
 
     - name: Conditional Artifact Upload
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: failure()
       with:
         name: zilla-build-${{ matrix.java }}-${{ github.event.number }}
@@ -68,7 +68,7 @@ jobs:
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -99,12 +99,12 @@ jobs:
       ZILLA_VERSION: develop-SNAPSHOT
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           sparse-checkout: examples/${{ matrix.dir }}
 
       - name: Restore cached Docker images
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/docker-cache/docker.tar
           key: zilla-develop-SNAPSHOT-${{ github.run_id }}
@@ -139,7 +139,7 @@ jobs:
         run: tar cvzf ./logs.tgz ./logs
       - name: Upload logs to GitHub
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.dir }}_logs.tgz
           path: ./logs.tgz
