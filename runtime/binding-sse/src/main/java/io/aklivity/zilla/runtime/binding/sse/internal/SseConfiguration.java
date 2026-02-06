@@ -15,9 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseConfiguration extends Configuration
@@ -25,8 +22,7 @@ public class SseConfiguration extends Configuration
     public static final String CHALLENGE_EVENT_TYPE_NAME = "zilla.binding.sse.challenge.event.type";
 
     public static final BooleanPropertyDef INITIAL_COMMENT_ENABLED;
-
-    private static final DirectBuffer INITIAL_COMMENT_DEFAULT = new UnsafeBuffer(new byte[0]);
+    public static final IntPropertyDef MAXIMUM_IDLE_TIME;
 
     private static final ConfigurationDef SSE_CONFIG;
 
@@ -37,6 +33,7 @@ public class SseConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
         INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", false);
         CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", "challenge");
+        MAXIMUM_IDLE_TIME = config.property("maximum.idle.time", 0);
         SSE_CONFIG = config;
     }
 
@@ -46,14 +43,18 @@ public class SseConfiguration extends Configuration
         super(SSE_CONFIG, config);
     }
 
-    public DirectBuffer initialComment()
+    public boolean initialCommentEnabled()
     {
-        return INITIAL_COMMENT_ENABLED.getAsBoolean(this) ? INITIAL_COMMENT_DEFAULT : null;
+        return INITIAL_COMMENT_ENABLED.getAsBoolean(this);
     }
 
-    public String getChallengeEventType()
+    public String challengeEventType()
     {
         return CHALLENGE_EVENT_TYPE.get(this);
     }
 
+    public int maximumIdleTime()
+    {
+        return MAXIMUM_IDLE_TIME.getAsInt(this);
+    }
 }
