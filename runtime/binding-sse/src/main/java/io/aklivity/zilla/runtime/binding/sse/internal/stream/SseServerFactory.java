@@ -19,12 +19,15 @@ import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.time.Clock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -63,6 +66,7 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseEndExFW;
@@ -73,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -81,6 +86,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 public final class SseServerFactory implements SseStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
+    private static final int HTTP_IDLE_TIMEOUT_SIGNAL = 0;
 
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
@@ -100,6 +106,8 @@ public final class SseServerFactory implements SseStreamFactory
     private static final Pattern LAST_EVENT_ID_PATTERN = Pattern.compile("(\\?|&)lastEventId=(?<lastEventId>[^&]*)(&|$)");
 
     private static final String8FW LAST_EVENT_ID_NULL = new String8FW(null);
+
+    private static final DirectBuffer EMPTY_COMMENT = new UnsafeBuffer(new byte[0]);
 
     private static final byte ASCII_COLON = 0x3a;
     private static final String METHOD_PROPERTY = "method";
@@ -130,6 +138,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final ChallengeFW challengeRO = new ChallengeFW();
+    private final SignalFW signalRO = new SignalFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
 
@@ -157,11 +166,12 @@ public final class SseServerFactory implements SseStreamFactory
     private final MutableDirectBuffer challengeBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
+    private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final DirectBuffer initialComment;
+    private final boolean initialCommentEnabled;
     private final int httpTypeId;
     private final int sseTypeId;
 
@@ -169,6 +179,8 @@ public final class SseServerFactory implements SseStreamFactory
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeaders;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeadersWithTimestampExt;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final Clock clock;
+    private final long maxIdleMillis;
 
     public SseServerFactory(
         SseConfiguration config,
@@ -178,18 +190,21 @@ public final class SseServerFactory implements SseStreamFactory
         this.challengeBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
+        this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyDebitor = context::supplyDebitor;
         this.bindings = new Long2ObjectHashMap<>();
-        this.initialComment = config.initialComment();
+        this.initialCommentEnabled = config.initialCommentEnabled();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.sseTypeId = context.supplyTypeId(SseBinding.NAME);
         this.setHttpResponseHeaders = this::setHttpResponseHeaders;
         this.setHttpResponseHeadersWithTimestampExt = this::setHttpResponseHeadersWithTimestampExt;
-        this.challengeEventType = new String8FW(config.getChallengeEventType());
+        this.challengeEventType = new String8FW(config.challengeEventType());
         this.supplyValidator = context::supplyValidator;
+        this.clock = context.clock();
+        this.maxIdleMillis = SECONDS.toMillis(config.maximumIdleTime());
     }
 
     @Override
@@ -349,15 +364,17 @@ public final class SseServerFactory implements SseStreamFactory
         private int networkSlot = NO_SLOT;
         private int networkSlotOffset;
 
-        private boolean initialCommentPending;
+        private boolean commentPending;
         private int deferredClaim;
         private boolean deferredEnd;
 
         private long httpReplyBud;
         private int httpReplyPad;
         private long httpReplyAuth;
-        private BudgetDebitor replyDeb;
-        private long replyDebIndex = NO_DEBITOR_INDEX;
+        private BudgetDebitor httpReplyDeb;
+        private long httpReplyDebIdx = NO_DEBITOR_INDEX;
+        private long httpReplyAt;
+        private long httpReplyIdleAt = NO_CANCEL_ID;
 
         private SseServer(
             MessageConsumer network,
@@ -374,7 +391,7 @@ public final class SseServerFactory implements SseStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.setHttpHeaders = timestampRequested ? setHttpResponseHeadersWithTimestampExt : setHttpResponseHeaders;
-            this.initialCommentPending = initialComment != null;
+            this.commentPending = initialCommentEnabled;
             this.stream = new SseStream(routedId, resolvedId, timestampRequested ? SseDataExFW::timestamp : ex -> 0L);
             this.contentType = config != null ? supplyValidator.apply(config) : null;
         }
@@ -410,6 +427,10 @@ public final class SseServerFactory implements SseStreamFactory
             case ChallengeFW.TYPE_ID:
                 final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onNetChallenge(challenge);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetSignal(signal);
                 break;
             }
         }
@@ -499,7 +520,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             stream.doAppEndDeferred(traceId, authorization);
             stream.doAppReset(traceId);
-            cleanupDebitorIfNecessary();
+            cleanupNet();
         }
 
         private void onNetWindow(
@@ -527,13 +548,13 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert httpReplyAck <= httpReplySeq;
 
-            if (httpReplyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && httpReplyDebIdx == NO_DEBITOR_INDEX)
             {
-                replyDeb = supplyDebitor.apply(budgetId);
-                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushNetwork);
+                httpReplyDeb = supplyDebitor.apply(budgetId);
+                httpReplyDebIdx = httpReplyDeb.acquire(budgetId, replyId, this::flushNetwork);
             }
 
-            if (httpReplyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            if (httpReplyBud != 0L && httpReplyDebIdx == NO_DEBITOR_INDEX)
             {
                 doNetAbort(traceId, authorization);
                 stream.doAppEndDeferred(traceId, authorization);
@@ -626,7 +647,7 @@ public final class SseServerFactory implements SseStreamFactory
                     buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                     networkSlotOffset += data.sizeof();
 
-                    if (replyDebIndex != NO_DEBITOR_INDEX)
+                    if (httpReplyDebIdx != NO_DEBITOR_INDEX)
                     {
                         deferredClaim += data.reserved();
                     }
@@ -634,6 +655,37 @@ public final class SseServerFactory implements SseStreamFactory
 
                 flushNetwork(challenge.traceId());
             }
+        }
+
+        private void onNetSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final int signalId = signal.signalId();
+
+            switch (signalId)
+            {
+            case HTTP_IDLE_TIMEOUT_SIGNAL:
+                onNetIdleTimeout(traceId);
+                break;
+            }
+        }
+
+        private void onNetIdleTimeout(
+            long traceId)
+        {
+            final long now = clock.millis();
+            final long idleAtMillis = httpReplyAt + maxIdleMillis;
+
+            httpReplyIdleAt = NO_CANCEL_ID;
+
+            if (now > idleAtMillis)
+            {
+                commentPending = true;
+                encodeNetwork(traceId);
+            }
+
+            scheduleNetwork(traceId);
         }
 
         private void doNetBegin(
@@ -653,7 +705,9 @@ public final class SseServerFactory implements SseStreamFactory
                     setHttpHeaders);
 
             state = SseState.openingReply(state);
+            httpReplyAt = clock.millis();
 
+            scheduleNetwork(traceId);
             encodeNetwork(traceId);
         }
 
@@ -669,8 +723,11 @@ public final class SseServerFactory implements SseStreamFactory
                     traceId, authorization, budgetId, flags, reserved, payload);
 
             httpReplySeq += reserved;
+            httpReplyAt = clock.millis();
 
             assert httpReplySeq <= httpReplyAck + httpReplyMax;
+
+            scheduleNetwork(traceId);
         }
 
         private void doNetFlush(
@@ -694,7 +751,7 @@ public final class SseServerFactory implements SseStreamFactory
                 doHttpAbort(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
 
-                cleanupDebitorIfNecessary();
+                cleanupNet();
             }
         }
 
@@ -709,7 +766,7 @@ public final class SseServerFactory implements SseStreamFactory
                 doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
 
-                cleanupDebitorIfNecessary();
+                cleanupNet();
             }
         }
 
@@ -756,7 +813,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             doNetData(traceId, authorization, budgetId, reserved, flags, sseEvent);
 
-            initialCommentPending = false;
+            commentPending = false;
         }
 
         private void flushNetwork(
@@ -770,19 +827,29 @@ public final class SseServerFactory implements SseStreamFactory
             stream.flushAppWindow(traceId);
         }
 
+        private void scheduleNetwork(
+            long traceId)
+        {
+            if (httpReplyIdleAt == NO_CANCEL_ID && maxIdleMillis > 0)
+            {
+                long idleAtMillis = httpReplyAt + maxIdleMillis;
+
+                httpReplyIdleAt = signaler.signalAt(idleAtMillis, originId, routedId, replyId, traceId,
+                    HTTP_IDLE_TIMEOUT_SIGNAL, 0);
+            }
+        }
+
         private void encodeNetwork(
             long traceId)
         {
             comment:
-            if (initialCommentPending)
+            if (commentPending)
             {
-                assert initialComment != null;
-
                 final int flags = FIN | INIT;
                 final SseEventFW sseEvent =
                         sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                                   .flags(flags)
-                                  .comment(initialComment)
+                                  .comment(EMPTY_COMMENT)
                                   .build();
 
                 final int reserved = sseEvent.sizeof() + httpReplyPad;
@@ -793,9 +860,9 @@ public final class SseServerFactory implements SseStreamFactory
                 }
 
                 int claimed = reserved;
-                if (replyDebIndex != NO_DEBITOR_INDEX)
+                if (httpReplyDebIdx != NO_DEBITOR_INDEX)
                 {
-                    claimed = replyDeb.claim(traceId, replyDebIndex, replyId,
+                    claimed = httpReplyDeb.claim(traceId, httpReplyDebIdx, replyId,
                         reserved, reserved, 0);
                 }
 
@@ -805,18 +872,21 @@ public final class SseServerFactory implements SseStreamFactory
                             traceId, httpReplyAuth, httpReplyBud, flags, reserved, sseEvent);
 
                     httpReplySeq += reserved;
+                    httpReplyAt = clock.millis();
 
                     assert httpReplySeq <= httpReplyAck + httpReplyMax;
 
-                    initialCommentPending = false;
+                    commentPending = false;
+
+                    scheduleNetwork(traceId);
                 }
             }
 
             if (deferredClaim > 0)
             {
-                assert replyDebIndex != NO_DEBITOR_INDEX;
+                assert httpReplyDebIdx != NO_DEBITOR_INDEX;
 
-                int claimed = replyDeb.claim(traceId, replyDebIndex, replyId,
+                int claimed = httpReplyDeb.claim(traceId, httpReplyDebIdx, replyId,
                     deferredClaim, deferredClaim, 0);
 
                 if (claimed == deferredClaim)
@@ -842,13 +912,17 @@ public final class SseServerFactory implements SseStreamFactory
                         bufferPool.release(networkSlot);
                         networkSlot = NO_SLOT;
 
+                        httpReplyAt = clock.millis();
+
+                        scheduleNetwork(traceId);
+
                         if (deferredEnd)
                         {
                             final long authorization = data.authorization();
 
                             doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                                     data.traceId(), authorization);
-                            cleanupDebitorIfNecessary();
+                            cleanupNet();
                             deferredEnd = false;
 
                             stream.doAppEndDeferred(data.traceId(), authorization);
@@ -858,13 +932,19 @@ public final class SseServerFactory implements SseStreamFactory
             }
         }
 
-        private void cleanupDebitorIfNecessary()
+        private void cleanupNet()
         {
-            if (replyDebIndex != NO_DEBITOR_INDEX)
+            if (httpReplyDebIdx != NO_DEBITOR_INDEX)
             {
-                replyDeb.release(replyDebIndex, replyId);
-                replyDeb = null;
-                replyDebIndex = NO_DEBITOR_INDEX;
+                httpReplyDeb.release(httpReplyDebIdx, replyId);
+                httpReplyDeb = null;
+                httpReplyDebIdx = NO_DEBITOR_INDEX;
+            }
+
+            if (httpReplyIdleAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(httpReplyIdleAt);
+                httpReplyIdleAt = NO_CANCEL_ID;
             }
         }
 
@@ -1113,7 +1193,7 @@ public final class SseServerFactory implements SseStreamFactory
                         buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                         networkSlotOffset += data.sizeof();
 
-                        if (replyDebIndex != NO_DEBITOR_INDEX)
+                        if (httpReplyDebIdx != NO_DEBITOR_INDEX)
                         {
                             deferredClaim += data.reserved();
                         }
@@ -1232,10 +1312,9 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId)
             {
                 int httpReplyPendingAck = (int)(httpReplySeq - httpReplyAck) + networkSlotOffset;
-                if (initialCommentPending)
+                if (commentPending)
                 {
-                    assert initialComment != null;
-                    httpReplyPendingAck += initialComment.capacity() + 3 + httpReplyPad;
+                    httpReplyPendingAck += EMPTY_COMMENT.capacity() + 3 + httpReplyPad;
                 }
 
                 int sseReplyPad = httpReplyPad + MAXIMUM_HEADER_SIZE;

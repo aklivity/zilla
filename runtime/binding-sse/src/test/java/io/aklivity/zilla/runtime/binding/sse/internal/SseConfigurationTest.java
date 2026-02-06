@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.sse.internal;
 import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.CHALLENGE_EVENT_TYPE;
 import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.CHALLENGE_EVENT_TYPE_NAME;
 import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.INITIAL_COMMENT_ENABLED;
+import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.MAXIMUM_IDLE_TIME;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -26,16 +27,13 @@ public class SseConfigurationTest
 {
     // needed by test annotations
     public static final String SSE_INITIAL_COMMENT_ENABLED_NAME = "zilla.binding.sse.initial.comment.enabled";
+    public static final String SSE_MAXIMUM_IDLE_TIME_NAME = "zilla.binding.sse.maximum.idle.time";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
+        assertEquals(CHALLENGE_EVENT_TYPE.name(), CHALLENGE_EVENT_TYPE_NAME);
         assertEquals(INITIAL_COMMENT_ENABLED.name(), SSE_INITIAL_COMMENT_ENABLED_NAME);
-    }
-
-    @Test
-    public void shouldMatchChallengeEventTypeConfigName()
-    {
-        assertEquals(CHALLENGE_EVENT_TYPE_NAME, CHALLENGE_EVENT_TYPE.name());
+        assertEquals(MAXIMUM_IDLE_TIME.name(), SSE_MAXIMUM_IDLE_TIME_NAME);
     }
 }
