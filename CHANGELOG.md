@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.182](https://github.com/aklivity/zilla/tree/0.9.182) (2026-02-06)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.181...0.9.182)
+
+**Closed issues:**
+
+- Support `max-idle-time` for `sse` `server` binding [\#1638](https://github.com/aklivity/zilla/issues/1638)
+
+**Merged pull requests:**
+
+- Support sse server max idle time [\#1639](https://github.com/aklivity/zilla/pull/1639) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.181](https://github.com/aklivity/zilla/tree/0.9.181) (2026-01-27)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.180...0.9.181)
