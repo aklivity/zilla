@@ -1,0 +1,92 @@
+name: ${NAMESPACE:-zilla-sse-kafka-fanout}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+      - ./www:/var/www
+    command: start -v -e
+
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo "Creating kafka topic";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic events --config cleanup.policy=compact
+        echo "Successfully created the following topics:";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.examples.dev:29092
+
+  kafkacat:
+    image: confluentinc/cp-kafkacat:7.1.9
+    command: "bash"
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge
