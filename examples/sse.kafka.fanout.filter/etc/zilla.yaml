@@ -22,7 +22,7 @@ bindings:
       - when:
           - headers:
               :scheme: http
-              :path: /events
+              :path: /events/*
         exit: north_sse_server
       - when:
           - headers:
@@ -51,10 +51,14 @@ bindings:
     kind: proxy
     routes:
       - when:
-          - path: /{topic}
+          - path: /{topic}/{key}/{tag}
         exit: north_kafka_cache_client
         with:
           topic: ${params.topic}
+          filters:
+            - key: ${params.key}
+              headers:
+                tag: ${params.tag}
   north_kafka_cache_client:
     type: kafka
     kind: cache_client

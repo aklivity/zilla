@@ -33,22 +33,6 @@ The text payload will be the `data:` of the sse message seen in the `text/event-
 
 Note that only the latest messages with distinct keys are guaranteed to be retained by a compacted Kafka topic, so use different values for `-k` above to retain more than one message in the `events` topic.
 
-About `20 seconds` after the JWT token was generated, when it is due to expire in `10 seconds`, a `challenge` event is sent to the client.
-
-```bash
-event:challenge
-data:{"method":"POST","headers":{"content-type":"application/x-challenge-response"}}
-
-```
-
-When a client receives the `challenge` event, the payload indicates the `method` and `headers` to be included in the challenge-response HTTP request, along with an updated JWT token via the `authorization` header.
-
-Note that if the client does not respond to the challenge event with an updated JWT token in time, then the SSE stream ends, ensuring that only authorized clients are allowed access.
-
-```
-* Connection #0 to host localhost left intact
-```
-
 ### Browser
 
 Browse to [http://localhost:7114/index.html](http://localhost:7114/index.html) and make sure to visit the `localhost` site and trust the `localhost` certificate.

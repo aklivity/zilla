@@ -27,11 +27,12 @@ echo "$INPUT" |
     kafkacat -P \
     -b $KAFKA_BOOTSTRAP_SERVER \
     -t events \
-    -k "1"
+    -k "1" \
+    -H "tag=abc"
 
 sleep 5
 # send request to zilla
-OUTPUT=$(timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events" | grep "^data:")
+OUTPUT=$(timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events/1/abc" | grep "^data:")
 
 # THEN
 echo OUTPUT="$OUTPUT"
