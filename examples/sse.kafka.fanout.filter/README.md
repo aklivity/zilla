@@ -1,6 +1,8 @@
 # sse.kafka.fanout.filter
 
-Listens on http port `7114` and will stream back whatever is published to the `events` topic in Kafka.
+Streams Kafka records to clients using **Server-Sent Events (SSE)** with **key and header-based filtering**.
+
+Zilla listens on HTTP port `7114` and fans out records from the Kafka `events` topic to SSE clients. Each SSE connection only receives records whose **Kafka key** and **Kafka headers** match the values encoded in the request path.
 
 ## Requirements
 
@@ -8,66 +10,72 @@ Listens on http port `7114` and will stream back whatever is published to the `e
 
 ## Setup
 
-To `start` the Docker Compose stack defined in the [compose.yaml](compose.yaml) file, use:
+To start the Docker Compose stack defined in the [compose.yaml](compose.yaml) file:
 
 ```bash
 docker compose up -d
 ```
 
-### Verify behavior
+## How filtering works
 
-Open a `text/event-stream` from the sse endpoint in a terminal.
+The SSE endpoint uses the following path structure:
 
-```bash
-curl -N --http2 -H "Accept:text/event-stream" "http://localhost:7114/events"
+```
+/{topic}/{key}/{tag}
 ```
 
-In a new terminal send a text payload from the `kafkacat` producer client.
+- `topic` maps to the Kafka topic name
+- `key` filters records by **Kafka record key**
+- `tag` filters records by the Kafka **header `tag`**
+
+Only records that match **both** the key and the header filter are delivered to the SSE client.
+
+## Verify behavior (terminal)
+
+### Open an SSE stream with key and header filter
 
 ```bash
-echo '{ "id": 1, "name": "Hello World!"}' | docker compose -p zilla-sse-kafka-fanout exec -T kafkacat \
-  kafkacat -P -b kafka.examples.dev:29092 -t events -k "1"
+curl -N --http2 -H "Accept:text/event-stream" "http://localhost:7114/events/1/abc"
 ```
 
-The text payload will be the `data:` of the sse message seen in the `text/event-stream` terminal session.
+This subscribes to:
+- topic: `events`
+- key: `1`
+- header: `tag=abc`
 
-Note that only the latest messages with distinct keys are guaranteed to be retained by a compacted Kafka topic, so use different values for `-k` above to retain more than one message in the `events` topic.
+### Produce a Kafka record with matching key and header
 
-### Browser
+```bash
+echo '{ "id": 1, "name": "Hello World!" }' | \
+docker compose -p zilla-sse-kafka-fanout exec -T kafkacat \
+  kafkacat -P \
+    -b kafka.examples.dev:29092 \
+    -t events \
+    -k "1" \
+    -H "tag=abc"
+```
+
+The payload appears as the `data:` field in the SSE stream.
+
+### Non-matching records are filtered out
+
+Records with a different key or a different (or missing) `tag` header are not delivered to the SSE client.
+
+### Compacted topic behavior
+
+The `events` topic is configured as **compacted**. Kafka retains only the **latest value per key**.
+
+## Browser UI
 
 Browse to [http://localhost:7114/index.html](http://localhost:7114/index.html) and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
-Click the `Go` button to attach the browser SSE event source to Kafka via Zilla.
+Click **Go** to attach the browser’s EventSource to Kafka via Zilla.
 
-All non-compacted messages with distinct keys in the `events` Kafka topic are replayed to the browser.
+## Reliability
 
-Open the browser developer tools console to see additional logging, such as the `open` event.
-
-Additional messages produced to the `events` Kafka topic then arrive at the browser live.
-
-### Reliability
-
-Simulate connection loss by stopping the `zilla` service in the `docker` stack.
-
-```bash
-docker compose stop zilla
-```
-
-This causes errors to be logged in the browser console during repeated attempts to automatically reconnect.
-
-Simulate connection recovery by starting the `zilla` service again.
-
-```bash
-docker compose start zilla
-```
-
-Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
-
-Additional messages produced to the `events` Kafka topic then arrive at the browser live.
+Stop and start the `zilla` service to observe automatic reconnection behavior.
 
 ## Teardown
-
-To remove any resources created by the Docker Compose stack, use:
 
 ```bash
 docker compose down
