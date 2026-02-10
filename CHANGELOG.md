@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0](https://github.com/aklivity/zilla/tree/1.0.0) (2026-02-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.182...1.0.0)
+
+**Merged pull requests:**
+
+- fix link checker github action [\#1641](https://github.com/aklivity/zilla/pull/1641) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [0.9.182](https://github.com/aklivity/zilla/tree/0.9.182) (2026-02-06)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.181...0.9.182)
