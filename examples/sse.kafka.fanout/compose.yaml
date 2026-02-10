@@ -91,6 +91,26 @@ services:
     stdin_open: true
     tty: true
 
+  ticker-producer:
+    image: confluentinc/cp-kafkacat:7.1.9
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+      TICKERS: "AAPL MSFT NVDA AMZN"
+      TAG: "nasdaq"
+      INTERVAL_SECONDS: "2"
+    configs:
+      - source: ticker-producer.sh
+        target: /opt/ticker-producer.sh
+        mode: 0755
+    entrypoint: [ "/bin/bash", "-lc" ]
+    command: /opt/ticker-producer.sh
+
 networks:
   default:
     driver: bridge
@@ -214,10 +234,36 @@ configs:
       <body>
       <h3>Location</h3>
       <input id="location"
-           value="http://localhost:7114/events/1/abc"
+           value="http://localhost:7114/events/AMZN/nasdaq"
            style="width: 300px;">
       <button onclick="attachEventSource()">Go</button>
       <h3>Messages</h3>
       <div id="messages"></div>
       </body>
       </html>
+
+  ticker-producer.sh:
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      while true; do
+        ts="$$(( $$(date +%s) * 1000 ))"
+
+        for sym in $${TICKERS}; do
+          price="$$(
+            awk 'BEGIN{srand(); printf "%.2f", 50 + rand()*250}'
+          )"
+          payload="$$(
+            printf '{ "symbol": "%s", "price": %s, "timestamp": %s }\n' "$$sym" "$$price" "$$ts"
+          )"
+          echo "[ticker-producer] producing event: $$payload"
+          echo "$$payload" | kafkacat -P \
+            -b "$${KAFKA_BOOTSTRAP_SERVER}" \
+            -t events \
+            -k "$$sym" \
+            -H "tag=$${TAG}"
+        done
+
+        sleep "$${INTERVAL_SECONDS}"
+      done
