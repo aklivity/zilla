@@ -17,6 +17,7 @@
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Docs</b></a> &bull;
   <a href="https://docs.aklivity.io/zilla/latest/getting-started/quickstart/"><b>Quickstart</b></a> &bull;
+  <a href="/examples"><b>Examples</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
@@ -39,7 +40,7 @@ Use **Zilla** as a:
 | [Create an event-mesh →](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka) | Integrate mesh and event-driven microservices by routing connectivity through Kafka. Make Kafka look like a gRPC/REST server or gRPC client. |
 | [Secure a Server Sent Event (SSE) API →](examples/sse.proxy.jwt) | Secure an SSE API by adding JWT-based Continous Authorization. |
 | [Validate MQTT via AsyncAPI →](examples/asyncapi.mqtt.kafka.proxy) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
-| **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](examples). |
+| **Much more!** | Check out all the [Zilla Examples](examples). |
 
 ### ❇ Native Kafka Proxying with Zilla ***Plus***
 
@@ -48,6 +49,8 @@ To secure and govern native Kafka clients, with features such as Virtual Cluster
 ## Get started in 60 seconds
 
 **Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [**Quickstart**](https://docs.aklivity.io/zilla/latest/getting-started/quickstart).
+
+You can also visit the [Examples](examples) folder for bite-size executables that let you quickly explore and test different Zilla features.
 
 ## Install options
 
@@ -83,6 +86,15 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 - [x] Integrations with external schema registries, such as **Apicurio** and **Karapace**, for a variety of data formats, including `JSON`, `avro`, and `protobuf`.
 - [x] Support for authorization via `JWT`, including [continous authorization](https://www.aklivity.io/post/a-primer-on-server-sent-events-sse#:~:text=SSE%20is%20with-,Zilla%20Continuous%20Stream%20Authorization,-.) for `SSE`.
 - [x] Integrations with standard observability tools, including **Prometheus** and **OpenTelemetry**, for logging and metrics.
+
+## Performance
+Zilla is designed for high-performance, low-latency workloads:
+
+- Stateless architecture
+- Zero-copy message flow
+- Protocol-native proxying
+
+Suitable for mission-critical systems. Learn about Zilla's architecture in [**How Zilla Works**](https://www.aklivity.io/post/how-zilla-works) and view the [**Benchmark**](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
 
 ## <a name="resources"> Resources
 
