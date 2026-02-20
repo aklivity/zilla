@@ -14,34 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import static java.util.stream.Collectors.toList;
-
-import java.util.List;
-import java.util.function.Function;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+
 
 public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SERVICES_NAME = "services";
-
-    private final GrpcProtobufParser parser = new GrpcProtobufParser();
-
-    private Function<String, String> readResource;
 
     @Override
     public Kind kind()
@@ -63,11 +52,11 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (grpcOptions.protobufs != null)
+        if (grpcOptions.services != null)
         {
-            JsonArrayBuilder keys = Json.createArrayBuilder();
-            grpcOptions.protobufs.forEach(p -> keys.add(p.location));
-            object.add(SERVICES_NAME, keys);
+            JsonArrayBuilder services = Json.createArrayBuilder();
+            grpcOptions.services.forEach(services::add);
+            object.add(SERVICES_NAME, services);
         }
 
         return object.build();
@@ -77,34 +66,17 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        List<GrpcProtobufConfig> protobufs = object.containsKey(SERVICES_NAME)
-                ? asListProtobufs(object.getJsonArray(SERVICES_NAME))
-                : null;
+        GrpcOptionsConfigBuilder<GrpcOptionsConfig> grpcOptions = GrpcOptionsConfig.builder();
 
-        return new GrpcOptionsConfig(protobufs);
+        if (object.containsKey(SERVICES_NAME))
+        {
+            grpcOptions.services(object.getJsonArray(SERVICES_NAME).stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .toList());
+        }
+
+        return grpcOptions.build();
     }
 
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
-    {
-        this.readResource = context::readResource;
-    }
-
-    private List<GrpcProtobufConfig> asListProtobufs(
-        JsonArray array)
-    {
-        return array.stream()
-            .map(this::asProtobuf)
-            .collect(toList());
-    }
-
-    private GrpcProtobufConfig asProtobuf(
-        JsonValue value)
-    {
-        final String location = ((JsonString) value).getString();
-        final String protobuf = readResource.apply(location);
-
-        return parser.parse(location, protobuf);
-    }
 }
