@@ -5,6 +5,10 @@ catalogs:
     type: schema-registry
     options:
       url: ${{env.SCHEMA_REGISTRY_SERVER}}
+      credentials:
+        basic:
+          username: ${{env.SCHEMA_REGISTRY_USERNAME}}
+          password: ${{env.SCHEMA_REGISTRY_PASSWORD}}
       context: default
 bindings:
   north_tcp_server:
