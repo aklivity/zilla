@@ -171,7 +171,7 @@ public class TcpServerFactory implements TcpStreamFactory
         final TcpBindingConfig binding = bindings.get(bindingId);
         assert binding != null;
 
-        final TcpRouteConfig route = binding.resolve(local);
+        final TcpRouteConfig route = binding != null ? binding.resolve(local) : null;
 
         if (route != null)
         {
