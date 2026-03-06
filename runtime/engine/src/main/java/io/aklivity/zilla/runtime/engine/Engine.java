@@ -295,6 +295,15 @@ public final class Engine implements Collector, AutoCloseable
 
         manager.close();
 
+        try
+        {
+            boss.detachAll();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
         for (EngineWorker worker : workers)
         {
             try
