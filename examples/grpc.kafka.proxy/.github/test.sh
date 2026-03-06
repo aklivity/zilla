@@ -16,7 +16,7 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose run --rm grpcurl -plaintext -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.UnaryEcho)
+OUTPUT=$(docker compose run --rm grpcurl -plaintext -max-time 10 -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.UnaryEcho)
 RESULT=$?
 echo RESULT="$RESULT"
 # THEN
@@ -70,7 +70,7 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose run --rm grpcurl -plaintext -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.ServerStreamingEcho)
+OUTPUT=$(docker compose run --rm grpcurl -plaintext -max-time 10 -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.ServerStreamingEcho)
 RESULT=$?
 echo RESULT="$RESULT"
 # THEN
@@ -98,7 +98,7 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose run --rm grpcurl -plaintext -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.BidirectionalStreamingEcho)
+OUTPUT=$(docker compose run --rm grpcurl -plaintext -max-time 10 -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.BidirectionalStreamingEcho)
 RESULT=$?
 echo RESULT="$RESULT"
 # THEN

@@ -2,7 +2,25 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.182...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.0...HEAD)
+
+**Fixed bugs:**
+
+- Engine can trigger an `IllegalStateException` during shutdown [\#1646](https://github.com/aklivity/zilla/issues/1646)
+
+**Closed issues:**
+
+- \[Maintenance\] Replace unmaintained Bitnami Legacy images with free SolDevelo alternative [\#1633](https://github.com/aklivity/zilla/issues/1633)
+
+**Merged pull requests:**
+
+- Prevent potential NPE for rejected HTTP 1.1 request with content [\#1648](https://github.com/aklivity/zilla/pull/1648) ([jfallows](https://github.com/jfallows))
+- Avoid receiving new TCP connections during engine shutdown [\#1647](https://github.com/aklivity/zilla/pull/1647) ([jfallows](https://github.com/jfallows))
+- add example `sse.kafka.fanout.filter` [\#1640](https://github.com/aklivity/zilla/pull/1640) ([ankitk-me](https://github.com/ankitk-me))
+
+## [1.0.0](https://github.com/aklivity/zilla/tree/1.0.0) (2026-02-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.182...1.0.0)
 
 **Merged pull requests:**
 

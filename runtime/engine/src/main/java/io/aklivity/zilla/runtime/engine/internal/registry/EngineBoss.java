@@ -135,7 +135,8 @@ public class EngineBoss implements EngineController, Agent
     {
         try
         {
-            namespaces.forEach(this::detachNamespace);
+            detachAll();
+
             controllersByType.clear();
 
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
@@ -148,6 +149,11 @@ public class EngineBoss implements EngineController, Agent
         {
             thread = null;
         }
+    }
+
+    public void detachAll()
+    {
+        namespaces.forEach(this::detachNamespace);
     }
 
     public void attachNow(
@@ -168,7 +174,10 @@ public class EngineBoss implements EngineController, Agent
     public void detachNow(
         NamespaceConfig namespace)
     {
-        detach(namespace).join();
+        if (thread != null)
+        {
+            detach(namespace).join();
+        }
     }
 
     public CompletableFuture<Void> detach(

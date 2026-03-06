@@ -1,0 +1,269 @@
+name: ${NAMESPACE:-zilla-sse-kafka-fanout}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+      ZILLA_INCUBATOR_ENABLED: "true"
+    configs:
+      - source: zilla.yaml
+        target: /etc/zilla/zilla.yaml
+        mode: 0666
+      - source: index.html
+        target: /var/www/index.html
+        mode: 0644
+    command: start -v -e
+
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo "Creating kafka topic";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic events --config cleanup.policy=compact
+        echo "Successfully created the following topics:";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.examples.dev:29092
+
+  kafkacat:
+    image: confluentinc/cp-kafkacat:7.1.9
+    command: "bash"
+    stdin_open: true
+    tty: true
+
+  ticker-producer:
+    image: confluentinc/cp-kafkacat:7.1.9
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+      TICKERS: "AAPL MSFT NVDA AMZN"
+      TAG: "nasdaq"
+      INTERVAL_SECONDS: "2"
+    configs:
+      - source: ticker-producer.sh
+        target: /opt/ticker-producer.sh
+        mode: 0755
+    entrypoint: [ "/bin/bash", "-lc" ]
+    command: /opt/ticker-producer.sh
+
+networks:
+  default:
+    driver: bridge
+
+configs:
+  zilla.yaml:
+    content: |
+      ---
+      name: example
+      bindings:
+        north_tcp_server:
+          type: tcp
+          kind: server
+          options:
+            host: 0.0.0.0
+            port:
+              - 7114
+          routes:
+            - when:
+                - port: 7114
+              exit: north_http_server
+        north_http_server:
+          type: http
+          kind: server
+          options:
+            access-control:
+              policy: cross-origin
+          routes:
+            - when:
+                - headers:
+                    :scheme: http
+                    :path: /events/*
+              exit: north_sse_server
+            - when:
+                - headers:
+                    :scheme: http
+              exit: east_http_filesystem_mapping
+        east_http_filesystem_mapping:
+          type: http-filesystem
+          kind: proxy
+          routes:
+            - exit: east_filesystem_server
+              when:
+                - path: /{path}
+              with:
+                path: $${params.path}
+        east_filesystem_server:
+          type: filesystem
+          kind: server
+          options:
+            location: /var/www/
+        north_sse_server:
+          type: sse
+          kind: server
+          exit: north_sse_kafka_mapping
+        north_sse_kafka_mapping:
+          type: sse-kafka
+          kind: proxy
+          routes:
+            - when:
+                - path: /{topic}/{key}/{tag}
+              exit: north_kafka_cache_client
+              with:
+                topic: $${params.topic}
+                filters:
+                  - key: $${params.key}
+                    headers:
+                      tag: $${params.tag}
+        north_kafka_cache_client:
+          type: kafka
+          kind: cache_client
+          exit: south_kafka_cache_server
+        south_kafka_cache_server:
+          type: kafka
+          kind: cache_server
+          options:
+            bootstrap:
+              - events
+          exit: south_kafka_client
+        south_kafka_client:
+          type: kafka
+          kind: client
+          options:
+            servers:
+              - $${{env.KAFKA_BOOTSTRAP_SERVER}}
+          exit: south_tcp_client
+        south_tcp_client:
+          type: tcp
+          kind: client
+      telemetry:
+        exporters:
+          stdout_logs_exporter:
+            type: stdout
+
+  index.html:
+    content: |
+      <!doctype html>
+      <html lang="en">
+      <head>
+        <title>Welcome to Zilla!</title>
+        <script>
+          function attachEventSource()
+          {
+            var location = document.getElementById('location');
+            var messages = document.getElementById('messages');
+
+            var es = new EventSource(location.value);
+            es.onmessage = evt =>
+            {
+              var text = document.createTextNode(evt.data);
+              var line = document.createElement("p");
+              line.appendChild(text);
+
+              messages.insertBefore(line, messages.firstChild);
+            }
+            es.onopen = evt => console.log(evt);
+            es.onerror = evt => console.log(evt);
+          }
+        </script>
+      </head>
+      <body>
+      <h3>Location</h3>
+      <input id="location"
+           value="http://localhost:7114/events/AMZN/nasdaq"
+           style="width: 300px;">
+      <button onclick="attachEventSource()">Go</button>
+      <h3>Messages</h3>
+      <div id="messages"></div>
+      </body>
+      </html>
+
+  ticker-producer.sh:
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      while true; do
+        ts="$$(( $$(date +%s) * 1000 ))"
+
+        for sym in $${TICKERS}; do
+          price="$$(
+            awk 'BEGIN{srand(); printf "%.2f", 50 + rand()*250}'
+          )"
+          payload="$$(
+            printf '{ "symbol": "%s", "price": %s, "timestamp": %s }\n' "$$sym" "$$price" "$$ts"
+          )"
+          echo "[ticker-producer] producing event: $$payload"
+          echo "$$payload" | kafkacat -P \
+            -b "$${KAFKA_BOOTSTRAP_SERVER}" \
+            -t events \
+            -k "$$sym" \
+            -H "tag=$${TAG}"
+        done
+
+        sleep "$${INTERVAL_SECONDS}"
+      done

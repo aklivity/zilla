@@ -168,7 +168,9 @@ public class TcpServerFactory implements TcpStreamFactory
         SocketChannel network,
         InetSocketAddress local)
     {
-        TcpBindingConfig binding = bindings.get(bindingId);
+        final TcpBindingConfig binding = bindings.get(bindingId);
+        assert binding != null;
+
         final TcpRouteConfig route = binding.resolve(local);
 
         if (route != null)
