@@ -297,7 +297,7 @@ public final class Engine implements Collector, AutoCloseable
 
         try
         {
-            boss.doClose();
+            boss.detachAll();
         }
         catch (Throwable ex)
         {
@@ -314,6 +314,15 @@ public final class Engine implements Collector, AutoCloseable
             {
                 errors.add(ex);
             }
+        }
+
+        try
+        {
+            boss.doClose();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
         }
 
         if (tasks != null)
