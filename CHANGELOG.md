@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.1...HEAD)
+
+**Merged pull requests:**
+
+- fix null binding during connection accept [\#1649](https://github.com/aklivity/zilla/pull/1649) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.0.1](https://github.com/aklivity/zilla/tree/1.0.1) (2026-03-06)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.0...1.0.1)
