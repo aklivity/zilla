@@ -175,9 +175,10 @@ jobs:
 
     - name: Install git-flow AVH
       run: |
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-        brew install git-flow-avh
-
+        git clone https://github.com/petervanderdoes/gitflow-avh.git
+        cd gitflow-avh
+        sudo make install
+    
     - name: Configure git credentials
       run: |
         git config --global user.name "github-actions[bot]"
