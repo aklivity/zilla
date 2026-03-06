@@ -2372,17 +2372,26 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean contentValid = exchange.validateContent(buffer, offset, limit - offset);
             int result;
-            if (contentValid)
+
+            if (exchange == null)
             {
-                result = exchange.doRequestData(traceId, budgetId, flags, buffer, offset, limit, extension);
+                result = limit;
             }
             else
             {
-                onDecodeBodyInvalid(traceId, authorization, ERROR_400_BAD_REQUEST);
-                result = limit;
+                boolean contentValid = exchange.validateContent(buffer, offset, limit - offset);
+                if (contentValid)
+                {
+                    result = exchange.doRequestData(traceId, budgetId, flags, buffer, offset, limit, extension);
+                }
+                else
+                {
+                    onDecodeBodyInvalid(traceId, authorization, ERROR_400_BAD_REQUEST);
+                    result = limit;
+                }
             }
+
             return result;
         }
 
@@ -2391,12 +2400,15 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            exchange.doRequestEnd(traceId, extension);
-
-            if (exchange.requestState == HttpExchangeState.CLOSED &&
-                exchange.responseState == HttpExchangeState.CLOSED)
+            if (exchange != null)
             {
-                exchange = null;
+                exchange.doRequestEnd(traceId, extension);
+
+                if (exchange.requestState == HttpExchangeState.CLOSED &&
+                    exchange.responseState == HttpExchangeState.CLOSED)
+                {
+                    exchange = null;
+                }
             }
         }
 
