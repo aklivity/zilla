@@ -98,7 +98,7 @@ docker compose --project-directory http.kafka.crud down
 
 ## How It Works
 
-Zilla is configured entirely in a single `zilla.yaml` file. You declare named **bindings** — each one specifying a protocol, a role (`server` / `client` / `proxy`), and routing rules. Bindings chain together to form a pipeline.
+Zilla is configured entirely in a single `zilla.yaml` file. You declare named **bindings** — each one specifying a protocol, a behavior (`server` / `client` / `proxy`), and routing rules. Bindings chain together to form a pipeline.
 
 Here's the full config for the HTTP-to-Kafka CRUD example above:
 
