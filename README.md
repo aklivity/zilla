@@ -246,7 +246,7 @@ Both single-node and clustered deployments are supported.
 
 ## Who Is Zilla For?
 
-- **Kafka / data platform engineers** who want to share Kafka clusters across teams or simplify multi-protocol integration without custom connectors.
+- **Platform engineers** who want to share Kafka clusters across teams or simplify multi-protocol integration without custom connectors.
 - **Application developers** building on real-time data streams without deep Kafka expertise.
 - **API architects** who want to drive infrastructure from OpenAPI and AsyncAPI schemas.
 
