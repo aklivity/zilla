@@ -241,7 +241,7 @@ Both single-node and clustered deployments are supported.
 
 **Observability:** Native Prometheus metrics and OpenTelemetry tracing exporters.
 
-**Performance:** Stateless architecture with zero-copy message flow means near-zero latency overhead. See the [benchmark](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
+**Performance:** Stateless architecture with multi-core flow control means near-zero latency overhead. See the [benchmark](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
 
 
 ## Who Is Zilla For?
