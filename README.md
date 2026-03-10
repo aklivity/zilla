@@ -211,12 +211,6 @@ telemetry:
 
 Zilla has no external dependencies. Pick your preferred deployment method:
 
-**Homebrew**
-```bash
-brew tap aklivity/tap
-brew install zilla
-zilla start -ve -c ./zilla.yaml
-```
 
 **Docker**
 ```bash
