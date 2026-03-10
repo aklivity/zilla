@@ -1,0 +1,24 @@
+name: ${NAMESPACE:-zilla-http-echo}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      # This line mounts your host directory to a directory in the container
+      - ~/docker-captures:/var/log/zilla-captures
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge
