@@ -1,6 +1,6 @@
 # http.echo
 
-Listens on `http://localhost:7114/echo` and will echo back whatever is sent to the server.
+Listens on `http://localhost:7114/` and will echo back whatever is sent to the server.
 
 ## Requirements
 
