@@ -3078,11 +3078,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEnd(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                         traceId, authorization, EMPTY_OCTETS);
                 }
-                else
-                {
-                    final int requestWin = requestMax - (int)(requestSeq - requestAck);
-                    flushNetWindow(traceId, budgetId, requestPad, requestWin);
-                }
+
+                final int requestWin = requestMax - (int)(requestSeq - requestAck);
+                flushNetWindow(traceId, budgetId, requestPad, requestWin);
             }
 
             private void onResponseBegin(
