@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.4](https://github.com/aklivity/zilla/tree/1.0.4) (2026-03-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.3...1.0.4)
+
+**Merged pull requests:**
+
+- Fix HTTP 1.1 request flow control sequence [\#1653](https://github.com/aklivity/zilla/pull/1653) ([jfallows](https://github.com/jfallows))
+- Fix NPE in KafkaClientDescribeFactory when broker returns partial configs [\#1652](https://github.com/aklivity/zilla/pull/1652) ([akrambek](https://github.com/akrambek))
+- Update README.md [\#1650](https://github.com/aklivity/zilla/pull/1650) ([llukyanov](https://github.com/llukyanov))
+
 ## [1.0.3](https://github.com/aklivity/zilla/tree/1.0.3) (2026-03-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.2...1.0.3)
