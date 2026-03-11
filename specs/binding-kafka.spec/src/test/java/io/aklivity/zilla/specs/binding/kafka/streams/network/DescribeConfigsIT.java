@@ -66,6 +66,15 @@ public class DescribeConfigsIT
 
     @Test
     @Specification({
+        "${net}/topic.config.info.partial/client",
+        "${net}/topic.config.info.partial/server"})
+    public void shouldReceiveTopicConfigInfoPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/topic.config.info.changed/client",
         "${net}/topic.config.info.changed/server"})
     public void shouldReceiveTopicConfigInfoChanged() throws Exception
