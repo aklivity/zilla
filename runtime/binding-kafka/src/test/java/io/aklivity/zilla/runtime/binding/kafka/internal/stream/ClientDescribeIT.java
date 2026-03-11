@@ -84,6 +84,17 @@ public class ClientDescribeIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/topic.config.info.partial/client",
+        "${net}/topic.config.info.partial/server"})
+    @Configure(name = KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME, value = "true")
+    public void shouldReceiveTopicConfigInfoPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info/server"})
     public void shouldReceiveTopicConfigInfo() throws Exception

@@ -75,6 +75,15 @@ public class DescribeIT
 
     @Test
     @Specification({
+        "${app}/topic.config.info.partial/client",
+        "${app}/topic.config.info.partial/server"})
+    public void shouldReceiveTopicConfigInfoPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.config.info.changed/client",
         "${app}/topic.config.info.changed/server"})
     public void shouldReceiveTopicConfigInfoChanged() throws Exception

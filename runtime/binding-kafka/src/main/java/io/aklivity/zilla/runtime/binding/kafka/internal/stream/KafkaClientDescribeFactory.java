@@ -993,6 +993,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
                 configs.forEach(c -> this.configs.put(c, null));
+                configs.forEach(c -> synonyms.computeIfAbsent(c, k -> new TreeSet<>()));
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
                 this.decoder = decodeReject;
