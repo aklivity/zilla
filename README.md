@@ -22,12 +22,20 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-# 🦎 Zilla: a multi-protocol edge & service proxy
-
-**Zilla** is a stateless, cloud-native proxy that bridges the gap between event-driven architectures and modern application protocols. It lets web apps, IoT devices, and microservices speak directly to **Apache Kafka®** — using HTTP, SSE, gRPC, MQTT, or WebSocket — without writing any custom integration code.
+**🦎 Zilla** is a stateless, multi-protocol proxy that bridges the gap between event-driven architectures and modern application protocols. It lets web apps, IoT devices, and microservices speak directly to **Apache Kafka®** — using HTTP, SSE, gRPC, MQTT, or WebSocket — without writing any custom integration code.
 
 Think of Zilla as the **protocol translation layer** for your event-driven stack: declaratively configured via YAML, deployable anywhere, and capable of replacing custom connectors, MQTT brokers, and ad-hoc middleware with a single lightweight binary.
 
+> Ready to go? Jump to the [Get started](#get-started-in-60-seconds) section.
+
+## Contents
+- [Why Zilla?](#why-zilla)
+- [Get Started](#get-started-in-60-seconds)
+- [How it Works](#how-it-works)
+- [Design Decisions](#architecture)
+- [Key Features](#key-features)
+- [Resources](#resources)
+  
 ## Why Zilla?
 
 Modern architectures use Kafka as a backbone for real-time data — but most clients (browsers, mobile apps, IoT devices) don't speak Kafka natively. The traditional answer is a tangle of REST bridges, MQTT brokers, WebSocket servers, and custom glue code.
@@ -206,6 +214,16 @@ telemetry:
 
 → **[See all examples](examples/)** | **[Configuration reference](https://docs.aklivity.io/zilla/latest/reference/config/overview.html)**
 
+## Architecture
+
+Zilla is built around a few unconventional design choices that explain its performance characteristics.
+
+1. **No object allocation on the data path.** Rather than building on a codec pipeline framework like Netty or Apache MINA — which decode bytes into objects and re-encode them at each stage — Zilla uses code-generated *flyweight* objects that overlay strongly typed APIs directly onto raw binary data in shared memory. There is no object construction overhead, no GC pressure from the data path, and method call stacks stay short enough for the JVM JIT to inline aggressively.
+2. **One engine worker per CPU core, pinned per connection.** On startup, Zilla creates one single-threaded engine worker per CPU core. Each incoming TCP connection is dispatched to a worker and stays there for its lifetime. The vast majority of stream processing involves zero cross-core coordination. Where fan-in or fan-out is required (e.g. many clients subscribing to the same Kafka topic), Zilla uses lock-free data structures with ordered memory writes rather than locks.
+3. **Streams flow over shared memory, not sockets.** Between bindings in a pipeline, data moves as typed stream frames (BEGIN / DATA / END / WINDOW) over shared memory — not through additional network hops or intermediate queues. Flow control and back-pressure are built into the stream model, so a slow consumer can never be overwhelmed by a fast producer, and no buffering layer is needed to mediate between them.
+4. **Kafka fan-out via a local cache.** Zilla fetches each Kafka topic partition once and stores it as memory-mapped files local to the Zilla node. Any number of clients can be served from that cache without additional round-trips to Kafka. When more Zilla nodes are added horizontally, each hydrates its own cache independently — so horizontal scaling doesn't introduce inter-node coordination overhead.
+
+→ [Deep dive: How Zilla Works](https://www.aklivity.io/post/how-zilla-works)
 
 ## Install
 
@@ -231,24 +249,21 @@ Both single-node and clustered deployments are supported.
 
 ## Key Features
 
-**Protocol support:** HTTP · SSE · gRPC · MQTT · WebSocket · Kafka (native)
-
-**API specifications:** Import OpenAPI and AsyncAPI schemas directly as Zilla config — no translation step required.
-
-**Schema registries:** Integrate with Apicurio or Karapace to validate `JSON`, `Avro`, and `Protobuf` payloads at the proxy layer.
-
-**Security:** JWT-based authentication including [continuous stream authorization](https://www.aklivity.io/post/a-primer-on-server-sent-events-sse) for long-lived SSE connections.
-
-**Observability:** Native Prometheus metrics and OpenTelemetry tracing exporters.
-
-**Performance:** Stateless architecture with multi-core flow control means near-zero latency overhead. See the [benchmark](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
+- **Protocol support:** HTTP · SSE · gRPC · MQTT · WebSocket · Kafka (native)
+- **API specifications:** Import OpenAPI and AsyncAPI schemas directly as Zilla config — no translation step required.
+- **Schema registries:** Integrate with Apicurio or Karapace to validate `JSON`, `Avro`, and `Protobuf` payloads at the proxy layer.
+- **Security:** JWT-based authentication including [continuous stream authorization](https://www.aklivity.io/post/a-primer-on-server-sent-events-sse) for long-lived SSE connections.
+- **Observability:** Native Prometheus metrics and OpenTelemetry tracing exporters.
+- **Performance:** Stateless architecture with multi-core flow control means near-zero latency overhead. See the [benchmark](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
 
 
 ## Who Is Zilla For?
 
-- **Platform engineers** who want to share Kafka clusters across teams or simplify multi-protocol integration without custom connectors.
-- **Application developers** building on real-time data streams without deep Kafka expertise.
-- **API architects** who want to drive infrastructure from OpenAPI and AsyncAPI schemas.
+**Platform engineers** who want to share Kafka clusters across teams or simplify multi-protocol integration without custom connectors.
+
+**Application developers** building on real-time data streams without deep Kafka expertise.
+
+**API architects** who want to drive infrastructure from OpenAPI and AsyncAPI schemas.
 
 
 ## Zilla Plus (Enterprise)
@@ -263,7 +278,7 @@ The open-source **Zilla Community Edition** covers most use cases. [**Zilla Plus
 → [Compare editions](https://www.aklivity.io/products/zilla-plus)
 
 
-## <a name="resources"> Resources
+## Resources
 
 ### 📚 Read the docs
 
@@ -285,19 +300,10 @@ The open-source **Zilla Community Edition** covers most use cases. [**Zilla Plus
 - [💬 Community Slack](https://www.aklivity.io/slack) — Ask questions, share what you're building
 - [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues) — Bug reports and feature requests
 - [📬 Contact](https://www.aklivity.io/contact) — Non-technical inquiries and enterprise sales
+- [🦎 Contributing](./.github/CONTRIBUTING.md) - We value all contributions, whether source code, documentation, bug reports, feature requests or feedback
 
-## <a name="community"> Contributing
 
-Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
-✨We value all contributions, whether source code, documentation, bug reports, feature requests or feedback!
-
-### Many Thanks To Our Contributors!
-
-<a href="https://github.com/aklivity/zilla/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=aklivity/zilla" />
-</a>
-
-## <a name="license"> License
+## License
 
 Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
