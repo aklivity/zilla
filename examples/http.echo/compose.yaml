@@ -14,8 +14,6 @@ services:
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
-      # This line mounts your host directory to a directory in the container
-      - ~/docker-captures:/var/log/zilla-captures
       - ./etc:/etc/zilla
     command: start -v -e
 
