@@ -2886,7 +2886,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 Flyweight extension)
             {
-                requestSeq = HttpServer.this.initialSeq;
+                requestSeq = 0;
                 requestAck = requestSeq;
 
                 application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
