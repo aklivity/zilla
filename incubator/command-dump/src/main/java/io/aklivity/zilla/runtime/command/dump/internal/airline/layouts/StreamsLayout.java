@@ -54,11 +54,19 @@ public final class StreamsLayout extends Layout
         private Path path;
         private boolean readonly;
         private SpyPosition position;
+        private long initial;
 
         public Builder path(
             Path path)
         {
             this.path = path;
+            return this;
+        }
+
+        public Builder initial(
+            long initial)
+        {
+            this.initial = initial;
             return this;
         }
 
@@ -87,7 +95,7 @@ public final class StreamsLayout extends Layout
 
             final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
 
-            final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams);
+            final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams, initial);
 
             if (position != null)
             {

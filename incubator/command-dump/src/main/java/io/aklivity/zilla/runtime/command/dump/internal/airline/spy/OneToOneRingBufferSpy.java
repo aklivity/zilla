@@ -40,15 +40,16 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     private final AtomicBuffer buffer;
 
     public OneToOneRingBufferSpy(
-        final AtomicBuffer buffer)
+        final AtomicBuffer buffer,
+        final long position)
     {
         this.buffer = buffer;
         checkCapacity(buffer.capacity(), 0);
-        capacity = buffer.capacity() - TRAILER_LENGTH;
+        this.capacity = buffer.capacity() - TRAILER_LENGTH;
 
         buffer.verifyAlignment();
 
-        spyPosition = new AtomicLong();
+        spyPosition = new AtomicLong(position);
     }
 
     @Override
