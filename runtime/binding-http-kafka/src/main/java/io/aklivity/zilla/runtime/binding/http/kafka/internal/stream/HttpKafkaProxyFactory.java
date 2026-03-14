@@ -4161,13 +4161,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpKafkaState.initialClosed(state))
-            {
-                state = HttpKafkaState.closeInitial(state);
-
-                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
-            }
-
             if (!HttpKafkaState.replyOpening(state))
             {
                 HttpBeginExFW httpBeginEx = httpBeginExRW
@@ -4181,6 +4174,13 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 state = HttpKafkaState.closingReply(state);
             }
             doHttpEnd(traceId, authorization);
+
+            if (!HttpKafkaState.initialClosed(state))
+            {
+                state = HttpKafkaState.closeInitial(state);
+
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+            }
         }
     }
 
