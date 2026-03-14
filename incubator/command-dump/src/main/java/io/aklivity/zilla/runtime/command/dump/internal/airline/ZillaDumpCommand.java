@@ -365,6 +365,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 final int exitWorkCount = continuous ? -1 : 0;
                 int workCount;
+                loop:
                 do
                 {
                     workCount = 0;
