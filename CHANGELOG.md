@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.6](https://github.com/aklivity/zilla/tree/1.0.6) (2026-03-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.4...1.0.6)
+
+**Merged pull requests:**
+
+- Reset http 1.1 response when request is reset [\#1656](https://github.com/aklivity/zilla/pull/1656) ([jfallows](https://github.com/jfallows))
+- Ensure dump command can advance beyond padding to reach last record [\#1655](https://github.com/aklivity/zilla/pull/1655) ([jfallows](https://github.com/jfallows))
+- Enhance dump command to support explicit initial offsets [\#1654](https://github.com/aklivity/zilla/pull/1654) ([jfallows](https://github.com/jfallows))
+
 ## [1.0.4](https://github.com/aklivity/zilla/tree/1.0.4) (2026-03-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.3...1.0.4)
