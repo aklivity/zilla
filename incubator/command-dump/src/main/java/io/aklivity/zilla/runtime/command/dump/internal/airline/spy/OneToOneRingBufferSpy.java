@@ -40,15 +40,16 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     private final AtomicBuffer buffer;
 
     public OneToOneRingBufferSpy(
-        final AtomicBuffer buffer)
+        final AtomicBuffer buffer,
+        final long position)
     {
         this.buffer = buffer;
         checkCapacity(buffer.capacity(), 0);
-        capacity = buffer.capacity() - TRAILER_LENGTH;
+        this.capacity = buffer.capacity() - TRAILER_LENGTH;
 
         buffer.verifyAlignment();
 
-        spyPosition = new AtomicLong();
+        spyPosition = new AtomicLong(position);
     }
 
     @Override
@@ -99,10 +100,30 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         final MessagePredicate handler,
         final int messageCountLimit)
     {
+        int messagesRead = spyAt(0L, handler, messageCountLimit);
+        if (messagesRead == 0)
+        {
+            messagesRead = spyAt(0L, handler, messageCountLimit);
+        }
+        return messagesRead;
+    }
+
+    @Override
+    public int peek(
+        final MessageConsumer handler)
+    {
+        return peekAt(0L, handler);
+    }
+
+    private int spyAt(
+        final long headDelta,
+        final MessagePredicate handler,
+        final int messageCountLimit)
+    {
         int messagesRead = 0;
 
         final AtomicBuffer buffer = this.buffer;
-        final long head = spyPosition.get();
+        final long head = spyPosition.get() + headDelta;
 
         int bytesRead = 0;
 
@@ -148,12 +169,12 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         return messagesRead;
     }
 
-    @Override
-    public int peek(
+    private int peekAt(
+        final long headDelta,
         final MessageConsumer handler)
     {
         final AtomicBuffer buffer = this.buffer;
-        final long head = spyPosition.get();
+        final long head = spyPosition.get() + headDelta;
         final int capacity = this.capacity;
         final int headIndex = (int)head & (capacity - 1);
         final int recordLength = buffer.getIntVolatile(lengthOffset(headIndex));
@@ -165,6 +186,10 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
             {
                 handler.accept(messageTypeId, buffer, headIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
                 messagesPeeked = 1;
+            }
+            else
+            {
+                messagesPeeked = peekAt(headDelta + align(recordLength, ALIGNMENT), handler);
             }
         }
         return messagesPeeked;

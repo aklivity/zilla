@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
@@ -156,10 +157,10 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private static final short SYN = (short) TcpFlag.SYN.value();
     private static final short SYN_ACK = (short) (TcpFlag.SYN.value() | TcpFlag.ACK.value());
-    private static final short PSH_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
 
+    private static final short PSH = (short) TcpFlag.PSH.value();
+    private static final short PSH_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.ACK.value());
     private static final short PSH_FIN_ACK = (short) (TcpFlag.PSH.value() | TcpFlag.FIN.value() | TcpFlag.ACK.value());
-    private static final short PSH_RST = (short) (TcpFlag.PSH.value() | TcpFlag.RST.value());
 
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
@@ -198,6 +199,11 @@ public final class ZillaDumpCommand extends ZillaCommand
         hidden = true)
     public boolean exceptions;
 
+    @Option(name = {"--initial"},
+        description = "Initial spy positions per worker, e.g. 0:0x0000,1:0x007f,2:0x00ff",
+        hidden = true)
+    public String initial;
+
     public boolean continuous = true;
 
     private final FrameFW frameRO = new FrameFW();
@@ -228,11 +234,13 @@ public final class ZillaDumpCommand extends ZillaCommand
     private long minTimeStamp;
 
     private Path directory;
+    private Long2LongHashMap initialByWorker;
 
     public ZillaDumpCommand()
     {
         this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
         this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
+        this.initialByWorker = new Long2LongHashMap(0L);
     }
 
     @Override
@@ -318,6 +326,14 @@ public final class ZillaDumpCommand extends ZillaCommand
             final long t0Nanos = info.startNanos();
             final LongFunction<Instant> supplyInstant = timestamp -> t0Instant.plusNanos(timestamp - t0Nanos);
 
+            if (initial != null)
+            {
+                Arrays.asList(initial.split(","))
+                    .stream()
+                    .map(s -> s.split(":"))
+                    .forEach(e -> initialByWorker.put(parseInt(e[0]), Long.decode(e[1])));
+            }
+
             try (Stream<Path> files = Files.walk(directory, 3);
                  WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
             {
@@ -349,6 +365,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
                 final int exitWorkCount = continuous ? -1 : 0;
                 int workCount;
+                loop:
                 do
                 {
                     workCount = 0;
@@ -396,13 +413,17 @@ public final class ZillaDumpCommand extends ZillaCommand
     {
         final String filename = path.getFileName().toString();
         final Matcher matcher = STREAMS_PATTERN.matcher(filename);
+
         matcher.matches();
+
+        final int worker = parseInt(matcher.group(1));
 
         StreamsLayout layout = new StreamsLayout.Builder()
             .path(path)
             .readonly(true)
-            .spyAt(RingBufferSpy.SpyPosition.ZERO)
+            .initial(initialByWorker.get(worker))
             .build();
+
         return layout.streamsBuffer();
     }
 
@@ -648,7 +669,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 patchExtension(patchBuffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
                 writeFrame(AbortFW.TYPE_ID, worker, offset, newAbort.originId(), newAbort.routedId(), newAbort.streamId(),
-                    newAbort.timestamp(), newAbort, PSH_RST);
+                    newAbort.timestamp(), newAbort, PSH);
             }
         }
 
@@ -674,7 +695,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 patchExtension(patchBuffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
                 writeFrame(ResetFW.TYPE_ID, worker, offset, newReset.originId(), newReset.routedId(), newReset.streamId(),
-                    newReset.timestamp(), newReset, PSH_RST);
+                    newReset.timestamp(), newReset, PSH);
             }
         }
 
