@@ -3022,23 +3022,34 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
 
+                final HttpExchangeState requestState = this.requestState;
+                final HttpExchangeState responseState = this.responseState;
+
+                this.requestState = HttpExchangeState.CLOSED;
+
                 if (requestState == HttpExchangeState.OPEN)
                 {
                     doNetworkReset(traceId, authorization);
                 }
-                else
+                else if (responseState != HttpExchangeState.CLOSED)
                 {
-                    responseState = HttpExchangeState.CLOSED;
+                    doResponseReset(traceId);
 
-                    OctetsFW extension = reset.extension();
-                    HttpResetExFW httpResetEx = extension.get(resetExRO::tryWrap);
-                    Array32FW<HttpHeaderFW> headers = httpResetEx != null && !httpResetEx.headers().isEmpty() ?
-                        httpResetEx.headers() : headers404;
+                    if (responseState == HttpExchangeState.PENDING)
+                    {
+                        OctetsFW extension = reset.extension();
+                        HttpResetExFW httpResetEx = extension.get(resetExRO::tryWrap);
+                        Array32FW<HttpHeaderFW> headers = httpResetEx != null && !httpResetEx.headers().isEmpty()
+                            ? httpResetEx.headers()
+                            : headers404;
 
-                    doEncodeHeaders(this, traceId, authorization, 0L, headers);
+                        doEncodeHeaders(this, traceId, authorization, 0L, headers);
+                    }
+                    else
+                    {
+                        doNetworkAbort(traceId, authorization);
+                    }
                 }
-
-                requestState = HttpExchangeState.CLOSED;
             }
 
             private void onRequestWindow(
