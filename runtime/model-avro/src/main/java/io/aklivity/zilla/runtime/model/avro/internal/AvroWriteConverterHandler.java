@@ -46,7 +46,16 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         int index,
         int length)
     {
-        return handler.encodePadding(length);
+        int padding = handler.encodePadding(length);
+        int schemaId = catalog != null && catalog.id > 0
+                ? catalog.id
+                : handler.resolve(subject, catalog.version);
+
+        if (VIEW_JSON.equals(view))
+        {
+            padding += supplyAvroOverhead(schemaId);
+        }
+        return padding;
     }
 
     @Override
