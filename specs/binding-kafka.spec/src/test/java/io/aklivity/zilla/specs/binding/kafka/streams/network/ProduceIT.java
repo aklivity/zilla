@@ -277,6 +277,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.header.fragmented/client",
+        "${net}/message.header.fragmented/server"})
+    public void shouldSendFragmentedMessageHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.header.null/client",
         "${net}/message.header.null/server"})
     public void shouldSendMessageHeaderNull() throws Exception
