@@ -2923,17 +2923,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 Flyweight extension)
             {
-                switch (requestState)
+                if (requestState == HttpExchangeState.OPEN)
                 {
-                case OPEN:
                     doEnd(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                         traceId, sessionId, extension);
-                    requestState = HttpExchangeState.CLOSED;
-                    break;
-                default:
-                    requestState = HttpExchangeState.CLOSED;
-                    break;
                 }
+                requestState = HttpExchangeState.CLOSED;
             }
 
             private void doRequestAbort(
