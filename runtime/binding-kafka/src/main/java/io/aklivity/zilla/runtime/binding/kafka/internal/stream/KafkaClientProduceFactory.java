@@ -184,6 +184,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final BufferPool encodePoolHeaders;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -211,6 +212,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
+        this.encodePoolHeaders = encodePool.duplicate();
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
         this.decodeMaxBytes = decodePool.slotCapacity();
@@ -1788,7 +1790,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
                 if (encodeableRecordBytesDeferred > 0 && headersSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer headersBuffer = encodePool.buffer(headersSlot);
+                    final MutableDirectBuffer headersBuffer = encodePoolHeaders.buffer(headersSlot);
                     encodeSlotBuffer.putBytes(encodeSlotLimit, headersBuffer, 0, headersSize);
                     encodeSlotLimit += headersSize;
                     encodePool.release(headersSlot);
@@ -1993,7 +1995,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     if (headersSlot != NO_SLOT)
                     {
-                        final MutableDirectBuffer headersBuffer = encodePool.buffer(headersSlot);
+                        final MutableDirectBuffer headersBuffer = encodePoolHeaders.buffer(headersSlot);
                         headersBuffer.putBytes(0, encodeBuffer, 0, encodeProgress);
                     }
                 }

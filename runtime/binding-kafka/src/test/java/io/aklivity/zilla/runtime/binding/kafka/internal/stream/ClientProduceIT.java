@@ -321,7 +321,7 @@ public class ClientProduceIT
     @Specification({
         "${app}/message.header.fragmented/client",
         "${net}/message.header.fragmented/server"})
-    public void shouldSendFragmentedMessageHeaderFromInit() throws Exception
+    public void shouldSendFragmentedMessageHeader() throws Exception
     {
         k3po.finish();
     }
