@@ -356,5 +356,4 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
-
 }
