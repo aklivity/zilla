@@ -319,6 +319,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.header.fragmented/client",
+        "${net}/message.header.fragmented/server"})
+    public void shouldSendFragmentedMessageHeaderFromInit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.header.null/client",
         "${net}/message.header.null/server"})
     public void shouldSendMessageHeaderNull() throws Exception
