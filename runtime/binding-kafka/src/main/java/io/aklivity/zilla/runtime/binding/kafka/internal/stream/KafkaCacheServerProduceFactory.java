@@ -754,6 +754,9 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             else
             {
                 members.forEach(s -> s.doFlushServerReplyIfNecessary(error, traceId));
+
+                assert KafkaState.closed(state);
+
                 if (reconnectDelay != 0 && !members.isEmpty())
                 {
                     if (reconnectAt != NO_CANCEL_ID)
@@ -913,7 +916,27 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 System.out.format("%d %s PRODUCE disconnect\n", partitionId, partionTopic);
             }
 
-            members.forEach(s -> s.doServerReplyEndIfNecessary(traceId));
+            if (initialAck == initialSeq)
+            {
+                assert KafkaState.closed(state);
+
+                if (reconnectDelay != 0 && !members.isEmpty())
+                {
+                    if (reconnectAt != NO_CANCEL_ID)
+                    {
+                        signaler.cancel(reconnectAt);
+                    }
+
+                    this.reconnectAt = signaler.signalAt(
+                            currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                            SIGNAL_RECONNECT,
+                            this::onServerFanoutSignal);
+                }
+            }
+            else
+            {
+                members.forEach(s -> s.doServerReplyEndIfNecessary(traceId));
+            }
         }
 
         private void onServerFanReplyAbort(

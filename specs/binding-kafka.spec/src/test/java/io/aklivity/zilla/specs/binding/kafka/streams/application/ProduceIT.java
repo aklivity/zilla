@@ -40,6 +40,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/idle.no.error.reconnect.parallel/client",
+        "${app}/idle.no.error.reconnect.parallel/server"})
+    public void shouldReconnectIdleNoErrorParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.missing/client",
         "${app}/topic.missing/server"})
     public void shouldRejectWhenTopicMissing() throws Exception
