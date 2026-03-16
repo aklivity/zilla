@@ -24,7 +24,7 @@ write "POST /request1 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "Content-Length: 5" "\r\n"
 write "\r\n"
-write "world"
+write "hello"
 
 read "HTTP/1.1 400 Bad Request\r\n"
 read "Content-Length: 0" "\r\n"

@@ -16,6 +16,7 @@
 
 connect "zilla://streams/app0"
     option zilla:window 8192
+    option zilla:update "none"
     option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
@@ -28,15 +29,15 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-write "hello"
-write close
-
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "400")
                              .header("content-length", "0")
                              .build()}
 read closed
+
+write aborted
+
 read notify RESPONSE_ONE_RECEIVED
 
 connect await RESPONSE_ONE_RECEIVED
@@ -47,19 +48,16 @@ connect await RESPONSE_ONE_RECEIVED
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
-                              .header(":method", "POST")
+                              .header(":method", "GET")
                               .header(":path", "/request2")
                               .header(":authority", "localhost:8080")
-                              .header("content-length", "5")
                               .build()}
 connected
 
-write "world"
 write close
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":status", "204")
-                             .header("content-length", "0")
+                             .header(":status", "200")
                              .build()}
 read closed
