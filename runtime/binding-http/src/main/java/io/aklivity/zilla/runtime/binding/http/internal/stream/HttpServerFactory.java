@@ -2928,6 +2928,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 case OPEN:
                     doEnd(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                         traceId, sessionId, extension);
+                    requestState = HttpExchangeState.CLOSED;
                     break;
                 default:
                     requestState = HttpExchangeState.CLOSED;
@@ -3049,6 +3050,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         doNetworkAbort(traceId, authorization);
                     }
+                }
+
+                if (this.requestState == HttpExchangeState.CLOSED &&
+                    this.responseState == HttpExchangeState.CLOSED)
+                {
+                    exchange = null;
                 }
             }
 

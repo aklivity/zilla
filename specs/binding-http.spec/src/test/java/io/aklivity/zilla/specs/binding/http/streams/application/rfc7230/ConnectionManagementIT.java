@@ -356,4 +356,13 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.400.and.reset.next.request/client",
+        "${app}/response.400.and.reset.next.request/server" })
+    public void shouldProcessNextRequestAfter400AndReset() throws Exception
+    {
+        k3po.finish();
+    }
 }
