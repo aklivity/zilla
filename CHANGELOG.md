@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.7](https://github.com/aklivity/zilla/tree/1.0.7) (2026-03-17)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.6...1.0.7)
+
+**Merged pull requests:**
+
+- Fix Kafka produce idle timeout [\#1659](https://github.com/aklivity/zilla/pull/1659) ([jfallows](https://github.com/jfallows))
+- Fix HTTP/1.1 keep-alive stall after 400 error response reset [\#1658](https://github.com/aklivity/zilla/pull/1658) ([akrambek](https://github.com/akrambek))
+
 ## [1.0.6](https://github.com/aklivity/zilla/tree/1.0.6) (2026-03-15)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.4...1.0.6)
