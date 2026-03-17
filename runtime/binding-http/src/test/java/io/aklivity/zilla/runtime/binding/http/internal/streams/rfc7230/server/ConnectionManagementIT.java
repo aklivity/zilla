@@ -114,6 +114,16 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/response.400.and.reset.next.request/client",
+        "${app}/response.400.and.reset.next.request/server" })
+    public void shouldProcessNextRequestAfter400AndReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/multiple.requests.pipelined/client",
         "${app}/concurrent.requests/server" })
     @Ignore("TODO: support pipelined requests, at a minimum by serializing them")
