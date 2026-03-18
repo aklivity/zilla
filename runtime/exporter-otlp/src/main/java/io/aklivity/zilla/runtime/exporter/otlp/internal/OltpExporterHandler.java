@@ -27,7 +27,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -61,7 +60,6 @@ public class OltpExporterHandler implements ExporterHandler
     private final HttpClient metricsClient;
     private final HttpClient logsClient;
     private final String authorization;
-    private final Consumer<HttpResponse<String>> responseHandler;
     private final Clock clock;
 
     private OtlpMetricsSerializer metricsSerializer;
@@ -95,7 +93,6 @@ public class OltpExporterHandler implements ExporterHandler
         this.collector = collector;
         this.resolveKind = resolveKind;
         this.attributes = attributes;
-        this.responseHandler = this::handleResponse;
         this.authorization = options.authorization;
         this.clock = context.clock();
     }
@@ -152,7 +149,7 @@ public class OltpExporterHandler implements ExporterHandler
             }
 
             metricsResponse = metricsClient.sendAsync(metricsRequest.build(), HttpResponse.BodyHandlers.ofString());
-            metricsResponse.thenAccept(responseHandler);
+            metricsResponse.thenAccept(this::handleResponse);
             nextAttempt = now + retryInterval;
         }
     }
@@ -175,7 +172,7 @@ public class OltpExporterHandler implements ExporterHandler
             }
 
             logsResponse = logsClient.sendAsync(logsRequest.build(), HttpResponse.BodyHandlers.ofString());
-            logsResponse.thenAccept(responseHandler);
+            logsResponse.thenAccept(this::handleResponse);
             nextAttempt = now + retryInterval;
         }
     }

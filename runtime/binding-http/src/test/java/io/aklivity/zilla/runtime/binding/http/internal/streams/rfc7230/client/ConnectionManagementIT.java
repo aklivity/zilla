@@ -242,4 +242,18 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/concurrent.requests.and.reuse/client",
+        "${net}/concurrent.requests.and.reuse/server" })
+    public void shouldReuseConnectionAfterConcurrentRequests() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WRITE_RESPONSE_ONE");
+        k3po.notifyBarrier("WRITE_RESPONSE_TWO");
+        k3po.notifyBarrier("WRITE_RESPONSE_THREE");
+        k3po.finish();
+    }
+
 }
