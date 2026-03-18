@@ -2194,17 +2194,13 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private HttpClient supplyClient()
         {
-            HttpClient client = null;
-            if (clients.size() == 1)
-            {
-                client = clients.stream().filter(
-                        c -> !HttpState.replyOpened(c.state) ||
-                        c.encoder == HttpEncoder.HTTP_2 ||
-                        c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
-                        c.encoder == HttpEncoder.H2C)
-                        .findFirst()
-                        .orElse(null);
-            }
+            HttpClient client = clients.stream().filter(
+                c -> !HttpState.replyOpened(c.state) ||
+                c.encoder == HttpEncoder.HTTP_2 ||
+                c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
+                c.encoder == HttpEncoder.H2C)
+                .findFirst()
+                .orElse(null);
 
             if (client == null && clients.size() < maximumConnectionsPerRoute)
             {

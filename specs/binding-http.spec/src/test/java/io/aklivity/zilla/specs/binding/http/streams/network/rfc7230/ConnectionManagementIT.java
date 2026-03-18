@@ -378,5 +378,14 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+    
+    @Test
+    @Specification({
+        "${net}/concurrent.requests.and.reuse/client",
+        "${net}/concurrent.requests.and.reuse/server" })
+    public void shouldReuseConnectionAfterConcurrentRequests() throws Exception
+    {
+        k3po.finish();
+    }
 
 }
