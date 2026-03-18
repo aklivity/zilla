@@ -378,7 +378,7 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
-    
+
     @Test
     @Specification({
         "${net}/concurrent.requests.and.reuse/client",
