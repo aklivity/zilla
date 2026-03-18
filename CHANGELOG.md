@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.9](https://github.com/aklivity/zilla/tree/1.0.9) (2026-03-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.7...1.0.9)
+
+**Merged pull requests:**
+
+- Fix connection leak in http1 client [\#1661](https://github.com/aklivity/zilla/pull/1661) ([akrambek](https://github.com/akrambek))
+
 ## [1.0.7](https://github.com/aklivity/zilla/tree/1.0.7) (2026-03-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.6...1.0.7)
