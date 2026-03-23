@@ -15,9 +15,26 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+/**
+ * Provides resource file reading to config adapters during YAML deserialization.
+ *
+ * @deprecated Resource resolution is now handled via the engine's path resolution
+ *             mechanism. {@link OptionsConfigAdapterSpi} implementations that previously
+ *             called {@link #readResource} should use the engine's
+ *             {@code EngineContext#resolvePath} instead. This interface will be removed
+ *             in a future release.
+ */
 @Deprecated
 public interface ConfigAdapterContext
 {
+    /**
+     * Reads the contents of a resource file at the given location and returns it as a string.
+     *
+     * @param location  a path or URI identifying the resource to read
+     * @return the resource contents as a string
+     * @deprecated Use the engine's path resolution mechanism instead.
+     */
+    @Deprecated
     String readResource(
         String location);
 }

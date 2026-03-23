@@ -18,8 +18,33 @@ package io.aklivity.zilla.runtime.engine.resolver;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link ResolverSpi} instances.
+ * <p>
+ * The engine discovers resolver factories via {@link java.util.ServiceLoader}. Each factory's
+ * {@link #type()} name becomes the context prefix used in YAML expression substitution —
+ * for example, a factory with type {@code "env"} handles all expressions of the form
+ * {@code ${{env.VAR_NAME}}}.
+ * </p>
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi}.
+ * </p>
+ *
+ * @see ResolverSpi
+ */
 public interface ResolverFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link ResolverSpi} instance for the given engine configuration.
+     * <p>
+     * The factory's {@link #type()} name (inherited from {@link FactorySpi}) identifies
+     * the expression context prefix this resolver handles in {@code zilla.yaml}.
+     * </p>
+     *
+     * @param config  the engine configuration
+     * @return a new {@link ResolverSpi}
+     */
     ResolverSpi create(
         Configuration config);
 }
