@@ -17,11 +17,38 @@ package io.aklivity.zilla.runtime.engine.model.function;
 
 import org.agrona.DirectBuffer;
 
+/**
+ * Receives a slice of a {@link DirectBuffer} as a zero-copy callback.
+ * <p>
+ * Used throughout the model and catalog pipeline as the downstream sink for converted,
+ * decoded, encoded, or validated payload bytes. Implementations must not retain a reference
+ * to the buffer beyond the duration of the {@link #accept} call.
+ * </p>
+ * <p>
+ * The sentinel {@link #NOP} implementation discards all data and is safe to use as a
+ * no-op placeholder.
+ * </p>
+ *
+ * @see ConverterHandler
+ * @see ValidatorHandler
+ */
 @FunctionalInterface
 public interface ValueConsumer
 {
+    /** No-op consumer that discards all data. */
     ValueConsumer NOP = (buffer, index, length) -> {};
 
+    /**
+     * Receives the bytes at {@code buffer[index..index+length)}.
+     * <p>
+     * The buffer slice is only valid for the duration of this call. Implementations must
+     * copy any bytes they need to retain beyond this invocation.
+     * </p>
+     *
+     * @param buffer  the source buffer
+     * @param index   the offset of the data in the buffer
+     * @param length  the length of the data
+     */
     void accept(
         DirectBuffer buffer,
         int index,

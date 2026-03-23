@@ -18,8 +18,26 @@ package io.aklivity.zilla.runtime.engine.binding;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Binding} instances.
+ * <p>
+ * Implementations are discovered via {@link java.util.ServiceLoader} and must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi}.
+ * The {@link #type()} method (inherited from {@link FactorySpi}) returns the binding type name
+ * that matches the {@code type} field in {@code zilla.yaml}.
+ * </p>
+ *
+ * @see Binding
+ * @see FactorySpi
+ */
 public interface BindingFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link Binding} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Binding}
+     */
     Binding create(
         Configuration config);
 }

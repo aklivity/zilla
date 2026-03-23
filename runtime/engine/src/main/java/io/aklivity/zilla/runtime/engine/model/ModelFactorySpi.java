@@ -20,12 +20,39 @@ import java.net.URL;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Model} instances.
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.model.ModelFactorySpi}.
+ * The {@link #type()} method returns the model type name used in {@code zilla.yaml}.
+ * </p>
+ *
+ * @see Model
+ */
 public interface ModelFactorySpi extends FactorySpi
 {
+    /**
+     * Returns the model type name, e.g. {@code "avro"}.
+     *
+     * @return the model type name
+     */
     String type();
 
+    /**
+     * Returns a URL pointing to the JSON schema for this model's options configuration,
+     * used to validate model references in {@code zilla.yaml}.
+     *
+     * @return the options schema URL
+     */
     URL schema();
 
+    /**
+     * Creates a new {@link Model} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Model}
+     */
     Model create(
         Configuration config);
 }

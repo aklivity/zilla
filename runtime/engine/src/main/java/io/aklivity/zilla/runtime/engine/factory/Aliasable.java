@@ -17,10 +17,35 @@ package io.aklivity.zilla.runtime.engine.factory;
 
 import java.util.Set;
 
+/**
+ * Mixin interface for plugin types that can be referenced under alternative type names.
+ * <p>
+ * Implemented by {@link Catalog} and {@link Vault} to allow a single plugin implementation
+ * to respond to multiple {@code type} names in {@code zilla.yaml}. For example, a schema
+ * registry catalog might register aliases for both {@code "apicurio"} and {@code "confluent"}
+ * if they share the same wire protocol.
+ * </p>
+ * <p>
+ * The primary type name is declared via {@link FactorySpi#type()}; aliases declared here
+ * supplement that primary name.
+ * </p>
+ *
+ * @see Catalog
+ * @see Vault
+ */
 public interface Aliasable
 {
+    /** Default empty alias set used by implementations that declare no aliases. */
     Set<String> ALIASES_DEFAULT = Set.of();
 
+    /**
+     * Returns the set of alternative type names under which this plugin can be referenced.
+     * <p>
+     * Returns an empty set by default. Override to declare one or more alias names.
+     * </p>
+     *
+     * @return an immutable set of alias type name strings
+     */
     default Set<String> aliases()
     {
         return ALIASES_DEFAULT;

@@ -17,14 +17,50 @@ package io.aklivity.zilla.runtime.engine.binding;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
+/**
+ * Per-thread data-plane context for a protocol binding.
+ * <p>
+ * Each I/O thread receives its own {@code BindingContext} instance, created by
+ * {@link Binding#supply(EngineContext)}. Because a {@code BindingContext} is confined to a single
+ * thread, all state it holds can be read and written without synchronization.
+ * </p>
+ * <p>
+ * When a binding configuration is loaded, the engine calls {@link #attach(BindingConfig)} on every
+ * thread's context. The returned {@link BindingHandler} is used by that thread to create new
+ * streams routed through the binding.
+ * </p>
+ *
+ * @see Binding
+ * @see BindingHandler
+ */
 public interface BindingContext
 {
+    /**
+     * Attaches a binding configuration to this thread's context.
+     * <p>
+     * Called when a binding is added to the engine namespace. The returned {@link BindingHandler}
+     * handles all new inbound streams for this binding on this I/O thread.
+     * </p>
+     *
+     * @param binding  the binding configuration to attach
+     * @return a {@link BindingHandler} for this binding, or {@code null} if this binding
+     *         does not accept inbound streams
+     */
     default BindingHandler attach(
         BindingConfig binding)
     {
         return null;
     }
 
+    /**
+     * Detaches a previously attached binding configuration from this thread's context.
+     * <p>
+     * Called when a binding is removed from the engine namespace. Implementations should
+     * release any per-binding resources allocated during {@link #attach(BindingConfig)}.
+     * </p>
+     *
+     * @param binding  the binding configuration to detach
+     */
     default void detach(
         BindingConfig binding)
     {

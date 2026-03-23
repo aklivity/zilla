@@ -23,14 +23,43 @@ import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
+/**
+ * Per-thread context for a metrics and events exporter.
+ * <p>
+ * Created once per I/O thread by {@link Exporter#supply(EngineContext)}. Manages the lifecycle
+ * of {@link ExporterHandler} instances, each of which drives periodic export for a single
+ * exporter configuration.
+ * </p>
+ *
+ * @see Exporter
+ * @see ExporterHandler
+ */
 public interface ExporterContext
 {
+    /**
+     * Attaches an exporter configuration and returns a handler that will drive the export cycle.
+     * <p>
+     * The {@code collector} provides access to the current metric values. The {@code resolveKind}
+     * function maps a binding id to its {@link KindConfig}, used to label exported metrics.
+     * </p>
+     *
+     * @param config       the exporter configuration
+     * @param attributes   the set of engine-level attributes to include as metric labels
+     * @param collector    the metric value source to read from during export
+     * @param resolveKind  function mapping a binding id to its {@link KindConfig}
+     * @return a new {@link ExporterHandler} that drives the export cycle for this configuration
+     */
     ExporterHandler attach(
         ExporterConfig config,
         List<AttributeConfig> attributes,
         Collector collector,
         LongFunction<KindConfig> resolveKind);
 
+    /**
+     * Detaches a previously attached exporter, releasing any associated resources.
+     *
+     * @param exporterId  the id of the exporter configuration to detach
+     */
     void detach(
         long exporterId);
 }

@@ -18,10 +18,32 @@ package io.aklivity.zilla.runtime.engine.exporter;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Exporter} instances.
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi}.
+ * The {@link #type()} method returns the exporter type name that matches the {@code type}
+ * field used in {@code zilla.yaml}.
+ * </p>
+ *
+ * @see Exporter
+ */
 public interface ExporterFactorySpi extends FactorySpi
 {
+    /**
+     * Returns the exporter type name, e.g. {@code "prometheus"}.
+     *
+     * @return the exporter type name
+     */
     String type();
 
+    /**
+     * Creates a new {@link Exporter} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Exporter}
+     */
     Exporter create(
         Configuration config);
 }

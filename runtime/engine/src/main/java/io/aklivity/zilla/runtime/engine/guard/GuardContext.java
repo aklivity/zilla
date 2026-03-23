@@ -17,11 +17,34 @@ package io.aklivity.zilla.runtime.engine.guard;
 
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 
+/**
+ * Per-thread context for an authorization guard.
+ * <p>
+ * Created once per I/O thread by {@link Guard#supply(EngineContext)} and confined to that thread.
+ * Manages the lifecycle of {@link GuardHandler} instances for individual guard configurations
+ * active on this thread.
+ * </p>
+ *
+ * @see Guard
+ * @see GuardHandler
+ */
 public interface GuardContext
 {
+    /**
+     * Attaches a guard configuration to this thread's context.
+     *
+     * @param guard  the guard configuration to activate
+     * @return a {@link GuardHandler} for verifying and managing sessions under this configuration
+     */
     GuardHandler attach(
         GuardConfig guard);
 
+    /**
+     * Detaches a previously attached guard configuration from this thread's context,
+     * releasing any associated resources.
+     *
+     * @param guard  the guard configuration to deactivate
+     */
     void detach(
         GuardConfig guard);
 }

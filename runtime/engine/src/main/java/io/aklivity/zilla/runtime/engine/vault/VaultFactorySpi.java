@@ -18,8 +18,23 @@ package io.aklivity.zilla.runtime.engine.vault;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Vault} instances.
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi}.
+ * </p>
+ *
+ * @see Vault
+ */
 public interface VaultFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link Vault} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Vault}
+     */
     Vault create(
         Configuration config);
 }
