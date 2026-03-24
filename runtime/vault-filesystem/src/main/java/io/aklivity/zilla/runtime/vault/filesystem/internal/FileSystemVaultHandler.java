@@ -29,7 +29,6 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -293,6 +292,38 @@ public class FileSystemVaultHandler implements VaultHandler
             return entry(store, null, alias, TrustedCertificateEntry.class);
         }
 
+        private List<String> issuedKeys(
+            X500Principal issuer)
+        {
+            List<String> keys = null;
+
+            try
+            {
+                List<String> candidateKeys = Collections.list(store.aliases()).stream()
+                    .filter(alias -> issuedKey(alias, issuer))
+                    .toList();
+
+                keys = candidateKeys.isEmpty() ? null : candidateKeys;
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+
+            return keys;
+        }
+
+        private boolean issuedKey(
+            String alias,
+            X500Principal issuer)
+        {
+            PrivateKeyEntry key = key(alias);
+            Certificate certificate = key != null ? key.getCertificate() : null;
+            return certificate != null &&
+                certificate instanceof X509Certificate &&
+                issuer.equals(((X509Certificate) certificate).getIssuerX500Principal());
+        }
+
         private static TrustedCertificateEntry certificate(
             KeyStore store,
             String alias)
@@ -321,38 +352,6 @@ public class FileSystemVaultHandler implements VaultHandler
             }
 
             return typed;
-        }
-
-        private List<String> issuedKeys(
-            X500Principal issuer)
-        {
-            List<String> keys = null;
-
-            try
-            {
-                for (String alias : Collections.list(store.aliases()))
-                {
-                    PrivateKeyEntry key = key(alias);
-                    Certificate certificate = key.getCertificate();
-                    if (key != null &&
-                        certificate instanceof X509Certificate &&
-                        issuer.equals(((X509Certificate) certificate).getIssuerX500Principal()))
-                    {
-                        if (keys == null)
-                        {
-                            keys = new ArrayList<>();
-                        }
-
-                        keys.add(alias);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // ignore
-            }
-
-            return keys;
         }
     }
 }
