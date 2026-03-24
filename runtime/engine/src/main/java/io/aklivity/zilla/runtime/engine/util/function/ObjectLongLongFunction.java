@@ -15,8 +15,23 @@
  */
 package io.aklivity.zilla.runtime.engine.util.function;
 
+/**
+ * A function that accepts an object and two primitive {@code long} arguments and produces a result,
+ * avoiding boxing overhead for the numeric arguments.
+ *
+ * @param <T>  the type of the object argument
+ * @param <R>  the result type
+ */
 @FunctionalInterface
 public interface ObjectLongLongFunction<T, R>
 {
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param object  the object argument
+     * @param value1  the first {@code long} argument
+     * @param value2  the second {@code long} argument
+     * @return the result
+     */
     R apply(T object, long value1, long value2);
 }

@@ -15,6 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+/**
+ * Marker interface for the per-thread context associated with a {@link Collector}.
+ * <p>
+ * Reserved for future use. Currently serves as a type token allowing the engine to
+ * associate collector state with a specific I/O thread context without exposing
+ * implementation details.
+ * </p>
+ *
+ * @see Collector
+ */
 public interface CollectorContext
 {
 }

@@ -18,8 +18,26 @@ package io.aklivity.zilla.runtime.engine.event;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link EventFormatterSpi} instances.
+ * <p>
+ * Each binding that emits structured events provides an implementation registered via
+ * {@link java.util.ServiceLoader} in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi}.
+ * The {@link #type()} name (inherited from {@link FactorySpi}) matches the binding type
+ * whose event frames this factory's formatter can decode, e.g. {@code "http"}, {@code "tls"}.
+ * </p>
+ *
+ * @see EventFormatterSpi
+ */
 public interface EventFormatterFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link EventFormatterSpi} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link EventFormatterSpi}
+     */
     EventFormatterSpi create(
         Configuration config);
 }
