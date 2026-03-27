@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.9...HEAD)
+
+**Closed issues:**
+
+- Logging strategy for auth errors in `kafka` client binding [\#1662](https://github.com/aklivity/zilla/issues/1662)
+
+**Merged pull requests:**
+
+- logging for auth errors in kafka client binding [\#1664](https://github.com/aklivity/zilla/pull/1664) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.0.9](https://github.com/aklivity/zilla/tree/1.0.9) (2026-03-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.7...1.0.9)
