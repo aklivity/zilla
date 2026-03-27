@@ -43,152 +43,507 @@ import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
+/**
+ * Per-thread service context supplied to binding, guard, vault, catalog, exporter, and model plugins.
+ * <p>
+ * An {@code EngineContext} is created once per I/O thread and passed to each plugin's
+ * {@code supply(EngineContext)} method. All methods on this interface are safe to call only
+ * from the owning I/O thread unless otherwise noted.
+ * </p>
+ * <p>
+ * It provides access to:
+ * <ul>
+ *   <li>Id generation — stream ids, budget ids, trace ids, binding ids</li>
+ *   <li>Stream messaging — sender and receiver {@link MessageConsumer} lookup</li>
+ *   <li>Flow control — {@link BudgetCreditor} and {@link BudgetDebitor}</li>
+ *   <li>Buffer allocation — a shared {@link BufferPool} and write buffer</li>
+ *   <li>Scheduling — the {@link Signaler} for time-based and task-based signals</li>
+ *   <li>Plugin resolution — guards, vaults, catalogs, models, and converters by id</li>
+ *   <li>Metrics — counter, gauge, and histogram suppliers</li>
+ *   <li>Namespace management — attaching and detaching composite namespaces</li>
+ * </ul>
+ * </p>
+ *
+ * @see Binding#supply(EngineContext)
+ * @see Guard#supply(EngineContext)
+ * @see Vault#supply(EngineContext)
+ * @see Catalog#supply(EngineContext)
+ * @see Exporter#supply(EngineContext)
+ * @see Model#supply(EngineContext)
+ */
 public interface EngineContext
 {
+    /**
+     * Returns the zero-based index of the I/O thread that owns this context.
+     *
+     * @return the thread index
+     */
     int index();
 
+    /**
+     * Returns the {@link Signaler} for scheduling time-based and task-based signals on
+     * this I/O thread.
+     *
+     * @return the signaler
+     */
     Signaler signaler();
 
+    /**
+     * Resolves a protocol type name to its integer type id, registering the name if
+     * it has not been seen before.
+     *
+     * @param name  the protocol type name (e.g., {@code "http"})
+     * @return the corresponding integer type id
+     */
     int supplyTypeId(
         String name);
 
+    /**
+     * Allocates a new initial (inbound) stream id for the given binding.
+     *
+     * @param bindingId  the binding id to associate with the new stream
+     * @return a new unique initial stream id
+     */
     long supplyInitialId(
         long bindingId);
 
+    /**
+     * Returns the reply (outbound) stream id paired with the given initial stream id.
+     *
+     * @param initialId  the initial stream id
+     * @return the corresponding reply stream id
+     */
     long supplyReplyId(
         long initialId);
 
+    /**
+     * Allocates a new promise stream id derived from the given initial stream id,
+     * used for server-push or async response scenarios.
+     *
+     * @param initialId  the initial stream id
+     * @return a new promise stream id
+     */
     long supplyPromiseId(
             long initialId);
 
+    /**
+     * Allocates a new authorization context id for use in authorized stream interactions.
+     *
+     * @return a new authorized context id
+     */
     long supplyAuthorizedId();
 
+    /**
+     * Allocates a new unique budget id for flow control.
+     *
+     * @return a new budget id
+     */
     long supplyBudgetId();
 
+    /**
+     * Returns a new trace id for correlating frames across a request/response lifecycle.
+     *
+     * @return a new trace id
+     */
     long supplyTraceId();
 
+    /**
+     * Returns the {@link MessageConsumer} for sending frames to the stream identified by
+     * the given stream id.
+     *
+     * @param streamId  the stream id to look up
+     * @return the sender for that stream, or a no-op consumer if the stream is not found
+     */
     MessageConsumer supplySender(
         long streamId);
 
+    /**
+     * Returns the {@link MessageConsumer} for delivering frames received on the given stream id
+     * to its registered handler.
+     *
+     * @param streamId  the stream id to look up
+     * @return the receiver for that stream
+     */
     MessageConsumer supplyReceiver(
         long streamId);
 
+    /**
+     * Returns an {@link EventFormatter} for formatting structured engine events into
+     * human-readable strings for logging or export.
+     *
+     * @return the event formatter
+     */
     EventFormatter supplyEventFormatter();
 
+    /**
+     * Reports an unexpected exception to the engine's error handling mechanism.
+     *
+     * @param ex  the exception to report
+     */
     void report(
         Throwable ex);
 
+    /**
+     * Attaches a composite namespace configuration to this engine context, making its
+     * bindings and resources available for routing.
+     *
+     * @param composite  the namespace configuration to attach
+     */
     void attachComposite(
         NamespaceConfig composite);
 
+    /**
+     * Detaches a previously attached composite namespace configuration.
+     *
+     * @param composite  the namespace configuration to detach
+     */
     void detachComposite(
         NamespaceConfig composite);
 
+    /**
+     * Removes the sender registration for the given reply stream id, releasing routing
+     * table resources when a stream is closed.
+     *
+     * @param replyId  the reply stream id to deregister
+     */
     void detachSender(
         long replyId);
 
+    /**
+     * Forcibly detaches all active streams associated with the given binding id.
+     * Used during binding teardown to ensure clean shutdown.
+     *
+     * @param bindingId  the binding id whose streams should be detached
+     */
     void detachStreams(
         long bindingId);
 
+    /**
+     * Returns the {@link BudgetCreditor} for this thread, used to issue flow control credits
+     * to upstream senders.
+     *
+     * @return the budget creditor
+     */
     BudgetCreditor creditor();
 
+    /**
+     * Returns a {@link BudgetDebitor} for the given budget id, used to claim send capacity
+     * before writing frames downstream.
+     *
+     * @param budgetId  the budget id to obtain a debitor for
+     * @return the budget debitor
+     */
     BudgetDebitor supplyDebitor(
         long budgetId);
 
+    /**
+     * Returns the per-thread write buffer for staging outbound frames before sending.
+     * The buffer is exclusively owned by this thread.
+     *
+     * @return the mutable write buffer
+     */
     MutableDirectBuffer writeBuffer();
 
+    /**
+     * Returns the shared {@link BufferPool} for this thread, used to temporarily hold
+     * partial payloads that cannot be forwarded immediately.
+     *
+     * @return the buffer pool
+     */
     BufferPool bufferPool();
 
+    /**
+     * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
+     * named counter metric for the given binding.
+     *
+     * @param bindingId  the binding id
+     * @param metricId   the metric id
+     * @return a supplier reading the counter value
+     */
     LongSupplier supplyCounter(
         long bindingId,
         long metricId);
 
+    /**
+     * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
+     * named gauge metric for the given binding.
+     *
+     * @param bindingId  the binding id
+     * @param metricId   the metric id
+     * @return a supplier reading the gauge value
+     */
     LongSupplier supplyGauge(
         long bindingId,
         long metricId);
 
+    /**
+     * Returns an array of {@link java.util.function.LongSupplier}s, one per histogram bucket,
+     * for the named histogram metric on the given binding.
+     *
+     * @param bindingId  the binding id
+     * @param metricId   the metric id
+     * @return an array of bucket value suppliers
+     */
     LongSupplier[] supplyHistogram(
         long bindingId,
         long metricId);
 
+    /**
+     * Returns the {@link MessageConsumer} to which frames that cannot be routed should be
+     * delivered, allowing them to be counted or logged as dropped.
+     *
+     * @return the dropped-frame handler
+     */
     MessageConsumer droppedFrameHandler();
 
+    /**
+     * Returns the I/O thread index that owns the given stream id, used when a plugin needs
+     * to dispatch work to the thread responsible for a particular stream.
+     *
+     * @param streamId  the stream id to look up
+     * @return the owning thread index
+     */
     int supplyClientIndex(
         long streamId);
 
+    /**
+     * Resolves a hostname to its {@link java.net.InetAddress} array, using the engine's
+     * configured DNS resolver.
+     *
+     * @param host  the hostname to resolve
+     * @return the resolved addresses, or an empty array if resolution fails
+     */
     InetAddress[] resolveHost(
         String host);
 
+    /**
+     * Returns a {@link PollerKey} wrapping the given NIO channel, registering it with this
+     * thread's I/O poller for event notifications.
+     *
+     * @param channel  the NIO channel to register
+     * @return the poller key for the channel
+     */
     PollerKey supplyPollerKey(
         SelectableChannel channel);
 
+    /**
+     * Returns the namespaced binding id for the given namespace and binding configuration pair.
+     *
+     * @param namespace  the namespace configuration
+     * @param binding    the binding configuration
+     * @return the combined namespaced binding id
+     */
     long supplyBindingId(
         NamespaceConfig namespace,
         BindingConfig binding);
 
+    /**
+     * Resolves the namespace name component of a namespaced id.
+     *
+     * @param namespacedId  the namespaced id
+     * @return the namespace name string
+     */
     String supplyNamespace(
         long namespacedId);
 
+    /**
+     * Resolves the local (binding) name component of a namespaced id.
+     *
+     * @param namespacedId  the namespaced id
+     * @return the local name string
+     */
     String supplyLocalName(
         long namespacedId);
 
+    /**
+     * Resolves the fully-qualified name ({@code namespace.localName}) for a namespaced id.
+     *
+     * @param namespacedId  the namespaced id
+     * @return the qualified name string
+     */
     String supplyQName(
         long namespacedId);
 
+    /**
+     * Resolves an event type name to its integer event id, registering it if necessary.
+     *
+     * @param name  the event type name
+     * @return the integer event id
+     */
     int supplyEventId(
         String name);
 
+    /**
+     * Resolves an integer event id back to its event type name.
+     *
+     * @param eventId  the event id
+     * @return the event type name
+     */
     String supplyEventName(
         int eventId);
 
+    /**
+     * Returns the engine-wide {@link BindingHandler} stream factory, used by bindings to
+     * open new streams to other bindings by routing id.
+     *
+     * @return the stream factory
+     */
     BindingHandler streamFactory();
 
+    /**
+     * Returns the {@link GuardHandler} for the given guard id, previously registered via
+     * the guard's {@link GuardContext}.
+     *
+     * @param guardId  the guard id
+     * @return the guard handler, or {@code null} if not found
+     */
     GuardHandler supplyGuard(
         long guardId);
 
+    /**
+     * Returns the {@link VaultHandler} for the given vault id.
+     *
+     * @param vaultId  the vault id
+     * @return the vault handler, or {@code null} if not found
+     */
     VaultHandler supplyVault(
         long vaultId);
 
+    /**
+     * Returns the {@link CatalogHandler} for the given catalog id.
+     *
+     * @param catalogId  the catalog id
+     * @return the catalog handler, or {@code null} if not found
+     */
     CatalogHandler supplyCatalog(
         long catalogId);
 
+    /**
+     * Returns a {@link ValidatorHandler} configured for the given model configuration.
+     *
+     * @param config  the model configuration
+     * @return the validator handler, or {@code null} if the model does not support validation
+     */
     ValidatorHandler supplyValidator(
         ModelConfig config);
 
+    /**
+     * Returns a {@link ConverterHandler} for converting inbound (read) payloads according
+     * to the given model configuration.
+     *
+     * @param config  the model configuration
+     * @return the read converter handler
+     */
     ConverterHandler supplyReadConverter(
         ModelConfig config);
 
+    /**
+     * Returns a {@link ConverterHandler} for converting outbound (write) payloads according
+     * to the given model configuration.
+     *
+     * @param config  the model configuration
+     * @return the write converter handler
+     */
     ConverterHandler supplyWriteConverter(
         ModelConfig config);
 
+    /**
+     * Returns a {@link LongConsumer} that records CPU utilization samples for this thread.
+     *
+     * @return the utilization metric writer
+     */
     LongConsumer supplyUtilizationMetric();
 
+    /**
+     * Resolves a path string relative to the engine's configured data directory.
+     *
+     * @param location  the relative or absolute path string
+     * @return the resolved absolute {@link java.nio.file.Path}
+     */
     Path resolvePath(
         String location);
 
+    /**
+     * Resolves a path string relative to the engine's local (working) directory.
+     *
+     * @param location  the relative or absolute path string
+     * @return the resolved absolute {@link java.nio.file.Path}
+     */
     Path resolveLocalPath(
             String location);
 
+    /**
+     * Resolves a metric name to its {@link Metric} descriptor.
+     *
+     * @param name  the fully-qualified metric name (e.g., {@code "http.request.size"})
+     * @return the {@link Metric} descriptor, or {@code null} if not found
+     */
     Metric resolveMetric(
         String name);
 
+    /**
+     * Notifies the engine that an exporter has been attached and is ready to consume events.
+     *
+     * @param exporterId  the exporter id
+     */
     void onExporterAttached(
         long exporterId);
 
+    /**
+     * Notifies the engine that an exporter has been detached and should no longer receive events.
+     *
+     * @param exporterId  the exporter id
+     */
     void onExporterDetached(
         long exporterId);
 
+    /**
+     * Returns a {@link LongConsumer} that writes a metric value for the given binding and
+     * metric id, using the appropriate recording mechanism for the metric's kind.
+     *
+     * @param kind       the metric kind (counter, gauge, or histogram)
+     * @param bindingId  the binding id
+     * @param metricId   the metric id
+     * @return a consumer that records metric values
+     */
     LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
         long metricId);
 
+    /**
+     * Returns a {@link MessageConsumer} for writing structured event frames to the engine's
+     * event ring buffer, to be consumed by attached exporters.
+     *
+     * @return the event writer
+     */
     MessageConsumer supplyEventWriter();
 
+    /**
+     * Returns a {@link MessageReader} for reading structured event frames from the engine's
+     * event ring buffer.
+     *
+     * @return the event reader
+     */
     MessageReader supplyEventReader();
 
+    /**
+     * Returns the engine's configured {@link java.time.Clock}, used for consistent time
+     * measurements across all components on this thread.
+     *
+     * @return the clock
+     */
     Clock clock();
 
+    /**
+     * Dispatches a task for execution.
+     * <p>
+     * The default implementation executes the task inline on the calling thread.
+     * Override to schedule the task on a specific thread or executor.
+     * </p>
+     *
+     * @param task  the task to execute
+     */
     default void dispatch(
         Runnable task)
     {

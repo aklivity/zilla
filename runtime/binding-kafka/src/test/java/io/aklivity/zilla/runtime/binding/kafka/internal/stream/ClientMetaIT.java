@@ -107,4 +107,14 @@ public class ClientMetaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.event.topic.authorization.failed.yaml")
+    @Specification({
+        "${app}/topic.authorization.failed/client",
+        "${net}/topic.authorization.failed/server"})
+    public void shouldReceiveTopicAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

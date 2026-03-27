@@ -17,14 +17,35 @@ package io.aklivity.zilla.runtime.engine.util.function;
 
 import java.util.function.BiFunction;
 
+/**
+ * A function that accepts a primitive {@code long} and an object argument and produces a result.
+ * <p>
+ * Extends {@link BiFunction}{@code <Long, U, R>} with an unboxed primitive overload to avoid
+ * autoboxing on the hot path. The boxed {@link #apply(Long, Object)} default delegates to the
+ * primitive overload.
+ * </p>
+ *
+ * @param <U>  the type of the object argument
+ * @param <R>  the result type
+ */
 @FunctionalInterface
 public interface LongObjectBiFunction<U, R> extends BiFunction<Long, U, R>
 {
+    /**
+     * Boxed bridge method; delegates to {@link #apply(long, Object)}.
+     */
     @Override
     default R apply(Long value, U u)
     {
         return this.apply(value.longValue(), u);
     }
 
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param l  the {@code long} argument
+     * @param u  the object argument
+     * @return the result
+     */
     R apply(long l, U u);
 }

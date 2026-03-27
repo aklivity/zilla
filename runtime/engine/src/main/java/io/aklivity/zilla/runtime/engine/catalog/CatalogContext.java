@@ -17,14 +17,37 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
+/**
+ * Per-thread context for a schema catalog.
+ * <p>
+ * Created once per I/O thread by {@link Catalog#supply(EngineContext)} and confined to that
+ * thread. Manages the lifecycle of {@link CatalogHandler} instances for catalog configurations
+ * active on this thread.
+ * </p>
+ *
+ * @see Catalog
+ * @see CatalogHandler
+ */
 public interface CatalogContext
 {
+    /**
+     * Attaches a catalog configuration to this thread's context.
+     *
+     * @param catalog  the catalog configuration to activate
+     * @return a {@link CatalogHandler} for schema resolution and data transformation,
+     *         or {@code null} if this catalog has no per-binding handler
+     */
     default CatalogHandler attach(
         CatalogConfig catalog)
     {
         return null;
     }
 
+    /**
+     * Detaches a previously attached catalog configuration, releasing associated resources.
+     *
+     * @param catalog  the catalog configuration to deactivate
+     */
     default void detach(
         CatalogConfig catalog)
     {

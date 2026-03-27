@@ -25,40 +25,89 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
+/**
+ * Entry point for an authorization guard plugin.
+ * <p>
+ * A {@code Guard} validates and manages session credentials for streams passing through a binding.
+ * The canonical implementation is {@code guard-jwt}, which validates JSON Web Tokens and tracks
+ * session expiry and challenge windows. The guard is queried synchronously on the I/O thread via
+ * the {@link GuardHandler} returned from its {@link GuardContext}.
+ * </p>
+ * <p>
+ * Implementations are discovered via {@link java.util.ServiceLoader} through {@link GuardFactorySpi}.
+ * </p>
+ *
+ * @see GuardContext
+ * @see GuardHandler
+ * @see GuardFactorySpi
+ */
 public interface Guard
 {
+    /**
+     * Returns the unique name identifying this guard type, e.g. {@code "jwt"}.
+     *
+     * @return the guard type name
+     */
     String name();
 
+    /**
+     * Creates a per-thread context for this guard.
+     * <p>
+     * Called once per I/O thread. The returned {@link GuardContext} is confined to that thread
+     * and may hold thread-local state without synchronization.
+     * </p>
+     *
+     * @param context  the engine context for the calling I/O thread
+     * @return a new {@link GuardContext}
+     */
     GuardContext supply(
         EngineContext context);
 
-    /*
-     * Returns a verifier for the specified guarded configuration.
+    /**
+     * Returns a predicate that verifies whether a session identified by its session id is
+     * currently authorized, optionally applying a credential transformation.
+     * <p>
+     * The returned predicate accepts a session id (long) and a {@code UnaryOperator<String>}
+     * for transforming the raw credentials before verification (e.g., extracting a sub-claim).
+     * </p>
      *
-     * @param indexOf  maps session id to engine index
-     * @param config   the guarded configuration
-     *
-     * @return  the session verifier predicate
+     * @param indexOf  function mapping a session id to the index of the engine thread that owns it
+     * @param config   the guarded configuration specifying roles and other constraints
+     * @return a predicate that returns {@code true} if the session is currently authorized
      */
     LongObjectPredicate<UnaryOperator<String>> verifier(
         LongToIntFunction indexOf,
         GuardedConfig config);
 
-    /*
-     * Returns an identifier for the specified guarded configuration.
+    /**
+     * Returns a function that resolves the identity string for an authorized session.
      *
-     * @param indexOf  maps session id to engine index
+     * @param indexOf  function mapping a session id to the index of the engine thread that owns it
      * @param config   the guarded configuration
-     *
-     * @return  the session identity function
+     * @return a function from session id to identity string (e.g., a JWT {@code sub} claim)
      */
     LongFunction<String> identifier(
         LongToIntFunction indexOf,
         GuardedConfig config);
 
+    /**
+     * Returns a function that resolves a named attribute value for an authorized session.
+     * <p>
+     * Attributes are arbitrary string values extracted from credentials (e.g., custom JWT claims).
+     * </p>
+     *
+     * @param indexOf  function mapping a session id to the index of the engine thread that owns it
+     * @param config   the guarded configuration
+     * @return a bi-function from (session id, attribute name) to attribute value string
+     */
     LongObjectBiFunction<String, String> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config);
 
+    /**
+     * Returns a URL pointing to the JSON schema for this guard's configuration options.
+     *
+     * @return the configuration schema URL
+     */
     URL type();
 }

@@ -17,8 +17,35 @@ package io.aklivity.zilla.runtime.engine.event;
 
 import org.agrona.DirectBuffer;
 
+/**
+ * Formats a structured engine event frame into a human-readable string.
+ * <p>
+ * Each binding that emits structured events provides an implementation, registered via
+ * {@link java.util.ServiceLoader} through {@link EventFormatterFactorySpi}. The engine
+ * calls {@link #format} when an exporter or the stdout event writer needs a readable
+ * representation of an event frame — for example, to log a TLS handshake failure or
+ * an HTTP authorization rejection with contextual detail.
+ * </p>
+ * <p>
+ * The {@code buffer} slice passed to {@link #format} uses the same flyweight encoding
+ * as the binding's internal event frames. Implementations decode the frame in-place
+ * without allocating intermediate objects where possible.
+ * </p>
+ *
+ * @see EventFormatterFactorySpi
+ */
 public interface EventFormatterSpi
 {
+    /**
+     * Formats the event frame at {@code buffer[index..index+length)} into a
+     * human-readable string.
+     *
+     * @param buffer  the buffer containing the event frame
+     * @param index   the offset of the event frame in the buffer
+     * @param length  the length of the event frame
+     * @return a human-readable string describing the event, or {@code null} if the
+     *         frame type is not recognised by this formatter
+     */
     String format(
         DirectBuffer buffer,
         int index,

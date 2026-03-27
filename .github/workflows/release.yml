@@ -212,8 +212,8 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Commit CHANGELOG on develop branch
-      run: git commit -a -m "Update CHANGELOG.md"
+    - name: Commit CHANGELOG on develop branch (if needed)
+      run: git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
 
     - name: Push CHANGELOG commit to develop
       run: git push origin develop

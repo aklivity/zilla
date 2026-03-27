@@ -15,8 +15,41 @@
  */
 package io.aklivity.zilla.runtime.engine.resolver;
 
+/**
+ * Resolves a variable name to its string value within a named expression context.
+ * <p>
+ * Zilla supports expression substitution in {@code zilla.yaml} using the syntax
+ * {@code ${{context.varName}}}. The engine splits the expression at the first dot: the
+ * left-hand part ({@code context}) selects the {@code ResolverSpi} implementation via
+ * its {@link ResolverFactorySpi#type()} name; the right-hand part ({@code varName}) is
+ * passed to {@link #resolve(String)}.
+ * </p>
+ * <p>
+ * For example, given the expression {@code ${{env.MY_VAR}}}, the engine invokes
+ * {@code resolve("MY_VAR")} on the {@code ResolverSpi} registered under the
+ * type name {@code "env"}, which looks up the value from the process environment.
+ * </p>
+ * <p>
+ * Implementations are created by a corresponding {@link ResolverFactorySpi} and discovered
+ * via {@link java.util.ServiceLoader}.
+ * </p>
+ *
+ * @see ResolverFactorySpi
+ */
 public interface ResolverSpi
 {
+    /**
+     * Resolves the given variable name to its string value.
+     * <p>
+     * Returns {@code null} if the variable is not defined in this resolver's backing store.
+     * The engine substitutes an empty string in place of {@code null} to avoid propagating
+     * unresolved expressions into the parsed configuration.
+     * </p>
+     *
+     * @param var  the variable name to resolve (the portion after the dot in the expression,
+     *             e.g. {@code "MY_VAR"} from {@code ${{env.MY_VAR}}})
+     * @return the resolved value, or {@code null} if the variable is not defined
+     */
     String resolve(
         String var);
 }

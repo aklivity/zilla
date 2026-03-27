@@ -18,8 +18,23 @@ package io.aklivity.zilla.runtime.engine.catalog;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Catalog} instances.
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi}.
+ * </p>
+ *
+ * @see Catalog
+ */
 public interface CatalogFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link Catalog} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Catalog}
+     */
     Catalog create(
         Configuration config);
 }

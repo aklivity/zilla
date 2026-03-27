@@ -15,13 +15,48 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
+/**
+ * A resolved metric identity, combining the namespaced binding address with the metric name.
+ * <p>
+ * {@code MetricRecord} instances are produced by the engine's metrics reader and consumed
+ * by exporters (e.g., {@code exporter-prometheus}) to label exported metric values with
+ * their fully-qualified binding and metric identifiers.
+ * </p>
+ * <p>
+ * The concrete implementations {@code ScalarRecord} (for counters and gauges) and
+ * {@code HistogramRecord} extend this interface with value-reading methods appropriate
+ * to each metric kind.
+ * </p>
+ *
+ * @see Collector
+ */
 public interface MetricRecord
 {
+    /**
+     * Returns the namespaced binding id that uniquely identifies the binding within the engine.
+     *
+     * @return the binding id
+     */
     long bindingId();
 
+    /**
+     * Returns the namespace component of the binding's qualified name.
+     *
+     * @return the namespace name string
+     */
     String namespace();
 
+    /**
+     * Returns the local name component of the binding within its namespace.
+     *
+     * @return the binding name string
+     */
     String binding();
 
+    /**
+     * Returns the fully-qualified metric name, e.g. {@code "http.request.size"}.
+     *
+     * @return the metric name
+     */
     String metric();
 }

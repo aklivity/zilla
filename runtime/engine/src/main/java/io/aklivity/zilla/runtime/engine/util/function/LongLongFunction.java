@@ -15,8 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.util.function;
 
+/**
+ * A function that accepts two {@code long} arguments and produces a result,
+ * avoiding the boxing overhead of {@link java.util.function.BiFunction BiFunction&lt;Long, Long, R&gt;}.
+ *
+ * @param <R>  the result type
+ */
 @FunctionalInterface
 public interface LongLongFunction<R>
 {
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param value1  the first {@code long} argument
+     * @param value2  the second {@code long} argument
+     * @return the result
+     */
     R apply(long value1, long value2);
 }

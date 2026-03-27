@@ -18,8 +18,23 @@ package io.aklivity.zilla.runtime.engine.guard;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link Guard} instances.
+ * <p>
+ * Implementations must be registered in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi}.
+ * </p>
+ *
+ * @see Guard
+ */
 public interface GuardFactorySpi extends FactorySpi
 {
+    /**
+     * Creates a new {@link Guard} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link Guard}
+     */
     Guard create(
         Configuration config);
 }

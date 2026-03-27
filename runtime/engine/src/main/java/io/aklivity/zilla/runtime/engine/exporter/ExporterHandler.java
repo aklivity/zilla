@@ -15,11 +15,41 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
+/**
+ * Drives the export lifecycle for a single active exporter configuration.
+ * <p>
+ * Obtained from {@link ExporterContext#attach}, an {@code ExporterHandler} is called by the
+ * engine on a scheduled basis. The {@link #export()} method is invoked repeatedly to flush
+ * pending metric and event data to the external system. Returning a positive value signals
+ * that more work is pending; returning zero or negative signals that the export cycle is idle.
+ * </p>
+ *
+ * @see ExporterContext
+ */
 public interface ExporterHandler
 {
+    /**
+     * Called once when the exporter is first activated, before any {@link #export()} calls.
+     * Implementations should open connections, initialize state, or register listeners here.
+     */
     void start();
 
+    /**
+     * Performs one unit of export work — reading collected metrics or events and forwarding
+     * them to the external system.
+     * <p>
+     * The engine calls this method in a polling loop. Returning a positive value requests
+     * an immediate follow-up call (more work pending); returning {@code 0} or negative
+     * allows the engine to back off before the next call.
+     * </p>
+     *
+     * @return a positive value if more work is pending, {@code 0} or negative otherwise
+     */
     int export();
 
+    /**
+     * Called once when the exporter is deactivated, after the final {@link #export()} call.
+     * Implementations should flush any buffered data and close connections here.
+     */
     void stop();
 }

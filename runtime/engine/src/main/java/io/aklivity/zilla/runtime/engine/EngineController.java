@@ -19,8 +19,25 @@ import java.nio.channels.SelectableChannel;
 
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
+/**
+ * Control-plane interface for the engine, provided to binding controllers.
+ * <p>
+ * Unlike {@link EngineContext} which is per-I/O-thread, an {@code EngineController} is used
+ * from the control thread for operations such as registering NIO channels with the engine's
+ * poller outside the normal I/O thread lifecycle.
+ * </p>
+ *
+ * @see BindingController
+ */
 public interface EngineController
 {
+    /**
+     * Returns a {@link PollerKey} for the given NIO channel, registering it with the engine's
+     * I/O poller so that readiness events can be dispatched to a handler.
+     *
+     * @param channel  the NIO channel to register
+     * @return the poller key for the channel
+     */
     PollerKey supplyPollerKey(
         SelectableChannel channel);
 }

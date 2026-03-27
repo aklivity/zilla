@@ -17,11 +17,33 @@ package io.aklivity.zilla.runtime.engine.vault;
 
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
+/**
+ * Per-thread context for a cryptographic material vault.
+ * <p>
+ * Created once per I/O thread by {@link Vault#supply(EngineContext)}. Manages the lifecycle
+ * of {@link VaultHandler} instances for vault configurations active on this thread.
+ * </p>
+ *
+ * @see Vault
+ * @see VaultHandler
+ */
 public interface VaultContext
 {
+    /**
+     * Attaches a vault configuration to this thread's context and returns a handler
+     * for accessing its cryptographic material.
+     *
+     * @param vault  the vault configuration to activate
+     * @return a {@link VaultHandler} for retrieving keys and certificates
+     */
     VaultHandler attach(
         VaultConfig vault);
 
+    /**
+     * Detaches a previously attached vault configuration, releasing associated resources.
+     *
+     * @param vault  the vault configuration to deactivate
+     */
     void detach(
         VaultConfig vault);
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -237,7 +238,7 @@ public class ProtobufModelHandler
             }
             catch (Exception ex)
             {
-                ex.printStackTrace();
+                LangUtil.rethrowUnchecked(ex);
             }
         }
         return descriptor;

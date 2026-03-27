@@ -19,21 +19,65 @@ import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
+/**
+ * Per-thread recording context for a single {@link Metric}.
+ * <p>
+ * Obtained from {@link Metric#supply(EngineContext)}, a {@code MetricContext} supplies a
+ * {@link MessageConsumer} interceptor that the engine inserts into the stream pipeline to
+ * observe and record metric values as frames flow through. Because the interceptor is called
+ * on a single I/O thread, metric recording requires no synchronization.
+ * </p>
+ *
+ * @see Metric
+ */
 public interface MetricContext
 {
+    /**
+     * The direction of stream traffic that a metric observes.
+     */
     enum Direction
     {
+        /** Metric is recorded on inbound (received) frames only. */
         RECEIVED,
+        /** Metric is recorded on outbound (sent) frames only. */
         SENT,
+        /** Metric is recorded on frames in both directions. */
         BOTH
     }
 
+    /**
+     * Returns the name of the metric group this context belongs to,
+     * e.g. {@code "http"} or {@code "kafka"}.
+     *
+     * @return the metric group name
+     */
     String group();
 
+    /**
+     * Returns the recording kind for the metric this context measures.
+     *
+     * @return the metric kind
+     */
     Metric.Kind kind();
 
+    /**
+     * Returns the traffic direction that this metric context observes.
+     *
+     * @return the recording direction
+     */
     Direction direction();
 
+    /**
+     * Returns a {@link MessageConsumer} interceptor that records values for this metric.
+     * <p>
+     * The returned consumer is inserted into the stream pipeline by the engine and calls
+     * {@code recorder} with each observed value (e.g., frame payload length for a byte
+     * counter, or elapsed time for a latency histogram).
+     * </p>
+     *
+     * @param recorder  the {@link LongConsumer} that receives each observed metric value
+     * @return a {@link MessageConsumer} to interpose on the stream pipeline
+     */
     MessageConsumer supply(
         LongConsumer recorder);
 }

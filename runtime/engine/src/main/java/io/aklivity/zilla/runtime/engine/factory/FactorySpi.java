@@ -15,7 +15,32 @@
  */
 package io.aklivity.zilla.runtime.engine.factory;
 
+/**
+ * Base service provider interface for all engine plugin factories.
+ * <p>
+ * Every plugin type — binding, guard, vault, catalog, exporter, model — has a corresponding
+ * {@code FactorySpi} sub-interface. The {@link #type()} method returns the plugin type name
+ * that the engine uses to match the {@code type} field in {@code zilla.yaml} to the correct
+ * factory implementation discovered via {@link java.util.ServiceLoader}.
+ * </p>
+ *
+ * @see BindingFactorySpi
+ * @see GuardFactorySpi
+ * @see VaultFactorySpi
+ * @see CatalogFactorySpi
+ * @see ExporterFactorySpi
+ * @see ModelFactorySpi
+ */
 public interface FactorySpi
 {
+    /**
+     * Returns the plugin type name, e.g. {@code "http"}, {@code "jwt"}, {@code "filesystem"}.
+     * <p>
+     * This value must match the {@code type} field used in {@code zilla.yaml} configuration
+     * for the engine to associate the configuration entry with this factory.
+     * </p>
+     *
+     * @return the plugin type name
+     */
     String type();
 }

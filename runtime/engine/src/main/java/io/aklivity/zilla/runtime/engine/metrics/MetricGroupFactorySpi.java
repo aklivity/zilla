@@ -18,10 +18,37 @@ package io.aklivity.zilla.runtime.engine.metrics;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+/**
+ * Service provider interface for creating {@link MetricGroup} instances.
+ * <p>
+ * Each metrics module (e.g., {@code metrics-http}, {@code metrics-kafka}) provides an
+ * implementation registered via {@link java.util.ServiceLoader} in
+ * {@code META-INF/services/io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi}.
+ * The {@link #type()} name identifies the metric namespace prefix
+ * (e.g., {@code "http"} for metrics named {@code "http.*"}).
+ * </p>
+ *
+ * @see MetricGroup
+ */
 public interface MetricGroupFactorySpi extends FactorySpi
 {
+    /**
+     * Returns the metric group type name, e.g. {@code "http"}, {@code "kafka"}.
+     * <p>
+     * Serves as both the {@link FactorySpi#type()} discriminator for discovery and the
+     * namespace prefix used in metric names within this group.
+     * </p>
+     *
+     * @return the metric group type name
+     */
     String type();
 
+    /**
+     * Creates a new {@link MetricGroup} instance for the given engine configuration.
+     *
+     * @param config  the engine configuration
+     * @return a new {@link MetricGroup}
+     */
     MetricGroup create(
         Configuration config);
 }
