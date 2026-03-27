@@ -73,6 +73,16 @@ public class ClientMetaSaslIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.event.sasl.authentication.failed.yaml")
+    @Specification({
+        "${app}/sasl.authentication.failed/client",
+        "${net}/sasl.authentication.failed/server"})
+    public void shouldReceiveSaslAuthenticationFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String supplyNonce()
     {
         return "fyko+d2lbbFgONRv9qkxdawL";

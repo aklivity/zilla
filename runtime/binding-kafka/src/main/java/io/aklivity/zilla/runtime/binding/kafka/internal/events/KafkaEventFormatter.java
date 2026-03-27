@@ -23,6 +23,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVers
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaClusterAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaSaslAuthenticationFailedExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTopicAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -65,6 +67,21 @@ public final class KafkaEventFormatter implements EventFormatterSpi
             final KafkaClusterAuthorizationFailedExFW ex = extension.clusterAuthorizationFailed();
             KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
             result = String.format("%s (Version: %d)", apiKey.title(), ex.apiVersion());
+            break;
+        }
+        case TOPIC_AUTHORIZATION_FAILED:
+        {
+            final KafkaTopicAuthorizationFailedExFW ex = extension.topicAuthorizationFailed();
+            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
+            result = String.format("%s (Version: %d) Topic authorization failed for topic (%s).",
+                apiKey.title(), ex.apiVersion(), asString(ex.topic()));
+            break;
+        }
+        case SASL_AUTHENTICATION_FAILED:
+        {
+            final KafkaSaslAuthenticationFailedExFW ex = extension.saslAuthenticationFailed();
+            result = String.format("SASL authentication failed for identity (%s): %s",
+                asString(ex.identity()), asString(ex.error()));
             break;
         }
         }
