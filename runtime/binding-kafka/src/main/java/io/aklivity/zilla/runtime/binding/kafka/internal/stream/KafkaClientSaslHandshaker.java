@@ -434,6 +434,16 @@ public abstract class KafkaClientSaslHandshaker
             long bindingId,
             int apiKey,
             int apiVersion,
+            int errorCode)
+        {
+            onDecodeResponseErrorCode(traceId, bindingId, apiKey, apiVersion, errorCode, null);
+        }
+
+        protected final void onDecodeResponseErrorCode(
+            long traceId,
+            long bindingId,
+            int apiKey,
+            int apiVersion,
             int errorCode,
             String topic)
         {
@@ -441,7 +451,8 @@ public abstract class KafkaClientSaslHandshaker
             {
             case ERROR_CLUSTER_AUTHORIZATION_FAILED -> event.clusterAuthorizationFailed(traceId, bindingId, apiKey, apiVersion);
             case ERROR_UNSUPPORTED_VERSION -> event.apiVersionRejected(traceId, bindingId, apiKey, apiVersion);
-            case ERROR_TOPIC_AUTHORIZATION_FAILED ->  event.topicAuthorizationFailed(traceId, bindingId, topic);
+            case ERROR_TOPIC_AUTHORIZATION_FAILED ->  event.topicAuthorizationFailed(traceId, bindingId, apiKey,
+                apiVersion, topic);
             }
         }
 
@@ -782,7 +793,7 @@ public abstract class KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username, null);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }
@@ -832,7 +843,7 @@ public abstract class KafkaClientSaslHandshaker
                 if (!Arrays.equals(Base64.getDecoder().decode(serverFinalMessage),
                         serverSignature))
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username, null);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }

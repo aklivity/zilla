@@ -1028,7 +1028,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 int errorCode)
             {
                 super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION,
-                    errorCode, null);
+                    errorCode);
             }
 
             private void onNetwork(

@@ -72,7 +72,9 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         case TOPIC_AUTHORIZATION_FAILED:
         {
             final KafkaTopicAuthorizationFailedExFW ex = extension.topicAuthorizationFailed();
-            result = String.format("Topic authorization failed for topic (%s).", asString(ex.topic()));
+            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
+            result = String.format("%s (Version: %d) Topic authorization failed for topic (%s).",
+                apiKey.title(), ex.apiVersion(), asString(ex.topic()));
             break;
         }
         case SASL_AUTHENTICATION_FAILED:

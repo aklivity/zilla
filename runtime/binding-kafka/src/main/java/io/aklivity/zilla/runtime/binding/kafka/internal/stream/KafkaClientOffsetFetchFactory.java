@@ -666,7 +666,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 break;
             default:
                 client.onDecodeResponseErrorCode(traceId, client.originId, OFFSET_FETCH_API_KEY, OFFSET_FETCH_API_VERSION,
-                    errorCode, null);
+                    errorCode);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
                 break;

@@ -945,7 +945,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break;
                 default:
                     client.onDecodeResponseErrorCode(traceId, client.originId, FIND_COORDINATOR_API_KEY,
-                        FIND_COORDINATOR_API_VERSION, errorCode, null);
+                        FIND_COORDINATOR_API_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeClusterReject;
                     break;
@@ -1095,8 +1095,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         joinGroupResponse.memberId().asString());
                     break;
                 default:
-                    client.onDecodeResponseErrorCode(traceId, client.originId, JOIN_GROUP_API_KEY, JOIN_GROUP_VERSION, errorCode,
-                        null);
+                    client.onDecodeResponseErrorCode(traceId, client.originId, JOIN_GROUP_API_KEY, JOIN_GROUP_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeJoinGroupReject;
                     break;
@@ -1156,8 +1155,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
                     break;
                 default:
-                    client.onDecodeResponseErrorCode(traceId, client.originId, SYNC_GROUP_API_KEY, SYNC_GROUP_VERSION, errorCode,
-                        null);
+                    client.onDecodeResponseErrorCode(traceId, client.originId, SYNC_GROUP_API_KEY, SYNC_GROUP_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1220,8 +1218,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onHeartbeatResponse(traceId, authorization);
                     break;
                 default:
-                    client.onDecodeResponseErrorCode(traceId, client.originId, HEARTBEAT_API_KEY, HEARTBEAT_VERSION, errorCode,
-                        null);
+                    client.onDecodeResponseErrorCode(traceId, client.originId, HEARTBEAT_API_KEY, HEARTBEAT_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1288,7 +1285,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             else
                             {
                                 client.onDecodeResponseErrorCode(traceId, client.originId, LEAVE_GROUP_API_KEY,
-                                    LEAVE_GROUP_VERSION, errorCode, null);
+                                    LEAVE_GROUP_VERSION, errorCode);
                                 client.errorCode = errorCode;
                                 client.decoder = decodeCoordinatorReject;
                             }
@@ -1304,7 +1301,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 else
                 {
                     client.onDecodeResponseErrorCode(traceId, client.originId, LEAVE_GROUP_API_KEY, LEAVE_GROUP_VERSION,
-                        errorCode, null);
+                        errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                 }
@@ -2682,8 +2679,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long originId,
             int errorCode)
         {
-            super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION, errorCode,
-                null);
+            super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION, errorCode);
         }
 
         private void onNetwork(

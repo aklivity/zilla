@@ -139,12 +139,16 @@ public class KafkaEventContext
     public void topicAuthorizationFailed(
         long traceId,
         long bindingId,
+        int apiKey,
+        int apiVersion,
         String topic)
     {
         KafkaEventExFW extension = kafkaEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .topicAuthorizationFailed(e -> e
                 .typeId(TOPIC_AUTHORIZATION_FAILED.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
                 .topic(topic)
             )
             .build();
@@ -157,6 +161,14 @@ public class KafkaEventContext
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void saslAuthenticationFailed(
+        long traceId,
+        long bindingId,
+        String identity)
+    {
+        saslAuthenticationFailed(traceId, bindingId, identity, null);
     }
 
     public void saslAuthenticationFailed(

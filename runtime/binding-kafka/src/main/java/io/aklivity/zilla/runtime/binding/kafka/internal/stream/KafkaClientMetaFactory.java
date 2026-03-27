@@ -1836,8 +1836,16 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 }
                 else
                 {
-                    onDecodeResponseErrorCode(traceId, originId, partitionError, null);
+                    onDecodeResponseErrorCode(traceId, originId, partitionError);
                 }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                onDecodeResponseErrorCode(traceId, originId, errorCode, null);
             }
 
             private void onDecodeResponseErrorCode(

@@ -29,7 +29,7 @@ telemetry:
           - qname: test:app0
             id: binding.kafka.topic.authorization.failed
             name: BINDING_KAFKA_TOPIC_AUTHORIZATION_FAILED
-            message: "Topic authorization failed for topic (test)."
+            message: "Metadata (Version: 5) Topic authorization failed for topic (test)."
           - qname: engine:events
             id: engine.stopped
             name: ENGINE_STOPPED

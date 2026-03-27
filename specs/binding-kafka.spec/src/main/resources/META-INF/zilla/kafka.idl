@@ -693,6 +693,8 @@ scope kafka
 
         struct KafkaTopicAuthorizationFailedEx extends core::stream::Extension
         {
+            int32 apiKey;
+            int32 apiVersion;
             string8 topic = null;
         }
 
