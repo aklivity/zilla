@@ -15,7 +15,7 @@
 module io.aklivity.zilla.runtime.filesystem.http
 {
     requires java.net.http;
-    requires org.agrona.core;
+    requires org.agrona;
 
     exports io.aklivity.zilla.runtime.filesystem.http;
 
