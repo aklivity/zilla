@@ -757,6 +757,7 @@ public final class ZpmInstall extends ZpmCommand
             "fi",
             "ZILLA_DIRECTORY=\"${0%/*}\"",
             "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
+            "JAVA_OPTIONS=\"$JAVA_OPTIONS --add-opens java.base/jdk.internal.misc=ALL-UNNAMED\"",
             String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "$JAVA_OPTIONS",
