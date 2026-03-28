@@ -16,7 +16,6 @@ module io.aklivity.zilla.runtime.model.avro
 {
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
-    requires org.slf4j;
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.model.avro.config;
