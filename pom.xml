@@ -56,7 +56,7 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>2.4.0</agrona.version>
-    <slf4j.version>1.7.36</slf4j.version>
+    <slf4j.version>2.0.17</slf4j.version>
     <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.26</byteman.version>
     <jmock.version>2.6.0</jmock.version>
