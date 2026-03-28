@@ -434,7 +434,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.5.5</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/jdk.internal.misc=ALL-UNNAMED</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=org.agrona</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -447,7 +447,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.5.5</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true --add-opens java.base/jdk.internal.misc=ALL-UNNAMED</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+EnableDynamicAgentLoading --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=org.agrona</argLine>
           </configuration>
           <executions>
             <execution>
