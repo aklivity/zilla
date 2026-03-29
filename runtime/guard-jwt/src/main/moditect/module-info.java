@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.guard.jwt
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires org.slf4j;
 
     exports io.aklivity.zilla.runtime.guard.jwt.config;
 
