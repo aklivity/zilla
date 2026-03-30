@@ -77,7 +77,7 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
 
     - name: Build
-      run: ./mvnw -B -nsu -DskipTests install
+      run: ./mvnw -B -nsu -DskipTests -Ddocker.skip install
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
