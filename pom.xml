@@ -140,6 +140,11 @@
         <version>${antlr4.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>33.5.0-jre</version>
+      </dependency>
+      <dependency>
         <groupId>com.squareup</groupId>
         <artifactId>javapoet</artifactId>
         <version>1.13.0</version>
