@@ -17,7 +17,7 @@ module io.aklivity.zilla.runtime.command.start
 {
     requires io.aklivity.zilla.runtime.command;
 
-    requires org.agrona.core;
+    requires org.agrona;
     requires io.aklivity.zilla.runtime.engine;
 
     opens io.aklivity.zilla.runtime.command.start.internal.airline
