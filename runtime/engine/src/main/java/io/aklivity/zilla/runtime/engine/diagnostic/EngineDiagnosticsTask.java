@@ -78,7 +78,7 @@ public abstract class EngineDiagnosticsTask implements Runnable
                         throws IOException
                     {
                         Path relative = engineDirectory.relativize(file);
-                        Path dest = snapshotDir.resolve(relative);
+                        Path dest = snapshotDir.resolve("engine").resolve(relative);
                         Files.createDirectories(dest.getParent());
                         Files.copy(file, dest);
                         return FileVisitResult.CONTINUE;

@@ -70,8 +70,8 @@ public class EngineDiagnosticsTaskTest
             Path zip = files.filter(p -> p.toString().endsWith(".zip")).findFirst().orElseThrow();
             try (ZipFile zipFile = new ZipFile(zip.toFile()))
             {
-                assertTrue(zipFile.getEntry("worker.0") != null);
-                assertTrue(zipFile.getEntry("worker.1") != null);
+                assertTrue(zipFile.getEntry("engine/worker.0") != null);
+                assertTrue(zipFile.getEntry("engine/worker.1") != null);
             }
         }
     }
@@ -118,7 +118,7 @@ public class EngineDiagnosticsTaskTest
             Path zip = files.filter(p -> p.toString().endsWith(".zip")).findFirst().orElseThrow();
             try (ZipFile zipFile = new ZipFile(zip.toFile()))
             {
-                assertTrue(zipFile.getEntry("sub/file.bin") != null);
+                assertTrue(zipFile.getEntry("engine/sub/file.bin") != null);
             }
         }
     }
