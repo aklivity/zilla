@@ -17,6 +17,7 @@ module io.aklivity.zilla.runtime.engine
 {
     exports io.aklivity.zilla.runtime.engine;
     exports io.aklivity.zilla.runtime.engine.config;
+    exports io.aklivity.zilla.runtime.engine.diagnostic;
 
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
