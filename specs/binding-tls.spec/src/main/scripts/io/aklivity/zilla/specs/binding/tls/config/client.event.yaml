@@ -29,7 +29,7 @@ telemetry:
                     - qname: test:app0
                       id: binding.tls.handshake.timeout
                       name: BINDING_TLS_HANDSHAKE_TIMEOUT
-                      message: The client and server could not negotiate the desired level of security.
+                      message: The handshake did not complete before the timeout expired.
 vaults:
     client:
         type: test
