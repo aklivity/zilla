@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.command.start.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIAGNOSTICS_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EVENTS;
@@ -39,10 +40,12 @@ import org.agrona.ErrorHandler;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
+import sun.misc.Signal;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.EngineDiagnosticsTask;
 
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
@@ -81,6 +84,10 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = {"-l", "--logs"},
         description = "Show log events")
     public boolean events;
+
+    @Option(name = {"--diagnostics-directory"},
+        description = "Diagnostics directory")
+    public String diagnosticsDirectory;
 
     @Override
     public void run()
@@ -140,6 +147,11 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(events));
         }
 
+        if (diagnosticsDirectory != null)
+        {
+            props.setProperty(ENGINE_DIAGNOSTICS_DIRECTORY.name(), diagnosticsDirectory);
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
 
         Path configPath = Path.of(config.configURI());
@@ -158,7 +170,18 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        final ErrorHandler onError = ex -> stop.countDown();
+        Path diagnosticsDir = config.diagnosticsDirectory();
+        Runnable diagnosticsTask = diagnosticsDir != null
+            ? new EngineDiagnosticsTask(config.directory(), diagnosticsDir)
+            : () -> {};
+
+        Signal.handle(new Signal("USR1"), signal -> diagnosticsTask.run());
+
+        final ErrorHandler onError = ex ->
+        {
+            diagnosticsTask.run();
+            stop.countDown();
+        };
         final Consumer<Throwable> errorReporter = config.errorReporter();
 
         try (Engine engine = Engine.builder()

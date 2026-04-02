@@ -102,6 +102,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
     public static final PropertyDef<ErrorReporter> ENGINE_ERROR_REPORTER;
     public static final PropertyDef<RevocationStrategy> ENGINE_CERTIFICATE_REVOCATION_STRATEGY;
+    public static final PropertyDef<Path> ENGINE_DIAGNOSTICS_DIRECTORY;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -166,6 +167,8 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeErrorReporter, EngineConfiguration::defaultErrorReporter);
         ENGINE_CERTIFICATE_REVOCATION_STRATEGY = config.property(RevocationStrategy.class, "certificate.revocation.strategy",
             EngineConfiguration::decodeRevocationStrategy, RevocationStrategy.NONE);
+        ENGINE_DIAGNOSTICS_DIRECTORY = config.property(Path.class, "diagnostics.directory",
+            EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
         ENGINE_CONFIG = config;
     }
 
@@ -233,6 +236,11 @@ public class EngineConfiguration extends Configuration
     public final Path cacheDirectory()
     {
         return ENGINE_CACHE_DIRECTORY.get(this);
+    }
+
+    public final Path diagnosticsDirectory()
+    {
+        return ENGINE_DIAGNOSTICS_DIRECTORY.get(this);
     }
 
     public int bufferPoolCapacity()
@@ -516,6 +524,13 @@ public class EngineConfiguration extends Configuration
         String cacheDirectory)
     {
         return Paths.get(ENGINE_DIRECTORY.get(config)).resolve(cacheDirectory);
+    }
+
+    private static Path decodeDiagnosticsDirectory(
+        Configuration config,
+        String directory)
+    {
+        return directory != null ? Paths.get(directory) : null;
     }
 
     @FunctionalInterface
