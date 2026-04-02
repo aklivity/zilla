@@ -1201,7 +1201,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             assert segmentNode != null;
 
-            if (segmentNode != partition.sentinel())
+            if (segmentNode != partition.sentinel() && segmentNode != partition.head())
             {
                 final long deleteAt = partition.deleteAt(segmentNode.segment(), retentionMillisMax);
                 this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
