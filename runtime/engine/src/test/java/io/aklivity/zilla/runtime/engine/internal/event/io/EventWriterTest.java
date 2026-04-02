@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.layouts;
+package io.aklivity.zilla.runtime.engine.internal.event.io;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -25,7 +25,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-public class EventsLayoutTest
+public class EventWriterTest
 {
     private static final Path PATH = Paths.get("target/zilla-itests/events0");
     private static final int CAPACITY = 1024;
@@ -36,20 +36,19 @@ public class EventsLayoutTest
     public void shouldWriteAndReadEvents()
     {
         // GIVEN
-        EventsLayout layout = new EventsLayout.Builder()
-            .path(PATH)
-            .capacity(CAPACITY)
-            .build();
-        layout.writeEvent(42, new UnsafeBuffer(), 0, 0);
-        msgTypeId = 0;
-        EventsLayout.EventAccessor accessor = layout.createEventAccessor();
+        try (EventWriter writer = new EventWriter(PATH, CAPACITY))
+        {
+            writer.writeEvent(42, new UnsafeBuffer(), 0, 0);
+            msgTypeId = 0;
+            EventAccessor accessor = writer.createEventAccessor();
 
-        // WHEN
-        int count = accessor.readEvent(this::readEvent, 1);
+            // WHEN
+            int count = accessor.readEvent(this::readEvent, 1);
 
-        // THEN
-        assertThat(count, equalTo(1));
-        assertThat(msgTypeId, equalTo(42));
+            // THEN
+            assertThat(count, equalTo(1));
+            assertThat(msgTypeId, equalTo(42));
+        }
     }
 
     private void readEvent(
