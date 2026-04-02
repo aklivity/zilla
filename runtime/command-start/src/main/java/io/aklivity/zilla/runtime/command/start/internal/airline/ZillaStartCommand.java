@@ -40,12 +40,12 @@ import org.agrona.ErrorHandler;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
-import sun.misc.Signal;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.EngineDiagnosticsTask;
+import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
+import sun.misc.Signal;
 
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
@@ -170,12 +170,9 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        Path diagnosticsDir = config.diagnosticsDirectory();
-        Runnable diagnosticsTask = diagnosticsDir != null
-            ? new EngineDiagnosticsTask(config.directory(), diagnosticsDir)
-            : () -> {};
+        EngineDiagnosticsTask diagnosticsTask = EngineDiagnosticsTask.of(config);
 
-        Signal.handle(new Signal("USR1"), signal -> diagnosticsTask.run());
+        Signal.handle(new Signal("USR2"), signal -> diagnosticsTask.run());
 
         final ErrorHandler onError = ex ->
         {
