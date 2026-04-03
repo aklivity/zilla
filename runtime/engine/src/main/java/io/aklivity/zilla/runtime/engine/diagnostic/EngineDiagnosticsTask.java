@@ -36,25 +36,25 @@ public abstract class EngineDiagnosticsTask implements Runnable
     public static EngineDiagnosticsTask of(
         EngineConfiguration config)
     {
-        Path diagnosticsDir = config.diagnosticsDirectory();
-        return diagnosticsDir != null
-            ? new EngineDiagnosticsTaskCapture(config.directory(), diagnosticsDir)
-            : new EngineDiagnosticsTaskNoOp();
+        Path diagnosticsPath = config.diagnosticsDirectory();
+        return diagnosticsPath != null
+            ? new CaptureTask(config.directory(), diagnosticsPath)
+            : new NoOpTask();
     }
 
-    private static final class EngineDiagnosticsTaskCapture extends EngineDiagnosticsTask
+    private static final class CaptureTask extends EngineDiagnosticsTask
     {
         private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
-        private final Path engineDirectory;
-        private final Path diagnosticsDirectory;
+        private final Path enginePath;
+        private final Path diagnosticsPath;
 
-        private EngineDiagnosticsTaskCapture(
-            Path engineDirectory,
-            Path diagnosticsDirectory)
+        private CaptureTask(
+            Path enginePath,
+            Path diagnosticsPath)
         {
-            this.engineDirectory = engineDirectory;
-            this.diagnosticsDirectory = diagnosticsDirectory;
+            this.enginePath = enginePath;
+            this.diagnosticsPath = diagnosticsPath;
         }
 
         @Override
@@ -62,14 +62,14 @@ public abstract class EngineDiagnosticsTask implements Runnable
         {
             String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
             String snapshotName = String.format("zilla-diagnostics-%s", timestamp);
-            Path snapshotDir = diagnosticsDirectory.resolve(snapshotName);
-            Path archivePath = diagnosticsDirectory.resolve(snapshotName + ".zip");
+            Path snapshotPath = diagnosticsPath.resolve(snapshotName);
+            Path archivePath = diagnosticsPath.resolve(snapshotName + ".zip");
 
             try
             {
-                Files.createDirectories(diagnosticsDirectory);
+                Files.createDirectories(diagnosticsPath);
 
-                Files.walkFileTree(engineDirectory, new SimpleFileVisitor<>()
+                Files.walkFileTree(enginePath, new SimpleFileVisitor<>()
                 {
                     @Override
                     public FileVisitResult visitFile(
@@ -77,8 +77,8 @@ public abstract class EngineDiagnosticsTask implements Runnable
                         BasicFileAttributes attrs)
                         throws IOException
                     {
-                        Path relative = engineDirectory.relativize(file);
-                        Path dest = snapshotDir.resolve("engine").resolve(relative);
+                        Path relative = enginePath.relativize(file);
+                        Path dest = snapshotPath.resolve("engine").resolve(relative);
                         Files.createDirectories(dest.getParent());
                         Files.copy(file, dest);
                         return FileVisitResult.CONTINUE;
@@ -96,7 +96,7 @@ public abstract class EngineDiagnosticsTask implements Runnable
                 try (OutputStream out = Files.newOutputStream(archivePath);
                      ZipOutputStream zipOut = new ZipOutputStream(out))
                 {
-                    Files.walkFileTree(snapshotDir, new SimpleFileVisitor<>()
+                    Files.walkFileTree(snapshotPath, new SimpleFileVisitor<>()
                     {
                         @Override
                         public FileVisitResult visitFile(
@@ -104,7 +104,7 @@ public abstract class EngineDiagnosticsTask implements Runnable
                             BasicFileAttributes attrs)
                             throws IOException
                         {
-                            Path relative = snapshotDir.relativize(file);
+                            Path relative = snapshotPath.relativize(file);
                             zipOut.putNextEntry(new ZipEntry(relative.toString()));
                             Files.copy(file, zipOut);
                             zipOut.closeEntry();
@@ -113,7 +113,7 @@ public abstract class EngineDiagnosticsTask implements Runnable
                     });
                 }
 
-                try (Stream<Path> stream = Files.walk(snapshotDir))
+                try (Stream<Path> stream = Files.walk(snapshotPath))
                 {
                     stream.sorted(Comparator.reverseOrder())
                           .forEach(p ->
@@ -138,7 +138,7 @@ public abstract class EngineDiagnosticsTask implements Runnable
         }
     }
 
-    private static final class EngineDiagnosticsTaskNoOp extends EngineDiagnosticsTask
+    private static final class NoOpTask extends EngineDiagnosticsTask
     {
         @Override
         public void run()

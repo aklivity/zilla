@@ -86,7 +86,7 @@ public final class ZillaStartCommand extends ZillaCommand
 
     @Option(name = {"--diagnostics-directory"},
         description = "Diagnostics directory")
-    public String diagnosticsDirectory;
+    public String diagnosticsPath;
 
     @Override
     public void run()
@@ -146,9 +146,9 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(events));
         }
 
-        if (diagnosticsDirectory != null)
+        if (diagnosticsPath != null)
         {
-            props.setProperty(ENGINE_DIAGNOSTICS_DIRECTORY.name(), diagnosticsDirectory);
+            props.setProperty(ENGINE_DIAGNOSTICS_DIRECTORY.name(), diagnosticsPath);
         }
 
         EngineConfiguration config = new EngineConfiguration(props);
@@ -170,7 +170,6 @@ public final class ZillaStartCommand extends ZillaCommand
         }
 
         final ErrorHandler onError = ex -> stop.countDown();
-
         final Consumer<Throwable> errorReporter = config.errorReporter();
 
         try (Engine engine = Engine.builder()
