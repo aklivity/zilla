@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerFetchFactory.SIZE_OF_FLUSH_WITH_EXTENSION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation.READ_COMMITTED;
@@ -61,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -1254,6 +1256,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long filters = cursor.filters;
             final long ownerId = nextEntry.ownerId();
             final int entryFlags = nextEntry.flags();
+            final KafkaTimestampType timestampType = (entryFlags & CACHE_ENTRY_FLAGS_AUTHORITATIVE) != 0
+                    ? KafkaTimestampType.AUTHORITATIVE
+                    : KafkaTimestampType.ADVISORY;
             final KafkaKeyFW key = nextEntry.paddedKey().key();
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
@@ -1324,20 +1329,21 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 switch (flags & ~FLAG_SKIP)
                 {
                 case FLAG_INIT | FLAG_FIN:
-                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, trailers, deltaType, ancestor,
-                                          fragment, reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
+                    doClientReplyDataFull(traceId, timestamp, timestampType, ownerId, filters, key, headers, trailers,
+                        deltaType, ancestor, fragment, reserved, flags, partitionId, partitionOffset, stableOffset,
+                        latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, ownerId, filters, key, deltaType,
-                                          ancestor, fragment, reserved, length, flags, partitionId, partitionOffset,
-                                          stableOffset, latestOffset);
+                    doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, timestampType, ownerId, filters,
+                        key, deltaType, ancestor, fragment, reserved, length, flags, partitionId, partitionOffset, stableOffset,
+                        latestOffset);
                     break;
                 case FLAG_NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
                     break;
                 case FLAG_FIN:
                     doClientReplyDataFin(traceId, headers, trailers, deltaType, ancestor, fragment,
-                                         reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
+                        reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 }
 
@@ -1362,6 +1368,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientReplyDataFull(
             long traceId,
             long timestamp,
+            KafkaTimestampType timestampType,
             long producerId,
             long filters,
             KafkaKeyFW key,
@@ -1384,6 +1391,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .fetch(f -> f.timestamp(timestamp)
                                      .producerId(producerId)
                                      .filters(filters)
+                                     .timestampType(t -> t.set(timestampType))
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
                                                       .stableOffset(stableOffset)
@@ -1411,6 +1419,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             ArrayFW<KafkaHeaderFW> trailers,
             int deferred,
             long timestamp,
+            KafkaTimestampType timestampType,
             long producerId,
             long filters,
             KafkaKeyFW key,
@@ -1433,6 +1442,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                      .timestamp(timestamp)
                                      .producerId(producerId)
                                      .filters(filters)
+                                     .timestampType(t -> t.set(timestampType))
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
                                                       .stableOffset(stableOffset)
@@ -1519,6 +1529,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     ? KafkaTransactionResult.COMMIT
                     : KafkaTransactionResult.ABORT;
             final long abortedId = nextEntry.ownerId();
+            final long timestamp = nextEntry.timestamp();
             final long stableOffset = group.stableOffset;
             final long latestOffset = group.latestOffset;
 
@@ -1536,7 +1547,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                 .latestOffset(latestOffset))
                             .transactionsItem(t -> t
                                 .result(r -> r.set(result))
-                                .producerId(abortedId)))
+                                .producerId(abortedId)
+                                .timestamp(timestamp)))
                         .build()
                         .sizeof()));
 
