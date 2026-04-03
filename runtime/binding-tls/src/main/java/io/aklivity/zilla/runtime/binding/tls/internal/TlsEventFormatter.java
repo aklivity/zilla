@@ -44,30 +44,23 @@ public final class TlsEventFormatter implements EventFormatterSpi
         switch (extension.kind())
         {
         case TLS_FAILED:
-        {
             result = "There was a generic error detected by an SSL subsystem.";
             break;
-        }
         case TLS_PROTOCOL_REJECTED:
-        {
             result = "There was an error in the operation of the SSL protocol.";
             break;
-        }
         case TLS_KEY_REJECTED:
-        {
             result = "Bad SSL key due to misconfiguration of the server or client SSL certificate and private key.";
             break;
-        }
         case TLS_PEER_NOT_VERIFIED:
-        {
             result = "The peer's identity could not be verified.";
             break;
-        }
         case TLS_HANDSHAKE_FAILED:
-        {
             result = "The client and server could not negotiate the desired level of security.";
             break;
-        }
+        case TLS_HANDSHAKE_TIMEOUT:
+            result = "The handshake did not complete before the timeout expired.";
+            break;
         }
         return result;
     }
