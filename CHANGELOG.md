@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.10...HEAD)
+
+**Closed issues:**
+
+- Support `zilla start ... --diagnostics-directory` to capture engine state [\#1663](https://github.com/aklivity/zilla/issues/1663)
+
+**Merged pull requests:**
+
+- omit examples without test script [\#1695](https://github.com/aklivity/zilla/pull/1695) ([ankitk-me](https://github.com/ankitk-me))
+- Fix kafka cache segment cleanup [\#1694](https://github.com/aklivity/zilla/pull/1694) ([jfallows](https://github.com/jfallows))
+- Fix event log cleanup [\#1693](https://github.com/aklivity/zilla/pull/1693) ([jfallows](https://github.com/jfallows))
+- Support capturing engine diagnostics [\#1692](https://github.com/aklivity/zilla/pull/1692) ([ankitk-me](https://github.com/ankitk-me))
+- Fix tls handshake timeout description [\#1691](https://github.com/aklivity/zilla/pull/1691) ([jfallows](https://github.com/jfallows))
+
 ## [1.0.10](https://github.com/aklivity/zilla/tree/1.0.10) (2026-03-27)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.9...1.0.10)
