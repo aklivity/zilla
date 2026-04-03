@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.ADVISORY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
 import static java.lang.System.currentTimeMillis;
 
 import java.nio.file.Path;
@@ -23,6 +25,7 @@ import java.util.function.IntFunction;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 
 public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
 {
@@ -47,6 +50,9 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     private int dirtyBytes;
     private long dirtySince = -1L;
     private long cleanableAt = Long.MAX_VALUE;
+
+    private long modifiedAt;
+    private KafkaTimestampType modifiedType = ADVISORY;
 
     public KafkaCacheSegment(
         KafkaCacheSegment segment,
@@ -92,14 +98,15 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         String name,
         int id,
         long baseOffset,
-        long lastOffset)
+        long lastOffset,
+        long timestamp)
     {
         this.location = location;
         this.name = name;
         this.id = id;
         this.baseOffset = baseOffset;
         this.lastOffset = lastOffset;
-        this.timestamp = currentTimeMillis();
+        this.timestamp = timestamp;
         this.logFile = new KafkaCacheFile.Log(location, baseOffset);
         this.convertedFile = new KafkaCacheFile.Converted(location, baseOffset);
         this.deltaFile = new KafkaCacheFile.Delta(location, baseOffset);
@@ -151,6 +158,18 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         return timestamp;
     }
 
+    public void modifiedAt(
+        long timestamp,
+        KafkaTimestampType timestampType)
+    {
+        modifiedType = timestampType;
+
+        if (timestampType == AUTHORITATIVE)
+        {
+            modifiedAt = Math.max(modifiedAt, timestamp);
+        }
+    }
+
     public KafkaCacheFile logFile()
     {
         return logFile;
@@ -196,7 +215,8 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         nullsFile.freeze();
         keysFile.freeze();
 
-        final KafkaCacheSegment frozen = new KafkaCacheSegment(location, name, id, baseOffset, lastOffset);
+        final long frozenAt = modifiedType == AUTHORITATIVE ? modifiedAt : currentTimeMillis();
+        final KafkaCacheSegment frozen = new KafkaCacheSegment(location, name, id, baseOffset, lastOffset, frozenAt);
 
         frozen.dirtySince = dirtySince;
         frozen.dirtyBytes = dirtyBytes;

@@ -71,7 +71,9 @@ read option zilla:flags "init fin skip"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
+                                 .timestamp(newTimestamp)
                                  .producerId(1)
+                                 .timestampType("AUTHORITATIVE")
                                  .partition(0, 1, 3, 3)
                                  .key("key1")
                                  .header("header2", "value2")
@@ -83,7 +85,9 @@ read option zilla:flags "init fin skip"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
+                                 .timestamp(newTimestamp)
                                  .producerId(1)
+                                 .timestampType("AUTHORITATIVE")
                                  .partition(0, 2, 3, 3)
                                  .header("header1", "value1")
                                  .build()
@@ -92,11 +96,15 @@ read "Hello, world"
 
 read notify RECEIVED_SKIPPED_MESSAGE
 
-read advised zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
                                     .partition(0, 3, 3, 3)
-                                    .transaction("ABORT", 1)
+                                    .transaction()
+                                        .result("ABORT")
+                                        .producerId(1)
+                                        .timestamp(newTimestamp)
+                                        .build()
                                     .build()
                                 .build()}
 
@@ -104,6 +112,8 @@ read option zilla:flags "auto"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
+                                 .timestamp(newTimestamp)
+                                 .timestampType("AUTHORITATIVE")
                                  .partition(0, 4, 4, 4)
                                  .build()
                              .build()}

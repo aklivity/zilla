@@ -157,7 +157,7 @@ public class TlsEventContext
     {
         TlsEventExFW extension = tlsEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .tlsHandshakeFailed(e -> e
+            .tlsHandshakeTimeout(e -> e
                 .typeId(TLS_HANDSHAKE_TIMEOUT.value())
             )
             .build();

@@ -53,6 +53,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueFW;
@@ -323,6 +324,56 @@ public final class KafkaFunctions
     public static KafkaTopicAssignmentsBuilder topicAssignment()
     {
         return new KafkaTopicAssignmentsBuilder();
+    }
+
+    public abstract static class KafkaTransactionBuilder<T>
+    {
+        private final KafkaTransactionFW.Builder transactionRW = new KafkaTransactionFW.Builder();
+
+        private KafkaTransactionBuilder()
+        {
+            MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+            transactionRW.wrap(buffer, 0, buffer.capacity());
+        }
+
+        public KafkaTransactionBuilder<T> producerId(
+            long producerId)
+        {
+            transactionRW.producerId(producerId);
+            return this;
+        }
+
+        public KafkaTransactionBuilder<T> result(
+            String result)
+        {
+            transactionRW.result(r -> r.set(KafkaTransactionResult.valueOf(result)));
+            return this;
+        }
+
+        public KafkaTransactionBuilder<T> timestamp(
+            long timestamp)
+        {
+            transactionRW.timestamp(timestamp);
+            return this;
+        }
+
+        public T build()
+        {
+            final KafkaTransactionFW transaction = transactionRW.build();
+            return build(transaction);
+        }
+
+        protected void set(
+            KafkaTransactionFW.Builder builder,
+            KafkaTransactionFW transaction)
+        {
+            builder.result(r -> r.set(transaction.result().get()))
+                   .producerId(transaction.producerId())
+                   .timestamp(transaction.timestamp());
+        }
+
+        protected abstract T build(
+            KafkaTransactionFW transaction);
     }
 
     public abstract static class KafkaHeadersBuilder<T>
@@ -2500,6 +2551,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFetchDataExBuilder timestampType(
+                String timestampType)
+            {
+                fetchDataExRW.timestampType(t -> t.set(KafkaTimestampType.valueOf(timestampType)));
+                return this;
+            }
+
             public KafkaFetchDataExBuilder filters(
                 long filters)
             {
@@ -3747,14 +3805,21 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaFetchFlushExBuilder transaction(
-                String result,
-                long producerId)
+            public KafkaTransactionBuilder<KafkaFetchFlushExBuilder> transaction()
             {
-                fetchFlushExRW.transactionsItem(t -> t
-                    .result(r -> r.set(KafkaTransactionResult.valueOf(result)))
-                    .producerId(producerId));
-                return this;
+                return new KafkaTransactionBuilder<>()
+                {
+                    @Override
+                    protected KafkaFetchFlushExBuilder build(
+                        KafkaTransactionFW transaction)
+                    {
+                        fetchFlushExRW.transactionsItem(t -> t
+                            .result(r -> r.set(transaction.result().get()))
+                            .producerId(transaction.producerId())
+                            .timestamp(transaction.timestamp()));
+                        return KafkaFetchFlushExBuilder.this;
+                    }
+                };
             }
 
             public KafkaFilterBuilder<KafkaFetchFlushExBuilder> filter()
@@ -4089,6 +4154,7 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
+            private KafkaTimestampType timestampType;
             private Long filters;
             private Long producerId;
             private KafkaOffsetFW.Builder partitionRW;
@@ -4111,6 +4177,14 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+
+            public KafkaFetchDataExMatcherBuilder timestampType(
+                String timestampType)
+            {
+                this.timestampType = KafkaTimestampType.valueOf(timestampType);
                 return this;
             }
 
@@ -4238,6 +4312,7 @@ public final class KafkaFunctions
                 final KafkaFetchDataExFW fetchDataEx = dataEx.fetch();
                 return matchDeferred(fetchDataEx) &&
                     matchTimestamp(fetchDataEx) &&
+                    matchTimestampType(fetchDataEx) &&
                     matchProducerId(fetchDataEx) &&
                     matchPartition(fetchDataEx) &&
                     matchKey(fetchDataEx) &&
@@ -4256,6 +4331,12 @@ public final class KafkaFunctions
                 final KafkaFetchDataExFW fetchDataEx)
             {
                 return timestamp == null || timestamp == fetchDataEx.timestamp();
+            }
+
+            private boolean matchTimestampType(
+                final KafkaFetchDataExFW fetchDataEx)
+            {
+                return timestampType == null || timestampType == fetchDataEx.timestampType().get();
             }
 
             private boolean matchProducerId(
@@ -5320,7 +5401,6 @@ public final class KafkaFunctions
         {
             private KafkaOffsetFW.Builder partitionRW;
             private Array32FW.Builder<KafkaTransactionFW.Builder, KafkaTransactionFW> transactionRW;
-
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
             private KafkaFetchFlushExMatcherBuilder()
@@ -5362,18 +5442,24 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaFetchFlushExMatcherBuilder transaction(
-                String result,
-                long producerId)
+            public KafkaTransactionBuilder<KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder> transaction()
             {
-                assert transactionRW == null;
-                transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
+                if (transactionRW == null)
+                {
+                    transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
                         .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
 
-                transactionRW.item(t -> t
-                        .result(r -> r.set(KafkaTransactionResult.valueOf(result)))
-                        .producerId(producerId));
-                return this;
+                return new KafkaTransactionBuilder<>()
+                {
+                    @Override
+                    protected KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder build(
+                        KafkaTransactionFW transaction)
+                    {
+                        transactionRW.item(t -> set(t, transaction));
+                        return KafkaFetchFlushExMatcherBuilder.this;
+                    }
+                };
             }
 
             public KafkaFilterBuilder<KafkaFlushExMatcherBuilder.KafkaFetchFlushExMatcherBuilder> filter()

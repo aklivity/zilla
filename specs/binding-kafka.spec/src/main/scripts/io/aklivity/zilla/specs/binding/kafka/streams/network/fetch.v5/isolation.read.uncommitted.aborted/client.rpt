@@ -121,7 +121,7 @@ read 287
      0x00
      [0x02]
      0x4e8723aa
-     16s                                # attributes (transactional)
+     24s                                # attributes (log append time, transactional)
      1                                  # last offset delta
      (long:timestamp)                   # first timestamp
      ${timestamp}                       # last timestamp
@@ -214,7 +214,7 @@ read 144
      0x00
      [0x02]
      0x4e8723aa
-     0s                                 # attributes (transactional)
+     8s                                 # attributes (log append time)
      0                                  # last offset delta
      (long:timestamp)                   # first timestamp
      ${timestamp}                       # last timestamp

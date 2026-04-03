@@ -2453,7 +2453,10 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .fetch()
                                          .partition(0, 1L)
-                                         .transaction("COMMIT", 1L)
+                                         .transaction()
+                                            .result("COMMIT")
+                                            .producerId(1L)
+                                            .build()
                                          .build()
                                      .build();
 
@@ -5448,8 +5451,11 @@ public class KafkaFunctionsTest
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .typeId(0x01)
                 .fetch()
-                .transaction("ABORT", 1)
-                .build()
+                  .transaction()
+                    .result("ABORT")
+                    .producerId(1)
+                    .build()
+                  .build()
                 .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);

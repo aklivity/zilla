@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.0.10</version>
+    <version>1.0.11</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 

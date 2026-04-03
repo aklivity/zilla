@@ -110,4 +110,9 @@ public interface RingBufferSpy
      * @return the backing buffer
      */
     DirectBuffer buffer();
+
+    /**
+     * Releases the memory-mapped resources held by this spy.
+     */
+    void close();
 }
