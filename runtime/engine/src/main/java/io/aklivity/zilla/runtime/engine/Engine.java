@@ -56,6 +56,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -94,6 +95,7 @@ public final class Engine implements Collector, AutoCloseable
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
+    private final EngineDiagnosticsTask diagnostics;
 
     private final EventsLayout eventsLayout;
     private final AtomicBoolean closed;
@@ -117,6 +119,13 @@ public final class Engine implements Collector, AutoCloseable
         this.config = config;
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
+
+        EngineDiagnosticsTask diagnostics = EngineDiagnosticsTask.of(config);
+        ErrorHandler diagnoseOnError = ex ->
+        {
+            diagnostics.run();
+            errorHandler.onError(ex);
+        };
 
         ExecutorService tasks = null;
         if (config.taskParallelism() > 0)
@@ -164,7 +173,7 @@ public final class Engine implements Collector, AutoCloseable
                 .capacity(config.eventsBufferCapacity())
                 .build();
 
-        this.boss = new EngineBoss(config, errorHandler, bindings);
+        this.boss = new EngineBoss(config, diagnoseOnError, bindings);
 
         final URI configURI = config.configURI();
 
@@ -184,7 +193,7 @@ public final class Engine implements Collector, AutoCloseable
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
+                new EngineWorker(config, tasks, labels, diagnoseOnError, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
                     eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
@@ -197,7 +206,7 @@ public final class Engine implements Collector, AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, errorHandler, labels::supplyLabelId);
+        final ContextImpl context = new ContextImpl(config, diagnoseOnError, labels::supplyLabelId);
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
@@ -243,6 +252,7 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.readonly = readonly;
         this.manager = manager;
+        this.diagnostics = diagnostics;
         this.closed = new AtomicBoolean(false);
     }
 
@@ -276,6 +286,11 @@ public final class Engine implements Collector, AutoCloseable
         {
             manager.start();
         }
+    }
+
+    public void diagnose()
+    {
+        diagnostics.run();
     }
 
     @Override

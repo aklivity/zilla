@@ -44,7 +44,6 @@ import com.github.rvesse.airline.annotations.Option;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import sun.misc.Signal;
 
 @Command(name = "start", description = "Start engine")
@@ -170,15 +169,8 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        EngineDiagnosticsTask diagnosticsTask = EngineDiagnosticsTask.of(config);
+        final ErrorHandler onError = ex -> stop.countDown();
 
-        Signal.handle(new Signal("USR2"), signal -> diagnosticsTask.run());
-
-        final ErrorHandler onError = ex ->
-        {
-            diagnosticsTask.run();
-            stop.countDown();
-        };
         final Consumer<Throwable> errorReporter = config.errorReporter();
 
         try (Engine engine = Engine.builder()
@@ -186,6 +178,8 @@ public final class ZillaStartCommand extends ZillaCommand
             .errorHandler(onError)
             .build())
         {
+            Signal.handle(new Signal("USR2"), signal -> engine.diagnose());
+
             engine.start();
 
             runtime.addShutdownHook(new Thread(this::onShutdown));
