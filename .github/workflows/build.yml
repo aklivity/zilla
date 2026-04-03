@@ -86,6 +86,8 @@ jobs:
             ^tcp.reflect$
             ^ws.proxy$
             ^ws.reflect$
+            ^http.echo$
+            ^grpc.kafka.proxy$
 
   testing:
     strategy:
