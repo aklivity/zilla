@@ -777,15 +777,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaTransactionResult result = transaction.result().get();
                 final long producerId = transaction.producerId();
                 final long timestamp = transaction.timestamp();
-                final KafkaTimestampType timestampType = transaction.timestampType().get();
 
-                int entryFlags = CACHE_ENTRY_FLAGS_CONTROL;
+                int entryFlags = CACHE_ENTRY_FLAGS_CONTROL | CACHE_ENTRY_FLAGS_AUTHORITATIVE;
                 if (result == KafkaTransactionResult.ABORT)
                 {
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, timestampType,
+                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, AUTHORITATIVE,
                     producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
                     entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, transforms);
 

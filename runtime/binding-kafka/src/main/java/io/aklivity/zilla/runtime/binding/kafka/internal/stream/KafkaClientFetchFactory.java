@@ -1081,7 +1081,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 client.decodeRecordBatchOffset = baseOffset;
                 client.decodeRecordBatchLastOffset = recordBatch.baseOffset() + recordBatch.lastOffsetDelta();
                 client.decodeRecordBatchTimestamp = recordBatch.firstTimestamp();
-                client.decodeRecordBatchTimestampType = hasAuthoratativeTimestamp(attributes)
+                client.decodeRecordBatchTimestampType = hasAuthoritativeTimestamp(attributes)
                         ? KafkaTimestampType.AUTHORITATIVE
                         : KafkaTimestampType.ADVISORY;
                 client.decodeRecordBatchProducerId = producerId;
@@ -1238,11 +1238,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         {
                         case ABORT:
                             client.onDecodeFetchTransactionAbort(traceId, authorization,
-                                offsetAbs, producerId, timestampAbs, timestampType);
+                                offsetAbs, producerId, timestampAbs);
                             break;
                         case COMMIT:
                             client.onDecodeFetchTransactionCommit(traceId, authorization,
-                                offsetAbs, producerId, timestampAbs, timestampType);
+                                offsetAbs, producerId, timestampAbs);
                             break;
                         }
                     }
@@ -3025,8 +3025,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long authorization,
                 long offset,
                 long producerId,
-                long timestamp,
-                KafkaTimestampType timestampType)
+                long timestamp)
             {
                 this.nextOffset = offset + 1;
 
@@ -3041,8 +3040,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             .transactionsItem(t -> t
                                 .result(r -> r.set(KafkaTransactionResult.ABORT))
                                 .producerId(producerId)
-                                .timestamp(timestamp)
-                                .timestampType(tt -> tt.set(timestampType))))
+                                .timestamp(timestamp)))
                         .build();
 
                 doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
@@ -3053,8 +3051,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long authorization,
                 long offset,
                 long producerId,
-                long timestamp,
-                KafkaTimestampType timestampType)
+                long timestamp)
             {
                 this.nextOffset = offset + 1;
 
@@ -3069,8 +3066,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             .transactionsItem(t -> t
                                 .result(r -> r.set(KafkaTransactionResult.COMMIT))
                                 .producerId(producerId)
-                                .timestamp(timestamp)
-                                .timestampType(tt -> tt.set(timestampType))))
+                                .timestamp(timestamp)))
                         .build();
 
                 doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
@@ -3341,7 +3337,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         return (attributes & 0x08) != 0;
     }
 
-    private static boolean hasAuthoratativeTimestamp(
+    private static boolean hasAuthoritativeTimestamp(
         int attributes)
     {
         return isControlBatch(attributes) || hasLogAppendTime(attributes);

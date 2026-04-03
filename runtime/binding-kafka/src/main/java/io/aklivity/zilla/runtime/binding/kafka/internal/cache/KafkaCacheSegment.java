@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.ADVISORY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
 import static java.lang.System.currentTimeMillis;
 
@@ -51,7 +52,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     private long cleanableAt = Long.MAX_VALUE;
 
     private long modifiedAt;
-    private KafkaTimestampType modifiedType;
+    private KafkaTimestampType modifiedType = ADVISORY;
 
     public KafkaCacheSegment(
         KafkaCacheSegment segment,

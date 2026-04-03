@@ -357,13 +357,6 @@ public final class KafkaFunctions
             return this;
         }
 
-        public KafkaTransactionBuilder<T> timestampType(
-            String timestampType)
-        {
-            transactionRW.timestampType(t -> t.set(KafkaTimestampType.valueOf(timestampType)));
-            return this;
-        }
-
         public T build()
         {
             final KafkaTransactionFW transaction = transactionRW.build();
@@ -376,8 +369,7 @@ public final class KafkaFunctions
         {
             builder.result(r -> r.set(transaction.result().get()))
                    .producerId(transaction.producerId())
-                   .timestamp(transaction.timestamp())
-                   .timestampType(t -> t.set(transaction.timestampType().get()));
+                   .timestamp(transaction.timestamp());
         }
 
         protected abstract T build(
@@ -3824,8 +3816,7 @@ public final class KafkaFunctions
                         fetchFlushExRW.transactionsItem(t -> t
                             .result(r -> r.set(transaction.result().get()))
                             .producerId(transaction.producerId())
-                            .timestamp(transaction.timestamp())
-                            .timestampType(tt -> tt.set(transaction.timestampType().get())));
+                            .timestamp(transaction.timestamp()));
                         return KafkaFetchFlushExBuilder.this;
                     }
                 };
