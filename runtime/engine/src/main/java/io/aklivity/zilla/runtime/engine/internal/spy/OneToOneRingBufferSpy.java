@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.spy;
 
 import static org.agrona.BitUtil.align;
+import static org.agrona.IoUtil.unmap;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.lengthOffset;
@@ -142,6 +143,12 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         }
 
         return messagesRead;
+    }
+
+    @Override
+    public void close()
+    {
+        unmap(buffer.byteBuffer());
     }
 
     public int peek(

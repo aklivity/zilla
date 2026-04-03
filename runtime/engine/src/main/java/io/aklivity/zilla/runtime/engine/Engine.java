@@ -65,11 +65,11 @@ import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
-import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
+import io.aklivity.zilla.runtime.engine.internal.event.io.EventReader;
+import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineBoss;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
-import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -89,13 +89,13 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final List<EngineWorker> workers;
+    final List<EngineWorker> workers;
     private final EngineBoss boss;
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
 
-    private final EventsLayout eventsLayout;
+    private final EventWriter eventWriter;
     private final AtomicBoolean closed;
 
     private FileSystem fileSystem = null;
@@ -159,10 +159,7 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        this.eventsLayout = new EventsLayout.Builder()
-                .path(config.directory().resolve("events"))
-                .capacity(config.eventsBufferCapacity())
-                .build();
+        this.eventWriter = new EventWriter(config.directory().resolve("events"), config.eventsBufferCapacity());
 
         this.boss = new EngineBoss(config, errorHandler, bindings);
 
@@ -331,6 +328,7 @@ public final class Engine implements Collector, AutoCloseable
         }
 
         tuning.close();
+        eventWriter.close();
 
         extensions.forEach(e -> e.onUnregistered(context));
 
@@ -353,14 +351,14 @@ public final class Engine implements Collector, AutoCloseable
         return context;
     }
 
-    public EventsLayout.EventAccessor createEventAccessor()
+    public EventWriter eventWriter()
     {
-        return eventsLayout.createEventAccessor();
+        return eventWriter;
     }
 
     public MessageConsumer supplyEventWriter()
     {
-        return this.eventsLayout::writeEvent;
+        return this.eventWriter::writeEvent;
     }
 
     public Clock clock()
@@ -519,7 +517,11 @@ public final class Engine implements Collector, AutoCloseable
 
     public MessageReader supplyEventReader()
     {
-        return new EventReader();
+        List<EventWriter> writers = workers.stream()
+            .map(EngineWorker::eventWriter)
+            .collect(Collectors.toCollection(ArrayList::new));
+        writers.add(eventWriter);
+        return new EventReader(writers);
     }
 
     public String supplyLocalName(
@@ -543,59 +545,6 @@ public final class Engine implements Collector, AutoCloseable
         final int namespaceId = supplyLabelId(namespace);
         final int bindingId = supplyLabelId(name);
         return NamespacedId.id(namespaceId, bindingId);
-    }
-
-    private final class EventReader implements MessageReader
-    {
-        private final EventsLayout.EventAccessor[] accessors;
-        private final EventFW eventRO = new EventFW();
-        private int minAccessorIndex;
-        private long minTimeStamp;
-
-        EventReader()
-        {
-            accessors = new EventsLayout.EventAccessor[workers.size() + 1];
-            for (int i = 0; i < workers.size(); i++)
-            {
-                accessors[i] = workers.get(i).createEventAccessor();
-            }
-            accessors[workers.size()] = createEventAccessor();
-        }
-
-        @Override
-        public int read(
-            MessageConsumer handler,
-            int messageCountLimit)
-        {
-            int messagesRead = 0;
-            boolean empty = false;
-            while (!empty && messagesRead < messageCountLimit)
-            {
-                int eventCount = 0;
-                minAccessorIndex = 0;
-                minTimeStamp = Long.MAX_VALUE;
-                for (int j = 0; j < accessors.length; j++)
-                {
-                    final int accessorIndex = j;
-                    int eventPeeked = accessors[accessorIndex].peekEvent((m, b, i, l) ->
-                    {
-                        eventRO.wrap(b, i, i + l);
-                        if (eventRO.timestamp() < minTimeStamp)
-                        {
-                            minTimeStamp = eventRO.timestamp();
-                            minAccessorIndex = accessorIndex;
-                        }
-                    });
-                    eventCount += eventPeeked;
-                }
-                empty = eventCount == 0;
-                if (!empty)
-                {
-                    messagesRead += accessors[minAccessorIndex].readEvent(handler, 1);
-                }
-            }
-            return messagesRead;
-        }
     }
 
     // visible for testing
