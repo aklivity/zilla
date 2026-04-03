@@ -19,10 +19,12 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -65,6 +67,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
@@ -773,6 +776,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaTransactionFW transaction = transactions.matchFirst(t -> true);
                 final KafkaTransactionResult result = transaction.result().get();
                 final long producerId = transaction.producerId();
+                final long timestamp = transaction.timestamp();
+                final KafkaTimestampType timestampType = transaction.timestampType().get();
 
                 int entryFlags = CACHE_ENTRY_FLAGS_CONTROL;
                 if (result == KafkaTransactionResult.ABORT)
@@ -780,8 +785,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
-                        EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
+                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, timestampType,
+                    producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
                     entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, transforms);
 
                 if (result == KafkaTransactionResult.ABORT)
@@ -842,6 +847,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
                 final int headersSizeMax = Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax());
                 final long timestamp = kafkaFetchDataEx.timestamp();
+                final KafkaTimestampType timestampType = kafkaFetchDataEx.timestampType().get();
                 final long producerId = kafkaFetchDataEx.producerId();
                 final KafkaKeyFW key = kafkaFetchDataEx.key();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
@@ -883,10 +889,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 IntFunction<KafkaCacheEntryFW> findAncestor =
                     kh -> findAndMarkAncestor(key, nextHead, kh, partitionOffset);
-                final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
-                partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp,
-                    producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment, convertKey,
-                    convertValue, transforms, verbose);
+                final int entryFlags =
+                    ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
+                    (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
+                partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark,
+                    timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
+                    convertKey, convertValue, transforms, verbose);
             }
 
             if (valueFragment != null)

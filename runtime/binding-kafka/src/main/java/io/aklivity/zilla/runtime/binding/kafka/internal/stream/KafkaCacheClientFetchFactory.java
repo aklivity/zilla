@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerFetchFactory.SIZE_OF_FLUSH_WITH_EXTENSION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation.READ_COMMITTED;
@@ -61,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -1519,6 +1521,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     ? KafkaTransactionResult.COMMIT
                     : KafkaTransactionResult.ABORT;
             final long abortedId = nextEntry.ownerId();
+            final long timestamp = nextEntry.timestamp();
+            final KafkaTimestampType timestampType = (nextEntry.flags() & CACHE_ENTRY_FLAGS_AUTHORITATIVE) == 0
+                    ? KafkaTimestampType.AUTHORITATIVE
+                    : KafkaTimestampType.ADVISORY;
             final long stableOffset = group.stableOffset;
             final long latestOffset = group.latestOffset;
 
@@ -1536,7 +1542,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                 .latestOffset(latestOffset))
                             .transactionsItem(t -> t
                                 .result(r -> r.set(result))
-                                .producerId(abortedId)))
+                                .producerId(abortedId)
+                                .timestamp(timestamp)
+                                .timestampType(tt -> tt.set(timestampType))))
                         .build()
                         .sizeof()));
 

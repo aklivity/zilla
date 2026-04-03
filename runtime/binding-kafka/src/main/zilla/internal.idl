@@ -17,6 +17,15 @@ scope internal
 {
     scope cache
     {
+        enum KafkaCacheEntryFlags (int32)
+        {
+            DIRTY (1),
+            COMPLETED (2),
+            ABORTED (4),
+            CONTROL (8),
+            AUTHORITATIVE (16)
+        }
+
         struct KafkaCacheEntry
         {
             int64 offset;
@@ -28,7 +37,7 @@ scope internal
             int32 sequence = -1;
             int64 ancestor;
             int64 descendant;
-            int32 flags = 0;  // 0x01 = DIRTY, 0x02 = COMPLETED, 0x04 = ABORTED, 0x08 = CONTROL
+            int32 flags = 0;  // see KafkCacheEntryFlags
             int32 convertedPosition = -1;
             int32 deltaPosition = -1;
             int16 ackMode = -1;

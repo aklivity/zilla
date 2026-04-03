@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -1080,6 +1081,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 client.decodeRecordBatchOffset = baseOffset;
                 client.decodeRecordBatchLastOffset = recordBatch.baseOffset() + recordBatch.lastOffsetDelta();
                 client.decodeRecordBatchTimestamp = recordBatch.firstTimestamp();
+                client.decodeRecordBatchTimestampType = hasAuthoratativeTimestamp(attributes)
+                        ? KafkaTimestampType.AUTHORITATIVE
+                        : KafkaTimestampType.ADVISORY;
                 client.decodeRecordBatchProducerId = producerId;
                 client.decodeRecordBatchAborted = client.decodeAbortedTransactions.get(baseOffset) == producerId;
                 client.decodeRecordBatchAttributes = attributes;
@@ -1204,6 +1208,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 final long offsetAbs = client.decodeRecordBatchOffset + recordHeader.offsetDelta();
                 final long timestampAbs = client.decodeRecordBatchTimestamp + recordHeader.timestampDelta();
+                final KafkaTimestampType timestampType = client.decodeRecordBatchTimestampType;
                 final long producerId = client.decodeRecordBatchProducerId;
                 final boolean aborted = client.decodeRecordBatchAborted;
                 final OctetsFW key = recordHeader.key();
@@ -1232,10 +1237,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         switch (ControlRecordKeyType.valueOf(controlKey.type()))
                         {
                         case ABORT:
-                            client.onDecodeFetchTransactionAbort(traceId, authorization, offsetAbs, producerId);
+                            client.onDecodeFetchTransactionAbort(traceId, authorization,
+                                offsetAbs, producerId, timestampAbs, timestampType);
                             break;
                         case COMMIT:
-                            client.onDecodeFetchTransactionCommit(traceId, authorization, offsetAbs, producerId);
+                            client.onDecodeFetchTransactionCommit(traceId, authorization,
+                                offsetAbs, producerId, timestampAbs, timestampType);
                             break;
                         }
                     }
@@ -1289,8 +1296,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                         progress += sizeofRecord;
 
-                        client.onDecodeFetchRecord(traceId, aborted, valueReserved, offsetAbs, timestampAbs, producerId,
-                                key, value, headerCount, headers);
+                        client.onDecodeFetchRecord(traceId, aborted, valueReserved, offsetAbs, timestampAbs, timestampType,
+                                producerId, key, value, headerCount, headers);
 
                         client.decodableResponseBytes -= sizeofRecord;
                         assert client.decodableResponseBytes >= 0;
@@ -1355,6 +1362,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int sizeofRecord = recordLength.sizeof() + recordLength.value();
                 final long offsetAbs = client.decodeRecordBatchOffset + recordHeader.offsetDelta();
                 final long timestampAbs = client.decodeRecordBatchTimestamp + recordHeader.timestampDelta();
+                final KafkaTimestampType timestampType = client.decodeRecordBatchTimestampType;
                 final long producerId = client.decodeRecordBatchProducerId;
                 final boolean aborted = client.decodeRecordBatchAborted;
                 final OctetsFW key = recordHeader.key();
@@ -1401,7 +1409,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 progress += recordProgress;
 
                 client.onDecodeFetchRecordValueInit(traceId, aborted, valueReservedMax, valueDeferred, offsetAbs,
-                        timestampAbs, headersSizeMax, producerId, key, valueInit);
+                        timestampAbs, timestampType, headersSizeMax, producerId, key, valueInit);
 
                 client.decodeRecordOffset = offsetAbs;
                 client.decodableRecordValueBytes = valueLength != -1 ? valueLength - valueProgress : -1;
@@ -2203,6 +2211,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private long decodeRecordBatchOffset;
             private long decodeRecordBatchLastOffset;
             private long decodeRecordBatchTimestamp;
+            private KafkaTimestampType decodeRecordBatchTimestampType;
             private long decodeRecordBatchProducerId;
             private boolean decodeRecordBatchAborted;
             private int decodeRecordBatchAttributes;
@@ -3015,7 +3024,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long traceId,
                 long authorization,
                 long offset,
-                long producerId)
+                long producerId,
+                long timestamp,
+                KafkaTimestampType timestampType)
             {
                 this.nextOffset = offset + 1;
 
@@ -3029,7 +3040,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                 .latestOffset(latestOffset))
                             .transactionsItem(t -> t
                                 .result(r -> r.set(KafkaTransactionResult.ABORT))
-                                .producerId(producerId)))
+                                .producerId(producerId)
+                                .timestamp(timestamp)
+                                .timestampType(tt -> tt.set(timestampType))))
                         .build();
 
                 doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
@@ -3039,7 +3052,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long traceId,
                 long authorization,
                 long offset,
-                long producerId)
+                long producerId,
+                long timestamp,
+                KafkaTimestampType timestampType)
             {
                 this.nextOffset = offset + 1;
 
@@ -3053,7 +3068,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                 .latestOffset(latestOffset))
                             .transactionsItem(t -> t
                                 .result(r -> r.set(KafkaTransactionResult.COMMIT))
-                                .producerId(producerId)))
+                                .producerId(producerId)
+                                .timestamp(timestamp)
+                                .timestampType(tt -> tt.set(timestampType))))
                         .build();
 
                 doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
@@ -3065,6 +3082,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 int reserved,
                 long offset,
                 long timestamp,
+                KafkaTimestampType timestampType,
                 long producerId,
                 OctetsFW key,
                 OctetsFW value,
@@ -3079,6 +3097,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         {
                             f.timestamp(timestamp);
                             f.producerId(producerId);
+                            f.timestampType(t -> t.set(timestampType));
                             f.partition(p -> p
                                 .partitionId(decodePartitionId)
                                 .partitionOffset(offset)
@@ -3106,6 +3125,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 int deferred,
                 long offset,
                 long timestamp,
+                KafkaTimestampType timestampType,
                 int headersSizeMax,
                 long producerId,
                 OctetsFW key,
@@ -3117,6 +3137,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                      .timestamp(timestamp)
                                      .headersSizeMax(headersSizeMax)
                                      .producerId(producerId)
+                                     .timestampType(t -> t.set(timestampType))
                                      .partition(p -> p.partitionId(decodePartitionId)
                                                       .partitionOffset(offset)
                                                       .stableOffset(stableOffset)
@@ -3311,5 +3332,18 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     {
         // fifth lowest bit indicates whether the RecordBatch includes is transactional message
         return (attributes & 0x10) != 0;
+    }
+
+    private static boolean hasLogAppendTime(
+        int attributes)
+    {
+        // fourth lowest bit indicates whether the RecordBatch has log append time
+        return (attributes & 0x08) != 0;
+    }
+
+    private static boolean hasAuthoratativeTimestamp(
+        int attributes)
+    {
+        return isControlBatch(attributes) || hasLogAppendTime(attributes);
     }
 }

@@ -21,6 +21,12 @@ scope kafka
         string16 value;
     }
 
+    enum KafkaTimestampType (uint8)
+    {
+        ADVISORY (0),
+        AUTHORITATIVE (1)
+    }
+
     struct KafkaPartition
     {
         int32 partitionId;
@@ -46,6 +52,8 @@ scope kafka
     {
         KafkaTransactionResult result;
         int64 producerId = -1;
+        int64 timestamp = 0;
+        KafkaTimestampType timestampType = ADVISORY;
     }
 
     enum KafkaConditionType (uint8)
@@ -351,15 +359,16 @@ scope kafka
 
         struct KafkaFetchDataEx
         {
-            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
-            int64 timestamp = 0;        // INIT only
-            int32 headersSizeMax = 4;   // INIT only
-            int64 producerId = -1;      // INIT only
-            int64 filters = -1;         // INIT only
-            KafkaOffset partition;      // INIT only
-            KafkaKey key;               // INIT only
-            KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // FIN only
+            int32 deferred = 0;                             // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;                            // INIT only
+            int32 headersSizeMax = 4;                       // INIT only
+            int64 producerId = -1;                          // INIT only
+            int64 filters = -1;                             // INIT only
+            KafkaTimestampType timestampType = ADVISORY;    // INIT only
+            KafkaOffset partition;                          // INIT only
+            KafkaKey key;                                   // INIT only
+            KafkaDelta delta;                               // INIT + FIN
+            KafkaHeader[] headers;                          // FIN only
         }
 
         struct KafkaFetchFlushEx

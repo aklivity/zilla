@@ -109,7 +109,12 @@ write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
                                     .partition(0, 3, 3, 3)
-                                    .transaction("COMMIT", 1)
+                                    .transaction()
+                                        .result("COMMIT")
+                                        .producerId(1)
+                                        .timestamp(newTimestamp)
+                                        .timestampType("AUTHORITATIVE")
+                                        .build()
                                     .build()
                                 .build()}
 
