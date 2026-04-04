@@ -54,7 +54,7 @@ This project includes:
   Plexus Security Dispatcher Component under Apache License, Version 2.0
   Plexus XML Utilities under Apache License, Version 2.0
   Sisu-Inject-Plexus : legacy wrapper under Eclipse Public License, Version 1.0
-  SLF4J API Module under MIT License
+  SLF4J API Module under MIT
 
 
 This project also includes code under copyright of the following entities:
