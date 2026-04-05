@@ -40,8 +40,10 @@ public final class SchemaRegistryOptionsConfig extends AbstractSchemaRegistryOpt
         List<String> keys,
         List<String> trust,
         boolean trustcacerts,
-        String authorization)
+        String authorization,
+        String username,
+        String password)
     {
-        super(url, context, maxAge, keys, trust, trustcacerts, authorization);
+        super(url, context, maxAge, keys, trust, trustcacerts, authorization, username, password);
     }
 }
