@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.11...HEAD)
+
+**Merged pull requests:**
+
+- Upgrade to JDK 25 and Agrona 2.4.0 [\#1665](https://github.com/aklivity/zilla/pull/1665) ([jfallows](https://github.com/jfallows))
+
 ## [1.0.11](https://github.com/aklivity/zilla/tree/1.0.11) (2026-04-03)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.10...1.0.11)
