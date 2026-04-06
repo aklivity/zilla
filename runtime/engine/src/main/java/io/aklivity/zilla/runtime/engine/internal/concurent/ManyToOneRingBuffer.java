@@ -153,7 +153,7 @@ public class ManyToOneRingBuffer implements RingBuffer
         }
 
         buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-        VarHandle.storeStoreFence();
+        VarHandle.releaseFence();
         buffer.putInt(typeOffset(recordIndex), msgTypeId);
 
         return encodedMsgOffset(recordIndex);
@@ -546,12 +546,12 @@ public class ManyToOneRingBuffer implements RingBuffer
         }
         while (!buffer.compareAndSetInt(lengthOffset(tailIndex), 0, -recordLength));
 
-        VarHandle.storeStoreFence();
+        VarHandle.releaseFence();
 
         if (0 != padding)
         {
             buffer.putInt(lengthOffset(0), -recordLength);
-            VarHandle.storeStoreFence();
+            VarHandle.releaseFence();
 
             buffer.putInt(typeOffset(tailIndex), PADDING_MSG_TYPE_ID);
             buffer.putIntOrdered(lengthOffset(tailIndex), padding);
