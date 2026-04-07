@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 /**
@@ -399,6 +400,16 @@ public interface EngineContext
      */
     GuardHandler supplyGuard(
         long guardId);
+
+    /**
+     * Returns the {@link StoreHandler} for the given store id, previously registered via
+     * the store's {@link io.aklivity.zilla.runtime.engine.store.StoreContext}.
+     *
+     * @param storeId  the store id
+     * @return the store handler, or {@code null} if not found
+     */
+    StoreHandler supplyStore(
+        long storeId);
 
     /**
      * Returns the {@link VaultHandler} for the given vault id.

@@ -37,6 +37,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
+import io.aklivity.zilla.runtime.engine.store.Store;
+import io.aklivity.zilla.runtime.engine.store.StoreFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -141,6 +143,14 @@ public class EngineBuilder
             models.add(model);
         }
 
+        final Set<Store> stores = new LinkedHashSet<>();
+        final StoreFactory storeFactory = StoreFactory.instantiate();
+        for (String name : storeFactory.names())
+        {
+            Store store = storeFactory.create(name, config);
+            stores.add(store);
+        }
+
         EventFormatterFactory eventFormatterFactory = EventFormatterFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
@@ -153,6 +163,6 @@ public class EngineBuilder
         };
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, models, eventFormatterFactory, onError, affinities, readonly);
+                catalogs, models, stores, eventFormatterFactory, onError, affinities, readonly);
     }
 }
