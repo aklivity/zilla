@@ -63,7 +63,6 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
-import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
@@ -76,6 +75,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
