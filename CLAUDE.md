@@ -527,6 +527,34 @@ script, with no `store-memory` dependency in the test.
 - Log via the Zilla event system (`BindingEvent`), not `java.util.logging` or
   SLF4J, on the hot path
 
+### Import ordering
+
+Checkstyle enforces a strict import order. Violations cause build failures, so
+**always sort imports alphabetically by fully-qualified package name** within
+each group, and separate groups with a blank line in this order:
+
+1. `java.*`
+2. `javax.*`
+3. `jakarta.*`
+4. `org.*`
+5. `com.*`
+6. `io.*` (covers all `io.aklivity.zilla.*` imports)
+
+Within the `io.aklivity.zilla.runtime.engine.*` sub-packages the alphabetical
+rule means, for example:
+
+```
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;   // c
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;        // g
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;    // m
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;          // p  ← before store
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;        // s  ← before vault
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;        // v
+```
+
+When adding a new import, insert it at the correct alphabetical position —
+do not append it at the end of the group.
+
 ---
 
 ## Key dependencies
