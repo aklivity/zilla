@@ -49,7 +49,7 @@ final class MemoryStore implements Store
     @Override
     public URL type()
     {
-        return getClass().getResource("internal/memory.schema.patch.json");
+        return getClass().getResource("schema/memory.schema.patch.json");
     }
 
     String get(
@@ -108,9 +108,4 @@ final class MemoryStore implements Store
         return entry.value;
     }
 
-    @Override
-    public void close()
-    {
-        entries.clear();
-    }
 }
