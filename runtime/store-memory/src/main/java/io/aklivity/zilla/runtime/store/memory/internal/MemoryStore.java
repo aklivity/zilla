@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
@@ -25,7 +26,7 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
-    private final ConcurrentHashMap<String, MemoryEntry> entries;
+    private final ConcurrentMap<String, MemoryEntry> entries;
 
     MemoryStore(
         MemoryStoreConfiguration config)
