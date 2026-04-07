@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client" ]
+                        "enum": [ "server", "client", "proxy" ]
                     },
                     "options":
                     {
@@ -80,11 +80,16 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "kind":
+                                            "toolkit":
                                             {
-                                                "title": "Stream Kind",
+                                                "title": "Toolkit",
+                                                "type": "string"
+                                            },
+                                            "capability":
+                                            {
+                                                "title": "Capability",
                                                 "type": "string",
-                                                "enum": [ "server", "proxy", "client", "callback" ]
+                                                "enum": [ "tools", "prompts", "resources" ]
                                             }
                                         },
                                         "additionalProperties": false

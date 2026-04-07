@@ -26,7 +26,8 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class McpConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final String KIND_NAME = "kind";
+    private static final String TOOLKIT_NAME = "toolkit";
+    private static final String CAPABILITY_NAME = "capability";
 
     @Override
     public String type()
@@ -42,9 +43,14 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mcpCondition.kind != null)
+        if (mcpCondition.toolkit != null)
         {
-            object.add(KIND_NAME, mcpCondition.kind);
+            object.add(TOOLKIT_NAME, mcpCondition.toolkit);
+        }
+
+        if (mcpCondition.capability != null)
+        {
+            object.add(CAPABILITY_NAME, mcpCondition.capability);
         }
 
         return object.build();
@@ -54,12 +60,17 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String kind = object.containsKey(KIND_NAME)
-            ? object.getString(KIND_NAME)
+        String toolkit = object.containsKey(TOOLKIT_NAME)
+            ? object.getString(TOOLKIT_NAME)
+            : null;
+
+        String capability = object.containsKey(CAPABILITY_NAME)
+            ? object.getString(CAPABILITY_NAME)
             : null;
 
         return McpConditionConfig.builder()
-            .kind(kind)
+            .toolkit(toolkit)
+            .capability(capability)
             .build();
     }
 }

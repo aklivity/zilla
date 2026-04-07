@@ -14,18 +14,24 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
+
 import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class McpRouteConfig
 {
     public final long id;
     public final McpWithConfig with;
+
     private final List<McpConditionConfig> when;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public McpRouteConfig(
         RouteConfig route)
@@ -35,18 +41,22 @@ public final class McpRouteConfig
         this.when = route.when.stream()
             .map(McpConditionConfig.class::cast)
             .collect(Collectors.toList());
+        this.authorized = route.authorized;
     }
 
     public boolean authorized(
         long authorization)
     {
-        return true;
+        return authorized.test(authorization, identity());
     }
 
     public boolean matches(
-        String kind)
+        String toolkit,
+        String capability)
     {
         return when.isEmpty() ||
-            when.stream().anyMatch(c -> c.kind == null || c.kind.equals(kind));
+            when.stream().anyMatch(c ->
+                (c.toolkit == null || c.toolkit.equals(toolkit)) &&
+                (c.capability == null || c.capability.equals(capability)));
     }
 }
