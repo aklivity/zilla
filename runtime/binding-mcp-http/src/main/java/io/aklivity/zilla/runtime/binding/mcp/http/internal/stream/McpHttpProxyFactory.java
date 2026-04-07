@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
@@ -27,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.DataFW;
@@ -44,6 +44,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 {
     private static final String MCP_TYPE_NAME = "mcp";
     private static final String HTTP_TYPE_NAME = "http";
+
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -116,7 +118,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         DirectBuffer buffer,
         int index,
         int length,
-        MessageConsumer mcp)
+        MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long originId = begin.originId();
@@ -145,15 +147,16 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (route != null)
             {
-                newStream = new McpHttpProxy(
-                    mcp,
+                final McpProxy mcpProxy = new McpProxy(
+                    sender,
                     originId,
                     routedId,
                     initialId,
                     route.id,
                     affinity,
                     authorization,
-                    route)::onMcpMessage;
+                    route);
+                newStream = mcpProxy::onMcpMessage;
             }
         }
 
@@ -181,30 +184,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             .authorization(authorization)
             .affinity(affinity)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doBegin(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long traceId,
-        long authorization,
-        long affinity)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
             .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
@@ -336,11 +315,10 @@ public final class McpHttpProxyFactory implements BindingHandler
     }
 
     private HttpBeginExFW buildHttpBeginEx(
-        McpHttpRouteConfig route,
-        Map<String, String> args)
+        McpHttpRouteConfig route)
     {
         final String method = route.resolveMethod();
-        final Map<String, String> headers = route.resolveHeaders(args);
+        final Map<String, String> headers = route.resolveHeaders(null);
 
         final HttpBeginExFW.Builder builder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
             .typeId(httpTypeId);
@@ -360,7 +338,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         return builder.build();
     }
 
-    private final class McpHttpProxy
+    private final class McpProxy
     {
         private final MessageConsumer mcp;
         private final long originId;
@@ -372,11 +350,10 @@ public final class McpHttpProxyFactory implements BindingHandler
         private final long authorization;
         private final McpHttpRouteConfig route;
 
-        private long httpInitialId;
-        private long httpReplyId;
-        private MessageConsumer http;
+        private HttpProxy http;
+        private int state;
 
-        private McpHttpProxy(
+        private McpProxy(
             MessageConsumer mcp,
             long originId,
             long routedId,
@@ -439,21 +416,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            final Map<String, String> args = new LinkedHashMap<>();
-            final HttpBeginExFW httpBeginEx = buildHttpBeginEx(route, args);
+            state = McpHttpState.openingInitial(state);
 
-            httpInitialId = supplyInitialId.applyAsLong(resolvedId);
-            httpReplyId = supplyReplyId.applyAsLong(httpInitialId);
-            http = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onHttpMessage);
+            final HttpBeginExFW httpBeginEx = buildHttpBeginEx(route);
 
-            if (http != null)
-            {
-                doBegin(http, originId, resolvedId, httpInitialId,
-                    traceId, authorization, affinity, httpBeginEx);
-            }
+            http = new HttpProxy(this, originId, resolvedId, affinity, authorization);
+            http.doHttpBegin(traceId, httpBeginEx);
 
-            doWindow(mcp, originId, routedId, replyId, traceId, authorization, 0,
-                writeBuffer.capacity(), 0);
+            doMcpWindow(traceId, 0, writeBuffer.capacity(), 0);
         }
 
         private void onMcpData(
@@ -467,9 +437,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (http != null && payload != null)
             {
-                doData(http, originId, resolvedId, httpInitialId,
-                    traceId, authorization, budgetId, flags, reserved,
-                    payload, 0, payload.capacity());
+                http.doHttpData(traceId, budgetId, flags, reserved, payload, 0, payload.capacity());
             }
         }
 
@@ -478,9 +446,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
+            state = McpHttpState.closedInitial(state);
+
             if (http != null)
             {
-                doEnd(http, originId, resolvedId, httpInitialId, traceId, authorization);
+                http.doHttpEnd(traceId);
             }
         }
 
@@ -489,9 +459,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
+            state = McpHttpState.closedInitial(state);
+
             if (http != null)
             {
-                doAbort(http, originId, resolvedId, httpInitialId, traceId, authorization);
+                http.doHttpAbort(traceId);
             }
         }
 
@@ -505,8 +477,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (http != null)
             {
-                doWindow(http, originId, resolvedId, httpInitialId,
-                    traceId, authorization, budgetId, credit, padding);
+                http.doHttpWindow(traceId, budgetId, credit, padding);
             }
         }
 
@@ -515,10 +486,105 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
+            state = McpHttpState.closedReply(state);
+
             if (http != null)
             {
-                doReset(http, originId, resolvedId, httpInitialId, traceId, authorization);
+                http.doHttpReset(traceId);
             }
+        }
+
+        private void doMcpBegin(
+            long traceId)
+        {
+            if (!McpHttpState.initialClosed(state))
+            {
+                state = McpHttpState.openedReply(state);
+                doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, emptyRO);
+            }
+        }
+
+        private void doMcpData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBuffer payload,
+            int offset,
+            int length)
+        {
+            doData(mcp, originId, routedId, replyId, traceId, authorization,
+                budgetId, flags, reserved, payload, offset, length);
+        }
+
+        private void doMcpEnd(
+            long traceId)
+        {
+            if (!McpHttpState.replyClosed(state))
+            {
+                state = McpHttpState.closedReply(state);
+                doEnd(mcp, originId, routedId, replyId, traceId, authorization);
+            }
+        }
+
+        private void doMcpAbort(
+            long traceId)
+        {
+            if (!McpHttpState.replyClosed(state))
+            {
+                state = McpHttpState.closedReply(state);
+                doAbort(mcp, originId, routedId, replyId, traceId, authorization);
+            }
+        }
+
+        private void doMcpWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            doWindow(mcp, originId, routedId, replyId, traceId, authorization, budgetId, credit, padding);
+        }
+
+        private void doMcpReset(
+            long traceId)
+        {
+            if (!McpHttpState.initialClosed(state))
+            {
+                state = McpHttpState.closedInitial(state);
+                doReset(mcp, originId, routedId, replyId, traceId, authorization);
+            }
+        }
+    }
+
+    private final class HttpProxy
+    {
+        private final McpProxy peer;
+        private final long originId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+        private final long httpInitialId;
+        private final long httpReplyId;
+        private final MessageConsumer http;
+
+        private int state;
+
+        private HttpProxy(
+            McpProxy peer,
+            long originId,
+            long resolvedId,
+            long affinity,
+            long authorization)
+        {
+            this.peer = peer;
+            this.originId = originId;
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.httpInitialId = supplyInitialId.applyAsLong(resolvedId);
+            this.httpReplyId = supplyReplyId.applyAsLong(httpInitialId);
+            this.http = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onHttpMessage);
         }
 
         private void onHttpMessage(
@@ -563,8 +629,10 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            doWindow(http, originId, resolvedId, httpReplyId, traceId, authorization, 0,
-                writeBuffer.capacity(), 0);
+            state = McpHttpState.openedReply(state);
+
+            peer.doMcpBegin(traceId);
+            doHttpWindow(traceId, 0, writeBuffer.capacity(), 0);
         }
 
         private void onHttpData(
@@ -578,9 +646,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (payload != null)
             {
-                doData(mcp, originId, routedId, initialId,
-                    traceId, authorization, budgetId, flags, reserved,
-                    payload, 0, payload.capacity());
+                peer.doMcpData(traceId, budgetId, flags, reserved, payload, 0, payload.capacity());
             }
         }
 
@@ -589,7 +655,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            doEnd(mcp, originId, routedId, initialId, traceId, authorization);
+            state = McpHttpState.closedReply(state);
+
+            peer.doMcpEnd(traceId);
         }
 
         private void onHttpAbort(
@@ -597,7 +665,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            doAbort(mcp, originId, routedId, initialId, traceId, authorization);
+            state = McpHttpState.closedReply(state);
+
+            peer.doMcpAbort(traceId);
         }
 
         private void onHttpWindow(
@@ -608,8 +678,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final int credit = window.maximum();
             final int padding = window.padding();
 
-            doWindow(mcp, originId, routedId, replyId,
-                traceId, authorization, budgetId, credit, padding);
+            peer.doMcpWindow(traceId, budgetId, credit, padding);
         }
 
         private void onHttpReset(
@@ -617,7 +686,78 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            doReset(mcp, originId, routedId, initialId, traceId, authorization);
+            state = McpHttpState.closedInitial(state);
+
+            peer.doMcpReset(traceId);
+        }
+
+        private void doHttpBegin(
+            long traceId,
+            HttpBeginExFW extension)
+        {
+            if (http != null)
+            {
+                state = McpHttpState.openingInitial(state);
+                doBegin(http, originId, resolvedId, httpInitialId, traceId, authorization, affinity, extension);
+            }
+        }
+
+        private void doHttpData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBuffer payload,
+            int offset,
+            int length)
+        {
+            if (http != null)
+            {
+                doData(http, originId, resolvedId, httpInitialId, traceId, authorization,
+                    budgetId, flags, reserved, payload, offset, length);
+            }
+        }
+
+        private void doHttpEnd(
+            long traceId)
+        {
+            if (http != null && !McpHttpState.initialClosed(state))
+            {
+                state = McpHttpState.closedInitial(state);
+                doEnd(http, originId, resolvedId, httpInitialId, traceId, authorization);
+            }
+        }
+
+        private void doHttpAbort(
+            long traceId)
+        {
+            if (http != null && !McpHttpState.initialClosed(state))
+            {
+                state = McpHttpState.closedInitial(state);
+                doAbort(http, originId, resolvedId, httpInitialId, traceId, authorization);
+            }
+        }
+
+        private void doHttpWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            if (http != null)
+            {
+                doWindow(http, originId, resolvedId, httpReplyId, traceId, authorization, budgetId, credit, padding);
+            }
+        }
+
+        private void doHttpReset(
+            long traceId)
+        {
+            if (http != null && !McpHttpState.replyClosed(state))
+            {
+                state = McpHttpState.closedReply(state);
+                doReset(http, originId, resolvedId, httpReplyId, traceId, authorization);
+            }
         }
     }
 }
