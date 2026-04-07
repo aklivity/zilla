@@ -249,6 +249,59 @@ final class HttpServerFactory implements HttpBinding.StreamFactory
   Every factory class that is owned per-worker follows the same non-static
   flyweight field + inner class pattern.
 
+### Server and Client binding patterns
+
+Server and client bindings translate between a network protocol and
+application-level Zilla streams with extension metadata. Both follow a dual
+inner-class pattern:
+
+- **`XxxServerFactory`** (for server bindings) or **`XxxClientFactory`** (for
+  client bindings) — the top-level factory, holding shared flyweight fields
+- **`XxxServer`** (inner class) — handles the network side: methods named
+  `onNetMessage()`, `onNetBegin()`, `doNetBegin()`, `doNetData()`, `doNetEnd()`,
+  etc. for inbound protocol frames
+- **`XxxStream`** or **`XxxApplication`** (peer inner class) — handles the
+  application side: methods named `onAppMessage()`, `onAppBegin()`,
+  `doAppBegin()`, `doAppData()`, `doAppEnd()`, etc. for outbound application
+  frames
+- State tracking: each direction (initial → reply) maintains its own `int state`
+  field, managed by an **`XxxState`** utility class with static bitmask methods
+  (e.g., `accept(state)`, `consuming(state)`, `closed(state)`)
+- Safety guard: `doNetEnd()`, `doAppEnd()` and similar close methods must guard
+  against already-closed state with a check like `if (!closed(state))` before
+  proceeding
+
+This pattern applies to all server and client bindings uniformly. The inner
+classes close over the factory instance to access shared flyweights and are
+non-static.
+
+### Proxy binding patterns
+
+Proxy bindings connect two protocol sides and are implemented in two variants:
+
+**Same-protocol proxy** (e.g., `TcpProxyFactory`, `WsProxyFactory`):
+
+- Factory class: **`XxxProxyFactory`**
+- Two inner classes: **`XxxServer`** and **`XxxClient`**, each with methods
+  named for their role (e.g., `onNetMessage()`, `doNetBegin()` on the server
+  side; `onNetMessage()`, `doNetBegin()` on the client side)
+- The same protocol abstraction flows through both sides
+
+**Cross-protocol proxy** (e.g., `HttpKafkaProxyFactory`, `GrpcKafkaProxyFactory`):
+
+- Factory class: **`XxxYyyProxyFactory`** (where `Xxx` and `Yyy` are the
+  protocol names)
+- Two inner classes named for the protocols: **`XxxProxy`** and **`YyyProxy`**,
+  with methods like `onXxxMessage()`, `doXxxBegin()`, etc. and
+  `onYyyMessage()`, `doYyyBegin()`, etc. respectively
+- Sometimes multiple **capability variants** with separate inner class
+  implementations (e.g., `HttpFetchProxy` and `KafkaFetchProxy` for different
+  proxy capabilities — fetch, subscribe, etc.), each applying the above naming
+  conventions for its protocol
+
+All proxy implementations follow the same state tracking and safety guard
+patterns as server/client bindings, adapted to their two-sided model.
+
 ### Kafka local cache
 
 Zilla fetches each Kafka topic partition once and stores it as memory-mapped
