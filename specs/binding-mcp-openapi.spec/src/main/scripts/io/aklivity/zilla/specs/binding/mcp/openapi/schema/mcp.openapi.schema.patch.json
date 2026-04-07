@@ -1,0 +1,157 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp_openapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_openapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_openapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "proxy" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "specs":
+                            {
+                                "title": "Specs",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "catalog":
+                                            {
+                                                "title": "Catalog",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "title": "Subject",
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "title": "Version",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [ "subject" ],
+                                                        "additionalProperties": false
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "required": [ "catalog" ],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "tools":
+                            {
+                                "title": "Tools",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "description":
+                                            {
+                                                "title": "Description",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "tool":
+                                            {
+                                                "title": "Tool Name",
+                                                "type": "string"
+                                            },
+                                            "resource":
+                                            {
+                                                "title": "Resource URI",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "api-id":
+                                        {
+                                            "title": "API ID",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "Operation ID",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [ "options" ]
+            }
+        }
+    }
+]
