@@ -431,9 +431,15 @@ Follow this order — tests before implementation:
     `src/main/java/.../internal/` — even as a placeholder with an empty
     `ConfigurationDef` — so that runtime configuration properties can be added
     later without structural changes. See `HttpKafkaConfiguration` for a
-    minimal example. Add a corresponding `XxxConfigurationTest` that calls
-    `shouldVerifyConstants()` (verifying property name strings match the
-    `PropertyDef` names) to satisfy class coverage requirements
+    minimal example. Include two constructors: a no-args constructor that calls
+    `super(XXX_CONFIG, new Configuration())` for use in tests and tooling, and
+    a `Configuration`-parameter constructor that calls
+    `super(XXX_CONFIG, config)` for production use. Prefer the no-args
+    constructor in unit tests and any context where no external configuration
+    is needed. Add a corresponding
+    `XxxConfigurationTest` that calls `shouldVerifyConstants()` (verifying
+    property name strings match the `PropertyDef` names) to satisfy class
+    coverage requirements
 11. Write unit tests covering the stream state machine
 12. Add JSON schema for `options` and `routes[].when` in the spec project under
     `src/main/resources/META-INF/zilla/schema/` — the Maven build copies it
