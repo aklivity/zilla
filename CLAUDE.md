@@ -42,7 +42,7 @@ src/test/java/    # Unit tests
 
 ## Build
 
-Zilla uses Maven with Java 21+.
+Zilla uses Maven with Java 25.
 
 ```bash
 # Add license headers to new files — run this first after creating new source
