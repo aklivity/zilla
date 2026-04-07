@@ -240,6 +240,7 @@
                 io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/catalogs/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
               </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
