@@ -186,6 +186,7 @@ public class NamespaceRegistry
                 int localMetricId = NamespacedId.localId(metricId);
                 IntFunction<LongConsumer> recorderByAttrs = attrId ->
                     supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId);
+                recorderByAttrs.apply(0); // eagerly create default slot in layout
                 MessageConsumer handler = bindingAttributes.isEmpty()
                     ? metric.supplyHandler(recorderByAttrs.apply(0))
                     : metric.supplyHandler(recorderByAttrs, bindingAttributes, supplyLabelId);

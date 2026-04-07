@@ -1,0 +1,39 @@
+---
+name: example
+telemetry:
+  metrics:
+    - http.duration
+    - http.request.size
+    - http.response.size
+    - http.active.requests
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
+    prometheus_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            port: 7190
+            path: /metrics
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7114
+    exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+    telemetry:
+      metrics:
+        - http.*
+      attributes:
+        method: ${http.request.method}
+        path: ${http.request.path}
