@@ -405,9 +405,13 @@ Follow this order — tests before implementation:
    existing module layout. Every new project directory (both `runtime/` and
    `specs/`) must include these top-level files copied from an existing module:
    `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`, `mvnw.cmd`.
-   All new components use the **Aklivity Community License** — copy `LICENSE`
-   and `COPYRIGHT` from an existing community-licensed module such as
-   `runtime/binding-http-kafka/`. Source file headers must carry the Aklivity
+   All new components use the **Aklivity Community License** — copy
+   `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
+   `NOTICE-AklivityCommunity` from the top-level repository directory, renaming
+   them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
+   new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
+   the new module directory; do not copy `NOTICE` from another module as it
+   must reflect the new module's actual dependencies. Source file headers must carry the Aklivity
    Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
    run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
