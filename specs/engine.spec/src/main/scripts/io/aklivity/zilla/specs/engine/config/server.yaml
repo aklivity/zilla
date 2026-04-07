@@ -16,6 +16,9 @@
 
 ---
 name: test
+stores:
+    test0:
+        type: test
 vaults:
     test0:
         type: test
