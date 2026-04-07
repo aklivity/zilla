@@ -16,13 +16,11 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-
 public class MemoryStoreConfigurationTest
 {
     @Test
     public void shouldVerifyConstants() throws Exception
     {
-        new MemoryStoreConfiguration(new Configuration());
+        new MemoryStoreConfiguration();
     }
 }

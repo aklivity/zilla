@@ -26,6 +26,11 @@ public class MemoryStoreConfiguration extends Configuration
         MEMORY_STORE_CONFIG = config;
     }
 
+    public MemoryStoreConfiguration()
+    {
+        super(MEMORY_STORE_CONFIG, new Configuration());
+    }
+
     public MemoryStoreConfiguration(
         Configuration config)
     {
