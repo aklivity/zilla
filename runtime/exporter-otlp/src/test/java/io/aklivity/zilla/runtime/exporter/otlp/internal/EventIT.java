@@ -72,6 +72,19 @@ public class EventIT
     }
 
     @Test
+    @Configuration("event.with.quoted.message.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${net}/handshake/server",
+        "${app}/event.with.quoted.message/server"
+    })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
+    public void shouldPostEventLogWithQuotedMessageToOtlpCollector() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("secure/zilla.yaml")
     @Specification({
         "${net}/handshake/client",
