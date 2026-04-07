@@ -63,6 +63,7 @@
     <module>model-json</module>
     <module>model-protobuf</module>
     <module>resolver-env</module>
+    <module>store-memory</module>
     <module>vault-filesystem</module>
   </modules>
 
