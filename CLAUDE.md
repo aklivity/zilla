@@ -583,7 +583,9 @@ separate project. Do not create a `runtime/<concept>-test/` module.
 
 1. Add `TestXxxFactorySpi` (and supporting classes) under
    `runtime/engine/src/test/java/.../engine/test/internal/<concept>/`
-2. Register it in the engine test module's `module-info.java` with `provides`
+2. Register it via a `META-INF/services/<SpiInterfaceName>` file under
+   `runtime/engine/src/test/resources/` — test code does not use the Java
+   module system, so use `ServiceLoader` service files, not `module-info.java`
 3. Add an `<include>` entry for the new concept's classes in the
    `maven-jar-plugin` `test-jar` execution in `runtime/engine/pom.xml`, e.g.
    `io/aklivity/zilla/runtime/engine/test/internal/<concept>/**/*.class` —
@@ -593,10 +595,12 @@ separate project. Do not create a `runtime/<concept>-test/` module.
    include a `type: test` instance of the new concept
 5. Update the `test` binding (`TestBindingFactorySpi`) to interact with the
    new concept so its handler code paths are exercised
-6. Add or extend an IT in `specs/engine.spec` that exercises the new
-   concept's behavior via `.rpt` scripts — the `EngineIT` spec scripts are
-   the primary mechanism for achieving code coverage of the engine project,
-   so every new concept type must be reachable from at least one script
+6. Add or extend a test method in `EngineIT` in the **engine project**
+   (`runtime/engine/src/test/java/.../engine/`) that exercises the new
+   concept's behavior — `EngineIT` is the primary mechanism for achieving
+   code coverage of the engine project, so every new concept type must be
+   reachable from at least one test method. The corresponding test config
+   (`server.yaml`) and `.rpt` scripts live in `specs/engine.spec`
 
 **Avoid duplicating test schema patches.** Each test concept type has a
 `test.schema.patch.json` in `specs/engine.spec` under
