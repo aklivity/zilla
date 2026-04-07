@@ -411,7 +411,10 @@ Follow this order — tests before implementation:
 6. Add the module to `runtime/pom.xml` and the root `pom.xml`
 7. Verify all new dependencies are fully modular (see Java module system section)
 8. Implement the type-prefixed factory SPI (e.g., `HttpBindingFactorySpi`, `MqttBindingFactorySpi`)
-   and register it in `META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi`
+   and register it in `META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi`.
+   The factory SPI receives a general `Configuration`; construct the component-specific subclass
+   from it (e.g., `new HttpKafkaConfiguration(config)`) and pass that subclass — not the raw
+   `Configuration` — into the stream handler and any other collaborators that need config access
 9. Implement the type-prefixed stream handler (e.g., `HttpServerFactory`, `MqttServerFactory`)
    extending `BindingHandler`, driven by the
    failing spec scripts
