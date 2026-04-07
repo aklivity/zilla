@@ -28,7 +28,8 @@ final class MemoryStore implements Store
 
     private final ConcurrentHashMap<String, MemoryEntry> entries;
 
-    MemoryStore()
+    MemoryStore(
+        MemoryStoreConfiguration config)
     {
         this.entries = new ConcurrentHashMap<>();
     }

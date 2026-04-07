@@ -31,6 +31,6 @@ public final class MemoryStoreFactorySpi implements StoreFactorySpi
     public Store create(
         Configuration config)
     {
-        return new MemoryStore();
+        return new MemoryStore(new MemoryStoreConfiguration(config));
     }
 }

@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 public class MemoryStoreHandlerTest
 {
     private MemoryStoreHandler handler;
@@ -31,7 +33,7 @@ public class MemoryStoreHandlerTest
     @Before
     public void setUp()
     {
-        handler = new MemoryStoreHandler(new MemoryStore());
+        handler = new MemoryStoreHandler(new MemoryStore(new MemoryStoreConfiguration(new Configuration())));
     }
 
     @Test
