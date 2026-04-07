@@ -35,3 +35,4 @@ hs_err_pid*.log
 *.tokens
 gen/
 examples/grpc-clicker.json
+.claude/worktrees/
