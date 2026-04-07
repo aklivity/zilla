@@ -404,7 +404,12 @@ Follow this order — tests before implementation:
 3. Create `runtime/binding-<n>/` and `specs/binding-<n>.spec/` following the
    existing module layout. Every new project directory (both `runtime/` and
    `specs/`) must include these top-level files copied from an existing module:
-   `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`, `mvnw.cmd`
+   `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`, `mvnw.cmd`.
+   All new components use the **Aklivity Community License** — copy `LICENSE`
+   and `COPYRIGHT` from an existing community-licensed module such as
+   `runtime/binding-http-kafka/`. Source file headers must carry the Aklivity
+   Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
+   run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
    unexported, registers the factory SPI with `provides`
 5. Define flyweight types in `src/main/resources/META-INF/zilla/<n>.idl`
