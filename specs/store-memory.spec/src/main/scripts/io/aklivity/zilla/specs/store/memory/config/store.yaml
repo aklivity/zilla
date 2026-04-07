@@ -1,0 +1,5 @@
+---
+name: test
+stores:
+    memory0:
+        type: memory

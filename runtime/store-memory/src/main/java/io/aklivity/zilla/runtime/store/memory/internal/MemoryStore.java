@@ -107,5 +107,4 @@ final class MemoryStore implements Store
         }
         return entry.value;
     }
-
 }
