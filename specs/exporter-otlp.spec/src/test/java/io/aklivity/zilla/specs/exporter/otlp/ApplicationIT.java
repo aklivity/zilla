@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/event.with.quoted.message/client",
+        "${app}/event.with.quoted.message/server" })
+    public void shouldPostEventsWithQuotedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/metrics/client",
         "${app}/metrics/server" })
     public void shouldPostMetrics() throws Exception

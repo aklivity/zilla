@@ -115,7 +115,7 @@ write 287
       0x00
       [0x02]
       0x4e8723aa
-      16s                               # attributes (transactional)
+      24s                               # attributes (log append time, transactional)
       1                                 # last offset delta
       ${newTimestamp}                   # first timestamp
       ${newTimestamp}                   # last timestamp
@@ -208,7 +208,7 @@ write 144
       0x00
       [0x02]
       0x4e8723aa
-      0s                                # attributes
+      8s                                # attributes (log append time)
       0                                 # last offset delta
       ${newTimestamp}                   # first timestamp
       ${newTimestamp}                   # last timestamp

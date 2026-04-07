@@ -75,11 +75,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFlags;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -87,6 +89,13 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class KafkaCachePartition
 {
+    public static final int CACHE_ENTRY_FLAGS_DIRTY = KafkaCacheEntryFlags.DIRTY.value();
+    public static final int CACHE_ENTRY_FLAGS_COMPLETED = KafkaCacheEntryFlags.COMPLETED.value();
+    public static final int CACHE_ENTRY_FLAGS_ABORTED = KafkaCacheEntryFlags.ABORTED.value();
+    public static final int CACHE_ENTRY_FLAGS_CONTROL = KafkaCacheEntryFlags.CONTROL.value();
+    public static final int CACHE_ENTRY_FLAGS_AUTHORITATIVE = KafkaCacheEntryFlags.AUTHORITATIVE.value();
+    public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
+
     private static final long NO_DIRTY_SINCE = -1L;
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
@@ -100,11 +109,6 @@ public final class KafkaCachePartition
 
     private static final int FLAGS_COMPLETE = 0x03;
     private static final int FLAGS_FIN = 0x01;
-    public static final int CACHE_ENTRY_FLAGS_DIRTY = 0x01;
-    public static final int CACHE_ENTRY_FLAGS_COMPLETED = 0x02;
-    public static final int CACHE_ENTRY_FLAGS_ABORTED = 0x04;
-    public static final int CACHE_ENTRY_FLAGS_CONTROL = 0x08;
-    public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
 
@@ -355,6 +359,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         long timestamp,
+        KafkaTimestampType timestampType,
         long producerId,
         KafkaKeyFW key,
         ArrayFW<KafkaHeaderFW> headers,
@@ -367,7 +372,7 @@ public final class KafkaCachePartition
         KafkaTopicTransformsType transforms)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
+        writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, timestampType, producerId, key,
             valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, transforms, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
@@ -382,6 +387,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         long timestamp,
+        KafkaTimestampType timestampType,
         long producerId,
         KafkaKeyFW key,
         int valueLength,
@@ -402,6 +408,8 @@ public final class KafkaCachePartition
 
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
+
+        segment.modifiedAt(timestamp, timestampType);
 
         final KafkaCacheFile logFile = segment.logFile();
         final KafkaCacheFile deltaFile = segment.deltaFile();

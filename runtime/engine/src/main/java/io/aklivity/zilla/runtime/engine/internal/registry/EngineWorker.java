@@ -121,11 +121,11 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
+import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
@@ -237,7 +237,7 @@ public class EngineWorker implements EngineContext, Agent
     private final CountersLayout countersLayout;
     private final GaugesLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
-    private final EventsLayout eventsLayout;
+    private final EventWriter eventWriter;
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
@@ -335,10 +335,9 @@ public class EngineWorker implements EngineContext, Agent
                 .readonly(readonly)
                 .build();
 
-        this.eventsLayout = new EventsLayout.Builder()
-                .path(config.directory().resolve(String.format("events%d", index)))
-                .capacity(config.eventsBufferCapacity())
-                .build();
+        this.eventWriter = new EventWriter(
+                config.directory().resolve(String.format("events%d", index)),
+                config.eventsBufferCapacity());
 
         this.eventNames = new Int2ObjectHashMap<>();
 
@@ -984,6 +983,7 @@ public class EngineWorker implements EngineContext, Agent
 
         debitorsByIndex.forEach((k, v) -> quietClose(v));
         quietClose(creditor);
+        quietClose(eventWriter);
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
@@ -1133,7 +1133,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public MessageConsumer supplyEventWriter()
     {
-        return this.eventsLayout::writeEvent;
+        return this.eventWriter::writeEvent;
     }
 
     @Override
@@ -1901,9 +1901,9 @@ public class EngineWorker implements EngineContext, Agent
         return metricWriterSuppliers.get(kind).apply(bindingId, metricId, attributesId);
     }
 
-    public EventsLayout.EventAccessor createEventAccessor()
+    public EventWriter eventWriter()
     {
-        return eventsLayout.createEventAccessor();
+        return eventWriter;
     }
 
     public MessageReader supplyEventReader()

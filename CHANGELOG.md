@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.1.5](https://github.com/aklivity/zilla/tree/1.1.5) (2026-04-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.4...1.1.5)
+
+**Fixed bugs:**
+
+- OTLP exporter crashes with JsonParsingException when event message contains double quotes [\#1703](https://github.com/aklivity/zilla/issues/1703)
+
+**Merged pull requests:**
+
+- OTLP exporter to handle event message with special character [\#1704](https://github.com/aklivity/zilla/pull/1704) ([ankitk-me](https://github.com/ankitk-me))
+
+## [1.1.4](https://github.com/aklivity/zilla/tree/1.1.4) (2026-04-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.11...1.1.4)
+
+**Merged pull requests:**
+
+- Upgrade to JDK 25 and Agrona 2.4.0 [\#1665](https://github.com/aklivity/zilla/pull/1665) ([jfallows](https://github.com/jfallows))
+- Bump org.apache.commons:commons-lang3 from 3.17.0 to 3.18.0 in /incubator/command-dump [\#1617](https://github.com/aklivity/zilla/pull/1617) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump eclipse-temurin from 21-alpine to 25-alpine in /cloud/docker-image/src/main/docker [\#1574](https://github.com/aklivity/zilla/pull/1574) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [1.0.11](https://github.com/aklivity/zilla/tree/1.0.11) (2026-04-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.0.10...1.0.11)
+
+**Closed issues:**
+
+- Support `zilla start ... --diagnostics-directory` to capture engine state [\#1663](https://github.com/aklivity/zilla/issues/1663)
+
+**Merged pull requests:**
+
+- omit examples without test script [\#1695](https://github.com/aklivity/zilla/pull/1695) ([ankitk-me](https://github.com/ankitk-me))
+- Fix kafka cache segment cleanup [\#1694](https://github.com/aklivity/zilla/pull/1694) ([jfallows](https://github.com/jfallows))
+- Fix event log cleanup [\#1693](https://github.com/aklivity/zilla/pull/1693) ([jfallows](https://github.com/jfallows))
+- Support capturing engine diagnostics [\#1692](https://github.com/aklivity/zilla/pull/1692) ([ankitk-me](https://github.com/ankitk-me))
+- Fix tls handshake timeout description [\#1691](https://github.com/aklivity/zilla/pull/1691) ([jfallows](https://github.com/jfallows))
+
 ## [1.0.10](https://github.com/aklivity/zilla/tree/1.0.10) (2026-03-27)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.9...1.0.10)

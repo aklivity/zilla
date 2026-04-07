@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.command.start.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIAGNOSTICS_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EVENTS;
@@ -43,6 +44,7 @@ import com.github.rvesse.airline.annotations.Option;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import sun.misc.Signal;
 
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
@@ -81,6 +83,10 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = {"-l", "--logs"},
         description = "Show log events")
     public boolean events;
+
+    @Option(name = {"--diagnostics-directory"},
+        description = "Diagnostics directory")
+    public String diagnosticsPath;
 
     @Override
     public void run()
@@ -140,6 +146,11 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE_EVENTS.name(), Boolean.toString(events));
         }
 
+        if (diagnosticsPath != null)
+        {
+            props.setProperty(ENGINE_DIAGNOSTICS_DIRECTORY.name(), diagnosticsPath);
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
 
         Path configPath = Path.of(config.configURI());
@@ -166,6 +177,8 @@ public final class ZillaStartCommand extends ZillaCommand
             .errorHandler(onError)
             .build())
         {
+            Signal.handle(new Signal("USR2"), signal -> engine.diagnose());
+
             engine.start();
 
             runtime.addShutdownHook(new Thread(this::onShutdown));
