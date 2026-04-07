@@ -578,6 +578,9 @@ for the engine's wiring of all concept types.
 
 **When adding a new engine concept:**
 
+Test implementations belong in the **engine module's test sources**, not in a
+separate project. Do not create a `runtime/<concept>-test/` module.
+
 1. Add `TestXxxFactorySpi` (and supporting classes) under
    `runtime/engine/src/test/java/.../engine/test/internal/<concept>/`
 2. Register it in the engine test module's `module-info.java` with `provides`
