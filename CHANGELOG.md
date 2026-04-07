@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.5](https://github.com/aklivity/zilla/tree/1.1.5) (2026-04-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.4...1.1.5)
+
+**Fixed bugs:**
+
+- OTLP exporter crashes with JsonParsingException when event message contains double quotes [\#1703](https://github.com/aklivity/zilla/issues/1703)
+
+**Merged pull requests:**
+
+- OTLP exporter to handle event message with special character [\#1704](https://github.com/aklivity/zilla/pull/1704) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.1.4](https://github.com/aklivity/zilla/tree/1.1.4) (2026-04-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.0.11...1.1.4)
