@@ -1,0 +1,370 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Confluent Schema Registry API",
+        "description": "REST API for Confluent/Karapace Schema Registry",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/subjects": {
+            "get": {
+                "operationId": "list",
+                "summary": "List all subjects",
+                "description": "Retrieves a list of registered subjects.",
+                "parameters": [
+                    {
+                        "name": "subjectPrefix",
+                        "in": "query",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "deleted",
+                        "in": "query",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of subjects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subjects/{subject}/versions": {
+            "get": {
+                "operationId": "getSchemaVersions",
+                "summary": "List versions under subject",
+                "description": "Retrieves a list of versions registered under the specified subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of version numbers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": { "type": "integer" }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "register",
+                "summary": "Register schema under a subject",
+                "description": "Registers a new schema under the specified subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "schema": { "type": "string" },
+                                    "schemaType": {
+                                        "type": "string",
+                                        "enum": ["AVRO", "JSON", "PROTOBUF"],
+                                        "default": "AVRO"
+                                    }
+                                },
+                                "required": ["schema"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Schema ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": { "type": "integer" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subjects/{subject}/versions/{version}": {
+            "get": {
+                "operationId": "getSchemaByVersion",
+                "summary": "Get schema by version",
+                "description": "Retrieves a specific version of the schema registered under a subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Schema details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "subject": { "type": "string" },
+                                        "id": { "type": "integer" },
+                                        "version": { "type": "integer" },
+                                        "schema": { "type": "string" },
+                                        "schemaType": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "deleteSchemaVersion",
+                "summary": "Delete schema version",
+                "description": "Deletes a specific version of the schema registered under a subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted version number",
+                        "content": {
+                            "application/json": {
+                                "schema": { "type": "integer" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subjects/{subject}": {
+            "delete": {
+                "operationId": "deleteSubject",
+                "summary": "Delete subject",
+                "description": "Deletes the specified subject and its associated compatibility level.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of deleted version numbers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": { "type": "integer" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/compatibility/subjects/{subject}/versions/{version}": {
+            "post": {
+                "operationId": "testCompatibilityBySubjectName_1",
+                "summary": "Test input schema against a particular version of a subject schema",
+                "description": "Tests schema compatibility against a version of a subject's schema.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "version",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "schema": { "type": "string" },
+                                    "schemaType": { "type": "string" }
+                                },
+                                "required": ["schema"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Compatibility result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "is_compatible": { "type": "boolean" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/config/{subject}": {
+            "get": {
+                "operationId": "getSubjectLevelConfig",
+                "summary": "Get compatibility level for a subject",
+                "description": "Retrieves the compatibility level configured for the specified subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compatibility level",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "compatibilityLevel": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "updateSubjectLevelConfig",
+                "summary": "Update compatibility level for a subject",
+                "description": "Updates the compatibility level for the specified subject.",
+                "parameters": [
+                    {
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "compatibility": {
+                                        "type": "string",
+                                        "enum": [
+                                            "BACKWARD",
+                                            "BACKWARD_TRANSITIVE",
+                                            "FORWARD",
+                                            "FORWARD_TRANSITIVE",
+                                            "FULL",
+                                            "FULL_TRANSITIVE",
+                                            "NONE"
+                                        ]
+                                    }
+                                },
+                                "required": ["compatibility"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated compatibility level",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "compatibility": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/contexts": {
+            "get": {
+                "operationId": "getContexts",
+                "summary": "List contexts",
+                "description": "Retrieves a list of all schema registry contexts.",
+                "responses": {
+                    "200": {
+                        "description": "List of contexts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
