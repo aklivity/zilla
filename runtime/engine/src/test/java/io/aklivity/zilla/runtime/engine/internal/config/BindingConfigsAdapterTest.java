@@ -357,6 +357,69 @@ public class BindingConfigsAdapterTest
     }
 
     @Test
+    public void shouldReadBindingWithTelemetryAttributes()
+    {
+        String text =
+                "{" +
+                    "\"test\":" +
+                    "{" +
+                        "\"type\": \"test\"," +
+                        "\"kind\": \"server\"," +
+                        "\"telemetry\":" +
+                        "{" +
+                            "\"metrics\":" +
+                            "[" +
+                                "\"test.counter\"" +
+                            "]," +
+                            "\"attributes\":" +
+                            "{" +
+                                "\"method\": \"${http.request.method}\"," +
+                                "\"status\": \"${http.response.status}\"" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
+
+        assertThat(bindings[0], not(nullValue()));
+        assertThat(bindings[0].name, equalTo("test"));
+        assertThat(bindings[0].kind, equalTo(SERVER));
+        assertThat(bindings[0].telemetryRef.metricRefs, hasSize(1));
+        assertThat(bindings[0].telemetryRef.metricRefs.get(0).name, equalTo("test.counter"));
+        assertThat(bindings[0].telemetryRef.attributes, hasSize(2));
+    }
+
+    @Test
+    public void shouldWriteBindingWithTelemetryAttributes()
+    {
+        BindingConfig[] bindings =
+        {
+            BindingConfig.builder()
+                .namespace("test")
+                .name("test")
+                .type("test")
+                .kind(SERVER)
+                .telemetry()
+                    .metric()
+                        .name("test.counter")
+                        .build()
+                    .attribute()
+                        .name("method")
+                        .value("${http.request.method}")
+                        .build()
+                    .build()
+                .build()
+        };
+
+        String text = jsonb.toJson(bindings);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\"," +
+                "\"telemetry\":{\"metrics\":[\"test.counter\"],\"attributes\":{\"method\":\"${http.request.method}\"}}}}"));
+    }
+
+    @Test
     public void shouldWriteBindingWithCatalog()
     {
         BindingConfig[] bindings =

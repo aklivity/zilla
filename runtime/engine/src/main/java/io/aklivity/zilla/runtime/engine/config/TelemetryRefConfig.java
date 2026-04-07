@@ -22,6 +22,7 @@ import java.util.List;
 public class TelemetryRefConfig
 {
     public final List<MetricRefConfig> metricRefs;
+    public final List<AttributeConfig> attributes;
 
     public static TelemetryRefConfigBuilder<TelemetryRefConfig> builder()
     {
@@ -29,8 +30,10 @@ public class TelemetryRefConfig
     }
 
     TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs)
+        List<MetricRefConfig> metricRefs,
+        List<AttributeConfig> attributes)
     {
         this.metricRefs = metricRefs;
+        this.attributes = attributes;
     }
 }

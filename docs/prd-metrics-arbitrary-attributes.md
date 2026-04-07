@@ -131,7 +131,7 @@ NamespaceConfig
         └── AttributeConfig[] (name + value/expression)   <-- NEW
 ```
 
-Metrics stored keyed by `(bindingId, metricId, attributeSetId)`. An `AttributeSetRegistry` maps each `attributeSetId` back to resolved attribute name-value pairs for export. `MetricContext` handlers extract attribute values from stream frames and register them to obtain the `attributeSetId`.
+Metrics stored keyed by `(bindingId, metricId, attributesId)`. Each unique attribute combination is registered as a label via the existing `LabelManager` — serialized as a deterministic string (e.g., `"method=GET,path=/items,status=200"`) and assigned a stable integer ID. `LabelManager.lookupLabel(id)` provides reverse lookup for export. Each attribute combination slot has identical storage cost to any existing metric slot. `MetricContext` handlers extract attribute values from stream frames and call `supplyLabelId` to obtain the `attributesId`.
 
 ### Affected Components
 
@@ -139,13 +139,13 @@ Metrics stored keyed by `(bindingId, metricId, attributeSetId)`. An `AttributeSe
 |---|---|
 | `TelemetryRefConfig` / Builder / Adapter | Add `attributes` field, parsing, serialization |
 | `engine.schema.json` | Add `attributes` property to binding telemetry |
-| `MetricsLayout` / `ScalarsLayout` / `HistogramsLayout` | Extend record key with `attributeSetId` |
-| `AttributeSetRegistry` (new) | Register and resolve attribute combinations |
+| `MetricsLayout` / `ScalarsLayout` / `HistogramsLayout` | Extend record key with `attributesId` |
+| `LabelManager` (existing) | Register attribute combination strings, reverse lookup for export |
 | `Collector` interface | Return triples instead of pairs; add 3-arg overloads |
 | `MetricContext` interface | New `supply` overload accepting attributes + registry |
 | HTTP metric handlers (`HttpDurationMetricContext`, etc.) | Extract HTTP headers, resolve expressions |
 | `MetricRecord` / `ScalarRecord` / `HistogramRecord` | Add `attributes()` method |
-| `MetricsReader` | Pass `attributeSetId` through to records |
+| `MetricsReader` | Pass `attributesId` through to records |
 | `OtlpMetricsSerializer` | Include resolved attributes in data point export |
 | `PrometheusMetricsPrinter` | Include resolved attributes as Prometheus labels |
 | `NamespaceRegistry` / `EngineManager` | Wire attribute config to metric handlers |
@@ -162,11 +162,9 @@ Metrics stored keyed by `(bindingId, metricId, attributeSetId)`. An `AttributeSe
 
 | # | Question | Impact |
 |---|---|---|
-| Q1 | What should the default cardinality limit be per `(binding, metric)`? (e.g., 128, 256, 1024) | Shared memory sizing, overflow behavior |
-| Q2 | Should the cardinality limit be user-configurable in the telemetry config? | Config schema, validation |
-| Q3 | Should we support expressions for non-HTTP bindings (e.g., Kafka topic, partition) in the initial release or defer? | Scope of Phase 2 |
-| Q4 | How should the overflow bucket be labeled when cardinality limit is exceeded? (e.g., `__overflow__`) | Export format |
-| Q5 | Should `${http.request.path}` resolve the full path or support pattern-based grouping (e.g., `/items/{id}` -> `/items/*`)? Path grouping significantly reduces cardinality. | Cardinality, usability |
+| Q1 | Should we support expressions for non-HTTP bindings (e.g., Kafka topic, partition) in the initial release or defer? | Scope of Phase 2 |
+| Q2 | Should `${http.request.path}` resolve the full path or support pattern-based grouping (e.g., `/items/{id}` -> `/items/*`)? Path grouping significantly reduces cardinality. | Cardinality, usability |
+| Q3 | Should shared memory capacity be increased or made configurable to accommodate the additional metric slots created by attribute combinations? | Shared memory sizing |
 
 ## 9. Success Criteria
 
