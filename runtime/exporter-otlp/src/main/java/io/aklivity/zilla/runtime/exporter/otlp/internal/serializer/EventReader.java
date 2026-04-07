@@ -36,6 +36,8 @@ public class EventReader
     private static final String BODY = "body";
     private static final String ATTRIBUTES = "attributes";
     private static final String STRING_VALUE = "stringValue";
+    private static final String KEY = "key";
+    private static final String VALUE = "value";
 
     private final EngineContext context;
     private final MessageReader readEvent;
@@ -95,8 +97,8 @@ public class EventReader
         String value)
     {
         eventAttributesJson.add(Json.createObjectBuilder()
-            .add("key", key)
-            .add("value", Json.createObjectBuilder()
+            .add(KEY, key)
+            .add(VALUE, Json.createObjectBuilder()
                 .add(STRING_VALUE, value)));
     }
 }
