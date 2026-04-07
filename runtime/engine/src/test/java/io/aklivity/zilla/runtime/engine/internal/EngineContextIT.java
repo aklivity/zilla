@@ -67,4 +67,13 @@ public class EngineContextIT
         // the aggregated counter value across the 3 cores should be 42 + 21 + 14 = 77
         assertThat(counter.getAsLong(), equalTo(77L));
     }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldAttachStore()
+    {
+        // engine starts with stores: test0: type: test in server.yaml
+        // and binding options reference store: test0
+        // this exercises TestStoreFactorySpi, TestStore, TestStoreContext, TestStoreHandler
+    }
 }

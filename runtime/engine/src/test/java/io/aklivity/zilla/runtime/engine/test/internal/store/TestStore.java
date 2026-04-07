@@ -13,23 +13,39 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.store.test.internal;
+package io.aklivity.zilla.runtime.engine.test.internal.store;
+
+import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.store.StoreFactorySpi;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.store.Store;
 
-public final class TestStoreFactorySpi implements StoreFactorySpi
+public final class TestStore implements Store
 {
-    @Override
-    public String type()
+    public static final String NAME = "test";
+
+    public TestStore(
+        Configuration config)
     {
-        return TestStore.NAME;
     }
 
     @Override
-    public TestStore create(
-        Configuration config)
+    public String name()
     {
-        return new TestStore(config);
+        return NAME;
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("test.schema.patch.json");
+    }
+
+    @Override
+    public TestStoreContext supply(
+        EngineContext context)
+    {
+        return new TestStoreContext(context);
     }
 }

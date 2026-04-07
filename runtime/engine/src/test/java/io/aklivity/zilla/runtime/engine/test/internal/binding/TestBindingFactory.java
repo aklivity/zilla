@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndF
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
@@ -161,6 +162,16 @@ final class TestBindingFactory implements BindingHandler
             {
                 this.vault = context.supplyVault(binding.vaultId);
                 this.vaultAssertion = options.vaultAssertion;
+            }
+
+            if (options.store != null)
+            {
+                int storeId = context.supplyTypeId(options.store);
+                StoreHandler store = context.supplyStore(NamespacedId.id(namespaceId, storeId));
+                if (store != null)
+                {
+                    store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
+                }
             }
 
             if (options.metrics != null && !options.metrics.isEmpty())

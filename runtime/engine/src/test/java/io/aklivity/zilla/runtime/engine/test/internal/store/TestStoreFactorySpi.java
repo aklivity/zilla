@@ -13,10 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.store.test
-{
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.engine.test.internal.store;
 
-    provides io.aklivity.zilla.runtime.engine.store.StoreFactorySpi
-        with io.aklivity.zilla.runtime.store.test.internal.TestStoreFactorySpi;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.store.StoreFactorySpi;
+
+public final class TestStoreFactorySpi implements StoreFactorySpi
+{
+    @Override
+    public String type()
+    {
+        return TestStore.NAME;
+    }
+
+    @Override
+    public TestStore create(
+        Configuration config)
+    {
+        return new TestStore(config);
+    }
 }

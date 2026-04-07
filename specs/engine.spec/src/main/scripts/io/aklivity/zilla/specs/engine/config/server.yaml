@@ -53,6 +53,7 @@ bindings:
         type: test
         kind: server
         options:
+            store: test0
             authorization:
                 test0:
                     credentials: TOKEN
