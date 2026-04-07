@@ -389,19 +389,21 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public LongSupplier counter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return () -> aggregateCounterValue(bindingId, metricId);
+        return () -> aggregateCounterValue(bindingId, metricId, attributesId);
     }
 
     private long aggregateCounterValue(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         long result = 0;
         for (EngineWorker worker : workers)
         {
-            LongSupplier reader = worker.supplyCounter(bindingId, metricId);
+            LongSupplier reader = worker.supplyCounter(bindingId, metricId, attributesId);
             result += reader.getAsLong();
         }
         return result;
@@ -410,29 +412,32 @@ public final class Engine implements Collector, AutoCloseable
     // required for testing
     public LongConsumer counterWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
         EngineWorker worker = workers.toArray(EngineWorker[]::new)[core];
-        return worker.supplyCounterWriter(bindingId, metricId);
+        return worker.supplyCounterWriter(bindingId, metricId, attributesId);
     }
 
     @Override
     public LongSupplier gauge(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return () -> aggregateGaugeValue(bindingId, metricId);
+        return () -> aggregateGaugeValue(bindingId, metricId, attributesId);
     }
 
     private long aggregateGaugeValue(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         long result = 0;
         for (EngineWorker worker : workers)
         {
-            LongSupplier reader = worker.supplyGauge(bindingId, metricId);
+            LongSupplier reader = worker.supplyGauge(bindingId, metricId, attributesId);
             result += reader.getAsLong();
         }
         return result;
@@ -441,43 +446,47 @@ public final class Engine implements Collector, AutoCloseable
     // required for testing
     public LongConsumer gaugeWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
         EngineWorker worker = workers.get(core);
-        return worker.supplyGaugeWriter(bindingId, metricId);
+        return worker.supplyGaugeWriter(bindingId, metricId, attributesId);
     }
 
     @Override
     public LongSupplier[] histogram(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return createHistogramReaders(bindingId, metricId);
+        return createHistogramReaders(bindingId, metricId, attributesId);
     }
 
     private LongSupplier[] createHistogramReaders(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         LongSupplier[] result = new LongSupplier[BUCKETS];
         for (int i = 0; i < BUCKETS; i++)
         {
             final int index = i;
-            result[index] = () -> aggregateHistogramBucketValue(bindingId, metricId, index);
+            result[index] = () -> aggregateHistogramBucketValue(bindingId, metricId, attributesId, index);
         }
         return result;
     }
 
     private long aggregateHistogramBucketValue(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int index)
     {
         long result = 0L;
         for (EngineWorker worker : workers)
         {
-            LongSupplier[] readers = worker.supplyHistogram(bindingId, metricId);
+            LongSupplier[] readers = worker.supplyHistogram(bindingId, metricId, attributesId);
             result += readers[index].getAsLong();
         }
         return result;
@@ -486,11 +495,12 @@ public final class Engine implements Collector, AutoCloseable
     // required for testing
     public LongConsumer histogramWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
         EngineWorker worker = workers.get(core);
-        return worker.supplyHistogramWriter(bindingId, metricId);
+        return worker.supplyHistogramWriter(bindingId, metricId, attributesId);
     }
 
     @Override
@@ -635,10 +645,10 @@ public final class Engine implements Collector, AutoCloseable
             String metric)
         {
             int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
-            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
+            int localId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
             int metricId = supplyLabelId.applyAsInt(metric);
-            long namespacedId = NamespacedId.id(namespaceId, bindingId);
-            return Engine.this.counter(namespacedId, metricId);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            return Engine.this.counter(bindingId, metricId, 0);
         }
 
         @Override
@@ -648,10 +658,10 @@ public final class Engine implements Collector, AutoCloseable
             String metric)
         {
             int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
-            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
+            int localId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
             int metricId = supplyLabelId.applyAsInt(metric);
-            long namespacedId = NamespacedId.id(namespaceId, bindingId);
-            return Engine.this.gauge(namespacedId, metricId);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            return Engine.this.gauge(bindingId, metricId, 0);
         }
 
         // required for testing
@@ -662,10 +672,10 @@ public final class Engine implements Collector, AutoCloseable
             int core)
         {
             int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
-            int bindingId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
+            int localId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
             int metricId = supplyLabelId.applyAsInt(metric);
-            long namespacedId = NamespacedId.id(namespaceId, bindingId);
-            return Engine.this.counterWriter(namespacedId, metricId, core);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            return Engine.this.counterWriter(bindingId, metricId, 0, core);
         }
     }
 }

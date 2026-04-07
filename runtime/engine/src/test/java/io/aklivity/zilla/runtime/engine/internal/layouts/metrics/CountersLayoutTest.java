@@ -42,13 +42,13 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        LongConsumer writer1 = layout.supplyWriter(11L, 42L);
-        LongConsumer writer2 = layout.supplyWriter(22L, 77L);
-        LongConsumer writer3 = layout.supplyWriter(33L, 88L);
+        LongConsumer writer1 = layout.supplyWriter(11L, 42, 0);
+        LongConsumer writer2 = layout.supplyWriter(22L, 77, 0);
+        LongConsumer writer3 = layout.supplyWriter(33L, 88, 0);
 
-        LongSupplier reader1 = layout.supplyReader(11L, 42L);
-        LongSupplier reader2 = layout.supplyReader(22L, 77L);
-        LongSupplier reader3 = layout.supplyReader(33L, 88L);
+        LongSupplier reader1 = layout.supplyReader(11L, 42, 0);
+        LongSupplier reader2 = layout.supplyReader(22L, 77, 0);
+        LongSupplier reader3 = layout.supplyReader(33L, 88, 0);
 
         assertThat(reader1.getAsLong(), equalTo(0L)); // should be 0L initially
         writer1.accept(1L);
@@ -84,11 +84,11 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        layout.supplyWriter(11L, 42L);
-        layout.supplyWriter(22L, 77L);
+        layout.supplyWriter(11L, 42, 0);
+        layout.supplyWriter(22L, 77, 0);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            layout.supplyWriter(33L, 88L);
+            layout.supplyWriter(33L, 88, 0);
         });
 
         layout.close();
@@ -108,10 +108,10 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        layout.supplyWriter(11L, 42L);
-        layout.supplyWriter(22L, 77L);
-        layout.supplyWriter(33L, 88L);
-        long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
+        layout.supplyWriter(11L, 42, 0);
+        layout.supplyWriter(22L, 77, 0);
+        layout.supplyWriter(33L, 88, 0);
+        long[][] expectedIds = new long[][]{{11L, 42L, 0L}, {22L, 77L, 0L}, {33L, 88L, 0L}};
 
         assertThat(layout.getIds(), equalTo(expectedIds));
     }

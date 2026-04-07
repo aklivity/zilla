@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
+import java.util.Map;
+
 /**
  * A resolved metric identity, combining the namespaced binding address with the metric name.
  * <p>
@@ -59,4 +61,23 @@ public interface MetricRecord
      * @return the metric name
      */
     String metric();
+
+    /**
+     * Returns the attributes label id that encodes user-defined dimensions for this metric.
+     *
+     * @return the attributes id, or {@code 0} when no attributes are present
+     */
+    int attributesId();
+
+    /**
+     * Returns the resolved arbitrary attributes as a map of key-value pairs.
+     * The attribute string is stored as a label (e.g., {@code "method=GET,path=/items"})
+     * and parsed back into structured form for export.
+     *
+     * @return a map of attribute key-value pairs, empty if {@code attributesId} is {@code 0}
+     */
+    default Map<String, String> attributes()
+    {
+        return Map.of();
+    }
 }

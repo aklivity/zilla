@@ -41,8 +41,8 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        LongConsumer writer = histogramsLayout.supplyWriter(11L, 42L);
-        LongSupplier[] readers = histogramsLayout.supplyReaders(11L, 42L);
+        LongConsumer writer = histogramsLayout.supplyWriter(11L, 42, 0);
+        LongSupplier[] readers = histogramsLayout.supplyReaders(11L, 42, 0);
 
         // bucket 0 (0L - 1L)
         writer.accept(0L);
@@ -126,14 +126,14 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        LongConsumer writer1 = histogramsLayout.supplyWriter(11L, 42L);
-        LongConsumer writer2 = histogramsLayout.supplyWriter(22L, 77L);
-        LongConsumer writer3 = histogramsLayout.supplyWriter(33L, 88L);
+        LongConsumer writer1 = histogramsLayout.supplyWriter(11L, 42, 0);
+        LongConsumer writer2 = histogramsLayout.supplyWriter(22L, 77, 0);
+        LongConsumer writer3 = histogramsLayout.supplyWriter(33L, 88, 0);
 
-        LongSupplier[] readers0 = histogramsLayout.supplyReaders(99999L, 99999L);
-        LongSupplier[] readers1 = histogramsLayout.supplyReaders(11L, 42L);
-        LongSupplier[] readers2 = histogramsLayout.supplyReaders(22L, 77L);
-        LongSupplier[] readers3 = histogramsLayout.supplyReaders(33L, 88L);
+        LongSupplier[] readers0 = histogramsLayout.supplyReaders(99999L, 99999, 0);
+        LongSupplier[] readers1 = histogramsLayout.supplyReaders(11L, 42, 0);
+        LongSupplier[] readers2 = histogramsLayout.supplyReaders(22L, 77, 0);
+        LongSupplier[] readers3 = histogramsLayout.supplyReaders(33L, 88, 0);
 
         assertThat(readers0[0].getAsLong(), equalTo(0L));
         assertThat(readers0[62].getAsLong(), equalTo(0L));
@@ -185,11 +185,11 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        histogramsLayout.supplyWriter(11L, 42L);
-        histogramsLayout.supplyWriter(22L, 77L);
+        histogramsLayout.supplyWriter(11L, 42, 0);
+        histogramsLayout.supplyWriter(22L, 77, 0);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            histogramsLayout.supplyWriter(33L, 88L);
+            histogramsLayout.supplyWriter(33L, 88, 0);
         });
 
         histogramsLayout.close();
@@ -208,10 +208,10 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        countersLayout.supplyWriter(11L, 42L);
-        countersLayout.supplyWriter(22L, 77L);
-        countersLayout.supplyWriter(33L, 88L);
-        long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
+        countersLayout.supplyWriter(11L, 42, 0);
+        countersLayout.supplyWriter(22L, 77, 0);
+        countersLayout.supplyWriter(33L, 88, 0);
+        long[][] expectedIds = new long[][]{{11L, 42L, 0L}, {22L, 77L, 0L}, {33L, 88L, 0L}};
 
         assertThat(countersLayout.getIds(), equalTo(expectedIds));
     }

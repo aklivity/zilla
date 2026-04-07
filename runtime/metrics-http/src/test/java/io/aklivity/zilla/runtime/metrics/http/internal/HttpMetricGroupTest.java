@@ -18,14 +18,20 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToIntFunction;
 
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -34,6 +40,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -814,5 +821,301 @@ public class HttpMetricGroupTest
 
         // THEN
         verify(recorder, never()).accept(anyLong());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldRecordFixedHttpRequestSizeWithAttributes()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer valueRecorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorder = mock(IntFunction.class);
+        when(recorder.apply(anyInt())).thenReturn(valueRecorder);
+        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
+        when(supplyLabelId.applyAsInt("method=GET")).thenReturn(42);
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("method").value("${http.request.method}").build()
+        );
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.request.size");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+
+        // begin frame with header Content-Length = 42 and :method = GET
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+                .typeId(0)
+                .headersItem(h -> h.name(":method").value("GET"))
+                .headersItem(h -> h.name("content-length").value("42"))
+                .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).apply(42);
+        verify(valueRecorder, times(1)).accept(42L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldRecordDynamicHttpRequestSizeWithAttributes()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer valueRecorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorder = mock(IntFunction.class);
+        when(recorder.apply(anyInt())).thenReturn(valueRecorder);
+        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
+        when(supplyLabelId.applyAsInt("method=POST")).thenReturn(7);
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("method").value("${http.request.method}").build()
+        );
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.request.size");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+
+        // begin frame without Content-Length
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+                .typeId(0)
+                .headersItem(h -> h.name(":method").value("POST"))
+                .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // data frame with 33 bytes length
+        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload1 = new UnsafeBuffer(new byte[33], 0, 33);
+        new DataFW.Builder().wrap(dataBuffer1, 0, dataBuffer1.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+                .payload(payload1, 0, 33).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
+
+        // data frame with 44 bytes length
+        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
+        AtomicBuffer payload2 = new UnsafeBuffer(new byte[44], 0, 44);
+        new DataFW.Builder().wrap(dataBuffer2, 0, dataBuffer2.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
+                .payload(payload2, 0, 44).build();
+        handler.accept(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).apply(7);
+        verify(valueRecorder, times(1)).accept(77L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldRecordHttpDurationWithAttributes()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer valueRecorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorder = mock(IntFunction.class);
+        when(recorder.apply(anyInt())).thenReturn(valueRecorder);
+        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
+        when(supplyLabelId.applyAsInt("method=GET,status=200")).thenReturn(99);
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("method").value("${http.request.method}").build(),
+            AttributeConfig.builder().name("status").value("${http.response.status}").build()
+        );
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.duration");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+
+        // request begin frame (received, streamId=1)
+        HttpBeginExFW httpBeginExReq = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .headersItem(h -> h.name(":method").value("GET"))
+            .build();
+        AtomicBuffer reqBeginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(reqBeginBuffer, 0, reqBeginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000_000_000L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginExReq.buffer(), 0, httpBeginExReq.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, reqBeginBuffer, 0, reqBeginBuffer.capacity());
+
+        // response begin frame (sent, streamId=0)
+        HttpBeginExFW httpBeginExResp = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .headersItem(h -> h.name(":status").value("200"))
+            .build();
+        AtomicBuffer respBeginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(respBeginBuffer, 0, respBeginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(50_000_000_000L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginExResp.buffer(), 0, httpBeginExResp.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, respBeginBuffer, 0, respBeginBuffer.capacity());
+
+        // end frame received
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(72_000_000_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+
+        // end frame sent
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(77_000_000_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(recorder, times(1)).apply(99);
+        verify(valueRecorder, times(1)).accept(35_000_000_000L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldRecordHttpActiveRequestsWithAttributes()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer valueRecorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorder = mock(IntFunction.class);
+        when(recorder.apply(anyInt())).thenReturn(valueRecorder);
+        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
+        when(supplyLabelId.applyAsInt("method=GET")).thenReturn(42);
+        List<AttributeConfig> attributes = List.of(
+            AttributeConfig.builder().name("method").value("${http.request.method}").build()
+        );
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.active.requests");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+
+        // request begin frame (received, streamId=1)
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+            .typeId(0)
+            .headersItem(h -> h.name(":method").value("GET"))
+            .headersItem(h -> h.name("content-length").value("42"))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame received
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+
+        // end frame sent
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(valueRecorder, times(1)).accept(1L);
+        verify(valueRecorder, times(1)).accept(-1L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldRecordHttpRequestSizeWithoutAttributesWhenNone()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer valueRecorder = mock(LongConsumer.class);
+        IntFunction<LongConsumer> recorder = mock(IntFunction.class);
+        when(recorder.apply(0)).thenReturn(valueRecorder);
+        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
+        List<AttributeConfig> attributes = Collections.emptyList();
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.request.size");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+
+        // begin frame with header Content-Length = 42
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[128]), 0, 128)
+                .typeId(0)
+                .headersItem(h -> h.name(":method").value("GET"))
+                .headersItem(h -> h.name("content-length").value("42"))
+                .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, times(1)).apply(0);
+        verify(valueRecorder, times(1)).accept(42L);
     }
 }

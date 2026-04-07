@@ -197,6 +197,13 @@ public class OtlpMetricsSerializer
         {
             attributes.add(serviceNameAttribute);
         }
+        record.attributes().forEach((key, value) ->
+            attributes.add(AttributeConfig.builder()
+                .name(key)
+                .value(value)
+                .build()
+            )
+        );
         return attributesToJson(attributes);
     }
 

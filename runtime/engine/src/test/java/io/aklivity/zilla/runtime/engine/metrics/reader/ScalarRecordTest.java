@@ -38,11 +38,12 @@ public class ScalarRecordTest
         // GIVEN
         LongFunction<String> labelResolver = mock(LongFunction.class);
         long bindingId = NamespacedId.id(77, 7);
-        long metricId = NamespacedId.id(77, 8);
+        int metricId = 8;
+        int attributesId = 0;
         when(labelResolver.apply(77L)).thenReturn("namespace1");
         when(labelResolver.apply(bindingId)).thenReturn("binding1");
-        when(labelResolver.apply(metricId)).thenReturn("metric1");
-        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, READER_42, labelResolver);
+        when(labelResolver.apply((long) metricId)).thenReturn("metric1");
+        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, attributesId, READER_42, labelResolver);
 
         // WHEN
         String namespaceName = scalar.namespace();
@@ -63,8 +64,9 @@ public class ScalarRecordTest
         // GIVEN
         LongFunction<String> labelResolver = mock(LongFunction.class);
         long bindingId = NamespacedId.id(77, 7);
-        long metricId = NamespacedId.id(77, 8);
-        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, READER_42_M, labelResolver);
+        int metricId = 8;
+        int attributesId = 0;
+        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, attributesId, READER_42_M, labelResolver);
 
         // WHEN
         double millisecondsValue = scalar.millisecondsValueReader().getAsDouble();
