@@ -666,6 +666,9 @@ groups and no star imports.
   avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features
 - No Lombok
+- Prefer interface types over implementation classes for field, parameter, and
+  return types where a suitable interface exists (e.g., `List` over `ArrayList`,
+  `Map` over `HashMap`)
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
