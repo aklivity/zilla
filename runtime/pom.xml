@@ -31,6 +31,9 @@
     <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
     <module>binding-mqtt-kafka</module>
+    <module>binding-mcp</module>
+    <module>binding-mcp-http</module>
+    <module>binding-mcp-openapi</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
     <module>binding-proxy</module>
@@ -136,6 +139,21 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-openapi</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
