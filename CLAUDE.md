@@ -411,11 +411,18 @@ Follow this order — tests before implementation:
 9. Implement the type-prefixed stream handler (e.g., `HttpServerFactory`, `MqttServerFactory`)
    extending `BindingHandler`, driven by the
    failing spec scripts
-10. Write unit tests covering the stream state machine
-11. Add JSON schema for `options` and `routes[].when` in the spec project under
+10. Add `XxxConfiguration extends Configuration` in
+    `src/main/java/.../internal/` — even as a placeholder with an empty
+    `ConfigurationDef` — so that runtime configuration properties can be added
+    later without structural changes. See `HttpKafkaConfiguration` for a
+    minimal example. Add a corresponding `XxxConfigurationTest` that calls
+    `shouldVerifyConstants()` (verifying property name strings match the
+    `PropertyDef` names) to satisfy class coverage requirements
+11. Write unit tests covering the stream state machine
+12. Add JSON schema for `options` and `routes[].when` in the spec project under
     `src/main/resources/META-INF/zilla/schema/` — the Maven build copies it
     to the runtime module automatically (see Configuration and schema section)
-12. Confirm `./mvnw install` passes including all ITs
+13. Confirm `./mvnw install` passes including all ITs
 
 The Maven plugin generates flyweight classes during `generate-sources` phase.
 Run `./mvnw generate-sources -pl runtime/binding-<n>` to regenerate after
