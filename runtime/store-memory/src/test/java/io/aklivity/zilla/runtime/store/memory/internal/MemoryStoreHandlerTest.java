@@ -114,7 +114,7 @@ public class MemoryStoreHandlerTest
     @Test
     public void shouldExpireEntry()
     {
-        handler.put("key", "value", 0L, v -> {});
+        handler.put("key", "value", -1L, v -> {});
 
         final AtomicReference<String> result = new AtomicReference<>();
         handler.get("key", (k, v) -> result.set(v));
