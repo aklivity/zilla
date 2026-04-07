@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
-import java.io.StringReader;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
 
 import org.agrona.DirectBuffer;
 
@@ -37,8 +35,7 @@ public class EventReader
     private static final String OBSERVED_TIME_UNIX_NANO = "observedTimeUnixNano";
     private static final String BODY = "body";
     private static final String ATTRIBUTES = "attributes";
-    private static final String BODY_FORMAT = "{\"stringValue\": \"%s %s\"}";
-    private static final String STRING_ATTRIBUTE_FORMAT = "{\"key\":\"%s\", \"value\":{\"stringValue\": \"%s\"}}";
+    private static final String STRING_VALUE = "stringValue";
 
     private final EngineContext context;
     private final MessageReader readEvent;
@@ -89,17 +86,17 @@ public class EventReader
         String qname,
         String extension)
     {
-        String json = String.format(BODY_FORMAT, qname, extension);
-        JsonReader reader = Json.createReader(new StringReader(json));
-        eventJson.add(BODY, reader.readObject());
+        eventJson.add(BODY, Json.createObjectBuilder()
+            .add(STRING_VALUE, qname + " " + extension));
     }
 
     private void addStringAttribute(
         String key,
         String value)
     {
-        String json = String.format(STRING_ATTRIBUTE_FORMAT, key, value);
-        JsonReader reader = Json.createReader(new StringReader(json));
-        eventAttributesJson.add(reader.readObject());
+        eventAttributesJson.add(Json.createObjectBuilder()
+            .add("key", key)
+            .add("value", Json.createObjectBuilder()
+                .add(STRING_VALUE, value)));
     }
 }
