@@ -136,7 +136,7 @@ Extension types follow the pattern `{BindingType}{FrameType}Ex`, where
 capitalised frame type name. The generated flyweight classes append `FW`:
 
 | Example binding type | Extension type | Generated flyweight class |
-|---|---|---|
+| --- | --- | --- |
 | `http` | `HttpBeginEx` | `HttpBeginExFW` |
 | `http` | `HttpDataEx` | `HttpDataExFW` |
 | `kafka` | `KafkaBeginEx` | `KafkaBeginExFW` |
@@ -355,7 +355,7 @@ on the classpath at runtime. You never manually copy or maintain a second copy
 The same pattern applies to all pluggable types:
 
 | Component | Spec project (schema lives here) |
-|---|---|
+| --- | --- |
 | Binding | `specs/binding-<type>.spec/` |
 | Guard | `specs/guard-<type>.spec/` |
 | Vault | `specs/vault-<type>.spec/` |
@@ -539,32 +539,58 @@ behavior from existing implementation code.
 
 ### Test implementations for engine concepts
 
-Every new engine concept (binding, guard, vault, catalog, store, metric group,
-resolver, command) must have a corresponding **test implementation** used
-exclusively in spec-based integration tests. The test implementation proves
-that the engine correctly wires and invokes the concept without requiring a
-real production implementation as a test dependency.
+Every engine concept (binding, guard, vault, catalog, exporter, metric group,
+model, resolver) has a minimal **test implementation** that lives in the engine
+module's test sources under
+`runtime/engine/src/test/java/.../engine/test/internal/<concept>/`. For
+example:
 
-The pattern is:
+| Concept | Test implementation class |
+| --- | --- |
+| binding | `TestBindingFactorySpi` |
+| guard | `TestGuardFactorySpi`, `TestGuardContext` |
+| vault | `TestVaultFactorySpi`, `TestVault`, `TestVaultContext` |
+| catalog | `TestCatalogFactorySpi`, `TestCatalog`, `TestCatalogContext` |
+| exporter | `TestExporterFactorySpi`, `TestExporter`, `TestExporterHandler` |
+| metric group | `TestMetricGroupFactorySpi`, `TestMetricGroup` |
+| model | `TestModelFactorySpi`, `TestModel`, `TestModelContext` |
+| resolver | `TestResolverFactorySpi`, `TestResolverSpi` |
 
-- Create `runtime/<concept>-test/` (e.g., `runtime/store-test/`,
-  `runtime/binding-test/`) containing a minimal implementation of the concept's
-  SPI — just enough behavior to be driven by a `.rpt` script
-- The test implementation is declared as a `test` or `provided` scope
-  dependency in spec modules only; it never appears in production modules
-- Spec scripts drive an interaction through one known concept (e.g., a
-  `binding-test` server that writes to a store) to prove the engine correctly
-  wires the adjacent concept (e.g., the store) — no production binding or
-  store implementation is required in the test
-- The test implementation's `module-info.java` follows the same rules as
-  production modules: exports SPI packages only, registers via `provides`
+The engine module is built with Maven's `test-jar` packaging so these classes
+are published as `engine:<version>:test-jar`. Every `specs/*.spec` module
+declares this as a dependency (alongside the regular `engine` jar) so the test
+implementations are on the classpath when spec ITs run:
 
-Example for a new `store` concept: the spec test uses a `binding-test` server
-that calls `storeHandler.putIfAbsent(...)` on a named `store-test` instance
-wired via `zilla.yaml`, then a client-side script verifies the expected
-response. This proves the engine resolves the store by name, injects it into
-the binding factory, and the handler operates correctly — all from a `.rpt`
-script, with no `store-memory` dependency in the test.
+```xml
+<dependency>
+    <groupId>${project.groupId}</groupId>
+    <artifactId>engine</artifactId>
+    <version>${project.version}</version>
+    <type>test-jar</type>
+</dependency>
+```
+
+The `specs/engine.spec` IT uses all test implementations together in a single
+`server.yaml` that wires a `test` binding against a `test` guard, `test` vault,
+`test` catalog, `test` exporter, and `test` metric group. This canonical config
+is the integration smoke-test for the engine itself and provides code coverage
+for the engine's wiring of all concept types.
+
+**When adding a new engine concept:**
+
+1. Add `TestXxxFactorySpi` (and supporting classes) under
+   `runtime/engine/src/test/java/.../engine/test/internal/<concept>/`
+2. Register it in the engine test module's `module-info.java` with `provides`
+3. Update `specs/engine.spec/src/main/scripts/.../config/server.yaml` to
+   include a `type: test` instance of the new concept
+4. Update the `test` binding (`TestBindingFactorySpi`) to interact with the
+   new concept so its handler code paths are exercised
+5. Add or extend an IT in `specs/engine.spec` that exercises the new
+   concept's behavior via `.rpt` scripts
+
+The principle is that no production implementation of any concept type should
+be required to test the engine's wiring — only the test implementations are
+needed.
 
 ---
 
@@ -594,7 +620,7 @@ groups and no star imports.
 ## Key dependencies
 
 | Dependency | Purpose |
-|---|---|
+| --- | --- |
 | `agrona` | Lock-free ring buffers, flyweight buffer access, `IoUtil` for mmap |
 | `zilla:maven-plugin` | Generates flyweight Java from `.idl` type definitions |
 | `junit5` | Unit and integration tests |
