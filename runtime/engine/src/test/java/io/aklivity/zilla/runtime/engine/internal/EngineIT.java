@@ -60,6 +60,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldHandshakeWithStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configure(name = ENGINE_LOCAL_CONFIG_URI_NAME, value = "src/main/resources/config/local.server.yaml")
     @Specification({
         "${net}/handshake/client",

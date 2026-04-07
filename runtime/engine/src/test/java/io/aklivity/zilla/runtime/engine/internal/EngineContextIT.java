@@ -68,12 +68,4 @@ public class EngineContextIT
         assertThat(counter.getAsLong(), equalTo(77L));
     }
 
-    @Test
-    @Configuration("server.yaml")
-    public void shouldAttachStore()
-    {
-        // engine starts with stores: test0: type: test in server.yaml
-        // and binding options reference store: test0
-        // this exercises TestStoreFactorySpi, TestStore, TestStoreContext, TestStoreHandler
-    }
 }
