@@ -15,19 +15,8 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
-final class MemoryEntry
+record MemoryEntry(String value, long expiresAt)
 {
-    final String value;
-    final long expiresAt;
-
-    MemoryEntry(
-        String value,
-        long expiresAt)
-    {
-        this.value = value;
-        this.expiresAt = expiresAt;
-    }
-
     boolean expired()
     {
         return System.currentTimeMillis() > expiresAt;

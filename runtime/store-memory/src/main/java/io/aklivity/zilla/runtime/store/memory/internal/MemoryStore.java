@@ -60,7 +60,7 @@ final class MemoryStore implements Store
         {
             return null;
         }
-        return entry.value;
+        return entry.value();
     }
 
     void put(
@@ -80,15 +80,12 @@ final class MemoryStore implements Store
         final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
         final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
         final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
-        if (existing == null || existing.expired())
+        if (existing != null && existing.expired())
         {
-            if (existing != null && existing.expired())
-            {
-                entries.replace(key, existing, newEntry);
-            }
+            entries.replace(key, existing, newEntry);
             return null;
         }
-        return existing.value;
+        return existing != null ? existing.value() : null;
     }
 
     void delete(
@@ -105,6 +102,6 @@ final class MemoryStore implements Store
         {
             return null;
         }
-        return entry.value;
+        return entry.value();
     }
 }
