@@ -668,7 +668,7 @@ groups and no star imports.
 - No Lombok
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
-  `Map` over `HashMap`)
+  `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
