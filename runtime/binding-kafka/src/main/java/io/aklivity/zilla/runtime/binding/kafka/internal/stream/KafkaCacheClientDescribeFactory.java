@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConfigDetailFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -127,7 +127,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_DESCRIBE;
         final KafkaDescribeBeginExFW kafkaDescribeBeginEx = kafkaBeginEx.describe();
-        final String16FW topic = kafkaDescribeBeginEx.topic();
+        final String16FW topic = kafkaDescribeBeginEx.name();
         final String topicName = topic.asString();
 
         MessageConsumer newStream = null;
@@ -484,7 +484,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(d -> d.topic(topic).configs(cs -> configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
+                        .describe(d -> d.name(topic).configs(cs -> configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
                         .build()
                         .sizeof()));
             state = KafkaState.openingInitial(state);
@@ -606,7 +606,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
             if (kafkaDescribeDataEx != null)
             {
-                final ArrayFW<KafkaConfigFW> changedConfigs = kafkaDescribeDataEx.configs();
+                final ArrayFW<KafkaConfigDetailFW> changedConfigs = kafkaDescribeDataEx.configs();
                 if (configValues == null)
                 {
                     configValues = new LinkedHashMap<>();
@@ -852,7 +852,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(m -> m.topic(group.topic)
+                        .describe(m -> m.name(group.topic)
                                         .configs(cs -> group.configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
                         .build()
                         .sizeof()));
