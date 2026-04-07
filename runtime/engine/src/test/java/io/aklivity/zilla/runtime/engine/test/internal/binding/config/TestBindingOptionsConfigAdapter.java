@@ -63,6 +63,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String NAME_NAME = "name";
     private static final String KIND_NAME = "kind";
     private static final String VALUES_NAME = "values";
+    private static final String STORE_NAME = "store";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -185,6 +186,11 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 events.add(event);
             }
             object.add(EVENTS_NAME, events);
+        }
+
+        if (testOptions.store != null)
+        {
+            object.add(STORE_NAME, testOptions.store);
         }
 
         return object.build();
@@ -315,6 +321,11 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 
                     testOptions.metric(m0.getString(NAME_NAME), m0.getString(KIND_NAME), values);
                 }
+            }
+
+            if (object.containsKey(STORE_NAME))
+            {
+                testOptions.store(object.getString(STORE_NAME));
             }
         }
 

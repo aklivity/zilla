@@ -33,6 +33,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final List<Metric> metrics;
     public final List<CatalogAssertions> catalogAssertions;
     public final VaultAssertion vaultAssertion;
+    public final String store;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -54,7 +55,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<Event> events,
         List<Metric> metrics,
         List<CatalogAssertions> catalogAssertions,
-        VaultAssertion vaultAssertion)
+        VaultAssertion vaultAssertion,
+        String store)
     {
         super(value != null ? List.of(value) : List.of(), List.of());
         this.value = value;
@@ -66,6 +68,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.metrics = metrics;
         this.catalogAssertions = catalogAssertions;
         this.vaultAssertion = vaultAssertion;
+        this.store = store;
     }
 
     public static final class Event
