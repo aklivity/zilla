@@ -86,7 +86,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core internal http</scopeNames>
+          <scopeNames>core internal http mcp</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mcp.http.internal.types</packageName>
         </configuration>
         <executions>
