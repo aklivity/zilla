@@ -30,6 +30,7 @@
     <module>binding-mqtt.spec</module>
     <module>binding-mcp.spec</module>
     <module>binding-mcp-http.spec</module>
+    <module>binding-mcp-kafka.spec</module>
     <module>binding-mcp-openapi.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -142,6 +143,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mcp-http.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
