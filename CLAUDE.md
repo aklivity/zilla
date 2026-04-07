@@ -397,7 +397,10 @@ Follow this order — tests before implementation:
 1. Open a GitHub Issue to discuss the design before writing any code
 2. Create `specs/binding-<n>.spec/` and write `.rpt` scripts for the happy path
    and key error scenarios, derived from the relevant protocol specification
-3. Create `runtime/binding-<n>/` following the existing module layout
+3. Create `runtime/binding-<n>/` and `specs/binding-<n>.spec/` following the
+   existing module layout. Every new project directory (both `runtime/` and
+   `specs/`) must include these top-level files copied from an existing module:
+   `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`, `mvnw.cmd`
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
    unexported, registers the factory SPI with `provides`
 5. Define flyweight types in `src/main/resources/META-INF/zilla/<n>.idl`
@@ -636,6 +639,8 @@ own line (`RightCurly` option `alone`), no trailing whitespace, imports ordered
 by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
 groups and no star imports.
 
+- Methods should have a single `return` statement at the end where possible;
+  avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features
 - No Lombok
 - Package-private classes preferred over public where there is no SPI contract
