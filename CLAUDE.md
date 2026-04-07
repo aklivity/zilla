@@ -593,6 +593,16 @@ separate project. Do not create a `runtime/<concept>-test/` module.
    the primary mechanism for achieving code coverage of the engine project,
    so every new concept type must be reachable from at least one script
 
+**Avoid duplicating test schema patches.** Each test concept type has a
+`test.schema.patch.json` in `specs/engine.spec` under
+`src/main/resources/io/aklivity/zilla/specs/engine/schema/<concept>/`. That
+spec file is the single source of truth. The engine module's `pom.xml` uses
+the `maven-dependency-plugin` `unpack-test-resources` execution to copy those
+patches into `target/test-classes` at `process-test-resources` time, remapping
+the path from `io/aklivity/zilla/specs/engine/schema/` to
+`io/aklivity/zilla/runtime/engine/test/internal/`. Do not create a second copy
+of these JSON files anywhere in the engine module.
+
 The principle is that no production implementation of any concept type should
 be required to test the engine's wiring — only the test implementations are
 needed.
