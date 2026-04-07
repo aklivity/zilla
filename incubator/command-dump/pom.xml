@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>1.0.11</version>
+    <version>1.1.4</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -132,7 +132,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.17.0</version>
+      <version>3.18.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
