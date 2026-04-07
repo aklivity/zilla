@@ -589,7 +589,9 @@ separate project. Do not create a `runtime/<concept>-test/` module.
 4. Update the `test` binding (`TestBindingFactorySpi`) to interact with the
    new concept so its handler code paths are exercised
 5. Add or extend an IT in `specs/engine.spec` that exercises the new
-   concept's behavior via `.rpt` scripts
+   concept's behavior via `.rpt` scripts — the `EngineIT` spec scripts are
+   the primary mechanism for achieving code coverage of the engine project,
+   so every new concept type must be reachable from at least one script
 
 The principle is that no production implementation of any concept type should
 be required to test the engine's wiring — only the test implementations are
