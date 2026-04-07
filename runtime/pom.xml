@@ -34,6 +34,7 @@
     <module>binding-mcp</module>
     <module>binding-mcp-http</module>
     <module>binding-mcp-openapi</module>
+    <module>binding-mcp-schema-registry</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
     <module>binding-proxy</module>
@@ -154,6 +155,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mcp-openapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
