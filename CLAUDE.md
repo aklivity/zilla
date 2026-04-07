@@ -517,6 +517,15 @@ script, with no `store-memory` dependency in the test.
 
 ## Code style
 
+All Java code must pass the project checkstyle rules defined in
+`conf/src/main/resources/io/aklivity/zilla/conf/checkstyle/configuration.xml`.
+Run `./mvnw checkstyle:check` to verify before committing. Key rules to be
+aware of: 4-space indentation (no tabs), 130-character line limit, opening
+braces on a new line (`LeftCurly` option `nl`), closing braces alone on their
+own line (`RightCurly` option `alone`), no trailing whitespace, imports ordered
+by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
+groups and no star imports.
+
 - Java 21; no preview features
 - No Lombok
 - Package-private classes preferred over public where there is no SPI contract
