@@ -56,11 +56,7 @@ final class MemoryStore implements Store
         String key)
     {
         final MemoryEntry entry = entries.get(key);
-        if (entry == null || entry.expired())
-        {
-            return null;
-        }
-        return entry.value();
+        return entry != null && !entry.expired() ? entry.value() : null;
     }
 
     void put(
@@ -83,9 +79,8 @@ final class MemoryStore implements Store
         if (existing != null && existing.expired())
         {
             entries.replace(key, existing, newEntry);
-            return null;
         }
-        return existing != null ? existing.value() : null;
+        return existing != null && !existing.expired() ? existing.value() : null;
     }
 
     void delete(
@@ -98,10 +93,6 @@ final class MemoryStore implements Store
         String key)
     {
         final MemoryEntry entry = entries.remove(key);
-        if (entry == null || entry.expired())
-        {
-            return null;
-        }
-        return entry.value();
+        return entry != null && !entry.expired() ? entry.value() : null;
     }
 }
