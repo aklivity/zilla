@@ -90,6 +90,9 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <licenseMapping>src/conf/notice/license-mappings.xml</licenseMapping>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>io.aklivity.zilla</groupId>
