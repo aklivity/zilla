@@ -266,20 +266,74 @@ clients without additional round-trips to Kafka.
 
 ## Configuration and schema
 
-`zilla.yaml` is validated against the Zilla JSON schema. Each binding type
-publishes its own JSON schema fragment, merged at build time.
+`zilla.yaml` is validated against an aggregated JSON schema that is assembled
+dynamically at runtime from JSON schema patch contributions made by each
+installed component.
 
-Key schema conventions:
+### How the schema is assembled
+
+The engine owns the base `zilla.yaml` schema — it defines the top-level
+structure (`name`, `bindings`, `guards`, `vaults`, `catalogs`, `stores`,
+`telemetry`, etc.). Each pluggable component — binding, guard, vault, catalog,
+store, model, metric group, resolver, command — contributes a JSON schema patch
+that extends the engine schema to describe its own `type`-specific `options`,
+`routes[].when`, `routes[].with`, and any other fields it introduces.
+
+The engine discovers and applies these patches at startup by loading them from
+the classpath, one per installed component. The result is a single aggregated
+schema that reflects exactly the components present in the running Zilla
+instance — no component contributes schema for types that are not installed.
+
+### Schema file locations
+
+Each component's JSON schema patch is checked in once, in the spec project:
+
+```
+specs/binding-<type>.spec/
+  src/main/resources/
+    META-INF/zilla/schema/
+      binding-<type>.schema.json     # options, routes[].when, routes[].with
+```
+
+The Maven build copies this into the runtime module's output so it is available
+on the classpath at runtime. You never manually copy or maintain a second copy
+— the spec project is the single source of truth.
+
+The same pattern applies to all pluggable types:
+
+| Component | Spec project (schema lives here) |
+|---|---|
+| Binding | `specs/binding-<type>.spec/` |
+| Guard | `specs/guard-<type>.spec/` |
+| Vault | `specs/vault-<type>.spec/` |
+| Catalog | `specs/catalog-<type>.spec/` |
+| Store | `specs/store-<type>.spec/` |
+| Model | `specs/model-<type>.spec/` |
+
+### Schema conventions
 
 - Binding `type` values use the module artifact ID minus the `binding-` prefix
-  (e.g., `binding-http` → `type: http`)
-- `options` is binding-specific; defined by the binding's config schema
+  (e.g., `binding-http` → `type: http`; `binding-mcp-kafka` → `type: mcp_kafka`)
+- `options` is component-specific; fully described in that component's schema patch
 - `routes[].when` conditions are ordered — first match wins
 - `routes[].exit` names a downstream binding in the same namespace
 - Namespace is declared at the top level; all binding names are scoped to it
 - Guards (`guard:` section) provide auth; referenced by binding `options.authorization`
 - Vaults (`vault:` section) provide keystores/truststores; referenced by TLS bindings
 - Catalogs (`catalog:` section) provide schema registries; referenced by model bindings
+- Stores (`stores:` section) provide mutable runtime state; referenced by guards and bindings
+
+### Adding a new component's schema
+
+When implementing a new binding, guard, vault, or other component:
+
+1. Create `binding-<type>.schema.json` in the spec project under
+   `src/main/resources/META-INF/zilla/schema/`
+2. Copy it to the runtime project under the same path
+3. The engine picks it up from the classpath at startup automatically —
+   no engine registration step required
+4. Validate the schema by running the spec IT with an intentionally invalid
+   `zilla.yaml` and confirming a clear validation error is produced
 
 ---
 
@@ -302,8 +356,9 @@ Follow this order — tests before implementation:
    extending `BindingHandler`, driven by the
    failing spec scripts
 10. Write unit tests covering the stream state machine
-11. Add JSON schema for `options` and `routes[].when` under
-    `src/main/resources/META-INF/zilla/schema/`
+11. Add JSON schema for `options` and `routes[].when` in the spec project under
+    `src/main/resources/META-INF/zilla/schema/` — the Maven build copies it
+    to the runtime module automatically (see Configuration and schema section)
 12. Confirm `./mvnw install` passes including all ITs
 
 The Maven plugin generates flyweight classes during `generate-sources` phase.
@@ -487,8 +542,9 @@ script, with no `store-memory` dependency in the test.
 
 ## Contribution workflow
 
-1. Fork the repo and create a branch: `feature/<short-description>` or
-   `fix/<issue-number>-<short-description>`
+1. Fork the repo and create a branch using gitflow naming conventions:
+   `feature/<short-description>` for new features, or
+   `fix/<issue-number>-<short-description>` for bug fixes
 2. Make changes; ensure `./mvnw install` passes with no failures
 3. Open a PR against the `develop` branch (not `main`)
 4. PRs require at least one approving review from a maintainer
