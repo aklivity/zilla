@@ -14,25 +14,28 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.LongFunction;
+
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MemoryStoreContext implements StoreContext
 {
-    private final MemoryStore store;
+    private final LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries;
 
     MemoryStoreContext(
-        MemoryStore store)
+        LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries)
     {
-        this.store = store;
+        this.supplyEntries = supplyEntries;
     }
 
     @Override
     public StoreHandler attach(
         StoreConfig config)
     {
-        return new MemoryStoreHandler(store.attach(config.id));
+        return new MemoryStoreHandler(supplyEntries.apply(config.id));
     }
 
     @Override

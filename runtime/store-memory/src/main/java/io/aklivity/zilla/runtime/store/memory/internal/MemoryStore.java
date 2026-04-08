@@ -26,12 +26,12 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
-    private final ConcurrentMap<Long, ConcurrentMap<String, MemoryEntry>> entries;
+    private final ConcurrentMap<Long, ConcurrentMap<String, MemoryEntry>> storage;
 
     MemoryStore(
         MemoryStoreConfiguration config)
     {
-        this.entries = new ConcurrentHashMap<>();
+        this.storage = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -44,7 +44,7 @@ final class MemoryStore implements Store
     public StoreContext supply(
         EngineContext context)
     {
-        return new MemoryStoreContext(this);
+        return new MemoryStoreContext(this::supplyEntries);
     }
 
     @Override
@@ -53,9 +53,9 @@ final class MemoryStore implements Store
         return getClass().getResource("schema/memory.schema.patch.json");
     }
 
-    ConcurrentMap<String, MemoryEntry> attach(
+    private ConcurrentMap<String, MemoryEntry> supplyEntries(
         long storeId)
     {
-        return entries.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+        return storage.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
     }
 }
