@@ -57,36 +57,72 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.capabilities/client",
-        "${app}/lifecycle.capabilities/server"})
-    public void shouldNegotiateCapabilities() throws Exception
+        "${app}/lifecycle.ping/client",
+        "${app}/lifecycle.ping/server"})
+    public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/utility.ping/client",
-        "${app}/utility.ping/server"})
-    public void shouldPing() throws Exception
+        "${app}/lifecycle.cancel/client",
+        "${app}/lifecycle.cancel/server"})
+    public void shouldCancelLifecycle() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/utility.cancel/client",
-        "${app}/utility.cancel/server"})
-    public void shouldCancel() throws Exception
+        "${app}/capability.tools/client",
+        "${app}/capability.tools/server"})
+    public void shouldListTools() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/utility.progress/client",
-        "${app}/utility.progress/server"})
+        "${app}/capability.progress/client",
+        "${app}/capability.progress/server"})
     public void shouldReportProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/capability.prompts/client",
+        "${app}/capability.prompts/server"})
+    public void shouldListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/capability.resources/client",
+        "${app}/capability.resources/server"})
+    public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/capability.completion/client",
+        "${app}/capability.completion/server"})
+    public void shouldComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/capability.logging/client",
+        "${app}/capability.logging/server"})
+    public void shouldSetLoggingLevel() throws Exception
     {
         k3po.finish();
     }

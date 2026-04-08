@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 
 public class McpFunctionsTest
 {
@@ -35,168 +36,627 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateBeginExtension()
+    public void shouldGenerateInitializeBeginEx()
     {
         byte[] bytes = McpFunctions.beginEx()
-            .typeId(0x01)
+            .typeId(0)
+            .initialize()
+                .version("2025-11-25")
+                .capabilities(0x07)
+                .build()
             .build();
 
         assertNotNull(bytes);
     }
 
     @Test
-    public void shouldGenerateBeginExtensionWithSessionId()
+    public void shouldMatchInitializeBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .initialize()
+                .version("2025-11-25")
+                .capabilities(0x07)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .initialize(b -> b.sessionId((String) null)
+                              .version("2025-11-25")
+                              .capabilities(0x07))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateToolBeginExForList()
     {
         byte[] bytes = McpFunctions.beginEx()
-            .typeId(0x01)
-            .sessionId("session-123")
+            .typeId(0)
+            .tool()
+                .sessionId("test-session-id")
+                .build()
             .build();
 
         assertNotNull(bytes);
     }
 
     @Test
-    public void shouldGenerateBeginExtensionWithMethod()
+    public void shouldGenerateToolBeginExForCall()
     {
         byte[] bytes = McpFunctions.beginEx()
-            .typeId(0x01)
-            .method("initialize")
+            .typeId(0)
+            .tool()
+                .sessionId("test-session-id")
+                .name("my-tool")
+                .build()
             .build();
 
         assertNotNull(bytes);
     }
 
     @Test
-    public void shouldMatchBeginExtension() throws Exception
+    public void shouldMatchToolBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
+            .typeId(0)
+            .tool()
+                .name("my-tool")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .tool(b -> b.sessionId("test-session-id")
+                        .name("my-tool"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchBeginExtensionWithoutTypeId() throws Exception
+    public void shouldGeneratePromptBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .prompt()
+                .sessionId("test-session-id")
+                .name("my-prompt")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchPromptBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .prompt()
+                .name("my-prompt")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .prompt(b -> b.sessionId("test-session-id")
+                          .name("my-prompt"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchBeginExtensionWithSessionId() throws Exception
+    public void shouldGenerateResourceBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .resource()
+                .sessionId("test-session-id")
+                .uri("file:///data/resource.txt")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchResourceBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
-            .sessionId("session-123")
+            .typeId(0)
+            .resource()
+                .uri("file:///data/resource.txt")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .sessionId("session-123")
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resource(b -> b.sessionId("test-session-id")
+                            .uri("file:///data/resource.txt"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchBeginExtensionWithMethod() throws Exception
+    public void shouldGenerateLoggingBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .logging()
+                .sessionId("test-session-id")
+                .level("error")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchLoggingBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
-            .method("initialize")
+            .typeId(0)
+            .logging()
+                .level("error")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .method("initialize")
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .logging(b -> b.sessionId("test-session-id")
+                           .level("error"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchBeginExtensionWithoutMethod() throws Exception
+    public void shouldGeneratePingBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .ping()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchPingBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
+            .typeId(0)
+            .ping()
+                .sessionId("test-session-id")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .method("initialize")
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .ping(b -> b.sessionId("test-session-id"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateCancelBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .cancel()
+                .sessionId("test-session-id")
+                .reason("User cancelled")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchCancelBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .cancel()
+                .reason("User cancelled")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .cancel(b -> b.sessionId("test-session-id")
+                          .reason("User cancelled"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateCompletionBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .completion()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchCompletionBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .completion()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .completion(b -> b.sessionId("test-session-id"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDisconnectBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .disconnect()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchDisconnectBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .disconnect()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .disconnect(b -> b.sessionId("test-session-id"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateFlushEx()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchFlushEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateInitializeBeginExWithSessionId()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .initialize()
+                .sessionId("test-session-id")
+                .version("2025-11-25")
+                .capabilities(0x07)
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchInitializeBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .initialize()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .initialize(b -> b.sessionId("test-session-id")
+                              .version((String) null)
+                              .capabilities(0))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchToolBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .tool()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .tool(b -> b.sessionId("test-session-id")
+                        .name((String) null))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchPromptBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .prompt()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .prompt(b -> b.sessionId("test-session-id")
+                          .name((String) null))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchResourceBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .resource()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resource(b -> b.sessionId("test-session-id")
+                            .uri((String) null))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchLoggingBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .logging()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .logging(b -> b.sessionId("test-session-id")
+                           .level((String) null))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchCancelBeginExBySessionId() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .cancel()
+                .sessionId("test-session-id")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .cancel(b -> b.sessionId("test-session-id")
+                          .reason((String) null))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExByTypeIdOnly() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExBySessionIdOnly() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .sessionId("test-session-id")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenBeginExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .initialize(b -> b.sessionId((String) null)
+                              .version("2025-11-25")
+                              .capabilities(0x07))
+            .build();
+
+        assertNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldReturnNullWhenFlushExMatcherIsEmpty() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .sessionId("test-session-id")
+            .build();
+
+        assertNull(matcher.match(byteBuf));
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenTypeIdDoesNotMatch() throws Exception
+    public void shouldFailWhenVersionMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
+            .typeId(0)
+            .initialize()
+                .version("2024-11-25")
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x02)
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .initialize(b -> b.sessionId((String) null)
+                              .version("2025-11-25")
+                              .capabilities(0x07))
             .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldFailWhenSessionIdDoesNotMatch() throws Exception
+    public void shouldFailWhenCaseMismatch() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
-            .sessionId("session-456")
+            .typeId(0)
+            .initialize()
+                .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .sessionId("session-123")
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenMethodDoesNotMatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
-            .method("ping")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .method("initialize")
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .tool(b -> b.sessionId("test-session-id")
+                        .name("my-tool"))
             .build();
 
         matcher.match(byteBuf);
@@ -206,7 +666,7 @@ public class McpFunctionsTest
     public void shouldReturnNullWhenBufferIsEmpty() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0x01)
+            .typeId(0)
             .build();
 
         assertNull(matcher.match(ByteBuffer.allocate(0)));

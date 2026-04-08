@@ -20,8 +20,9 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .sessionId("test-session-id")
-                            .method("disconnect")
+                            .disconnect()
+                                .sessionId("test-session-id")
+                                .build()
                             .build()}
 
 connected
@@ -30,7 +31,9 @@ write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .sessionId("test-session-id")
+                           .disconnect()
+                               .sessionId("test-session-id")
+                               .build()
                            .build()}
 
 read closed

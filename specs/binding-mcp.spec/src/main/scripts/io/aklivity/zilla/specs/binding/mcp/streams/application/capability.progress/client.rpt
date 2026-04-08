@@ -14,29 +14,30 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .tool()
+                                .sessionId("test-session-id")
+                                .name("long-running")
+                                .build()
+                            .build()}
+
+connected
+
+write '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}}'
+write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .disconnect()
+                           .tool()
                                .sessionId("test-session-id")
                                .build()
                            .build()}
 
-connected
-
+read '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
+read '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
 read closed
-
-write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .disconnect()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
-write flush
-
-write close

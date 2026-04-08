@@ -14,25 +14,33 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .sessionId("test-session-id")
-                            .method("ping")
-                            .build()}
-
-connected
-
-write '{"jsonrpc":"2.0","id":3,"method":"ping"}'
-write close
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .sessionId("test-session-id")
+                           .prompt()
+                               .sessionId("test-session-id")
+                               .build()
                            .build()}
 
-read '{"jsonrpc":"2.0","id":3,"result":{}}'
+connected
+
+read '{"jsonrpc":"2.0","id":5,"method":"prompts/list"}'
 read closed
+
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .prompt()
+                                .sessionId("test-session-id")
+                                .build()
+                            .build()}
+write flush
+
+write '{"jsonrpc":"2.0","id":5,"result":{"prompts":[]}}'
+write flush
+
+write close

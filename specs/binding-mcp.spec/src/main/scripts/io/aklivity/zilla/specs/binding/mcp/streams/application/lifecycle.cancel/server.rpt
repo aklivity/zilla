@@ -22,18 +22,20 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .disconnect()
+                           .cancel()
                                .sessionId("test-session-id")
+                               .reason("User cancelled")
                                .build()
                            .build()}
 
 connected
 
+read '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1,"reason":"User cancelled"}}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .disconnect()
+                            .cancel()
                                 .sessionId("test-session-id")
                                 .build()
                             .build()}

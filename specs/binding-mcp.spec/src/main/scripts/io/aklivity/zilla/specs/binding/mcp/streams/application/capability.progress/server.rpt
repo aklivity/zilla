@@ -22,21 +22,29 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .disconnect()
+                           .tool()
                                .sessionId("test-session-id")
+                               .name("long-running")
                                .build()
                            .build()}
 
 connected
 
+read '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .disconnect()
+                            .tool()
                                 .sessionId("test-session-id")
                                 .build()
                             .build()}
+write flush
+
+write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
+write flush
+
+write '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
 write flush
 
 write close

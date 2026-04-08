@@ -14,29 +14,28 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .cancel()
+                                .sessionId("test-session-id")
+                                .reason("User cancelled")
+                                .build()
+                            .build()}
+
+connected
+
+write '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1,"reason":"User cancelled"}}'
+write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .disconnect()
+                           .cancel()
                                .sessionId("test-session-id")
                                .build()
                            .build()}
 
-connected
-
 read closed
-
-write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .disconnect()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
-write flush
-
-write close

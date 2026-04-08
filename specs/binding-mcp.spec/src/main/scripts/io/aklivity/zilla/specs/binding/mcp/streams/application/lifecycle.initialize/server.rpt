@@ -22,7 +22,9 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .method("initialize")
+                           .initialize()
+                               .version("2025-11-25")
+                               .build()
                            .build()}
 
 connected
@@ -32,11 +34,15 @@ read closed
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .sessionId("test-session-id")
+                            .initialize()
+                                .sessionId("test-session-id")
+                                .version("2025-11-25")
+                                .capabilities(0x07)
+                                .build()
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"zilla","version":"1.0"}}}'
+write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{},"prompts":{},"resources":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 write flush
 
 write close
@@ -45,8 +51,9 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .sessionId("test-session-id")
-                           .method("notifications/initialized")
+                           .initialize()
+                               .sessionId("test-session-id")
+                               .build()
                            .build()}
 
 connected
@@ -56,7 +63,9 @@ read closed
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .sessionId("test-session-id")
+                            .initialize()
+                                .sessionId("test-session-id")
+                                .build()
                             .build()}
 write flush
 

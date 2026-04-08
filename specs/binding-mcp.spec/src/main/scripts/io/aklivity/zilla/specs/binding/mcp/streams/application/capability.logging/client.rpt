@@ -14,29 +14,29 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .logging()
+                                .sessionId("test-session-id")
+                                .level("error")
+                                .build()
+                            .build()}
+
+connected
+
+write '{"jsonrpc":"2.0","id":8,"method":"logging/setLevel","params":{"level":"error"}}'
+write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .disconnect()
+                           .logging()
                                .sessionId("test-session-id")
                                .build()
                            .build()}
 
-connected
-
+read '{"jsonrpc":"2.0","id":8,"result":{}}'
 read closed
-
-write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .disconnect()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
-write flush
-
-write close

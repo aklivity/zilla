@@ -70,9 +70,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.capabilities/client",
-        "${app}/lifecycle.capabilities/server"})
-    public void shouldNegotiateCapabilities() throws Exception
+        "${net}/lifecycle.ping/client",
+        "${app}/lifecycle.ping/server"})
+    public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();
     }
@@ -80,9 +80,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.ping/client",
-        "${app}/utility.ping/server"})
-    public void shouldPing() throws Exception
+        "${net}/lifecycle.cancel/client",
+        "${app}/lifecycle.cancel/server"})
+    public void shouldCancelLifecycle() throws Exception
     {
         k3po.finish();
     }
@@ -90,9 +90,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.cancel/client",
-        "${app}/utility.cancel/server"})
-    public void shouldCancel() throws Exception
+        "${net}/capability.tools/client",
+        "${app}/capability.tools/server"})
+    public void shouldListTools() throws Exception
     {
         k3po.finish();
     }
@@ -100,9 +100,49 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.progress/client",
-        "${app}/utility.progress/server"})
+        "${net}/capability.progress/client",
+        "${app}/capability.progress/server"})
     public void shouldReportProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/capability.prompts/client",
+        "${app}/capability.prompts/server"})
+    public void shouldListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/capability.resources/client",
+        "${app}/capability.resources/server"})
+    public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/capability.completion/client",
+        "${app}/capability.completion/server"})
+    public void shouldComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/capability.logging/client",
+        "${app}/capability.logging/server"})
+    public void shouldSetLoggingLevel() throws Exception
     {
         k3po.finish();
     }

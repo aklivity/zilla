@@ -20,20 +20,22 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
-                            .sessionId("test-session-id")
-                            .method("tools/call")
+                            .resource()
+                                .sessionId("test-session-id")
+                                .build()
                             .build()}
 
 connected
 
-write '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}}'
+write '{"jsonrpc":"2.0","id":6,"method":"resources/list"}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .sessionId("test-session-id")
+                           .resource()
+                               .sessionId("test-session-id")
+                               .build()
                            .build()}
 
-read '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
-read '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
+read '{"jsonrpc":"2.0","id":6,"result":{"resources":[]}}'
 read closed

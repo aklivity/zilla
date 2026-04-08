@@ -17,10 +17,80 @@ scope mcp
 {
     scope stream
     {
-        struct McpBeginEx extends core::stream::Extension
+        union McpBeginEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: mcp::stream::McpInitializeBeginEx initialize;
+            case 1: mcp::stream::McpPingBeginEx ping;
+            case 2: mcp::stream::McpToolBeginEx tool;
+            case 3: mcp::stream::McpPromptBeginEx prompt;
+            case 4: mcp::stream::McpResourceBeginEx resource;
+            case 5: mcp::stream::McpCompletionBeginEx completion;
+            case 6: mcp::stream::McpLoggingBeginEx logging;
+            case 7: mcp::stream::McpCancelBeginEx cancel;
+            case 8: mcp::stream::McpDisconnectBeginEx disconnect;
+        }
+
+        struct McpInitializeBeginEx
         {
             string16 sessionId = null;
-            string16 method = null;
+            string16 version = null;
+            uint8 capabilities;
+        }
+
+        struct McpPingBeginEx
+        {
+            string16 sessionId = null;
+        }
+
+        struct McpToolBeginEx
+        {
+            string16 sessionId = null;
+            string16 name = null;
+        }
+
+        struct McpPromptBeginEx
+        {
+            string16 sessionId = null;
+            string16 name = null;
+        }
+
+        struct McpResourceBeginEx
+        {
+            string16 sessionId = null;
+            string16 uri = null;
+        }
+
+        struct McpCompletionBeginEx
+        {
+            string16 sessionId = null;
+        }
+
+        struct McpLoggingBeginEx
+        {
+            string16 sessionId = null;
+            string16 level = null;
+        }
+
+        struct McpCancelBeginEx
+        {
+            string16 sessionId = null;
+            string16 reason = null;
+        }
+
+        struct McpDisconnectBeginEx
+        {
+            string16 sessionId = null;
+        }
+
+        struct McpFlushEx extends core::stream::Extension
+        {
+            string16 sessionId = null;
+        }
+
+        struct McpAbortEx extends core::stream::Extension
+        {
+            string16 sessionId = null;
+            string16 reason = null;
         }
     }
 }
