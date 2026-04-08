@@ -30,6 +30,7 @@ import java.nio.file.FileSystems;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +42,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -519,25 +521,34 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public long[][] counterIds()
     {
-        // the list of counter ids are expected to be identical in all cores
-        EngineWorker worker = workers.get(0);
-        return worker.counterIds();
+        return mergeIds(EngineWorker::counterIds);
     }
 
     @Override
     public long[][] gaugeIds()
     {
-        // the list of gauge ids are expected to be identical in all cores
-        EngineWorker worker = workers.get(0);
-        return worker.gaugeIds();
+        return mergeIds(EngineWorker::gaugeIds);
     }
 
     @Override
     public long[][] histogramIds()
     {
-        // the list of histogram ids are expected to be identical in all cores
-        EngineWorker worker = workers.get(0);
-        return worker.histogramIds();
+        return mergeIds(EngineWorker::histogramIds);
+    }
+
+    private long[][] mergeIds(
+        Function<EngineWorker, long[][]> supplier)
+    {
+        Map<Long, long[]> merged = new LinkedHashMap<>();
+        for (EngineWorker worker : workers)
+        {
+            for (long[] ids : supplier.apply(worker))
+            {
+                long key = ids[0] ^ ((long) ids[1] << 32) ^ ids[2];
+                merged.putIfAbsent(key, ids);
+            }
+        }
+        return merged.values().toArray(long[][]::new);
     }
 
     public MessageReader supplyEventReader()

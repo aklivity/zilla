@@ -28,12 +28,12 @@ bindings:
     type: http
     kind: server
     exit: north_echo_server
-  north_echo_server:
-    type: echo
-    kind: server
     telemetry:
       metrics:
         - http.*
       attributes:
         method: ${http.request.method}
         path: ${http.request.path}
+  north_echo_server:
+    type: echo
+    kind: server
