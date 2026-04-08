@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
@@ -26,7 +27,7 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
-    private final ConcurrentMap<Long, ConcurrentMap<String, MemoryEntry>> storage;
+    private final ConcurrentMap<Long, MemoryStorage> storage;
 
     MemoryStore(
         MemoryStoreConfiguration config)
@@ -44,7 +45,7 @@ final class MemoryStore implements Store
     public StoreContext supply(
         EngineContext context)
     {
-        return new MemoryStoreContext(this::supplyEntries, this::removeEntries);
+        return new MemoryStoreContext(this::acquireEntries, this::releaseEntries);
     }
 
     @Override
@@ -53,15 +54,23 @@ final class MemoryStore implements Store
         return getClass().getResource("schema/memory.schema.patch.json");
     }
 
-    private ConcurrentMap<String, MemoryEntry> supplyEntries(
+    private ConcurrentMap<String, MemoryEntry> acquireEntries(
         long storeId)
     {
-        return storage.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+        final MemoryStorage memoryStorage = storage.computeIfAbsent(storeId, id -> new MemoryStorage());
+        memoryStorage.refs.incrementAndGet();
+        return memoryStorage.entries;
     }
 
-    private void removeEntries(
+    private void releaseEntries(
         long storeId)
     {
-        storage.remove(storeId);
+        storage.computeIfPresent(storeId, (id, ms) -> ms.refs.decrementAndGet() == 0 ? null : ms);
+    }
+
+    private static final class MemoryStorage
+    {
+        final AtomicInteger refs = new AtomicInteger();
+        final ConcurrentMap<String, MemoryEntry> entries = new ConcurrentHashMap<>();
     }
 }
