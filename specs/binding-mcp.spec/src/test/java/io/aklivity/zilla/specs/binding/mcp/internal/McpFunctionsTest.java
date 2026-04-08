@@ -29,6 +29,12 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 public class McpFunctionsTest
 {
     @Test
+    public void shouldGetPrefixName()
+    {
+        assertNotNull(new McpFunctions.Mapper().getPrefixName());
+    }
+
+    @Test
     public void shouldGenerateBeginExtension()
     {
         byte[] bytes = McpFunctions.beginEx()
