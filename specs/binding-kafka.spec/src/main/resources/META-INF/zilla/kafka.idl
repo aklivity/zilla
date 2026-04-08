@@ -63,10 +63,10 @@ scope kafka
         HEADERS (3)
     }
 
-    enum KafkaResourceType (int8)
+    enum KafkaResourceType (uint8)
     {
-        TOPIC (2),
-        BROKER (4)
+        BROKER(4),
+        TOPIC(2)
     }
 
     union KafkaCondition switch (uint8)
@@ -187,13 +187,10 @@ scope kafka
             BOOTSTRAP (254),
             MERGED (255),
             DESCRIBE_CLUSTER (60),
-            ALTER_CONSUMER_GROUP_OFFSETS (53),
             ALTER_CONFIGS (33),
             INIT_PRODUCER_ID (22),
             DELETE_TOPICS (20),
             CREATE_TOPICS (19),
-            LIST_GROUPS (16),
-            DESCRIBE_GROUPS (15),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -333,38 +330,20 @@ scope kafka
             string16 topic;
         }
 
-        struct KafkaPartitionMetadata
-        {
-            int32 partitionId;
-            int32 leaderId;
-            int32[] replicas;
-            int32[] isr;
-        }
-
         struct KafkaMetaDataEx
         {
-            int16 replicationFactor;
-            KafkaPartitionMetadata[] partitions;
+            KafkaPartition[] partitions;
         }
 
         struct KafkaDescribeBeginEx
         {
-            KafkaResourceType resourceType = TOPIC;
-            string16 name;
+            string16 topic;
             string16[] configs;
-        }
-
-        struct KafkaConfigDetail
-        {
-            string16 name;
-            string16 value;
-            uint8 isDefault;
-            uint8 isSensitive;
         }
 
         struct KafkaDescribeDataEx
         {
-            KafkaConfigDetail[] configs;
+            KafkaConfig[] configs;
         }
 
         struct KafkaFetchBeginEx
@@ -585,74 +564,12 @@ scope kafka
             uint8 includeAuthorizedOperations;
         }
 
-        struct KafkaGroupState
-        {
-            string16 groupId;
-            string16 protocolType;
-            string16 groupState;
-        }
-
-        struct KafkaListGroupsRequestBeginEx
-        {
-            string16[] statesFilter;
-        }
-
-        struct KafkaDescribeGroupMember
-        {
-            string16 memberId;
-            string16 clientId;
-            string16 clientHost;
-            varint32 metadataLen;
-            octets[metadataLen] metadata = null;
-            varint32 assignmentLen;
-            octets[assignmentLen] assignment = null;
-        }
-
-        struct KafkaDescribeGroupInfo
-        {
-            int16 error;
-            string16 groupId;
-            string16 groupState;
-            string16 protocolType;
-            string16 protocol;
-            KafkaDescribeGroupMember[] members;
-        }
-
-        struct KafkaDescribeGroupsRequestBeginEx
-        {
-            string16[] groupIds;
-            uint8 includeAuthorizedOperations;
-        }
-
-        struct KafkaAlterGroupTopicPartition
-        {
-            int32 partitionId;
-            int64 offset;
-            int32 leaderEpoch = -1;
-            string16 metadata = null;
-        }
-
-        struct KafkaAlterGroupTopic
-        {
-            string16 name;
-            KafkaAlterGroupTopicPartition[] partitions;
-        }
-
-        struct KafkaAlterConsumerGroupOffsetsRequestBeginEx
-        {
-            string16 groupId;
-            KafkaAlterGroupTopic[] topics;
-        }
-
         union KafkaRequestBeginEx switch (uint8)
         {
             case 19: kafka::stream::KafkaCreateTopicsRequestBeginEx createTopics;
             case 20: kafka::stream::KafkaDeleteTopicsRequestBeginEx deleteTopics;
             case 33: kafka::stream::KafkaAlterConfigsRequestBeginEx alterConfigs;
             case 60: kafka::stream::KafkaDescribeClusterRequestBeginEx describeCluster;
-            case 15: kafka::stream::KafkaDescribeGroupsRequestBeginEx describeGroups;
-            case 16: kafka::stream::KafkaListGroupsRequestBeginEx listGroups;
-            case 53: kafka::stream::KafkaAlterConsumerGroupOffsetsRequestBeginEx alterConsumerGroupOffsets;
         }
 
         struct KafkaCreateTopicStatus
@@ -713,46 +630,12 @@ scope kafka
             int32 authorizedOperations;
         }
 
-        struct KafkaListGroupsResponseBeginEx
-        {
-            int32 throttle;
-            int16 error;
-            KafkaGroupState[] groups;
-        }
-
-        struct KafkaDescribeGroupsResponseBeginEx
-        {
-            int32 throttle;
-            KafkaDescribeGroupInfo[] groups;
-        }
-
-        struct KafkaAlterGroupPartitionResult
-        {
-            int32 partitionId;
-            int16 error;
-        }
-
-        struct KafkaAlterGroupTopicResult
-        {
-            string16 name;
-            KafkaAlterGroupPartitionResult[] partitions;
-        }
-
-        struct KafkaAlterConsumerGroupOffsetsResponseBeginEx
-        {
-            int32 throttle;
-            KafkaAlterGroupTopicResult[] topics;
-        }
-
         union KafkaResponseBeginEx switch (uint8)
         {
             case 19: kafka::stream::KafkaCreateTopicsResponseBeginEx createTopics;
             case 20: kafka::stream::KafkaDeleteTopicsResponseBeginEx deleteTopics;
             case 33: kafka::stream::KafkaAlterConfigsResponseBeginEx alterConfigs;
             case 60: kafka::stream::KafkaDescribeClusterResponseBeginEx describeCluster;
-            case 15: kafka::stream::KafkaDescribeGroupsResponseBeginEx describeGroups;
-            case 16: kafka::stream::KafkaListGroupsResponseBeginEx listGroups;
-            case 53: kafka::stream::KafkaAlterConsumerGroupOffsetsResponseBeginEx alterConsumerGroupOffsets;
         }
     }
 
