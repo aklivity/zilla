@@ -73,6 +73,12 @@
       <artifactId>lang</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -86,7 +92,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core internal mcp</scopeNames>
+          <scopeNames>core internal http mcp</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mcp.internal.types</packageName>
         </configuration>
         <executions>
@@ -167,6 +173,16 @@
           <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>binding-mcp.spec</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>binding-http.spec</artifactId>
             <version>${project.version}</version>
           </dependency>
         </dependencies>

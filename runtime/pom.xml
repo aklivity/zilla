@@ -29,6 +29,7 @@
     <module>binding-http-kafka</module>
     <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
+    <module>binding-mcp</module>
     <module>binding-mqtt</module>
     <module>binding-mqtt-kafka</module>
     <module>binding-openapi</module>
@@ -127,6 +128,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
