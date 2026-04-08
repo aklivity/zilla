@@ -447,7 +447,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .build();
 
             final BeginFW downstreamBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
+                .originId(routedId)
                 .routedId(resolvedId)
                 .streamId(downstreamInitialId)
                 .sequence(sequence)
@@ -499,7 +499,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (downstream != null && payload != null)
             {
-                doData(downstream, originId, resolvedId, downstreamInitialId,
+                doData(downstream, routedId, resolvedId, downstreamInitialId,
                     sequence, acknowledge, maximum, traceId, authorization,
                     budgetId, flags, reserved,
                     payload.buffer(), payload.offset(), payload.sizeof());
@@ -516,7 +516,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (downstream != null)
             {
-                doEnd(downstream, originId, resolvedId, downstreamInitialId,
+                doEnd(downstream, routedId, resolvedId, downstreamInitialId,
                     sequence, acknowledge, maximum, traceId, authorization);
             }
         }
@@ -531,7 +531,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (downstream != null)
             {
-                doAbort(downstream, originId, resolvedId, downstreamInitialId,
+                doAbort(downstream, routedId, resolvedId, downstreamInitialId,
                     sequence, acknowledge, maximum, traceId, authorization);
             }
         }
@@ -548,7 +548,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (downstream != null)
             {
-                doFlush(downstream, originId, resolvedId, downstreamInitialId,
+                doFlush(downstream, routedId, resolvedId, downstreamInitialId,
                     sequence, acknowledge, maximum, traceId, authorization,
                     budgetId, reserved);
             }
@@ -566,7 +566,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (downstream != null)
             {
-                doWindow(downstream, originId, resolvedId, downstreamReplyId,
+                doWindow(downstream, routedId, resolvedId, downstreamReplyId,
                     sequence, acknowledge, maximum,
                     traceId, authorization, budgetId, padding);
             }
@@ -638,7 +638,7 @@ public final class McpServerFactory implements McpStreamFactory
                 sequence, acknowledge, maximum, traceId, authorization, affinity,
                 extension.buffer(), extension.offset(), extension.sizeof());
 
-            doWindow(downstream, originId, resolvedId, downstreamReplyId,
+            doWindow(downstream, routedId, resolvedId, downstreamReplyId,
                 sequence, acknowledge, writeBuffer.capacity(),
                 traceId, authorization, 0, 0);
         }
@@ -726,7 +726,7 @@ public final class McpServerFactory implements McpStreamFactory
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
 
-            doReset(downstream, originId, resolvedId, downstreamReplyId,
+            doReset(downstream, routedId, resolvedId, downstreamReplyId,
                 sequence, acknowledge, maximum, traceId, authorization);
         }
     }
