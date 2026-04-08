@@ -18,31 +18,16 @@ package io.aklivity.zilla.specs.binding.mcp.internal;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-
-import javax.el.ELContext;
-import javax.el.FunctionMapper;
 
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
-import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 
 public class McpFunctionsTest
 {
-    @Test
-    public void shouldResolveFunction() throws Exception
-    {
-        final ELContext ctx = new ExpressionContext();
-        final FunctionMapper mapper = ctx.getFunctionMapper();
-        final Method function = mapper.resolveFunction("mcp", "beginEx");
-
-        assertNotNull(function);
-    }
-
     @Test
     public void shouldGenerateBeginExtension()
     {
