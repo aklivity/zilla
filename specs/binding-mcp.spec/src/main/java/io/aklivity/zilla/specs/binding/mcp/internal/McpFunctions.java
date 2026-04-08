@@ -44,6 +44,7 @@ public final class McpFunctions
     public static final class McpBeginExBuilder
     {
         private final McpBeginExFW.Builder beginExRW;
+        private boolean sessionIdSet;
 
         private McpBeginExBuilder()
         {
@@ -69,11 +70,16 @@ public final class McpFunctions
             String sessionId)
         {
             beginExRW.sessionId(sessionId);
+            sessionIdSet = true;
             return this;
         }
 
         public byte[] build()
         {
+            if (!sessionIdSet)
+            {
+                beginExRW.sessionId("");
+            }
             final McpBeginExFW beginEx = beginExRW.build();
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
