@@ -540,6 +540,30 @@ Each scenario has a corresponding type-prefixed `*IT.java` class (e.g., `HttpReq
 `KafkaFetchIT`) that runs the scripts against a live Zilla engine instance
 configured with a minimal `zilla.yaml`.
 
+**`XxxFunctions` — builder and matcher helpers for extension types:**
+
+Single-protocol binding spec projects (e.g., `binding-http.spec`,
+`binding-kafka.spec`) provide an `XxxFunctions` class (e.g., `HttpFunctions`,
+`KafkaFunctions`) under `src/main/java/.../internal/` that exposes `@Function`
+methods used in `.rpt` scripts to construct and match extension type bytes.
+Cross-protocol proxy binding specs (e.g., `binding-http-kafka.spec`) do **not**
+define their own `XxxFunctions` — they reuse the `XxxFunctions` from each
+protocol they map between.
+
+- **Builder functions** (e.g., `beginEx()`, `flushEx()`, `endEx()`) — used on
+  the **write side** of a script to build the full binary extension. Every
+  field that must be set is specified on the builder.
+- **Matcher functions** (e.g., `matchBeginEx()`, `matchFlushEx()`) — used on
+  the **read side** of a script. Matchers implement `BytesMatcher` and only
+  need to assert the fields relevant to the test scenario; unspecified fields
+  are ignored. This allows partial matching without coupling scripts to fields
+  that are not under test.
+
+Add a builder and a matcher for every extension type declared in the binding's
+`.idl`. The matcher's `build()` method returns `null` (skip check) when no
+constraints have been set, allowing unconditional reads when the extension
+content is irrelevant.
+
 **k3po and JUnit 4 rule compatibility:**
 
 The `.rpt` scripts are driven by [k3po](https://github.com/k3po/k3po), which
