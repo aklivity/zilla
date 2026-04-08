@@ -496,6 +496,24 @@ it. This means:
 - Regressions are caught precisely: a failing spec identifies exactly which
   protocol scenario broke, not just that a test failed
 
+**Script folder layout:**
+
+Scripts are organised under `streams/network/` and `streams/application/`
+within the spec project. Each scenario is a subdirectory containing a
+`client.rpt` and a `server.rpt`. The `network/` and `application/` trees are
+**shared between the server-kind and client-kind** ITs for the same binding
+type — there is no duplication. The IT class declares a `K3poRule` script root
+pointing at `streams/network/...` or `streams/application/...` and references
+scripts as `${net}/scenario/client` and `${net}/scenario/server` (or `${app}/`
+for application-layer scenarios).
+
+Each scenario also has a corresponding test method in a `NetworkIT` or
+`ApplicationIT` class (in the spec project's `src/test/` tree) that runs
+`client.rpt` and `server.rpt` directly against each other — without Zilla —
+to verify that the two scripts are complementary and self-consistent. Every new
+scenario must have both a binding IT method (running against Zilla) and a
+`NetworkIT`/`ApplicationIT` method (running the scripts peer-to-peer).
+
 **Script structure:**
 
 ```
