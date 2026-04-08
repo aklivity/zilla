@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.6](https://github.com/aklivity/zilla/tree/1.1.6) (2026-04-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.5...1.1.6)
+
+**Implemented enhancements:**
+
+- store-memory: implement in-process memory store [\#1667](https://github.com/aklivity/zilla/issues/1667)
+- engine: add Store concept \(Store, StoreContext, StoreHandler, StoreFactorySpi\) [\#1666](https://github.com/aklivity/zilla/issues/1666)
+
+**Merged pull requests:**
+
+- feat\(store-memory\): implement in-process memory store [\#1710](https://github.com/aklivity/zilla/pull/1710) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add Store concept \(Store, StoreContext, StoreHandler, StoreFactorySpi\) [\#1707](https://github.com/aklivity/zilla/pull/1707) ([jfallows](https://github.com/jfallows))
+
 ## [1.1.5](https://github.com/aklivity/zilla/tree/1.1.5) (2026-04-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.1.4...1.1.5)
