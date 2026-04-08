@@ -37,7 +37,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("content-length", "43")
+                           .header("content-length", "46")
                            .build()}
 
 read '{"jsonrpc":"2.0","id":1,"result":{"tools":[]}}'

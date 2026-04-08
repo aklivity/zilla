@@ -25,12 +25,10 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("content-type", "application/json")
-                            .header("content-length", "46")
                             .build()}
 
 connected
 
-write '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
