@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -21,12 +22,12 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MemoryStoreHandler implements StoreHandler
 {
-    private final MemoryStore store;
+    private final ConcurrentMap<String, MemoryEntry> entries;
 
     MemoryStoreHandler(
-        MemoryStore store)
+        ConcurrentMap<String, MemoryEntry> entries)
     {
-        this.store = store;
+        this.entries = entries;
     }
 
     @Override
@@ -34,7 +35,8 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> completion)
     {
-        final String value = store.get(key);
+        final MemoryEntry entry = entries.get(key);
+        final String value = entry != null && !entry.expired() ? entry.value() : null;
         completion.accept(key, value);
     }
 
@@ -42,10 +44,11 @@ final class MemoryStoreHandler implements StoreHandler
     public void put(
         String key,
         String value,
-        long ttl,
+        long ttlMillis,
         Consumer<String> completion)
     {
-        store.put(key, value, ttl);
+        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        entries.put(key, new MemoryEntry(value, expiresAt));
         completion.accept(null);
     }
 
@@ -53,11 +56,18 @@ final class MemoryStoreHandler implements StoreHandler
     public void putIfAbsent(
         String key,
         String value,
-        long ttl,
+        long ttlMillis,
         Consumer<String> completion)
     {
-        final String existing = store.putIfAbsent(key, value, ttl);
-        completion.accept(existing);
+        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
+        final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
+        final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
+        if (existing != null && existing.expired())
+        {
+            entries.replace(key, existing, newEntry);
+        }
+        final String result = existing != null && !existing.expired() ? existing.value() : null;
+        completion.accept(result);
     }
 
     @Override
@@ -65,7 +75,7 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        store.delete(key);
+        entries.remove(key);
         completion.accept(null);
     }
 
@@ -74,7 +84,8 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        final String value = store.getAndDelete(key);
+        final MemoryEntry entry = entries.remove(key);
+        final String value = entry != null && !entry.expired() ? entry.value() : null;
         completion.accept(value);
     }
 }

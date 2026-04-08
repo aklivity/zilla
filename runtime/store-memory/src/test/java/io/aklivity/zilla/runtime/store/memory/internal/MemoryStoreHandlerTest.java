@@ -30,7 +30,7 @@ public class MemoryStoreHandlerTest
     @Before
     public void setUp()
     {
-        handler = new MemoryStoreHandler(new MemoryStore(new MemoryStoreConfiguration()));
+        handler = new MemoryStoreHandler(new MemoryStore(new MemoryStoreConfiguration()).attach(0L));
     }
 
     @Test

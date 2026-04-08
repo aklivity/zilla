@@ -26,7 +26,7 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
-    private final ConcurrentMap<String, MemoryEntry> entries;
+    private final ConcurrentMap<Long, ConcurrentMap<String, MemoryEntry>> entries;
 
     MemoryStore(
         MemoryStoreConfiguration config)
@@ -53,47 +53,9 @@ final class MemoryStore implements Store
         return getClass().getResource("schema/memory.schema.patch.json");
     }
 
-    String get(
-        String key)
+    ConcurrentMap<String, MemoryEntry> attach(
+        long storeId)
     {
-        final MemoryEntry entry = entries.get(key);
-        return entry != null && !entry.expired() ? entry.value() : null;
-    }
-
-    void put(
-        String key,
-        String value,
-        long ttlMillis)
-    {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
-        entries.put(key, new MemoryEntry(value, expiresAt));
-    }
-
-    String putIfAbsent(
-        String key,
-        String value,
-        long ttlMillis)
-    {
-        final long expiresAt = ttlMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.currentTimeMillis() + ttlMillis;
-        final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
-        final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
-        if (existing != null && existing.expired())
-        {
-            entries.replace(key, existing, newEntry);
-        }
-        return existing != null && !existing.expired() ? existing.value() : null;
-    }
-
-    void delete(
-        String key)
-    {
-        entries.remove(key);
-    }
-
-    String getAndDelete(
-        String key)
-    {
-        final MemoryEntry entry = entries.remove(key);
-        return entry != null && !entry.expired() ? entry.value() : null;
+        return entries.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
     }
 }

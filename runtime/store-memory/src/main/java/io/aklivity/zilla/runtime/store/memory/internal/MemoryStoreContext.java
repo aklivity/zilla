@@ -32,7 +32,7 @@ final class MemoryStoreContext implements StoreContext
     public StoreHandler attach(
         StoreConfig config)
     {
-        return new MemoryStoreHandler(store);
+        return new MemoryStoreHandler(store.attach(config.id));
     }
 
     @Override
