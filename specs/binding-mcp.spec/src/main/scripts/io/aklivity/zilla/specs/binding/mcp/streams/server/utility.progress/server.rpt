@@ -17,22 +17,30 @@
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                            .typeId(zilla:id("mcp"))
-                           .kind("server")
+                           .sessionId("test-session-id")
+                           .method("tools/call")
                            .build()}
 
 connected
 
+read '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}}'
 read closed
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-type", "application/json")
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .sessionId("test-session-id")
                             .build()}
+write flush
+
+write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
+write flush
+
+write '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
 write flush
 
 write close

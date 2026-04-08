@@ -24,12 +24,14 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -43,6 +45,21 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
     private static final String KIND_SERVER = "server";
+    private static final String HTTP_HEADER_METHOD = ":method";
+    private static final String HTTP_HEADER_SESSION = "mcp-session-id";
+    private static final String HTTP_HEADER_ACCEPT = "accept";
+    private static final String HTTP_HEADER_STATUS = ":status";
+    private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
+    private static final String HTTP_DELETE = "DELETE";
+    private static final String METHOD_DISCONNECT = "disconnect";
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_SSE = "text/event-stream";
+    private static final String STATUS_200 = "200";
+    private static final String STATUS_202 = "202";
+    private static final String SSE_DATA_PREFIX = "data: ";
+    private static final String SSE_DATA_SUFFIX = "\n\n";
+    private static final String JSON_FIELD_METHOD = "\"method\":\"";
+    private static final String JSON_FIELD_ID = "\"id\":";
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -53,6 +70,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -61,11 +80,12 @@ public final class McpServerFactory implements McpStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
-
+    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer sseBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -80,6 +100,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.sseBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -353,6 +374,35 @@ public final class McpServerFactory implements McpStreamFactory
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
+    private static String extractJsonMethod(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
+        final int methodStart = json.indexOf(JSON_FIELD_METHOD);
+        if (methodStart == -1)
+        {
+            return null;
+        }
+        final int valueStart = methodStart + JSON_FIELD_METHOD.length();
+        final int valueEnd = json.indexOf('"', valueStart);
+        if (valueEnd == -1)
+        {
+            return null;
+        }
+        return json.substring(valueStart, valueEnd);
+    }
+
+    private static boolean hasJsonId(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
+        return json.contains(JSON_FIELD_ID);
+    }
+
     private final class McpServerStream
     {
         private final MessageConsumer sender;
@@ -367,6 +417,18 @@ public final class McpServerFactory implements McpStreamFactory
         private long downstreamInitialId;
         private long downstreamReplyId;
         private MessageConsumer downstream;
+
+        private String sessionId;
+        private boolean httpDelete;
+        private boolean acceptSse;
+        private boolean notification;
+        private boolean downstreamBeginSent;
+        private boolean sseResponse;
+
+        private long pendingSequence;
+        private long pendingAcknowledge;
+        private int pendingMaximum;
+        private long pendingTraceId;
 
         private McpServerStream(
             MessageConsumer sender,
@@ -435,16 +497,79 @@ public final class McpServerFactory implements McpStreamFactory
             final long acknowledge = begin.acknowledge();
             final int maximum = begin.maximum();
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            pendingSequence = sequence;
+            pendingAcknowledge = acknowledge;
+            pendingMaximum = maximum;
+            pendingTraceId = traceId;
+
+            if (extension.sizeof() > 0)
+            {
+                final HttpBeginExFW httpBeginEx =
+                    httpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (httpBeginEx != null)
+                {
+                    final HttpHeaderFW methodHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_METHOD.equals(h.name().asString()));
+                    if (methodHeader != null && HTTP_DELETE.equals(methodHeader.value().asString()))
+                    {
+                        httpDelete = true;
+                    }
+
+                    final HttpHeaderFW sessionHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
+                    if (sessionHeader != null)
+                    {
+                        sessionId = sessionHeader.value().asString();
+                    }
+
+                    final HttpHeaderFW acceptHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_ACCEPT.equals(h.name().asString()));
+                    if (acceptHeader != null && acceptHeader.value().asString().contains(CONTENT_TYPE_SSE))
+                    {
+                        acceptSse = true;
+                    }
+                }
+            }
 
             downstreamInitialId = supplyInitialId.applyAsLong(resolvedId);
             downstreamReplyId = supplyReplyId.applyAsLong(downstreamInitialId);
 
-            final McpBeginExFW mcpBeginEx = mcpBeginExRW
+            if (httpDelete)
+            {
+                sendDownstreamBegin(traceId, METHOD_DISCONNECT, sequence, acknowledge, maximum);
+            }
+            else
+            {
+                doWindow(sender, originId, routedId, initialId,
+                    sequence, acknowledge, writeBuffer.capacity(),
+                    traceId, authorization, 0, 0);
+            }
+        }
+
+        private void sendDownstreamBegin(
+            long traceId,
+            String method,
+            long sequence,
+            long acknowledge,
+            int maximum)
+        {
+            final McpBeginExFW.Builder mcpBeginExBuilder = mcpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(mcpTypeId)
-                .kind(KIND_SERVER)
-                .sessionId(String.valueOf(traceId))
-                .build();
+                .typeId(mcpTypeId);
+
+            if (sessionId != null)
+            {
+                mcpBeginExBuilder.sessionId(sessionId);
+            }
+
+            if (method != null)
+            {
+                mcpBeginExBuilder.method(method);
+            }
+
+            final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
 
             final BeginFW downstreamBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
@@ -474,6 +599,8 @@ public final class McpServerFactory implements McpStreamFactory
                     downstreamBegin.offset(),
                     downstreamBegin.sizeof());
 
+                downstreamBeginSent = true;
+
                 doWindow(sender, originId, routedId, initialId,
                     sequence, acknowledge, writeBuffer.capacity(),
                     traceId, authorization, 0, 0);
@@ -496,6 +623,15 @@ public final class McpServerFactory implements McpStreamFactory
             final int flags = data.flags();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
+
+            if (!downstreamBeginSent && payload != null)
+            {
+                final String method = extractJsonMethod(payload.buffer(), payload.offset(), payload.sizeof());
+                notification = !hasJsonId(payload.buffer(), payload.offset(), payload.sizeof());
+
+                sendDownstreamBegin(traceId, method,
+                    pendingSequence, pendingAcknowledge, pendingMaximum);
+            }
 
             if (downstream != null && payload != null)
             {
@@ -580,8 +716,11 @@ public final class McpServerFactory implements McpStreamFactory
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
 
-            doReset(sender, originId, routedId, initialId,
-                sequence, acknowledge, maximum, traceId, authorization);
+            if (downstream != null)
+            {
+                doAbort(downstream, routedId, resolvedId, downstreamInitialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
         }
 
         private void onDownstreamMessage(
@@ -634,9 +773,33 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
+            String responseSessionId = sessionId;
+            if (extension.sizeof() > 0)
+            {
+                final McpBeginExFW mcpBeginEx =
+                    mcpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (mcpBeginEx != null && mcpBeginEx.sessionId() != null)
+                {
+                    responseSessionId = mcpBeginEx.sessionId().asString();
+                }
+            }
+
+            final String status = notification ? STATUS_202 : STATUS_200;
+            sseResponse = acceptSse && !notification;
+
+            final String finalResponseSessionId = responseSessionId;
+            final HttpBeginExFW httpBeginEx = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE)
+                    .value(sseResponse ? CONTENT_TYPE_SSE : CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(finalResponseSessionId != null ? finalResponseSessionId : ""))
+                .build();
+
             doBegin(sender, originId, routedId, replyId,
                 sequence, acknowledge, maximum, traceId, authorization, affinity,
-                extension.buffer(), extension.offset(), extension.sizeof());
+                httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof());
 
             doWindow(downstream, routedId, resolvedId, downstreamReplyId,
                 sequence, acknowledge, writeBuffer.capacity(),
@@ -657,10 +820,27 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (payload != null)
             {
-                doData(sender, originId, routedId, replyId,
-                    sequence, acknowledge, maximum, traceId, authorization,
-                    budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
+                if (sseResponse)
+                {
+                    final byte[] prefixBytes = SSE_DATA_PREFIX.getBytes();
+                    final byte[] suffixBytes = SSE_DATA_SUFFIX.getBytes();
+                    final int sseLength = prefixBytes.length + payload.sizeof() + suffixBytes.length;
+                    sseBuffer.putBytes(0, prefixBytes);
+                    sseBuffer.putBytes(prefixBytes.length, payload.buffer(), payload.offset(), payload.sizeof());
+                    sseBuffer.putBytes(prefixBytes.length + payload.sizeof(), suffixBytes);
+
+                    doData(sender, originId, routedId, replyId,
+                        sequence, acknowledge, maximum, traceId, authorization,
+                        budgetId, flags, reserved,
+                        sseBuffer, 0, sseLength);
+                }
+                else
+                {
+                    doData(sender, originId, routedId, replyId,
+                        sequence, acknowledge, maximum, traceId, authorization,
+                        budgetId, flags, reserved,
+                        payload.buffer(), payload.offset(), payload.sizeof());
+                }
             }
         }
 

@@ -49,9 +49,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${server}/connection.established/client",
-        "${server}/connection.established/server"})
-    public void shouldEstablishConnection() throws Exception
+        "${server}/lifecycle.initialize/client",
+        "${server}/lifecycle.initialize/server"})
+    public void shouldInitializeLifecycle() throws Exception
     {
         k3po.finish();
     }
@@ -59,9 +59,49 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${server}/client.sent.data/client",
-        "${server}/client.sent.data/server"})
-    public void shouldProxyClientSentData() throws Exception
+        "${server}/lifecycle.disconnect/client",
+        "${server}/lifecycle.disconnect/server"})
+    public void shouldDisconnectLifecycle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${server}/lifecycle.capabilities/client",
+        "${server}/lifecycle.capabilities/server"})
+    public void shouldNegotiateCapabilities() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${server}/utility.ping/client",
+        "${server}/utility.ping/server"})
+    public void shouldPing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${server}/utility.cancel/client",
+        "${server}/utility.cancel/server"})
+    public void shouldCancel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${server}/utility.progress/client",
+        "${server}/utility.progress/server"})
+    public void shouldReportProgress() throws Exception
     {
         k3po.finish();
     }

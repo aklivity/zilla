@@ -44,7 +44,6 @@ public final class McpFunctions
     public static final class McpBeginExBuilder
     {
         private final McpBeginExFW.Builder beginExRW;
-        private boolean sessionIdSet;
 
         private McpBeginExBuilder()
         {
@@ -59,27 +58,22 @@ public final class McpFunctions
             return this;
         }
 
-        public McpBeginExBuilder kind(
-            String kind)
-        {
-            beginExRW.kind(kind);
-            return this;
-        }
-
         public McpBeginExBuilder sessionId(
             String sessionId)
         {
             beginExRW.sessionId(sessionId);
-            sessionIdSet = true;
+            return this;
+        }
+
+        public McpBeginExBuilder method(
+            String method)
+        {
+            beginExRW.method(method);
             return this;
         }
 
         public byte[] build()
         {
-            if (!sessionIdSet)
-            {
-                beginExRW.sessionId("");
-            }
             final McpBeginExFW beginEx = beginExRW.build();
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
@@ -94,8 +88,8 @@ public final class McpFunctions
         private final McpBeginExFW beginExRO = new McpBeginExFW();
 
         private Integer typeId;
-        private String16FW kind;
         private String16FW sessionId;
+        private String16FW method;
 
         public McpBeginExMatcherBuilder typeId(
             int typeId)
@@ -104,17 +98,17 @@ public final class McpFunctions
             return this;
         }
 
-        public McpBeginExMatcherBuilder kind(
-            String kind)
-        {
-            this.kind = new String16FW(kind);
-            return this;
-        }
-
         public McpBeginExMatcherBuilder sessionId(
             String sessionId)
         {
             this.sessionId = new String16FW(sessionId);
+            return this;
+        }
+
+        public McpBeginExMatcherBuilder method(
+            String method)
+        {
+            this.method = new String16FW(method);
             return this;
         }
 
@@ -136,8 +130,8 @@ public final class McpFunctions
 
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
-                matchKind(beginEx) &&
-                matchSessionId(beginEx))
+                matchSessionId(beginEx) &&
+                matchMethod(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -152,16 +146,16 @@ public final class McpFunctions
             return typeId == null || typeId == beginEx.typeId();
         }
 
-        private boolean matchKind(
-            McpBeginExFW beginEx)
-        {
-            return kind == null || kind.equals(beginEx.kind());
-        }
-
         private boolean matchSessionId(
             McpBeginExFW beginEx)
         {
             return sessionId == null || sessionId.equals(beginEx.sessionId());
+        }
+
+        private boolean matchMethod(
+            McpBeginExFW beginEx)
+        {
+            return method == null || method.equals(beginEx.method());
         }
     }
 

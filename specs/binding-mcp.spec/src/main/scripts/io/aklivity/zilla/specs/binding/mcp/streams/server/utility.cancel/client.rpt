@@ -25,20 +25,19 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("content-type", "application/json")
-                            .header("content-length", "46")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .header("mcp-session-id", "test-session-id")
+                            .header("content-length", "103")
                             .build()}
 
 connected
 
-write '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+write '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1,"reason":"User cancelled"}}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "application/json")
-                           .header("content-length", "46")
+                           .header(":status", "202")
                            .build()}
 
-read '{"jsonrpc":"2.0","id":1,"result":{"tools":[]}}'
 read closed
