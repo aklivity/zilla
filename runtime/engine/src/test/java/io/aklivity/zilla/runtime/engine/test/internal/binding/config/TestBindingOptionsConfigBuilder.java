@@ -39,6 +39,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private List<TestBindingOptionsConfig.Metric> metrics;
     private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
     private VaultAssertion vaultAssertion;
+    private String store;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -134,10 +135,17 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion));
+                metrics, catalogAssertions, vaultAssertion, store));
     }
 }

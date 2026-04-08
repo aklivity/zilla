@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class EchoWorker implements EngineContext
@@ -303,6 +304,13 @@ public class EchoWorker implements EngineContext
     @Override
     public CatalogHandler supplyCatalog(
         long catalogId)
+    {
+        return null;
+    }
+
+    @Override
+    public StoreHandler supplyStore(
+        long storeId)
     {
         return null;
     }

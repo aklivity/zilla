@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
@@ -161,6 +162,16 @@ final class TestBindingFactory implements BindingHandler
             {
                 this.vault = context.supplyVault(binding.vaultId);
                 this.vaultAssertion = options.vaultAssertion;
+            }
+
+            if (options.store != null)
+            {
+                int storeId = context.supplyTypeId(options.store);
+                StoreHandler store = context.supplyStore(NamespacedId.id(namespaceId, storeId));
+                if (store != null)
+                {
+                    store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
+                }
             }
 
             if (options.metrics != null && !options.metrics.isEmpty())

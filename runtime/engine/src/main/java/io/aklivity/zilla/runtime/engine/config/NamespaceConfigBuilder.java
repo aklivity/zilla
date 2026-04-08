@@ -28,6 +28,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     public static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
+    public static final List<StoreConfig> STORES_DEFAULT = emptyList();
     public static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
 
     private final Function<NamespaceConfig, T> mapper;
@@ -38,6 +39,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     private List<CatalogConfig> catalogs;
     private List<GuardConfig> guards;
     private List<VaultConfig> vaults;
+    private List<StoreConfig> stores;
 
     NamespaceConfigBuilder(
         Function<NamespaceConfig, T> mapper)
@@ -163,6 +165,29 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
+    public StoreConfigBuilder<NamespaceConfigBuilder<T>> store()
+    {
+        return new StoreConfigBuilder<>(this::store).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> store(
+        StoreConfig store)
+    {
+        if (stores == null)
+        {
+            stores = new LinkedList<>();
+        }
+        stores.add(store);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> stores(
+        List<StoreConfig> stores)
+    {
+        this.stores = stores;
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(new NamespaceConfig(
@@ -171,6 +196,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
             Optional.ofNullable(bindings).orElse(BINDINGS_DEFAULT),
             Optional.ofNullable(guards).orElse(GUARDS_DEFAULT),
             Optional.ofNullable(vaults).orElse(VAULTS_DEFAULT),
-            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT)));
+            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
+            Optional.ofNullable(stores).orElse(STORES_DEFAULT)));
     }
 }

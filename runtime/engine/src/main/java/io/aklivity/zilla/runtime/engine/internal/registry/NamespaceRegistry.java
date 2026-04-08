@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -52,6 +53,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
@@ -64,6 +66,7 @@ public class NamespaceRegistry
     private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
+    private final Function<String, StoreContext> storesByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongFunction<MetricRegistry> supplyMetric;
     private final LongConsumer exporterAttached;
@@ -75,6 +78,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<CatalogRegistry> catalogsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
+    private final Int2ObjectHashMap<StoreRegistry> storesById;
     private final ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
@@ -89,6 +93,7 @@ public class NamespaceRegistry
         Function<String, CatalogContext> catalogsByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
+        Function<String, StoreContext> storesByType,
         ToIntFunction<String> supplyLabelId,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer exporterAttached,
@@ -105,6 +110,7 @@ public class NamespaceRegistry
         this.catalogsByType = catalogsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
+        this.storesByType = storesByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyMetric = supplyMetric;
         this.supplyMetricRecorder = supplyMetricRecorder;
@@ -118,6 +124,7 @@ public class NamespaceRegistry
         this.catalogsById = new Int2ObjectHashMap<>();
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
+        this.storesById = new Int2ObjectHashMap<>();
         this.collector = collector;
     }
 
@@ -131,6 +138,7 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
         namespace.catalogs.forEach(this::attachCatalog);
+        namespace.stores.forEach(this::attachStore);
         namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.bindings.forEach(this::attachBinding);
         namespace.telemetry.exporters.forEach(this::attachExporter);
@@ -141,6 +149,7 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
         namespace.catalogs.forEach(this::detachCatalog);
+        namespace.stores.forEach(this::detachStore);
         namespace.bindings.forEach(this::detachBinding);
         namespace.telemetry.metrics.forEach(this::detachMetric);
         namespace.telemetry.exporters.forEach(this::detachExporter);
@@ -341,6 +350,29 @@ public class NamespaceRegistry
         }
     }
 
+    private void attachStore(
+        StoreConfig config)
+    {
+        StoreContext context = storesByType.apply(config.type);
+        assert context != null : "Missing store type: " + config.type;
+
+        int storeId = supplyLabelId.applyAsInt(config.name);
+        StoreRegistry registry = new StoreRegistry(config, context);
+        storesById.put(storeId, registry);
+        registry.attach();
+    }
+
+    private void detachStore(
+        StoreConfig config)
+    {
+        int storeId = NamespacedId.localId(config.id);
+        StoreRegistry context = storesById.remove(storeId);
+        if (context != null)
+        {
+            context.detach();
+        }
+    }
+
     private void attachMetric(
         MetricConfig config)
     {
@@ -412,6 +444,12 @@ public class NamespaceRegistry
         int catalogId)
     {
         return catalogsById.get(catalogId);
+    }
+
+    StoreRegistry findStore(
+        int storeId)
+    {
+        return storesById.get(storeId);
     }
 
     MetricRegistry findMetric(

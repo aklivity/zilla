@@ -234,6 +234,10 @@
                                     },
                                     "additionalProperties": false
                                 }
+                            },
+                            "store":
+                            {
+                                "type": "string"
                             }
                         },
                         "additionalProperties": false

@@ -77,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -113,6 +114,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<Model> models,
+        Collection<Store> stores,
         EventFormatterFactory eventFormatterFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
@@ -193,7 +195,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
+                    guards, vaults, catalogs, models, metricGroups, stores, this, this::supplyEventReader,
                     eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
@@ -215,6 +217,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
 
         final Collection<URL> systemConfigs = exporters.stream()
             .map(Exporter::system)
