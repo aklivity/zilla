@@ -692,7 +692,7 @@ own line (`RightCurly` option `alone`), no trailing whitespace, imports ordered
 by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
 groups and no star imports.
 
-- YAML and JSON files use 2-space indentation, no tabs
+- YAML files use 2-space indentation, no tabs; JSON files use 4-space indentation, no tabs
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features
