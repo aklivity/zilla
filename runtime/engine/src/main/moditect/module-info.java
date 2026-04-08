@@ -27,6 +27,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.exporter;
     exports io.aklivity.zilla.runtime.engine.factory;
     exports io.aklivity.zilla.runtime.engine.guard;
+    exports io.aklivity.zilla.runtime.engine.store;
     exports io.aklivity.zilla.runtime.engine.namespace;
     exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
@@ -73,6 +74,7 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.store.StoreFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;

@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
@@ -43,6 +44,7 @@ public class EngineRegistry
     private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
+    private final Function<String, StoreContext> storesByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
@@ -59,6 +61,7 @@ public class EngineRegistry
         Function<String, CatalogContext> catalogsByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
+        Function<String, StoreContext> storesByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
@@ -73,6 +76,7 @@ public class EngineRegistry
         this.catalogsByType = catalogsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
+        this.storesByType = storesByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyMetricRecorder = supplyMetricRecorder;
         this.exporterAttached = exporterAttached;
@@ -153,6 +157,16 @@ public class EngineRegistry
         return namespace != null ? namespace.findCatalog(localId) : null;
     }
 
+    public StoreRegistry resolveStore(
+        long storeId)
+    {
+        int namespaceId = NamespacedId.namespaceId(storeId);
+        int localId = NamespacedId.localId(storeId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findStore(localId) : null;
+    }
+
     public MetricRegistry resolveMetric(
         long metricId)
     {
@@ -195,8 +209,8 @@ public class EngineRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, this::findNamespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
-                    metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
-                    supplyMetricRecorder, detachBinding, collector);
+                    metricsByName, exportersByType, storesByType, supplyLabelId, this::resolveMetric, exporterAttached,
+                    exporterDetached, supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

@@ -16,6 +16,9 @@
 
 ---
 name: test
+stores:
+    test0:
+        type: test
 vaults:
     test0:
         type: test
@@ -50,6 +53,7 @@ bindings:
         type: test
         kind: server
         options:
+            store: test0
             authorization:
                 test0:
                     credentials: TOKEN

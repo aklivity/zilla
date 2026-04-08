@@ -1,21 +1,22 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2024 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
@@ -23,24 +24,28 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MemoryStoreContext implements StoreContext
 {
-    private final ConcurrentHashMap<String, MemoryEntry> entries;
+    private final LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries;
+    private final LongConsumer removeEntries;
 
     MemoryStoreContext(
-        ConcurrentHashMap<String, MemoryEntry> entries)
+        LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries,
+        LongConsumer removeEntries)
     {
-        this.entries = entries;
+        this.supplyEntries = supplyEntries;
+        this.removeEntries = removeEntries;
     }
 
     @Override
     public StoreHandler attach(
-        StoreConfig store)
+        StoreConfig config)
     {
-        return new MemoryStoreHandler(entries);
+        return new MemoryStoreHandler(supplyEntries.apply(config.id));
     }
 
     @Override
     public void detach(
-        StoreConfig store)
+        StoreConfig config)
     {
+        removeEntries.accept(config.id);
     }
 }

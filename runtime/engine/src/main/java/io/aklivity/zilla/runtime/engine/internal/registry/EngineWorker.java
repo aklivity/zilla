@@ -156,6 +156,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.store.Store;
+import io.aklivity.zilla.runtime.engine.store.StoreContext;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -270,6 +273,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Catalog> catalogs,
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
+        Collection<Store> stores,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -445,6 +449,13 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
+        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
+        for (Store store : stores)
+        {
+            String type = store.name();
+            storesByType.put(type, store.supply(this));
+        }
+
         Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
         for (Model model : models)
         {
@@ -471,8 +482,8 @@ public class EngineWorker implements EngineContext, Agent
 
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
-                this::supplyMetricWriter, this::detachStreams, collector, process);
+                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
+                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -749,6 +760,14 @@ public class EngineWorker implements EngineContext, Agent
     {
         GuardRegistry guard = registry.resolveGuard(guardId);
         return guard != null ? guard.handler() : null;
+    }
+
+    @Override
+    public StoreHandler supplyStore(
+        long storeId)
+    {
+        StoreRegistry store = registry.resolveStore(storeId);
+        return store != null ? store.handler() : null;
     }
 
     @Override

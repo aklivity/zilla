@@ -42,9 +42,13 @@ src/test/java/    # Unit tests
 
 ## Build
 
-Zilla uses Maven with Java 21+.
+Zilla uses Maven with Java 25.
 
 ```bash
+# Add license headers to new files — run this first after creating new source
+# files, otherwise the build will fail on the license check before compilation
+./mvnw license:format
+
 # Full build with tests
 ./mvnw install
 
@@ -397,22 +401,50 @@ Follow this order — tests before implementation:
 1. Open a GitHub Issue to discuss the design before writing any code
 2. Create `specs/binding-<n>.spec/` and write `.rpt` scripts for the happy path
    and key error scenarios, derived from the relevant protocol specification
-3. Create `runtime/binding-<n>/` following the existing module layout
+3. Create `runtime/binding-<n>/` and `specs/binding-<n>.spec/` following the
+   existing module layout. Every new project directory (both `runtime/` and
+   `specs/`) must include these top-level files copied from an existing module:
+   `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`, `mvnw.cmd`.
+   All new components use the **Aklivity Community License** — copy
+   `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
+   `NOTICE-AklivityCommunity` from the top-level repository directory, renaming
+   them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
+   new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
+   the new module directory; do not copy `NOTICE` from another module as it
+   must reflect the new module's actual dependencies. Source file headers must carry the Aklivity
+   Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
+   run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
    unexported, registers the factory SPI with `provides`
 5. Define flyweight types in `src/main/resources/META-INF/zilla/<n>.idl`
 6. Add the module to `runtime/pom.xml` and the root `pom.xml`
 7. Verify all new dependencies are fully modular (see Java module system section)
 8. Implement the type-prefixed factory SPI (e.g., `HttpBindingFactorySpi`, `MqttBindingFactorySpi`)
-   and register it in `META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi`
+   and register it in `META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi`.
+   The factory SPI receives a general `Configuration`; construct the component-specific subclass
+   from it (e.g., `new HttpKafkaConfiguration(config)`) and pass that subclass — not the raw
+   `Configuration` — into the stream handler and any other collaborators that need config access
 9. Implement the type-prefixed stream handler (e.g., `HttpServerFactory`, `MqttServerFactory`)
    extending `BindingHandler`, driven by the
    failing spec scripts
-10. Write unit tests covering the stream state machine
-11. Add JSON schema for `options` and `routes[].when` in the spec project under
+10. Add `XxxConfiguration extends Configuration` in
+    `src/main/java/.../internal/` — even as a placeholder with an empty
+    `ConfigurationDef` — so that runtime configuration properties can be added
+    later without structural changes. See `HttpKafkaConfiguration` for a
+    minimal example. Include two constructors: a no-args constructor that calls
+    `super(XXX_CONFIG, new Configuration())` for use in tests and tooling, and
+    a `Configuration`-parameter constructor that calls
+    `super(XXX_CONFIG, config)` for production use. Prefer the no-args
+    constructor in unit tests and any context where no external configuration
+    is needed. Add a corresponding
+    `XxxConfigurationTest` that calls `shouldVerifyConstants()` (verifying
+    property name strings match the `PropertyDef` names) to satisfy class
+    coverage requirements
+11. Write unit tests covering the stream state machine
+12. Add JSON schema for `options` and `routes[].when` in the spec project under
     `src/main/resources/META-INF/zilla/schema/` — the Maven build copies it
     to the runtime module automatically (see Configuration and schema section)
-12. Confirm `./mvnw install` passes including all ITs
+13. Confirm `./mvnw install` passes including all ITs
 
 The Maven plugin generates flyweight classes during `generate-sources` phase.
 Run `./mvnw generate-sources -pl runtime/binding-<n>` to regenerate after
@@ -578,15 +610,46 @@ for the engine's wiring of all concept types.
 
 **When adding a new engine concept:**
 
+If the new concept requires adding a method to the `EngineContext` interface,
+search for all classes that implement it beyond `EngineWorker` — component
+modules such as `binding-tls` and `binding-echo` have their own
+`*Worker` classes that implement `EngineContext` for benchmarking or testing
+(e.g., `TlsWorker`, `EchoWorker`). Each of these must be updated with a no-op
+default implementation of the new method or the build will fail.
+
+Test implementations belong in the **engine module's test sources**, not in a
+separate project. Do not create a `runtime/<concept>-test/` module.
+
 1. Add `TestXxxFactorySpi` (and supporting classes) under
    `runtime/engine/src/test/java/.../engine/test/internal/<concept>/`
-2. Register it in the engine test module's `module-info.java` with `provides`
-3. Update `specs/engine.spec/src/main/scripts/.../config/server.yaml` to
+2. Register it via a `META-INF/services/<SpiInterfaceName>` file under
+   `runtime/engine/src/test/resources/` — test code does not use the Java
+   module system, so use `ServiceLoader` service files, not `module-info.java`
+3. Add an `<include>` entry for the new concept's classes in the
+   `maven-jar-plugin` `test-jar` execution in `runtime/engine/pom.xml`, e.g.
+   `io/aklivity/zilla/runtime/engine/test/internal/<concept>/**/*.class` —
+   without this the classes will not be published in the test JAR and other
+   spec modules will not be able to load the test implementation
+4. Update `specs/engine.spec/src/main/scripts/.../config/server.yaml` to
    include a `type: test` instance of the new concept
-4. Update the `test` binding (`TestBindingFactorySpi`) to interact with the
+5. Update the `test` binding (`TestBindingFactorySpi`) to interact with the
    new concept so its handler code paths are exercised
-5. Add or extend an IT in `specs/engine.spec` that exercises the new
-   concept's behavior via `.rpt` scripts
+6. Add or extend a test method in `EngineIT` in the **engine project**
+   (`runtime/engine/src/test/java/.../engine/`) that exercises the new
+   concept's behavior — `EngineIT` is the primary mechanism for achieving
+   code coverage of the engine project, so every new concept type must be
+   reachable from at least one test method. The corresponding test config
+   (`server.yaml`) and `.rpt` scripts live in `specs/engine.spec`
+
+**Avoid duplicating test schema patches.** Each test concept type has a
+`test.schema.patch.json` in `specs/engine.spec` under
+`src/main/resources/io/aklivity/zilla/specs/engine/schema/<concept>/`. That
+spec file is the single source of truth. The engine module's `pom.xml` uses
+the `maven-dependency-plugin` `unpack-test-resources` execution to copy those
+patches into `target/test-classes` at `process-test-resources` time, remapping
+the path from `io/aklivity/zilla/specs/engine/schema/` to
+`io/aklivity/zilla/runtime/engine/test/internal/`. Do not create a second copy
+of these JSON files anywhere in the engine module.
 
 The principle is that no production implementation of any concept type should
 be required to test the engine's wiring — only the test implementations are
@@ -605,8 +668,13 @@ own line (`RightCurly` option `alone`), no trailing whitespace, imports ordered
 by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
 groups and no star imports.
 
+- Methods should have a single `return` statement at the end where possible;
+  avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features
 - No Lombok
+- Prefer interface types over implementation classes for field, parameter, and
+  return types where a suitable interface exists (e.g., `List` over `ArrayList`,
+  `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
@@ -614,6 +682,34 @@ groups and no star imports.
   returning
 - Log via the Zilla event system (`BindingEvent`), not `java.util.logging` or
   SLF4J, on the hot path
+
+### Import ordering
+
+Checkstyle enforces a strict import order. Violations cause build failures, so
+**always sort imports alphabetically by fully-qualified package name** within
+each group, and separate groups with a blank line in this order:
+
+1. `java.*`
+2. `javax.*`
+3. `jakarta.*`
+4. `org.*`
+5. `com.*`
+6. `io.*` (covers all `io.aklivity.zilla.*` imports)
+
+Within the `io.aklivity.zilla.runtime.engine.*` sub-packages the alphabetical
+rule means, for example:
+
+```
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;   // c
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;        // g
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;    // m
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;          // p  ← before store
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;        // s  ← before vault
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;        // v
+```
+
+When adding a new import, insert it at the correct alphabetical position —
+do not append it at the end of the group.
 
 ---
 
