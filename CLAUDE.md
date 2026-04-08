@@ -496,6 +496,30 @@ it. This means:
 - Regressions are caught precisely: a failing spec identifies exactly which
   protocol scenario broke, not just that a test failed
 
+**Script folder layout:**
+
+Scripts are organised under `streams/network/` and `streams/application/`
+within the spec project. Each scenario is a subdirectory containing a
+`client.rpt` and a `server.rpt`. The `network/` and `application/` trees are
+**shared between the server-kind and client-kind** ITs for the same binding
+type — there is no duplication. The IT class declares a `K3poRule` script root
+pointing at `streams/network/...` or `streams/application/...` and references
+scripts as `${net}/scenario/client` and `${net}/scenario/server` (or `${app}/`
+for application-layer scenarios).
+
+Each scenario also has a corresponding test method in a `NetworkIT` or
+`ApplicationIT` class (in the spec project's `src/test/` tree) that runs
+`client.rpt` and `server.rpt` directly against each other — without Zilla —
+to verify that the two scripts are complementary and self-consistent. Every new
+scenario must have both a binding IT method (running against Zilla) and a
+`NetworkIT`/`ApplicationIT` method (running the scripts peer-to-peer).
+
+IT test method names are derived from the scenario directory name by prepending
+`should` and converting `dot.separated.words` to `camelCase` — for example,
+the scenario directory `update.topic.partition.offset` becomes the method name
+`shouldUpdateTopicPartitionOffset()`. Follow this convention exactly so the
+mapping between script directories and test methods is immediately obvious.
+
 **Script structure:**
 
 ```
@@ -515,6 +539,30 @@ connect "zilla://streams/net0"
 Each scenario has a corresponding type-prefixed `*IT.java` class (e.g., `HttpRequestIT`,
 `KafkaFetchIT`) that runs the scripts against a live Zilla engine instance
 configured with a minimal `zilla.yaml`.
+
+**`XxxFunctions` — builder and matcher helpers for extension types:**
+
+Single-protocol binding spec projects (e.g., `binding-http.spec`,
+`binding-kafka.spec`) provide an `XxxFunctions` class (e.g., `HttpFunctions`,
+`KafkaFunctions`) under `src/main/java/.../internal/` that exposes `@Function`
+methods used in `.rpt` scripts to construct and match extension type bytes.
+Cross-protocol proxy binding specs (e.g., `binding-http-kafka.spec`) do **not**
+define their own `XxxFunctions` — they reuse the `XxxFunctions` from each
+protocol they map between.
+
+- **Builder functions** (e.g., `beginEx()`, `flushEx()`, `endEx()`) — used on
+  the **write side** of a script to build the full binary extension. Every
+  field that must be set is specified on the builder.
+- **Matcher functions** (e.g., `matchBeginEx()`, `matchFlushEx()`) — used on
+  the **read side** of a script. Matchers implement `BytesMatcher` and only
+  need to assert the fields relevant to the test scenario; unspecified fields
+  are ignored. This allows partial matching without coupling scripts to fields
+  that are not under test.
+
+Add a builder and a matcher for every extension type declared in the binding's
+`.idl`. The matcher's `build()` method returns `null` (skip check) when no
+constraints have been set, allowing unconditional reads when the extension
+content is irrelevant.
 
 **k3po and JUnit 4 rule compatibility:**
 
@@ -668,6 +716,7 @@ own line (`RightCurly` option `alone`), no trailing whitespace, imports ordered
 by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
 groups and no star imports.
 
+- YAML files use 2-space indentation, no tabs; JSON files use 4-space indentation, no tabs
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features

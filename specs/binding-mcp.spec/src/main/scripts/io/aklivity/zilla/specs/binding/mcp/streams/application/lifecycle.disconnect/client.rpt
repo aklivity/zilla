@@ -14,11 +14,23 @@
 # under the License.
 #
 
----
-name: test
-bindings:
-  net0:
-    type: mcp
-    kind: server
-    routes:
-      - exit: app0
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                            .typeId(zilla:id("mcp"))
+                            .sessionId("test-session-id")
+                            .method("disconnect")
+                            .build()}
+
+connected
+
+write close
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                           .typeId(zilla:id("mcp"))
+                           .sessionId("test-session-id")
+                           .build()}
+
+read closed

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
+package io.aklivity.zilla.specs.binding.mcp.streams.network;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,82 +26,66 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
-import io.aklivity.zilla.runtime.engine.test.EngineRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpServerIT
+public class NetworkIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
-    private final EngineRule engine = new EngineRule()
-        .directory("target/zilla-itests")
-        .countersBufferCapacity(8192)
-        .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
-        .external("app0")
-        .clean();
-
     @Rule
-    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize/client",
-        "${app}/lifecycle.initialize/server"})
+        "${net}/lifecycle.initialize/server"})
     public void shouldInitializeLifecycle() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.disconnect/client",
-        "${app}/lifecycle.disconnect/server"})
+        "${net}/lifecycle.disconnect/server"})
     public void shouldDisconnectLifecycle() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.capabilities/client",
-        "${app}/lifecycle.capabilities/server"})
+        "${net}/lifecycle.capabilities/server"})
     public void shouldNegotiateCapabilities() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/utility.ping/client",
-        "${app}/utility.ping/server"})
+        "${net}/utility.ping/server"})
     public void shouldPing() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/utility.cancel/client",
-        "${app}/utility.cancel/server"})
+        "${net}/utility.cancel/server"})
     public void shouldCancel() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
         "${net}/utility.progress/client",
-        "${app}/utility.progress/server"})
+        "${net}/utility.progress/server"})
     public void shouldReportProgress() throws Exception
     {
         k3po.finish();

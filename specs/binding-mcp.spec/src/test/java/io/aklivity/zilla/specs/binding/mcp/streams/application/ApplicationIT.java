@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
+package io.aklivity.zilla.specs.binding.mcp.streams.application;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,31 +26,20 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
-import io.aklivity.zilla.runtime.engine.test.EngineRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpServerIT
+public class ApplicationIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mcp/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mcp/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
-    private final EngineRule engine = new EngineRule()
-        .directory("target/zilla-itests")
-        .countersBufferCapacity(8192)
-        .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
-        .external("app0")
-        .clean();
-
     @Rule
-    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.initialize/client",
+        "${app}/lifecycle.initialize/client",
         "${app}/lifecycle.initialize/server"})
     public void shouldInitializeLifecycle() throws Exception
     {
@@ -58,9 +47,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.disconnect/client",
+        "${app}/lifecycle.disconnect/client",
         "${app}/lifecycle.disconnect/server"})
     public void shouldDisconnectLifecycle() throws Exception
     {
@@ -68,9 +56,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.capabilities/client",
+        "${app}/lifecycle.capabilities/client",
         "${app}/lifecycle.capabilities/server"})
     public void shouldNegotiateCapabilities() throws Exception
     {
@@ -78,9 +65,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.ping/client",
+        "${app}/utility.ping/client",
         "${app}/utility.ping/server"})
     public void shouldPing() throws Exception
     {
@@ -88,9 +74,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.cancel/client",
+        "${app}/utility.cancel/client",
         "${app}/utility.cancel/server"})
     public void shouldCancel() throws Exception
     {
@@ -98,9 +83,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
     @Specification({
-        "${net}/utility.progress/client",
+        "${app}/utility.progress/client",
         "${app}/utility.progress/server"})
     public void shouldReportProgress() throws Exception
     {
