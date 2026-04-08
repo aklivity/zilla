@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.1.5</version>
+    <version>1.1.6</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -56,6 +56,7 @@
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
     <module>guard-jwt.spec</module>
+    <module>store-memory.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
 
@@ -149,6 +150,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>store-memory.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

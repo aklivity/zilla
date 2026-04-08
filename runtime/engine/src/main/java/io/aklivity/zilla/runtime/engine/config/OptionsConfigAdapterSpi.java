@@ -62,7 +62,9 @@ public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, Jso
         /** Options adapter for an authorization guard (e.g., {@code guard-jwt}). */
         GUARD,
         /** Options adapter for a schema catalog (e.g., {@code catalog-schema-registry}). */
-        CATALOG
+        CATALOG,
+        /** Options adapter for a mutable runtime state store (e.g., {@code store-memory}). */
+        STORE
     }
 
     /**

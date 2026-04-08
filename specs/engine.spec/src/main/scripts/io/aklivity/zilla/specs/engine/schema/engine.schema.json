@@ -70,6 +70,19 @@
             },
             "additionalProperties": false
         },
+        "stores":
+        {
+            "title": "Stores",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/store"
+                }
+            },
+            "additionalProperties": false
+        },
         "catalogs":
         {
             "title": "Catalogs",
@@ -136,6 +149,32 @@
             ]
         },
         "guard":
+        {
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": []
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ]
+        },
+        "store":
         {
             "type": "object",
             "properties":

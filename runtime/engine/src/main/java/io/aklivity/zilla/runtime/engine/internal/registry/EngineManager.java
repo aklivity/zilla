@@ -69,6 +69,7 @@ import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -172,7 +173,12 @@ public class EngineManager
             .flatMap(gs -> gs.stream())
             .collect(toList());
 
-        process(guards, namespace);
+        final List<StoreConfig> stores = current.namespaces.stream()
+            .map(n -> n.stores)
+            .flatMap(ss -> ss.stream())
+            .collect(toList());
+
+        process(guards, stores, namespace);
     }
 
     private void onPathChanged(
@@ -337,9 +343,14 @@ public class EngineManager
                 .flatMap(gs -> gs.stream())
                 .collect(toList());
 
+            final List<StoreConfig> stores = engine.namespaces.stream()
+                .map(n -> n.stores)
+                .flatMap(ss -> ss.stream())
+                .collect(toList());
+
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                process(guards, namespace);
+                process(guards, stores, namespace);
             }
         }
         catch (Throwable ex)
@@ -352,6 +363,7 @@ public class EngineManager
 
     private void process(
         List<GuardConfig> guards,
+        List<StoreConfig> stores,
         NamespaceConfig namespace)
     {
         namespace.id = supplyId.applyAsInt(namespace.name);
@@ -361,6 +373,11 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
+        }
+
+        for (StoreConfig store : namespace.stores)
+        {
+            store.id = resolver.resolve(store.name);
         }
 
         for (VaultConfig vault : namespace.vaults)
