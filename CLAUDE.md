@@ -514,6 +514,12 @@ to verify that the two scripts are complementary and self-consistent. Every new
 scenario must have both a binding IT method (running against Zilla) and a
 `NetworkIT`/`ApplicationIT` method (running the scripts peer-to-peer).
 
+IT test method names are derived from the scenario directory name by prepending
+`should` and converting `dot.separated.words` to `camelCase` — for example,
+the scenario directory `update.topic.partition.offset` becomes the method name
+`shouldUpdateTopicPartitionOffset()`. Follow this convention exactly so the
+mapping between script directories and test methods is immediately obvious.
+
 **Script structure:**
 
 ```
