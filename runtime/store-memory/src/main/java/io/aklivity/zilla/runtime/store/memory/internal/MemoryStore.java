@@ -44,7 +44,7 @@ final class MemoryStore implements Store
     public StoreContext supply(
         EngineContext context)
     {
-        return new MemoryStoreContext(this::supplyEntries);
+        return new MemoryStoreContext(this::supplyEntries, this::removeEntries);
     }
 
     @Override
@@ -57,5 +57,11 @@ final class MemoryStore implements Store
         long storeId)
     {
         return storage.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+    }
+
+    private void removeEntries(
+        long storeId)
+    {
+        storage.remove(storeId);
     }
 }

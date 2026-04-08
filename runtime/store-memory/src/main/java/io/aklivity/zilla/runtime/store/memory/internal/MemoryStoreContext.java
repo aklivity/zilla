@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.StoreConfig;
@@ -24,11 +25,14 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class MemoryStoreContext implements StoreContext
 {
     private final LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries;
+    private final LongConsumer removeEntries;
 
     MemoryStoreContext(
-        LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries)
+        LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries,
+        LongConsumer removeEntries)
     {
         this.supplyEntries = supplyEntries;
+        this.removeEntries = removeEntries;
     }
 
     @Override
@@ -42,5 +46,6 @@ final class MemoryStoreContext implements StoreContext
     public void detach(
         StoreConfig config)
     {
+        removeEntries.accept(config.id);
     }
 }
