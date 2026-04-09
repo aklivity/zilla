@@ -60,8 +60,8 @@ public class SafeBuffer implements AtomicBufferEx
     private static final ValueLayout.OfInt INT_ALIGNED = JAVA_INT;
     private static final ValueLayout.OfLong LONG_ALIGNED = JAVA_LONG;
 
-    private static final VarHandle LONG_HANDLE = LONG_ALIGNED.varHandle();
-    private static final VarHandle INT_HANDLE = INT_ALIGNED.varHandle();
+    private static final VarHandle LONG_HANDLE = LONG_LAYOUT.varHandle();
+    private static final VarHandle INT_HANDLE = INT_LAYOUT.varHandle();
 
     private MemorySegment segment;
     private byte[] byteArray;
