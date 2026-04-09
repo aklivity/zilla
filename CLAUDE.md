@@ -792,6 +792,19 @@ groups and no star imports.
 - Prefer non-block lambdas (expression lambdas) over block lambdas (`{ return
   ...; }`) — even when the expression spans multiple lines via a builder chain,
   keep it as a single expression without braces or an explicit `return`
+- Method parameters are each on their own line, indented 4 spaces relative to
+  the method declaration, with the closing `)` on the same line as the last
+  parameter:
+
+```java
+private void onNetworkData(
+    long traceId,
+    long authorization,
+    int reserved,
+    OctetsFW payload)
+{
+```
+
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
 - Avoid the `...IfNecessary` method naming suffix (e.g., `doEndIfNecessary`,
