@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
@@ -51,7 +52,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
     private static final String HTTP_DELETE = "DELETE";
-    private static final String METHOD_DISCONNECT = "disconnect";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_SSE = "text/event-stream";
     private static final String STATUS_200 = "200";
@@ -60,6 +60,11 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String SSE_DATA_SUFFIX = "\n\n";
     private static final String JSON_FIELD_METHOD = "\"method\":\"";
     private static final String JSON_FIELD_ID = "\"id\":";
+    private static final String JSON_FIELD_NAME = "\"name\":\"";
+    private static final String JSON_FIELD_URI = "\"uri\":\"";
+    private static final String JSON_FIELD_LEVEL = "\"level\":\"";
+    private static final String JSON_FIELD_REASON = "\"reason\":\"";
+    private static final String JSON_FIELD_VERSION = "\"protocolVersion\":\"";
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -403,6 +408,97 @@ public final class McpServerFactory implements McpStreamFactory
         return json.contains(JSON_FIELD_ID);
     }
 
+    private static String extractJsonStringField(
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        String fieldKey)
+    {
+        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
+        final int fieldStart = json.indexOf(fieldKey);
+        if (fieldStart == -1)
+        {
+            return null;
+        }
+        final int valueStart = fieldStart + fieldKey.length();
+        final int valueEnd = json.indexOf('"', valueStart);
+        if (valueEnd == -1)
+        {
+            return null;
+        }
+        return json.substring(valueStart, valueEnd);
+    }
+
+    private static String extractMcpSessionId(
+        McpBeginExFW mcpBeginEx)
+    {
+        switch (mcpBeginEx.kind())
+        {
+        case McpBeginExFW.KIND_INITIALIZE:
+        {
+            final String16FW sid = mcpBeginEx.initialize().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_PING:
+        {
+            final String16FW sid = mcpBeginEx.ping().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_TOOLS:
+        {
+            final String16FW sid = mcpBeginEx.tools().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_TOOL:
+        {
+            final String16FW sid = mcpBeginEx.tool().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_PROMPTS:
+        {
+            final String16FW sid = mcpBeginEx.prompts().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_PROMPT:
+        {
+            final String16FW sid = mcpBeginEx.prompt().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_RESOURCES:
+        {
+            final String16FW sid = mcpBeginEx.resources().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_RESOURCE:
+        {
+            final String16FW sid = mcpBeginEx.resource().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_COMPLETION:
+        {
+            final String16FW sid = mcpBeginEx.completion().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_LOGGING:
+        {
+            final String16FW sid = mcpBeginEx.logging().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_CANCEL:
+        {
+            final String16FW sid = mcpBeginEx.cancel().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        case McpBeginExFW.KIND_DISCONNECT:
+        {
+            final String16FW sid = mcpBeginEx.disconnect().sessionId();
+            return sid != null ? sid.asString() : null;
+        }
+        default:
+            return null;
+        }
+    }
+
     private final class McpServerStream
     {
         private final MessageConsumer sender;
@@ -419,6 +515,12 @@ public final class McpServerFactory implements McpStreamFactory
         private MessageConsumer downstream;
 
         private String sessionId;
+        private String mcpVersion;
+        private String toolName;
+        private String promptName;
+        private String resourceUri;
+        private String loggingLevel;
+        private String cancelReason;
         private boolean httpDelete;
         private boolean acceptSse;
         private boolean notification;
@@ -538,7 +640,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (httpDelete)
             {
-                sendDownstreamBegin(traceId, METHOD_DISCONNECT, sequence, acknowledge, maximum);
+                sendDownstreamBegin(traceId, null, sequence, acknowledge, maximum);
             }
             else
             {
@@ -559,14 +661,75 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId);
 
-            if (sessionId != null)
+            if ("initialize".equals(method))
             {
-                mcpBeginExBuilder.sessionId(sessionId);
+                final String version = mcpVersion;
+                mcpBeginExBuilder.initialize(b -> b.version(version));
             }
-
-            if (method != null)
+            else if ("notifications/initialized".equals(method))
             {
-                mcpBeginExBuilder.method(method);
+                final String sid = sessionId;
+                mcpBeginExBuilder.initialize(b -> b.sessionId(sid));
+            }
+            else if ("ping".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.ping(b -> b.sessionId(sid));
+            }
+            else if ("tools/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.tools(b -> b.sessionId(sid));
+            }
+            else if ("tools/call".equals(method))
+            {
+                final String sid = sessionId;
+                final String name = toolName;
+                mcpBeginExBuilder.tool(b -> b.sessionId(sid).name(name));
+            }
+            else if ("prompts/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.prompts(b -> b.sessionId(sid));
+            }
+            else if ("prompts/get".equals(method))
+            {
+                final String sid = sessionId;
+                final String name = promptName;
+                mcpBeginExBuilder.prompt(b -> b.sessionId(sid).name(name));
+            }
+            else if ("resources/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.resources(b -> b.sessionId(sid));
+            }
+            else if ("resources/read".equals(method))
+            {
+                final String sid = sessionId;
+                final String uri = resourceUri;
+                mcpBeginExBuilder.resource(b -> b.sessionId(sid).uri(uri));
+            }
+            else if ("completion/complete".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.completion(b -> b.sessionId(sid));
+            }
+            else if ("logging/setLevel".equals(method))
+            {
+                final String sid = sessionId;
+                final String level = loggingLevel;
+                mcpBeginExBuilder.logging(b -> b.sessionId(sid).level(level));
+            }
+            else if ("notifications/cancelled".equals(method))
+            {
+                final String sid = sessionId;
+                final String reason = cancelReason;
+                mcpBeginExBuilder.cancel(b -> b.sessionId(sid).reason(reason));
+            }
+            else
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.disconnect(b -> b.sessionId(sid));
             }
 
             final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
@@ -628,6 +791,37 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 final String method = extractJsonMethod(payload.buffer(), payload.offset(), payload.sizeof());
                 notification = !hasJsonId(payload.buffer(), payload.offset(), payload.sizeof());
+
+                if ("initialize".equals(method))
+                {
+                    mcpVersion = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_VERSION);
+                }
+                else if ("tools/call".equals(method))
+                {
+                    toolName = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_NAME);
+                }
+                else if ("prompts/get".equals(method))
+                {
+                    promptName = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_NAME);
+                }
+                else if ("resources/read".equals(method))
+                {
+                    resourceUri = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_URI);
+                }
+                else if ("logging/setLevel".equals(method))
+                {
+                    loggingLevel = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_LEVEL);
+                }
+                else if ("notifications/cancelled".equals(method))
+                {
+                    cancelReason = extractJsonStringField(payload.buffer(), payload.offset(),
+                        payload.sizeof(), JSON_FIELD_REASON);
+                }
 
                 sendDownstreamBegin(traceId, method,
                     pendingSequence, pendingAcknowledge, pendingMaximum);
@@ -778,9 +972,13 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 final McpBeginExFW mcpBeginEx =
                     mcpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-                if (mcpBeginEx != null && mcpBeginEx.sessionId() != null)
+                if (mcpBeginEx != null)
                 {
-                    responseSessionId = mcpBeginEx.sessionId().asString();
+                    final String sid = extractMcpSessionId(mcpBeginEx);
+                    if (sid != null)
+                    {
+                        responseSessionId = sid;
+                    }
                 }
             }
 

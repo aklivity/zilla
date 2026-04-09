@@ -37,7 +37,6 @@ write zilla:begin.ext ${mcp:beginEx()
                            .initialize()
                                .sessionId("test-session-id")
                                .version("2025-11-25")
-                               .capabilities(0x07)
                                .build()
                            .build()}
 write flush

@@ -21,23 +21,30 @@ scope mcp
         {
             case 0: mcp::stream::McpInitializeBeginEx initialize;
             case 1: mcp::stream::McpPingBeginEx ping;
-            case 2: mcp::stream::McpToolBeginEx tool;
-            case 3: mcp::stream::McpPromptBeginEx prompt;
-            case 4: mcp::stream::McpResourceBeginEx resource;
-            case 5: mcp::stream::McpCompletionBeginEx completion;
-            case 6: mcp::stream::McpLoggingBeginEx logging;
-            case 7: mcp::stream::McpCancelBeginEx cancel;
-            case 8: mcp::stream::McpDisconnectBeginEx disconnect;
+            case 2: mcp::stream::McpToolsBeginEx tools;
+            case 3: mcp::stream::McpToolBeginEx tool;
+            case 4: mcp::stream::McpPromptsBeginEx prompts;
+            case 5: mcp::stream::McpPromptBeginEx prompt;
+            case 6: mcp::stream::McpResourcesBeginEx resources;
+            case 7: mcp::stream::McpResourceBeginEx resource;
+            case 8: mcp::stream::McpCompletionBeginEx completion;
+            case 9: mcp::stream::McpLoggingBeginEx logging;
+            case 10: mcp::stream::McpCancelBeginEx cancel;
+            case 11: mcp::stream::McpDisconnectBeginEx disconnect;
         }
 
         struct McpInitializeBeginEx
         {
             string16 sessionId = null;
             string16 version = null;
-            uint8 capabilities;
         }
 
         struct McpPingBeginEx
+        {
+            string16 sessionId = null;
+        }
+
+        struct McpToolsBeginEx
         {
             string16 sessionId = null;
         }
@@ -48,10 +55,20 @@ scope mcp
             string16 name = null;
         }
 
+        struct McpPromptsBeginEx
+        {
+            string16 sessionId = null;
+        }
+
         struct McpPromptBeginEx
         {
             string16 sessionId = null;
             string16 name = null;
+        }
+
+        struct McpResourcesBeginEx
+        {
+            string16 sessionId = null;
         }
 
         struct McpResourceBeginEx
@@ -82,14 +99,8 @@ scope mcp
             string16 sessionId = null;
         }
 
-        struct McpFlushEx extends core::stream::Extension
-        {
-            string16 sessionId = null;
-        }
-
         struct McpAbortEx extends core::stream::Extension
         {
-            string16 sessionId = null;
             string16 reason = null;
         }
     }

@@ -20,7 +20,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .prompt()
+                           .prompts()
                                .sessionId("test-session-id")
                                .build()
                            .build()}
@@ -32,7 +32,7 @@ write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .prompt()
+                          .prompts()
                               .sessionId("test-session-id")
                               .build()
                           .build()}
