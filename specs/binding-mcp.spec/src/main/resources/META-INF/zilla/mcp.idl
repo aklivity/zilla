@@ -15,6 +15,12 @@
  */
 scope mcp
 {
+    union McpSessionId switch (uint8)
+    {
+        case 0: string16 text;
+        case 1: int64 id;
+    }
+
     scope stream
     {
         union McpBeginEx switch (uint8) extends core::stream::Extension
@@ -35,68 +41,68 @@ scope mcp
 
         struct McpInitializeBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 version = null;
         }
 
         struct McpPingBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpToolsBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpToolBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 name = null;
         }
 
         struct McpPromptsBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpPromptBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 name = null;
         }
 
         struct McpResourcesBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpResourceBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 uri = null;
         }
 
         struct McpCompletionBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpLoggingBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 level = null;
         }
 
         struct McpCancelBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
             string16 reason = null;
         }
 
         struct McpDisconnectBeginEx
         {
-            string16 sessionId = null;
+            mcp::McpSessionId sessionId;
         }
 
         struct McpAbortEx extends core::stream::Extension

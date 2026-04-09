@@ -31,8 +31,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.McpSessionIdFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
@@ -385,71 +385,51 @@ public final class McpServerFactory implements McpStreamFactory
     private static String extractMcpSessionId(
         McpBeginExFW mcpBeginEx)
     {
+        final McpSessionIdFW sid;
         switch (mcpBeginEx.kind())
         {
         case McpBeginExFW.KIND_INITIALIZE:
-        {
-            final String16FW sid = mcpBeginEx.initialize().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.initialize().sessionId();
+            break;
         case McpBeginExFW.KIND_PING:
-        {
-            final String16FW sid = mcpBeginEx.ping().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.ping().sessionId();
+            break;
         case McpBeginExFW.KIND_TOOLS:
-        {
-            final String16FW sid = mcpBeginEx.tools().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.tools().sessionId();
+            break;
         case McpBeginExFW.KIND_TOOL:
-        {
-            final String16FW sid = mcpBeginEx.tool().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.tool().sessionId();
+            break;
         case McpBeginExFW.KIND_PROMPTS:
-        {
-            final String16FW sid = mcpBeginEx.prompts().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.prompts().sessionId();
+            break;
         case McpBeginExFW.KIND_PROMPT:
-        {
-            final String16FW sid = mcpBeginEx.prompt().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.prompt().sessionId();
+            break;
         case McpBeginExFW.KIND_RESOURCES:
-        {
-            final String16FW sid = mcpBeginEx.resources().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.resources().sessionId();
+            break;
         case McpBeginExFW.KIND_RESOURCE:
-        {
-            final String16FW sid = mcpBeginEx.resource().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.resource().sessionId();
+            break;
         case McpBeginExFW.KIND_COMPLETION:
-        {
-            final String16FW sid = mcpBeginEx.completion().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.completion().sessionId();
+            break;
         case McpBeginExFW.KIND_LOGGING:
-        {
-            final String16FW sid = mcpBeginEx.logging().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.logging().sessionId();
+            break;
         case McpBeginExFW.KIND_CANCEL:
-        {
-            final String16FW sid = mcpBeginEx.cancel().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.cancel().sessionId();
+            break;
         case McpBeginExFW.KIND_DISCONNECT:
-        {
-            final String16FW sid = mcpBeginEx.disconnect().sessionId();
-            return sid != null ? sid.asString() : null;
-        }
+            sid = mcpBeginEx.disconnect().sessionId();
+            break;
         default:
             return null;
         }
+        return sid.kind() == McpSessionIdFW.KIND_ID
+            ? Long.toString(sid.id())
+            : sid.text().asString();
     }
 
     private final class McpServerStream
@@ -619,72 +599,72 @@ public final class McpServerFactory implements McpStreamFactory
             if ("initialize".equals(method))
             {
                 final String version = mcpVersion;
-                mcpBeginExBuilder.initialize(b -> b.version(version));
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text((String) null)).version(version));
             }
             else if ("notifications/initialized".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.initialize(b -> b.sessionId(sid));
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text(sid)).version((String) null));
             }
             else if ("ping".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.ping(b -> b.sessionId(sid));
+                mcpBeginExBuilder.ping(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("tools/list".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.tools(b -> b.sessionId(sid));
+                mcpBeginExBuilder.tools(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("tools/call".equals(method))
             {
                 final String sid = sessionId;
                 final String name = toolName;
-                mcpBeginExBuilder.tool(b -> b.sessionId(sid).name(name));
+                mcpBeginExBuilder.tool(b -> b.sessionId(s -> s.text(sid)).name(name));
             }
             else if ("prompts/list".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.prompts(b -> b.sessionId(sid));
+                mcpBeginExBuilder.prompts(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("prompts/get".equals(method))
             {
                 final String sid = sessionId;
                 final String name = promptName;
-                mcpBeginExBuilder.prompt(b -> b.sessionId(sid).name(name));
+                mcpBeginExBuilder.prompt(b -> b.sessionId(s -> s.text(sid)).name(name));
             }
             else if ("resources/list".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.resources(b -> b.sessionId(sid));
+                mcpBeginExBuilder.resources(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("resources/read".equals(method))
             {
                 final String sid = sessionId;
                 final String uri = resourceUri;
-                mcpBeginExBuilder.resource(b -> b.sessionId(sid).uri(uri));
+                mcpBeginExBuilder.resource(b -> b.sessionId(s -> s.text(sid)).uri(uri));
             }
             else if ("completion/complete".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.completion(b -> b.sessionId(sid));
+                mcpBeginExBuilder.completion(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("logging/setLevel".equals(method))
             {
                 final String sid = sessionId;
                 final String level = loggingLevel;
-                mcpBeginExBuilder.logging(b -> b.sessionId(sid).level(level));
+                mcpBeginExBuilder.logging(b -> b.sessionId(s -> s.text(sid)).level(level));
             }
             else if ("notifications/cancelled".equals(method))
             {
                 final String sid = sessionId;
                 final String reason = cancelReason;
-                mcpBeginExBuilder.cancel(b -> b.sessionId(sid).reason(reason));
+                mcpBeginExBuilder.cancel(b -> b.sessionId(s -> s.text(sid)).reason(reason));
             }
             else
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.disconnect(b -> b.sessionId(sid));
+                mcpBeginExBuilder.disconnect(b -> b.sessionId(s -> s.text(sid)));
             }
 
             final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
