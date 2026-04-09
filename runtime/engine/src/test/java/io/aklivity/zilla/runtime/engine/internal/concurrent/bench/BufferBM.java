@@ -49,8 +49,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

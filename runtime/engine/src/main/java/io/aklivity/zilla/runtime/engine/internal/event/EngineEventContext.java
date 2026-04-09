@@ -24,9 +24,9 @@ import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 

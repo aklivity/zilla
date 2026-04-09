@@ -28,8 +28,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
-
 public class EventWriterTest
 {
     // capacity=64, zero-length events = 8 bytes each (HEADER_LENGTH only).
