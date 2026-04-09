@@ -29,7 +29,7 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class HpackHeaderBlockFWTest
 {

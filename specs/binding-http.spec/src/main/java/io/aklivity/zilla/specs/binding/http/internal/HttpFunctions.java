@@ -35,7 +35,7 @@ import org.agrona.collections.MutableBoolean;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;

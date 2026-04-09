@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class KafkaCacheSegmentTest
 {

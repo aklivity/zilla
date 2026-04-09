@@ -22,7 +22,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 /*
  * Flyweight for HPACK String Literal Representation

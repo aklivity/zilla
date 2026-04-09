@@ -34,7 +34,7 @@ import org.jboss.netty.channel.MessageEvent;
 
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.ZillaExtConfiguration;

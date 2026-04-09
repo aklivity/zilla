@@ -23,7 +23,7 @@ import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 

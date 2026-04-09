@@ -51,7 +51,7 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRe
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;

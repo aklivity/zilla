@@ -59,7 +59,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class ManyToOneRingBufferTest
 {

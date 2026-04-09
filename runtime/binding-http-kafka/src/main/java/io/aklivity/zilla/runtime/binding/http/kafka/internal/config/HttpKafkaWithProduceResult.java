@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class HttpKafkaWithProduceResult
 {
