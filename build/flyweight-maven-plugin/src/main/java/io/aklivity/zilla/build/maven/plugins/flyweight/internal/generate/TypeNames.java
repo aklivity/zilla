@@ -32,9 +32,9 @@ public final class TypeNames
 
     public static final ClassName UNSAFE_BUFFER_TYPE = ClassName.get(AGRONA_CONCURRENT_PACKAGE, "UnsafeBuffer");
 
-    private static final String ZILLA_ENGINE_CONCURRENT_PACKAGE =
-        "io.aklivity.zilla.runtime.engine.concurrent";
-    public static final ClassName SAFE_BUFFER_TYPE = ClassName.get(ZILLA_ENGINE_CONCURRENT_PACKAGE, "SafeBuffer");
+    private static final String ZILLA_COMMON_AGRONA_BUFFER_PACKAGE =
+        "io.aklivity.zilla.runtime.common.agrona.buffer";
+    public static final ClassName SAFE_BUFFER_TYPE = ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "SafeBuffer");
     public static final ClassName LONG_2_OBJECT_HASH_MAP_TYPE =
         ClassName.get(AGRONA_COLLECTIONS_PACKAGE, "Long2ObjectHashMap");
 

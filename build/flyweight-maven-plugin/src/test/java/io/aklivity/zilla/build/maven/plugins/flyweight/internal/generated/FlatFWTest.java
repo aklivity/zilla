@@ -29,7 +29,7 @@ import org.junit.Test;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.VarStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatFW;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class FlatFWTest
 {

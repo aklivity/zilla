@@ -13,27 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.buffer;
-
-import java.lang.foreign.MemorySegment;
-
-import org.agrona.DirectBuffer;
-
-public interface DirectBufferEx extends DirectBuffer
+module io.aklivity.zilla.runtime.common.agrona
 {
-    MemorySegment segment();
+    requires transitive org.agrona;
 
-    void wrap(
-        MemorySegment segment);
-
-    void wrap(
-        MemorySegment segment,
-        int offset,
-        int length);
-
-    void getBytes(
-        int index,
-        MemorySegment dstSegment,
-        int dstIndex,
-        int length);
+    exports io.aklivity.zilla.runtime.common.agrona.buffer;
+    exports io.aklivity.zilla.runtime.common.agrona.concurrent;
 }

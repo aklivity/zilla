@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.WsBeginExHelper;
 import io.aklivity.zilla.specs.binding.ws.internal.types.stream.WsBeginExFW;
 

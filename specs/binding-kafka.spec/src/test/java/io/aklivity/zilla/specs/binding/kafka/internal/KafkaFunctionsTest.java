@@ -43,7 +43,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;

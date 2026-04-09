@@ -33,7 +33,6 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.reader;
     exports io.aklivity.zilla.runtime.engine.resolver;
-    exports io.aklivity.zilla.runtime.engine.router;
     exports io.aklivity.zilla.runtime.engine.security;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
@@ -48,19 +47,19 @@ module io.aklivity.zilla.runtime.engine
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
     requires transitive org.agrona;
+    requires org.leadpony.justify;
+    requires com.fasterxml.jackson.dataformat.yaml;
+    requires com.fasterxml.jackson.databind;
     requires jdk.management;
     requires java.management;
     requires java.net.http;
-    requires io.aklivity.zilla.runtime.common;
-    requires io.aklivity.zilla.runtime.common.json;
-    requires io.aklivity.zilla.runtime.common.yaml;
+    requires io.aklivity.zilla.runtime.common.feature;
+    requires transitive io.aklivity.zilla.runtime.common.agrona;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.event.EngineEventFormatterFactory;
     provides io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.metrics.EngineMetricGroupFactorySpi;
-    provides io.aklivity.zilla.runtime.engine.router.RouterFactorySpi
-        with io.aklivity.zilla.runtime.engine.internal.registry.EngineRouterFactorySpi;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -79,5 +78,4 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;
-    uses io.aklivity.zilla.runtime.engine.router.RouterFactorySpi;
 }

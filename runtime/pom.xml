@@ -31,7 +31,6 @@
     <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
     <module>binding-mcp</module>
-    <module>binding-mcp-http</module>
     <module>binding-mqtt-kafka</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
@@ -46,11 +45,9 @@
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
-    <module>common</module>
-    <module>common-avro</module>
+    <module>common-agrona</module>
+    <module>common-feature</module>
     <module>common-json</module>
-    <module>common-lang</module>
-    <module>common-protobuf</module>
     <module>common-yaml</module>
     <module>command</module>
     <module>command-metrics</module>
@@ -220,27 +217,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>common</artifactId>
+        <artifactId>common-feature</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>common-avro</artifactId>
+        <artifactId>common-agrona</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-json</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>common-lang</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>common-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

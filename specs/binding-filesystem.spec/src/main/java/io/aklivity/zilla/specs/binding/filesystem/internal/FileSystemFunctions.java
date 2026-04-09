@@ -23,7 +23,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;

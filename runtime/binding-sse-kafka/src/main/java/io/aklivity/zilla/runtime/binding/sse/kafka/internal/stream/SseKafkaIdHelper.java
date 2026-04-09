@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdV1FW;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class SseKafkaIdHelper
 {

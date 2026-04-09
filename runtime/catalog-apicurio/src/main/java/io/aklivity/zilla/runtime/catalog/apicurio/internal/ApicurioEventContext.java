@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioE
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ApicurioEventContext
 {

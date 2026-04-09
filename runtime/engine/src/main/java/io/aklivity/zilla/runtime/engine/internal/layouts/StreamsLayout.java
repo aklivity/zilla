@@ -30,8 +30,8 @@ import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class StreamsLayout implements AutoCloseable
 {

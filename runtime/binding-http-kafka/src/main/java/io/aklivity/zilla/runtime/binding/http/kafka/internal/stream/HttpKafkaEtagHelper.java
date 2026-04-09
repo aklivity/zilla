@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagV1FW;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class HttpKafkaEtagHelper
 {
