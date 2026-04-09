@@ -191,15 +191,15 @@ public class SafeBuffer implements AtomicBufferEx
         if (buffer.isDirect())
         {
             byteArray = null;
-            segment = MemorySegment.ofBuffer(buffer);
+            segment = MemorySegment.ofBuffer(buffer).reinterpret(buffer.capacity());
         }
         else
         {
             byteArray = BufferUtil.array(buffer);
-            segment = MemorySegment.ofBuffer(buffer);
+            segment = MemorySegment.ofArray(byteArray);
         }
-        capacity = buffer.remaining();
-        wrapAdjustment = buffer.position();
+        capacity = buffer.capacity();
+        wrapAdjustment = 0;
     }
 
     @Override
@@ -212,15 +212,15 @@ public class SafeBuffer implements AtomicBufferEx
         if (buffer.isDirect())
         {
             byteArray = null;
-            segment = MemorySegment.ofBuffer(buffer).asSlice(offset, length);
+            segment = MemorySegment.ofBuffer(buffer).reinterpret(buffer.capacity()).asSlice(offset, length);
         }
         else
         {
             byteArray = BufferUtil.array(buffer);
-            segment = MemorySegment.ofBuffer(buffer).asSlice(offset, length);
+            segment = MemorySegment.ofArray(byteArray).asSlice(offset, length);
         }
         capacity = length;
-        wrapAdjustment = buffer.position() + offset;
+        wrapAdjustment = offset;
     }
 
     @Override
