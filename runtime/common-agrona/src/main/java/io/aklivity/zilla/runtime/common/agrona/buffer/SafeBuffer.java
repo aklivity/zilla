@@ -35,8 +35,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
-
 /**
  * An {@link AtomicBufferEx} implementation backed by Java's {@link MemorySegment}
  * (Foreign Function and Memory API) instead of {@code sun.misc.Unsafe}.
