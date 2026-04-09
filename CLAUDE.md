@@ -468,7 +468,9 @@ Follow this order — tests before implementation:
    them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
    new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
    the new module directory; do not copy `NOTICE` from another module as it
-   must reflect the new module's actual dependencies. Source file headers must carry the Aklivity
+   must reflect the new module's actual dependencies. Never edit `NOTICE`
+   directly — it is always regenerated from `NOTICE.template` and the
+   module's dependency list by Maven; manual edits will be overwritten. Source file headers must carry the Aklivity
    Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
    run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
