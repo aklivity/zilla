@@ -459,6 +459,7 @@ public final class McpServerFactory implements McpStreamFactory
         private boolean notification;
         private boolean downstreamBeginSent;
         private boolean sseResponse;
+        private String requestId;
         private int decodeSlot = BufferPool.NO_SLOT;
         private int decodeSlotOffset;
 
@@ -745,6 +746,7 @@ public final class McpServerFactory implements McpStreamFactory
             final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
             String parsedMethod = null;
             boolean parsedHasId = false;
+            String parsedRequestId = null;
             JsonObject parsedParams = null;
             boolean parseIncomplete = false;
 
@@ -767,6 +769,7 @@ public final class McpServerFactory implements McpStreamFactory
                         else if ("id".equals(currentKey))
                         {
                             parsedHasId = true;
+                            parsedRequestId = "\"" + parser.getString() + "\"";
                         }
                         currentKey = null;
                         break;
@@ -776,6 +779,7 @@ public final class McpServerFactory implements McpStreamFactory
                         if ("id".equals(currentKey))
                         {
                             parsedHasId = true;
+                            parsedRequestId = String.valueOf(parser.getLong());
                         }
                         currentKey = null;
                         break;
@@ -852,6 +856,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             notification = !parsedHasId;
+            requestId = parsedRequestId;
             sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
 
             if (downstream != null && parsedParams != null)
@@ -890,6 +895,7 @@ public final class McpServerFactory implements McpStreamFactory
                 final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
                 String parsedMethod = null;
                 boolean parsedHasId = false;
+                String parsedRequestId = null;
                 JsonObject parsedParams = null;
 
                 try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
@@ -911,6 +917,7 @@ public final class McpServerFactory implements McpStreamFactory
                             else if ("id".equals(currentKey))
                             {
                                 parsedHasId = true;
+                                parsedRequestId = "\"" + parser.getString() + "\"";
                             }
                             currentKey = null;
                             break;
@@ -920,6 +927,7 @@ public final class McpServerFactory implements McpStreamFactory
                             if ("id".equals(currentKey))
                             {
                                 parsedHasId = true;
+                                parsedRequestId = String.valueOf(parser.getLong());
                             }
                             currentKey = null;
                             break;
@@ -981,6 +989,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
 
                 notification = !parsedHasId;
+                requestId = parsedRequestId;
                 sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
 
                 if (downstream != null && parsedParams != null)
