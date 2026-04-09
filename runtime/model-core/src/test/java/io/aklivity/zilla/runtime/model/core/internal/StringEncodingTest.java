@@ -25,6 +25,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+
 public class StringEncodingTest
 {
     private StringState state = new StringState();

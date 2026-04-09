@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+
 public class EventWriterTest
 {
     // capacity=64, zero-length events = 8 bytes each (HEADER_LENGTH only).
