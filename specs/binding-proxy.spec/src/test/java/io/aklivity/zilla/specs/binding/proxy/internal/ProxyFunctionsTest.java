@@ -45,11 +45,11 @@ import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.stream.ProxyBeginExFW;
 

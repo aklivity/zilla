@@ -22,10 +22,10 @@ import static org.junit.Assert.assertNull;
 
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class String8FWTest
 {

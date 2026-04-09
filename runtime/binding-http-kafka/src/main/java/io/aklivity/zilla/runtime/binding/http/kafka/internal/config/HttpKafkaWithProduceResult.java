@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
@@ -32,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class HttpKafkaWithProduceResult
 {

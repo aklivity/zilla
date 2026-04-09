@@ -25,10 +25,10 @@ import static org.junit.Assert.fail;
 import java.util.stream.IntStream;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ContiguousSizeFieldsFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class ContiguousSizeFieldsFWTest
 {

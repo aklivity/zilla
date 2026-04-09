@@ -40,8 +40,8 @@ import java.util.function.IntFunction;
 import org.agrona.IoUtil;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public abstract class KafkaCacheIndexFile extends KafkaCacheFile
 {
 
