@@ -145,7 +145,6 @@ public final class McpFunctions
         public final class McpInitializeBeginExBuilder
         {
             private Consumer<McpSessionIdFW.Builder> sessionIdSetter = sid -> sid.text((String) null);
-            private String version;
 
             public McpInitializeBeginExBuilder sessionId(
                 String sessionId)
@@ -161,17 +160,10 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpInitializeBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
-                return this;
-            }
-
             public McpBeginExBuilder build()
             {
                 final Consumer<McpSessionIdFW.Builder> setter = sessionIdSetter;
-                beginExRW.initialize(b -> b.sessionId(setter).version(version));
+                beginExRW.initialize(b -> b.sessionId(setter));
                 return McpBeginExBuilder.this;
             }
         }
@@ -664,7 +656,6 @@ public final class McpFunctions
         public final class McpInitializeBeginExMatcherBuilder
         {
             private Predicate<McpSessionIdFW> sessionIdMatcher;
-            private String16FW version;
 
             public McpInitializeBeginExMatcherBuilder sessionId(
                 String sessionId)
@@ -681,13 +672,6 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpInitializeBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
-                return this;
-            }
-
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -697,19 +681,13 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpInitializeBeginExFW initialize = beginEx.initialize();
-                return matchSessionId(initialize) && matchVersion(initialize);
+                return matchSessionId(initialize);
             }
 
             private boolean matchSessionId(
                 McpInitializeBeginExFW initialize)
             {
                 return sessionIdMatcher == null || sessionIdMatcher.test(initialize.sessionId());
-            }
-
-            private boolean matchVersion(
-                McpInitializeBeginExFW initialize)
-            {
-                return version == null || version.equals(initialize.version());
             }
         }
 

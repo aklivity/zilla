@@ -42,7 +42,6 @@ scope mcp
         struct McpInitializeBeginEx
         {
             mcp::McpSessionId sessionId;
-            string16 version = null;
         }
 
         struct McpPingBeginEx

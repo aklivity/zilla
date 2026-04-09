@@ -485,7 +485,6 @@ public final class McpServerFactory implements McpStreamFactory
         private MessageConsumer downstream;
 
         private String sessionId;
-        private String mcpVersion;
         private String toolName;
         private String promptName;
         private String resourceUri;
@@ -636,13 +635,12 @@ public final class McpServerFactory implements McpStreamFactory
 
             if ("initialize".equals(method))
             {
-                final String version = mcpVersion;
-                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text((String) null)).version(version));
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text((String) null)));
             }
             else if ("notifications/initialized".equals(method))
             {
                 final String sid = sessionId;
-                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text(sid)).version((String) null));
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text(sid)));
             }
             else if ("ping".equals(method))
             {
@@ -865,12 +863,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (parsedParams != null)
             {
-                if ("initialize".equals(parsedMethod))
-                {
-                    mcpVersion = parsedParams.containsKey("protocolVersion")
-                        ? parsedParams.getString("protocolVersion") : null;
-                }
-                else if ("tools/call".equals(parsedMethod))
+                if ("tools/call".equals(parsedMethod))
                 {
                     toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                 }
@@ -998,12 +991,7 @@ public final class McpServerFactory implements McpStreamFactory
 
                 if (parsedParams != null)
                 {
-                    if ("initialize".equals(parsedMethod))
-                    {
-                        mcpVersion = parsedParams.containsKey("protocolVersion")
-                            ? parsedParams.getString("protocolVersion") : null;
-                    }
-                    else if ("tools/call".equals(parsedMethod))
+                    if ("tools/call".equals(parsedMethod))
                     {
                         toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                     }

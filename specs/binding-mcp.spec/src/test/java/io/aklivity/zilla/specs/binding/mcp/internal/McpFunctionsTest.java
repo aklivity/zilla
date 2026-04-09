@@ -43,7 +43,6 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .initialize()
-                .version("2025-11-25")
                 .build()
             .build();
 
@@ -56,7 +55,6 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .initialize()
-                .version("2025-11-25")
                 .build()
             .build();
 
@@ -65,8 +63,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .initialize(b -> b.sessionId(sid -> sid.text((String) null))
-                              .version("2025-11-25"))
+            .initialize(b -> b.sessionId(sid -> sid.text((String) null)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -79,7 +76,6 @@ public class McpFunctionsTest
             .typeId(0)
             .initialize()
                 .sessionId("test-session-id")
-                .version("2025-11-25")
                 .build()
             .build();
 
@@ -101,8 +97,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .initialize(b -> b.sessionId(sid -> sid.text("test-session-id"))
-                              .version((String) null))
+            .initialize(b -> b.sessionId(sid -> sid.text("test-session-id")))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -503,33 +498,10 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .initialize(b -> b.sessionId(sid -> sid.text((String) null))
-                              .version("2025-11-25"))
+            .initialize(b -> b.sessionId(sid -> sid.text((String) null)))
             .build();
 
         assertNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenVersionMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0)
-            .initialize()
-                .version("2024-11-25")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .initialize(b -> b.sessionId(sid -> sid.text((String) null))
-                              .version("2025-11-25"))
-            .build();
-
-        matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
@@ -675,7 +647,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .initialize(b -> b.sessionId(sid -> sid.id(42L)).version((String) null))
+            .initialize(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
         assertNotNull(McpFunctions.matchBeginEx().typeId(0).initialize().sessionId(42L).build().build().match(byteBuf));
     }

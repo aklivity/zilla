@@ -21,7 +21,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .initialize()
-                               .version("2025-11-25")
                                .build()
                            .build()}
 
@@ -34,7 +33,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .initialize()
                               .sessionId("test-session-id")
-                              .version("2025-11-25")
                               .build()
                           .build()}
 
