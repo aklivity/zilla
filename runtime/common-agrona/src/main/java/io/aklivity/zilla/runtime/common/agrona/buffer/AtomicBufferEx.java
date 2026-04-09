@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.buffer;
+package io.aklivity.zilla.runtime.common.agrona.buffer;
 
 import org.agrona.concurrent.AtomicBuffer;
 

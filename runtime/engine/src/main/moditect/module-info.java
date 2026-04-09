@@ -53,7 +53,8 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.management;
     requires java.management;
     requires java.net.http;
-    requires io.aklivity.zilla.runtime.common;
+    requires io.aklivity.zilla.runtime.common.feature;
+    requires transitive io.aklivity.zilla.runtime.common.agrona;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.event.EngineEventFormatterFactory;

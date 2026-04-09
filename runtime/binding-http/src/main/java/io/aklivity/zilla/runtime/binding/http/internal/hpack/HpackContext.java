@@ -26,7 +26,7 @@ import java.util.Objects;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class HpackContext
 {

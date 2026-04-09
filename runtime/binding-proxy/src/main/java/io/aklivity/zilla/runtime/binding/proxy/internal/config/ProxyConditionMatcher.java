@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class ProxyConditionMatcher
 {
