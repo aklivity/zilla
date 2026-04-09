@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.OctetsFW;
 
 public class ProtobufField

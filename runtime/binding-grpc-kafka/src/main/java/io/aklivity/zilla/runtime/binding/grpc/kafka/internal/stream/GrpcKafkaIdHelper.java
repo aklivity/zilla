@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMess
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public final class GrpcKafkaIdHelper
 {

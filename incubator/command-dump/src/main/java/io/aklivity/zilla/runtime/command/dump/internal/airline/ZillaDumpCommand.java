@@ -83,7 +83,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")

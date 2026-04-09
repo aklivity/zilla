@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class StringEncodingTest
 {

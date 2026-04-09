@@ -41,7 +41,7 @@ import org.agrona.IoUtil;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public abstract class KafkaCacheIndexFile extends KafkaCacheFile
 {

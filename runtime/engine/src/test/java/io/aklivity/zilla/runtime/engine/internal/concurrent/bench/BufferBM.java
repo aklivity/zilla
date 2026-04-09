@@ -50,7 +50,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.TypedefFromTypedefFW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class TypedefFromTypedefFWTest
 {

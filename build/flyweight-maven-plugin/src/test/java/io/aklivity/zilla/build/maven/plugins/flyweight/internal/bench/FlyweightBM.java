@@ -41,7 +41,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithOctetsFW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
