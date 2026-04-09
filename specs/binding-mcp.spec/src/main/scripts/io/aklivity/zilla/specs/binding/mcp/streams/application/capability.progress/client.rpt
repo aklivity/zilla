@@ -39,5 +39,5 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .build()}
 
 read '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
-read '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
+read '{"content":[{"type":"text","text":"Done"}]}'
 read closed

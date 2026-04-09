@@ -41,7 +41,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"zilla","version":"1.0"}}}'
+write '{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"zilla","version":"1.0"}}'
 write flush
 
 write close

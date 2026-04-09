@@ -40,7 +40,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":7,"result":{"completion":{"values":["py"],"hasMore":false}}}'
+write '{"completion":{"values":["py"],"hasMore":false}}'
 write flush
 
 write close

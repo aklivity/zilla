@@ -44,7 +44,7 @@ write flush
 write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":1,"progress":50,"total":100}}'
 write flush
 
-write '{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"Done"}]}}'
+write '{"content":[{"type":"text","text":"Done"}]}'
 write flush
 
 write close

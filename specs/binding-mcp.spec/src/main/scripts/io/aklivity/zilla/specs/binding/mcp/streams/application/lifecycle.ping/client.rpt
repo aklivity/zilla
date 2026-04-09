@@ -36,5 +36,5 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read '{"jsonrpc":"2.0","id":3,"result":{}}'
+read '{}'
 read closed

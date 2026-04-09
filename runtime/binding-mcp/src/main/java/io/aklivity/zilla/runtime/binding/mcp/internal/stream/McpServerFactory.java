@@ -432,6 +432,43 @@ public final class McpServerFactory implements McpStreamFactory
             : sid.text().asString();
     }
 
+    private static boolean isNotification(
+        String json)
+    {
+        try (JsonParser parser = Json.createParser(new StringReader(json)))
+        {
+            int depth = 0;
+            while (parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1 && "method".equals(parser.getString()))
+                    {
+                        return true;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // fall through
+        }
+        return false;
+    }
+
     private final class McpServerStream
     {
         private final MessageConsumer sender;
@@ -1180,14 +1217,26 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (payload != null)
             {
+                final String payloadStr = payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof());
+                final String resultStr;
+                if (isNotification(payloadStr))
+                {
+                    resultStr = payloadStr;
+                }
+                else
+                {
+                    resultStr = "{\"jsonrpc\":\"2.0\",\"id\":" + requestId + ",\"result\":" + payloadStr + "}";
+                }
+                final int resultLength = extBuffer.putStringWithoutLengthUtf8(0, resultStr);
+
                 if (sseResponse)
                 {
                     final byte[] prefixBytes = SSE_DATA_PREFIX.getBytes();
                     final byte[] suffixBytes = SSE_DATA_SUFFIX.getBytes();
-                    final int sseLength = prefixBytes.length + payload.sizeof() + suffixBytes.length;
+                    final int sseLength = prefixBytes.length + resultLength + suffixBytes.length;
                     sseBuffer.putBytes(0, prefixBytes);
-                    sseBuffer.putBytes(prefixBytes.length, payload.buffer(), payload.offset(), payload.sizeof());
-                    sseBuffer.putBytes(prefixBytes.length + payload.sizeof(), suffixBytes);
+                    sseBuffer.putBytes(prefixBytes.length, extBuffer, 0, resultLength);
+                    sseBuffer.putBytes(prefixBytes.length + resultLength, suffixBytes);
 
                     doData(sender, originId, routedId, replyId,
                         sequence, acknowledge, maximum, traceId, authorization,
@@ -1199,7 +1248,7 @@ public final class McpServerFactory implements McpStreamFactory
                     doData(sender, originId, routedId, replyId,
                         sequence, acknowledge, maximum, traceId, authorization,
                         budgetId, flags, reserved,
-                        payload.buffer(), payload.offset(), payload.sizeof());
+                        extBuffer, 0, resultLength);
                 }
             }
         }

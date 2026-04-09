@@ -37,5 +37,5 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read '{"jsonrpc":"2.0","id":7,"result":{"completion":{"values":["py"],"hasMore":false}}}'
+read '{"completion":{"values":["py"],"hasMore":false}}'
 read closed
