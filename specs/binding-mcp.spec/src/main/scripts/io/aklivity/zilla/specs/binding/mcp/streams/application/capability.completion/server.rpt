@@ -29,7 +29,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":7,"method":"completion/complete","params":{"ref":{"type":"ref/prompt","name":"code"},"argument":{"name":"lang","value":"py"}}}'
+read '{"ref":{"type":"ref/prompt","name":"code"},"argument":{"name":"lang","value":"py"}}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()

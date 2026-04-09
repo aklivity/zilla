@@ -29,7 +29,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+read '{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
@@ -57,7 +57,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()

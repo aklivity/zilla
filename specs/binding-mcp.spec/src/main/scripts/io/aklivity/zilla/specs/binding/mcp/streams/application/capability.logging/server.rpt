@@ -30,7 +30,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":8,"method":"logging/setLevel","params":{"level":"error"}}'
+read '{"level":"error"}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()

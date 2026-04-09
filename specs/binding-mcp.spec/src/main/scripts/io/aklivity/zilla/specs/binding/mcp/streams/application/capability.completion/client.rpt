@@ -27,7 +27,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":7,"method":"completion/complete","params":{"ref":{"type":"ref/prompt","name":"code"},"argument":{"name":"lang","value":"py"}}}'
+write '{"ref":{"type":"ref/prompt","name":"code"},"argument":{"name":"lang","value":"py"}}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()

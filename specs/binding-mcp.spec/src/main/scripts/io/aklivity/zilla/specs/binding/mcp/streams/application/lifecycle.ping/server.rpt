@@ -29,7 +29,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":3,"method":"ping"}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()

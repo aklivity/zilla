@@ -30,7 +30,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1,"reason":"User cancelled"}}'
+read '{"requestId":1,"reason":"User cancelled"}'
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()

@@ -28,7 +28,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":8,"method":"logging/setLevel","params":{"level":"error"}}'
+write '{"level":"error"}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()

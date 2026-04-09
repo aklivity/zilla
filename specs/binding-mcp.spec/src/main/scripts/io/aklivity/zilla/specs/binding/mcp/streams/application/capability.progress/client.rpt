@@ -28,7 +28,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}}'
+write '{"name":"long-running","arguments":{},"_meta":{"progressToken":1}}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()

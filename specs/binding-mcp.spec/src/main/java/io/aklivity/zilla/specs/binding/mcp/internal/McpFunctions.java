@@ -150,6 +150,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpInitializeBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpInitializeBeginExBuilder version(
                 String version)
             {
@@ -175,6 +181,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPingBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExBuilder build()
             {
                 beginExRW.ping(b -> b.sessionId(sessionId));
@@ -191,6 +203,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpToolsBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpBeginExBuilder build()
@@ -210,6 +228,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpToolBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpToolBeginExBuilder name(
@@ -237,6 +261,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExBuilder build()
             {
                 beginExRW.prompts(b -> b.sessionId(sessionId));
@@ -254,6 +284,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpPromptBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpPromptBeginExBuilder name(
@@ -281,6 +317,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExBuilder build()
             {
                 beginExRW.resources(b -> b.sessionId(sessionId));
@@ -298,6 +340,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpResourceBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpResourceBeginExBuilder uri(
@@ -325,6 +373,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpCompletionBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExBuilder build()
             {
                 beginExRW.completion(b -> b.sessionId(sessionId));
@@ -342,6 +396,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpLoggingBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpLoggingBeginExBuilder level(
@@ -370,6 +430,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpCancelBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpCancelBeginExBuilder reason(
                 String reason)
             {
@@ -393,6 +459,12 @@ public final class McpFunctions
             {
                 this.sessionId = sessionId;
                 return this;
+            }
+
+            public McpDisconnectBeginExBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpBeginExBuilder build()
@@ -573,6 +645,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpInitializeBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpInitializeBeginExMatcherBuilder version(
                 String version)
             {
@@ -616,6 +694,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPingBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -643,6 +727,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpToolsBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpBeginExMatcherBuilder build()
@@ -673,6 +763,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpToolBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpToolBeginExMatcherBuilder name(
@@ -718,6 +814,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpPromptsBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -746,6 +848,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpPromptBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpPromptBeginExMatcherBuilder name(
@@ -791,6 +899,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpResourcesBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -819,6 +933,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpResourceBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpResourceBeginExMatcherBuilder uri(
@@ -864,6 +984,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpCompletionBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpBeginExMatcherBuilder build()
             {
                 return McpBeginExMatcherBuilder.this;
@@ -892,6 +1018,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpLoggingBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpLoggingBeginExMatcherBuilder level(
@@ -938,6 +1070,12 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpCancelBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
+            }
+
             public McpCancelBeginExMatcherBuilder reason(
                 String reason)
             {
@@ -979,6 +1117,12 @@ public final class McpFunctions
             {
                 this.sessionId = new String16FW(sessionId);
                 return this;
+            }
+
+            public McpDisconnectBeginExMatcherBuilder sessionId(
+                long sessionId)
+            {
+                return sessionId(Long.toString(sessionId));
             }
 
             public McpBeginExMatcherBuilder build()

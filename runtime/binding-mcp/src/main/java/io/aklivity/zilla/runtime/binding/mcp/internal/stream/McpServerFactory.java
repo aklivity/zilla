@@ -15,7 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import java.io.StringReader;
 import java.util.function.LongUnaryOperator;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -39,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpServerFactory implements McpStreamFactory
@@ -58,13 +65,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String STATUS_202 = "202";
     private static final String SSE_DATA_PREFIX = "data: ";
     private static final String SSE_DATA_SUFFIX = "\n\n";
-    private static final String JSON_FIELD_METHOD = "\"method\":\"";
-    private static final String JSON_FIELD_ID = "\"id\":";
-    private static final String JSON_FIELD_NAME = "\"name\":\"";
-    private static final String JSON_FIELD_URI = "\"uri\":\"";
-    private static final String JSON_FIELD_LEVEL = "\"level\":\"";
-    private static final String JSON_FIELD_REASON = "\"reason\":\"";
-    private static final String JSON_FIELD_VERSION = "\"protocolVersion\":\"";
+    private static final int FLAG_FIN = 0x01;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -96,6 +97,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
     private final int mcpTypeId;
+    private final BufferPool bufferPool;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
 
@@ -112,6 +114,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
+        this.bufferPool = context.bufferPool();
     }
 
     @Override
@@ -379,56 +382,6 @@ public final class McpServerFactory implements McpStreamFactory
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private static String extractJsonMethod(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
-        final int methodStart = json.indexOf(JSON_FIELD_METHOD);
-        if (methodStart == -1)
-        {
-            return null;
-        }
-        final int valueStart = methodStart + JSON_FIELD_METHOD.length();
-        final int valueEnd = json.indexOf('"', valueStart);
-        if (valueEnd == -1)
-        {
-            return null;
-        }
-        return json.substring(valueStart, valueEnd);
-    }
-
-    private static boolean hasJsonId(
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
-        return json.contains(JSON_FIELD_ID);
-    }
-
-    private static String extractJsonStringField(
-        DirectBuffer buffer,
-        int offset,
-        int length,
-        String fieldKey)
-    {
-        final String json = buffer.getStringWithoutLengthUtf8(offset, length);
-        final int fieldStart = json.indexOf(fieldKey);
-        if (fieldStart == -1)
-        {
-            return null;
-        }
-        final int valueStart = fieldStart + fieldKey.length();
-        final int valueEnd = json.indexOf('"', valueStart);
-        if (valueEnd == -1)
-        {
-            return null;
-        }
-        return json.substring(valueStart, valueEnd);
-    }
-
     private static String extractMcpSessionId(
         McpBeginExFW mcpBeginEx)
     {
@@ -526,6 +479,8 @@ public final class McpServerFactory implements McpStreamFactory
         private boolean notification;
         private boolean downstreamBeginSent;
         private boolean sseResponse;
+        private int decodeSlot = BufferPool.NO_SLOT;
+        private int decodeSlotOffset;
 
         private long pendingSequence;
         private long pendingAcknowledge;
@@ -784,55 +739,100 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = data.traceId();
             final long budgetId = data.budgetId();
             final int flags = data.flags();
-            final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
-            if (!downstreamBeginSent && payload != null)
+            if (downstreamBeginSent || payload == null)
             {
-                final String method = extractJsonMethod(payload.buffer(), payload.offset(), payload.sizeof());
-                notification = !hasJsonId(payload.buffer(), payload.offset(), payload.sizeof());
-
-                if ("initialize".equals(method))
-                {
-                    mcpVersion = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_VERSION);
-                }
-                else if ("tools/call".equals(method))
-                {
-                    toolName = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_NAME);
-                }
-                else if ("prompts/get".equals(method))
-                {
-                    promptName = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_NAME);
-                }
-                else if ("resources/read".equals(method))
-                {
-                    resourceUri = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_URI);
-                }
-                else if ("logging/setLevel".equals(method))
-                {
-                    loggingLevel = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_LEVEL);
-                }
-                else if ("notifications/cancelled".equals(method))
-                {
-                    cancelReason = extractJsonStringField(payload.buffer(), payload.offset(),
-                        payload.sizeof(), JSON_FIELD_REASON);
-                }
-
-                sendDownstreamBegin(traceId, method,
-                    pendingSequence, pendingAcknowledge, pendingMaximum);
+                return;
             }
 
-            if (downstream != null && payload != null)
+            if (decodeSlot == BufferPool.NO_SLOT)
             {
+                decodeSlot = bufferPool.acquire(initialId);
+            }
+
+            if (decodeSlot == BufferPool.NO_SLOT)
+            {
+                doReset(sender, originId, routedId, initialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+                return;
+            }
+
+            final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
+            slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+            decodeSlotOffset += payload.sizeof();
+
+            final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
+            String parsedMethod = null;
+            boolean parsedHasId = false;
+            JsonValue parsedParams = null;
+
+            try
+            {
+                final JsonObject request = Json.createReader(new StringReader(fullJson)).readObject();
+                parsedMethod = request.getString("method", null);
+                parsedHasId = request.containsKey("id") && !request.isNull("id");
+                parsedParams = request.get("params");
+            }
+            catch (JsonParsingException ex)
+            {
+                if ((flags & FLAG_FIN) == 0)
+                {
+                    return;
+                }
+            }
+
+            if (parsedParams instanceof JsonObject paramsObj)
+            {
+                if ("initialize".equals(parsedMethod))
+                {
+                    mcpVersion = paramsObj.containsKey("protocolVersion")
+                        ? paramsObj.getString("protocolVersion") : null;
+                }
+                else if ("tools/call".equals(parsedMethod))
+                {
+                    toolName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                }
+                else if ("prompts/get".equals(parsedMethod))
+                {
+                    promptName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                }
+                else if ("resources/read".equals(parsedMethod))
+                {
+                    resourceUri = paramsObj.containsKey("uri") ? paramsObj.getString("uri") : null;
+                }
+                else if ("logging/setLevel".equals(parsedMethod))
+                {
+                    loggingLevel = paramsObj.containsKey("level") ? paramsObj.getString("level") : null;
+                }
+                else if ("notifications/cancelled".equals(parsedMethod))
+                {
+                    cancelReason = paramsObj.containsKey("reason") ? paramsObj.getString("reason") : null;
+                }
+            }
+
+            notification = !parsedHasId;
+            sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
+
+            if (downstream != null && parsedParams != null)
+            {
+                final String paramsStr = parsedParams.toString();
+                final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
                 doData(downstream, routedId, resolvedId, downstreamInitialId,
                     sequence, acknowledge, maximum, traceId, authorization,
-                    budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
+                    budgetId, flags & ~FLAG_FIN, 0, extBuffer, 0, paramsLength);
+            }
+
+            cleanupDecodeSlot();
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != BufferPool.NO_SLOT)
+            {
+                bufferPool.release(decodeSlot);
+                decodeSlot = BufferPool.NO_SLOT;
+                decodeSlotOffset = 0;
             }
         }
 
@@ -843,6 +843,70 @@ public final class McpServerFactory implements McpStreamFactory
             final long acknowledge = end.acknowledge();
             final int maximum = end.maximum();
             final long traceId = end.traceId();
+
+            if (!downstreamBeginSent && decodeSlot != BufferPool.NO_SLOT)
+            {
+                final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
+                final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
+                String parsedMethod = null;
+                boolean parsedHasId = false;
+                JsonValue parsedParams = null;
+
+                try
+                {
+                    final JsonObject request = Json.createReader(new StringReader(fullJson)).readObject();
+                    parsedMethod = request.getString("method", null);
+                    parsedHasId = request.containsKey("id") && !request.isNull("id");
+                    parsedParams = request.get("params");
+                }
+                catch (JsonParsingException ex)
+                {
+                    // fall through with null method (disconnect kind)
+                }
+
+                if (parsedParams instanceof JsonObject paramsObj)
+                {
+                    if ("initialize".equals(parsedMethod))
+                    {
+                        mcpVersion = paramsObj.containsKey("protocolVersion")
+                            ? paramsObj.getString("protocolVersion") : null;
+                    }
+                    else if ("tools/call".equals(parsedMethod))
+                    {
+                        toolName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                    }
+                    else if ("prompts/get".equals(parsedMethod))
+                    {
+                        promptName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                    }
+                    else if ("resources/read".equals(parsedMethod))
+                    {
+                        resourceUri = paramsObj.containsKey("uri") ? paramsObj.getString("uri") : null;
+                    }
+                    else if ("logging/setLevel".equals(parsedMethod))
+                    {
+                        loggingLevel = paramsObj.containsKey("level") ? paramsObj.getString("level") : null;
+                    }
+                    else if ("notifications/cancelled".equals(parsedMethod))
+                    {
+                        cancelReason = paramsObj.containsKey("reason") ? paramsObj.getString("reason") : null;
+                    }
+                }
+
+                notification = !parsedHasId;
+                sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
+
+                if (downstream != null && parsedParams != null)
+                {
+                    final String paramsStr = parsedParams.toString();
+                    final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
+                    doData(downstream, routedId, resolvedId, downstreamInitialId,
+                        sequence, acknowledge, maximum, traceId, authorization,
+                        0, 0, 0, extBuffer, 0, paramsLength);
+                }
+            }
+
+            cleanupDecodeSlot();
 
             if (downstream != null)
             {
@@ -858,6 +922,8 @@ public final class McpServerFactory implements McpStreamFactory
             final long acknowledge = abort.acknowledge();
             final int maximum = abort.maximum();
             final long traceId = abort.traceId();
+
+            cleanupDecodeSlot();
 
             if (downstream != null)
             {

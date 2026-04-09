@@ -27,7 +27,6 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
