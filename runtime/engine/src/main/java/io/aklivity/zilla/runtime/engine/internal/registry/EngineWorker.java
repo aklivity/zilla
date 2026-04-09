@@ -60,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -229,6 +230,7 @@ public class EngineWorker implements EngineContext, Agent
     private Map<String, ModelContext> modelsByType;
 
     private EngineRegistry registry;
+    private final CountDownLatch startedLatch;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -369,6 +371,7 @@ public class EngineWorker implements EngineContext, Agent
         this.collector = collector;
         this.process = process;
 
+        this.startedLatch = new CountDownLatch(1);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.reporter = config.errorReporter();
@@ -989,6 +992,8 @@ public class EngineWorker implements EngineContext, Agent
             recordCapacity.accept(ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config));
             recordUtilization.accept(0);
         }
+
+        startedLatch.countDown();
     }
 
     @Override
@@ -1078,31 +1083,18 @@ public class EngineWorker implements EngineContext, Agent
     {
         assert thread != Thread.currentThread();
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        dispatch(() ->
-        {
-            NamespaceTask attachTask = registry.attach(namespace);
-            attachTask.run();
-            attachTask.future().whenComplete((v, ex) ->
-            {
-                if (ex != null)
-                {
-                    future.completeExceptionally(ex);
-                }
-                else
-                {
-                    future.complete(v);
-                }
-            });
-        });
+        awaitStarted();
+
+        NamespaceTask attachTask = registry.attach(namespace);
+        dispatch(attachTask);
 
         if (localIndex == 0)
         {
-            future.join();
+            attachTask.future().join();
             writeBindingTypes(registry);
         }
 
-        return future;
+        return attachTask.future();
     }
 
     public CompletableFuture<Void> detach(
@@ -1110,30 +1102,30 @@ public class EngineWorker implements EngineContext, Agent
     {
         assert thread != Thread.currentThread();
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        dispatch(() ->
-        {
-            NamespaceTask detachTask = registry.detach(namespace);
-            detachTask.run();
-            detachTask.future().whenComplete((v, ex) ->
-            {
-                if (ex != null)
-                {
-                    future.completeExceptionally(ex);
-                }
-                else
-                {
-                    future.complete(v);
-                }
-            });
-        });
+        awaitStarted();
+
+        NamespaceTask detachTask = registry.detach(namespace);
+        dispatch(detachTask);
 
         if (localIndex == 0)
         {
-            future.join();
+            detachTask.future().join();
             writeBindingTypes(registry);
         }
-        return future;
+        return detachTask.future();
+    }
+
+    private void awaitStarted()
+    {
+        try
+        {
+            startedLatch.await();
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 
     public AgentRunner runner()
