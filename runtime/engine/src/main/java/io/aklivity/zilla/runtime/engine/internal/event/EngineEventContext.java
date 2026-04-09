@@ -23,10 +23,10 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 
@@ -34,8 +34,8 @@ public final class EngineEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final MutableDirectBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBuffer eventBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBuffer extensionBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
 
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final EngineEventExFW.Builder eventExRW = new EngineEventExFW.Builder();

@@ -24,7 +24,7 @@ import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.BYTE_ARRAY;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.SAFE_BUFFER_TYPE;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableMap;
 import static javax.lang.model.element.Modifier.FINAL;
@@ -368,7 +368,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
 
             if (TypeNames.DIRECT_BUFFER_TYPE.equals(type))
             {
-                fieldBuilder.initializer("new $T(new byte[0])", UNSAFE_BUFFER_TYPE);
+                fieldBuilder.initializer("new $T(new byte[0])", SAFE_BUFFER_TYPE);
             }
             else if (type instanceof ParameterizedTypeName)
             {

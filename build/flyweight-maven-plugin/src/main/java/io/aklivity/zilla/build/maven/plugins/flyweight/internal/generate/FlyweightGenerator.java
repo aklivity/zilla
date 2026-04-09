@@ -20,7 +20,7 @@ import static com.squareup.javapoet.MethodSpec.methodBuilder;
 import static com.squareup.javapoet.TypeSpec.classBuilder;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.SAFE_BUFFER_TYPE;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -114,7 +114,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
 
     private FieldSpec compareBufferField()
     {
-        return FieldSpec.builder(UNSAFE_BUFFER_TYPE, "compareBuffer", PRIVATE)
+        return FieldSpec.builder(SAFE_BUFFER_TYPE, "compareBuffer", PRIVATE)
                 .initializer("new UnsafeBuffer(EMPTY_BYTES)")
                 .build();
     }
