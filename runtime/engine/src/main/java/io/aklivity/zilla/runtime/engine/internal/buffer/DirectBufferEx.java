@@ -30,4 +30,10 @@ public interface DirectBufferEx extends DirectBuffer
         MemorySegment segment,
         int offset,
         int length);
+
+    void getBytes(
+        int index,
+        MemorySegment dstSegment,
+        int dstIndex,
+        int length);
 }

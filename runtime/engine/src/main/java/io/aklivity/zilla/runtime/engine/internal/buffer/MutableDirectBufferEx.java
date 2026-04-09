@@ -15,8 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.buffer;
 
+import java.lang.foreign.MemorySegment;
+
 import org.agrona.MutableDirectBuffer;
 
 public interface MutableDirectBufferEx extends MutableDirectBuffer, DirectBufferEx
 {
+    void putBytes(
+        int index,
+        MemorySegment srcSegment,
+        int srcIndex,
+        int length);
 }

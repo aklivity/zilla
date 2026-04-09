@@ -677,6 +677,16 @@ public final class SafeBuffer implements AtomicBufferEx
     }
 
     @Override
+    public void getBytes(
+        int index,
+        MemorySegment dstSegment,
+        int dstIndex,
+        int length)
+    {
+        MemorySegment.copy(segment, index, dstSegment, dstIndex, length);
+    }
+
+    @Override
     public void putBytes(
         int index,
         byte[] src)
@@ -755,6 +765,16 @@ public final class SafeBuffer implements AtomicBufferEx
                 }
             }
         }
+    }
+
+    @Override
+    public void putBytes(
+        int index,
+        MemorySegment srcSegment,
+        int srcIndex,
+        int length)
+    {
+        MemorySegment.copy(srcSegment, srcIndex, segment, index, length);
     }
 
     @Override
