@@ -31,9 +31,10 @@ public final class CountersLayout extends ScalarsLayout
     @Override
     public LongConsumer supplyWriter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        int index = findOrSetPosition(bindingId, metricId);
+        int index = findOrSetPosition(bindingId, metricId, attributesId);
         return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
     }
 

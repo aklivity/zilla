@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.namespaceId;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.DoubleSupplier;
 import java.util.function.LongFunction;
@@ -27,19 +28,22 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 public class ScalarRecord implements MetricRecord
 {
     private final long bindingId;
-    private final long metricId;
+    private final int metricId;
+    private final int attributesId;
     private final int namespaceId;
     private final LongSupplier reader;
     private final LongFunction<String> labelResolver;
 
     public ScalarRecord(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         LongSupplier reader,
         LongFunction<String> labelResolver)
     {
         this.bindingId = bindingId;
         this.metricId = metricId;
+        this.attributesId = attributesId;
         this.namespaceId = namespaceId(bindingId);
         this.reader = reader;
         this.labelResolver = labelResolver;
@@ -70,6 +74,18 @@ public class ScalarRecord implements MetricRecord
         return labelResolver.apply(metricId);
     }
 
+    @Override
+    public int attributesId()
+    {
+        return attributesId;
+    }
+
+    @Override
+    public Map<String, String> attributes()
+    {
+        return MetricRecordHelper.parseAttributes(attributesId, labelResolver);
+    }
+
     public LongSupplier valueReader()
     {
         return this.reader;
@@ -93,12 +109,13 @@ public class ScalarRecord implements MetricRecord
             return false;
         }
         ScalarRecord that = (ScalarRecord) o;
-        return namespaceId == that.namespaceId && bindingId == that.bindingId && metricId == that.metricId;
+        return namespaceId == that.namespaceId && bindingId == that.bindingId &&
+            metricId == that.metricId && attributesId == that.attributesId;
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(namespaceId, bindingId, metricId);
+        return Objects.hash(namespaceId, bindingId, metricId, attributesId);
     }
 }

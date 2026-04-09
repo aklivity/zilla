@@ -53,15 +53,16 @@ public class MetricsReaderTest
         LongFunction<String> labelResolver = mock(LongFunction.class);
         Collector collector = mock(Collector.class);
         long bindingId = NamespacedId.id(4, 7);
-        long counterId = NamespacedId.id(4, 8);
-        when(collector.counterIds()).thenReturn(new long[][]{{bindingId, counterId}});
-        when(collector.counter(bindingId, counterId)).thenReturn(READER_42);
-        long gaugeId = NamespacedId.id(4, 9);
-        when(collector.gaugeIds()).thenReturn(new long[][]{{bindingId, gaugeId}});
-        when(collector.gauge(bindingId, gaugeId)).thenReturn(READER_84);
-        long histogramId = NamespacedId.id(4, 10);
-        when(collector.histogramIds()).thenReturn(new long[][]{{bindingId, histogramId}});
-        when(collector.histogram(bindingId, histogramId)).thenReturn(READER_HISTOGRAM);
+        int counterId = 8;
+        int attributesId = 0;
+        when(collector.counterIds()).thenReturn(new long[][]{{bindingId, counterId, attributesId}});
+        when(collector.counter(bindingId, counterId, attributesId)).thenReturn(READER_42);
+        int gaugeId = 9;
+        when(collector.gaugeIds()).thenReturn(new long[][]{{bindingId, gaugeId, attributesId}});
+        when(collector.gauge(bindingId, gaugeId, attributesId)).thenReturn(READER_84);
+        int histogramId = 10;
+        when(collector.histogramIds()).thenReturn(new long[][]{{bindingId, histogramId, attributesId}});
+        when(collector.histogram(bindingId, histogramId, attributesId)).thenReturn(READER_HISTOGRAM);
         MetricsReader metrics = new MetricsReader(collector, labelResolver);
 
         // WHEN

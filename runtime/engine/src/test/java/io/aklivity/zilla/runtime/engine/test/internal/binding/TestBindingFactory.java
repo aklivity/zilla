@@ -178,10 +178,11 @@ final class TestBindingFactory implements BindingHandler
             {
                 for (TestBindingOptionsConfig.Metric metric : options.metrics)
                 {
-                    long metricId = NamespacedId.id(namespaceId, context.supplyTypeId(metric.name));
+                    int metricId = context.supplyTypeId(metric.name);
+                    int attributesId = 0;
 
                     LongConsumer writer = context.supplyMetricWriter(Metric.Kind.valueOf(metric.kind.toUpperCase()),
-                        binding.id, metricId);
+                        binding.id, metricId, attributesId);
 
                     writer.accept(metric.values[context.index()]);
                 }

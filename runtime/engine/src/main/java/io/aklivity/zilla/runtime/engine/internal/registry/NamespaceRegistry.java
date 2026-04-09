@@ -22,6 +22,8 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.R
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
@@ -34,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -51,7 +54,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -76,7 +79,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final Int2ObjectHashMap<StoreRegistry> storesById;
-    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
+    private final ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
     private final IntFunction<NamespaceRegistry> findNamespace;
@@ -95,7 +98,7 @@ public class NamespaceRegistry
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
-        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector)
     {
@@ -181,11 +184,21 @@ public class NamespaceRegistry
         MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
         if (config.metricIds != null)
         {
+            List<AttributeConfig> bindingAttributes = config.telemetryRef != null &&
+                config.telemetryRef.attributes != null
+                ? config.telemetryRef.attributes
+                : Collections.emptyList();
+
             for (long metricId : config.metricIds)
             {
                 MetricRegistry metric = supplyMetric.apply(metricId);
-                LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
-                MessageConsumer handler = metric.supplyHandler(metricRecorder);
+                int localMetricId = NamespacedId.localId(metricId);
+                IntFunction<LongConsumer> recorderByAttrs = attrId ->
+                    supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId);
+                recorderByAttrs.apply(0); // eagerly create default slot in layout
+                MessageConsumer handler = bindingAttributes.isEmpty()
+                    ? metric.supplyHandler(recorderByAttrs.apply(0))
+                    : metric.supplyHandler(recorderByAttrs, bindingAttributes, supplyLabelId);
                 MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
                 MetricContext.Direction direction = metric.direction();
                 if (kind == ROUTED)

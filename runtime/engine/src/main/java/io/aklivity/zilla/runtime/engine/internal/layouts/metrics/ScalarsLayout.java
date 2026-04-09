@@ -28,14 +28,15 @@ import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
+import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public abstract class ScalarsLayout extends MetricsLayout
 {
-    // We use the buffer to store structs {long bindingId, long metricId, long value}
-    private static final int RECORD_SIZE = 3 * FIELD_SIZE;
+    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long value (8) = 24 bytes
+    private static final int RECORD_SIZE = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT + BitUtil.SIZE_OF_LONG;
 
     protected ScalarsLayout(
         AtomicBuffer buffer)
@@ -46,16 +47,18 @@ public abstract class ScalarsLayout extends MetricsLayout
     @Override
     public abstract LongConsumer supplyWriter(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     @Override
     public LongSupplier supplyReader(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        int index = findPosition(bindingId, metricId);
+        int index = findPosition(bindingId, metricId, attributesId);
         LongSupplier reader;
-        if (index == -1) // not found
+        if (index == -1)
         {
             reader = () -> 0L;
         }
@@ -69,7 +72,8 @@ public abstract class ScalarsLayout extends MetricsLayout
     @Override
     public LongSupplier[] supplyReaders(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         throw new RuntimeException("not implemented");
     }
@@ -77,12 +81,14 @@ public abstract class ScalarsLayout extends MetricsLayout
     @Override
     protected void createRecord(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int index)
     {
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
-        buffer.putLong(index + METRIC_ID_OFFSET, metricId);
-        buffer.putLong(index + VALUE_OFFSET, 0L); // initial value
+        buffer.putInt(index + METRIC_ID_OFFSET, metricId);
+        buffer.putInt(index + ATTRIBUTES_ID_OFFSET, attributesId);
+        buffer.putLong(index + VALUE_OFFSET, 0L);
     }
 
     @Override

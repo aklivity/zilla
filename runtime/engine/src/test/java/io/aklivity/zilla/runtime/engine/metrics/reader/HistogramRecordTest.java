@@ -58,11 +58,12 @@ public class HistogramRecordTest
         // GIVEN
         LongFunction<String> labelResolver = mock(LongFunction.class);
         long bindingId = NamespacedId.id(77, 7);
-        long metricId = NamespacedId.id(77, 8);
+        int metricId = 8;
+        int attributesId = 0;
         when(labelResolver.apply(77L)).thenReturn("namespace1");
         when(labelResolver.apply(bindingId)).thenReturn("binding1");
-        when(labelResolver.apply(metricId)).thenReturn("metric1");
-        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, READER_HISTOGRAM, labelResolver);
+        when(labelResolver.apply((long) metricId)).thenReturn("metric1");
+        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, attributesId, READER_HISTOGRAM, labelResolver);
 
         // WHEN
         histogram.update();
@@ -92,8 +93,9 @@ public class HistogramRecordTest
         // GIVEN
         LongFunction<String> labelResolver = mock(LongFunction.class);
         long bindingId = NamespacedId.id(77, 7);
-        long metricId = NamespacedId.id(77, 8);
-        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, READER_HISTOGRAM_MS, labelResolver);
+        int metricId = 8;
+        int attributesId = 0;
+        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, attributesId, READER_HISTOGRAM_MS, labelResolver);
 
         // WHEN
         histogram.update();
@@ -119,7 +121,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{};
-        HistogramRecord histogram = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord histogram = new HistogramRecord(0L, 0, 0, readers, null);
 
         // WHEN
         long[] stats = histogram.stats();

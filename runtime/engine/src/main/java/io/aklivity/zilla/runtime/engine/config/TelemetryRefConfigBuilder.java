@@ -24,6 +24,7 @@ public final class TelemetryRefConfigBuilder<T> extends ConfigBuilder<T, Telemet
     private final Function<TelemetryRefConfig, T> mapper;
 
     private List<MetricRefConfig> metrics;
+    private List<AttributeConfig> attributes;
 
     TelemetryRefConfigBuilder(
         Function<TelemetryRefConfig, T> mapper)
@@ -54,9 +55,25 @@ public final class TelemetryRefConfigBuilder<T> extends ConfigBuilder<T, Telemet
         return this;
     }
 
+    public AttributeConfigBuilder<TelemetryRefConfigBuilder<T>> attribute()
+    {
+        return new AttributeConfigBuilder<>(this::attribute);
+    }
+
+    public TelemetryRefConfigBuilder<T> attribute(
+        AttributeConfig attribute)
+    {
+        if (attributes == null)
+        {
+            attributes = new LinkedList<>();
+        }
+        attributes.add(attribute);
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TelemetryRefConfig(metrics));
+        return mapper.apply(new TelemetryRefConfig(metrics, attributes));
     }
 }

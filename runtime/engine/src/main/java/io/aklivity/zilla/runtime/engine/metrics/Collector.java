@@ -22,13 +22,8 @@ import java.util.function.LongSupplier;
  * <p>
  * A {@code Collector} is supplied to {@link ExporterContext#attach} and gives the exporter
  * a snapshot view of all counter, gauge, and histogram values currently held by the engine.
- * Values are accessed by {@code (bindingId, metricId)} pairs; the complete set of active
- * id pairs is enumerated via the {@code *Ids()} methods.
- * </p>
- * <p>
- * Metric values are read via {@link java.util.function.LongSupplier} instances rather than
- * direct longs, allowing the engine to return live-reading suppliers backed by the underlying
- * storage without requiring a snapshot copy.
+ * Values are accessed by {@code (bindingId, metricId, attributesId)} triples; the complete
+ * set of active triples is enumerated via the {@code *Ids()} methods.
  * </p>
  *
  * @see ExporterContext
@@ -37,62 +32,68 @@ public interface Collector
 {
     /**
      * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
-     * counter metric identified by {@code (bindingId, metricId)}.
+     * counter metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return a supplier for the current counter value
      */
     LongSupplier counter(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
-     * gauge metric identified by {@code (bindingId, metricId)}.
+     * gauge metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return a supplier for the current gauge value
      */
     LongSupplier gauge(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns an array of {@link java.util.function.LongSupplier}s, one per histogram bucket,
-     * for the histogram metric identified by {@code (bindingId, metricId)}.
+     * for the histogram metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return an array of suppliers, one per histogram bucket
      */
     LongSupplier[] histogram(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
-     * Returns all active {@code (bindingId, metricId)} pairs for counter metrics.
+     * Returns all active {@code (bindingId, metricId, attributesId)} triples for counter metrics.
      * <p>
-     * Each element of the outer array is a two-element {@code long[]} containing
-     * {@code {bindingId, metricId}}.
+     * Each element of the outer array is a three-element {@code long[]} containing
+     * {@code {bindingId, (long)metricId, (long)attributesId}}.
      * </p>
      *
-     * @return array of {@code {bindingId, metricId}} pairs for all active counters
+     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active counters
      */
     long[][] counterIds();
 
     /**
-     * Returns all active {@code (bindingId, metricId)} pairs for gauge metrics.
+     * Returns all active {@code (bindingId, metricId, attributesId)} triples for gauge metrics.
      *
-     * @return array of {@code {bindingId, metricId}} pairs for all active gauges
+     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active gauges
      */
     long[][] gaugeIds();
 
     /**
-     * Returns all active {@code (bindingId, metricId)} pairs for histogram metrics.
+     * Returns all active {@code (bindingId, metricId, attributesId)} triples for histogram metrics.
      *
-     * @return array of {@code {bindingId, metricId}} pairs for all active histograms
+     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active histograms
      */
     long[][] histogramIds();
 }
