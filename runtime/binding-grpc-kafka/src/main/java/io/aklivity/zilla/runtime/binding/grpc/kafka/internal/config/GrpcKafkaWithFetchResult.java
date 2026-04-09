@@ -16,13 +16,13 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class GrpcKafkaWithFetchResult
 {

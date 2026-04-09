@@ -26,8 +26,8 @@ import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 
 public class OctetsFWTest
 {

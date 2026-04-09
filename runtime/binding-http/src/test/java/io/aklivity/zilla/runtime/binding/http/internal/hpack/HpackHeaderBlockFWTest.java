@@ -28,8 +28,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
 
 public class HpackHeaderBlockFWTest
 {
@@ -303,9 +303,6 @@ public class HpackHeaderBlockFWTest
         assertEquals("www.example.com", headers.get(":authority"));
         assertEquals("custom-value", headers.get("custom-key"));
     }
-
-
-
 
     // Test for encoding "C.3.  Request Examples without Huffman Coding"
     @Test

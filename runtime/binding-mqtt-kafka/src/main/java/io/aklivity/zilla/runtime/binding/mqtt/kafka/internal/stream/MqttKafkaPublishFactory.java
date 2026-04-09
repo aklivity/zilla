@@ -35,6 +35,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
@@ -77,7 +78,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.Window
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 {
@@ -379,7 +379,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 topicNameHeadersRW.item(h -> h.set(topicHeader));
             }
             this.topicNameHeaders = topicNameHeadersRW.build();
-
 
             final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
             final MutableDirectBuffer keyBuffer = new SafeBuffer(new byte[topicNameBuffer.capacity() + 4]);
@@ -978,7 +977,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     {
         return (publishFlags & PUBLISH_FLAGS_RETAINED_MASK) != 0;
     }
-
 
     public abstract class KafkaProxy
     {
@@ -1612,7 +1610,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-
             if (wasOpen)
             {
                 delegate.doMqttWindow(traceId, authorization, budgetId, padding, capabilities);
@@ -1758,7 +1755,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int replyMax;
         private int replyPad;
         private boolean retainAvailable;
-
 
         private KafkaOffsetCommitStream(
             long originId,
@@ -2187,7 +2183,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
                     .ackMode(b -> b.set(ackMode)))
                 .build();
-
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)

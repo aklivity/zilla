@@ -47,9 +47,9 @@ import javax.el.FunctionMapper;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.stream.ProxyBeginExFW;
 
@@ -460,7 +460,6 @@ public class ProxyFunctionsTest
 
         assertNotNull(matcher.match(byteBuf));
     }
-
 
     @Test
     public void shouldMatchInetBeginExtensionSource() throws Exception

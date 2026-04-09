@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.PotentialNameConflictsFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.PotentialNameConflictsFW;
 
 public class PotentialNameConflitsFWTest
 {

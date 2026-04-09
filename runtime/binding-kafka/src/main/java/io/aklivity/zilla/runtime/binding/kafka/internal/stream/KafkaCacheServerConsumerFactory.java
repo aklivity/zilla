@@ -30,6 +30,7 @@ import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.collections.ObjectHashSet;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -61,7 +62,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaCacheServerConsumerFactory implements BindingHandler
 {
@@ -566,7 +566,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private int timeout;
         private int generationId;
 
-
         private KafkaCacheServerConsumerFanout(
             long originId,
             long routedId,
@@ -770,7 +769,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             onConsumerFanClosed(traceId);
         }
-
 
         private void onConsumerInitialWindow(
             WindowFW window)
@@ -1157,7 +1155,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private final long authorization;
 
         private int state;
-
 
         private long initialSeq;
         private long initialAck;
@@ -1620,7 +1617,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             doOffsetCommitReplyReset(traceId);
         }
-
 
         private void onOffsetCommitInitialWindow(
             WindowFW window)

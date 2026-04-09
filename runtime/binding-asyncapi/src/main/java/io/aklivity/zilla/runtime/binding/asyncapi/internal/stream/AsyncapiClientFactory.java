@@ -20,6 +20,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
@@ -43,7 +44,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
@@ -83,7 +83,6 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final long compositeRouteId;
     private final AsyncapiCompositeGenerator generator;
     private final AsyncapiEventContext event;
-
 
     public AsyncapiClientFactory(
         AsyncapiConfiguration config,
@@ -662,7 +661,6 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             delegate.doCompositeReset(traceId);
         }
-
 
         private void onCompositeWindow(
             WindowFW window)

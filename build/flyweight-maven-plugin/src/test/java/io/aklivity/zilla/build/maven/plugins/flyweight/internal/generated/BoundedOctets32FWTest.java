@@ -27,8 +27,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets32FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets32FW;
 
 public class BoundedOctets32FWTest
 {
@@ -45,7 +45,6 @@ public class BoundedOctets32FWTest
     private final BoundedOctets32FW flyweightRO = new BoundedOctets32FW();
 
     private final int lengthSize = Integer.BYTES;
-
 
     private int setValue(
         MutableDirectBuffer buffer,

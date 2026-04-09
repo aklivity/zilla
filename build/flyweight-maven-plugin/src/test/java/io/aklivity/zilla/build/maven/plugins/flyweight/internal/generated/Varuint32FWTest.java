@@ -22,8 +22,8 @@ import static org.junit.Assert.assertNull;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varuint32FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varuint32FW;
 
 public class Varuint32FWTest
 {

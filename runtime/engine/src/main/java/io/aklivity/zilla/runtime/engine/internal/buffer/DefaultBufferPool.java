@@ -51,7 +51,6 @@ public class DefaultBufferPool implements BufferPool
     private final MutableInteger availableSlots;
     private final int usedIndex;
 
-
     public DefaultBufferPool(
         int poolCapacity,
         int slotCapacity)

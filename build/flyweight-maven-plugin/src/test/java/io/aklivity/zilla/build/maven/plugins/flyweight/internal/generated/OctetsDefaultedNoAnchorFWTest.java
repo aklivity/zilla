@@ -22,8 +22,8 @@ import static org.junit.Assert.assertNull;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.OctetsDefaultedNoAnchorFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.OctetsDefaultedNoAnchorFW;
 
 public class OctetsDefaultedNoAnchorFWTest
 {
@@ -35,7 +35,6 @@ public class OctetsDefaultedNoAnchorFWTest
         }
     };
     private final OctetsDefaultedNoAnchorFW octetsDefaultedNoAnchorRO = new OctetsDefaultedNoAnchorFW();
-
 
     @Test
     public void shouldWrapWithNullPayload() throws Exception

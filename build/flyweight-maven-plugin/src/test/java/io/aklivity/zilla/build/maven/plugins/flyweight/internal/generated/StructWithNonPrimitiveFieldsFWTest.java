@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint8;
@@ -35,7 +36,6 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.StructWithNonPrimitiveFieldsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfInt8FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class StructWithNonPrimitiveFieldsFWTest
 {
@@ -98,7 +98,6 @@ public class StructWithNonPrimitiveFieldsFWTest
         buffer.putByte(offsetVariantFieldValue, (byte) 10);
         return Byte.BYTES + offsetVariantFieldValue - offset;
     }
-
 
     @Test
     public void shouldNotWrapWhenLengthInsufficientForMinimumRequiredLength()

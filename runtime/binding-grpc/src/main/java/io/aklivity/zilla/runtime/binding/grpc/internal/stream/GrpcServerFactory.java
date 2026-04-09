@@ -32,6 +32,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
@@ -68,7 +69,6 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class GrpcServerFactory implements GrpcStreamFactory
 {
@@ -150,7 +150,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
     private final int grpcTypeId;
     private final int httpTypeId;
-
 
     enum ContentType
     {
@@ -1235,7 +1234,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             delegate.doNetAbort(traceId, authorization, status, message);
         }
-
 
         private void doAppReset(
             long traceId,

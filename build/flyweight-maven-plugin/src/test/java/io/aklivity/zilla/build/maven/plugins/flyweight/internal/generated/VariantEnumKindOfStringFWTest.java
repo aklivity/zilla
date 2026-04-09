@@ -25,11 +25,11 @@ import static org.junit.Assert.assertSame;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class VariantEnumKindOfStringFWTest
 {
@@ -48,7 +48,6 @@ public class VariantEnumKindOfStringFWTest
 
     private final VariantEnumKindOfStringFW.Builder flyweightRW = new VariantEnumKindOfStringFW.Builder();
     private final VariantEnumKindOfStringFW flyweightRO = new VariantEnumKindOfStringFW();
-
 
     static int setAllTestValues(
         MutableDirectBuffer buffer,

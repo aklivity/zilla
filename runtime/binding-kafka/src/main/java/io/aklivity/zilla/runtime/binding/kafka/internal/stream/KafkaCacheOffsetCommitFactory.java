@@ -22,6 +22,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -41,7 +42,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 {
@@ -427,7 +427,6 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
-
         private void doOffsetCommitInitialEnd(
             long traceId)
         {
@@ -470,7 +469,6 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 
             delegate.doOffsetCommitInitialReset(traceId, extension);
         }
-
 
         private void onOffsetCommitInitialWindow(
             WindowFW window)
