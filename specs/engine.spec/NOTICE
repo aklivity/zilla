@@ -21,6 +21,7 @@ This project includes:
   JUnit under Eclipse Public License 1.0
   k3po::runtime::lang under The Apache Software License, Version 2.0
   org.leadpony.justify under The Apache Software License, Version 2.0
+  zilla::runtime::common-agrona under The Apache Software License, Version 2.0
 
 
 This project also includes code under copyright of the following entities:
