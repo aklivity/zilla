@@ -16,28 +16,27 @@
 package io.aklivity.zilla.runtime.engine.internal.concurent;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
 import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-class SafeBufferTest
+public class SafeBufferTest
 {
     // -----------------------------------------------------------------------
     // Construction and wrap
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldWrapByteArray()
+    public void shouldWrapByteArray()
     {
         final byte[] array = new byte[64];
         final SafeBuffer buffer = new SafeBuffer(array);
@@ -51,7 +50,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapByteArrayWithOffset()
+    public void shouldWrapByteArrayWithOffset()
     {
         final byte[] array = new byte[64];
         final SafeBuffer buffer = new SafeBuffer(array, 8, 32);
@@ -62,7 +61,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapHeapByteBuffer()
+    public void shouldWrapHeapByteBuffer()
     {
         final ByteBuffer bb = ByteBuffer.allocate(64);
         final SafeBuffer buffer = new SafeBuffer(bb);
@@ -73,7 +72,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapDirectByteBuffer()
+    public void shouldWrapDirectByteBuffer()
     {
         final ByteBuffer bb = ByteBuffer.allocateDirect(64);
         final SafeBuffer buffer = new SafeBuffer(bb);
@@ -84,7 +83,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapDirectByteBufferWithOffset()
+    public void shouldWrapDirectByteBufferWithOffset()
     {
         final ByteBuffer bb = ByteBuffer.allocateDirect(64);
         final SafeBuffer buffer = new SafeBuffer(bb, 16, 32);
@@ -94,7 +93,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapAnotherSafeBuffer()
+    public void shouldWrapAnotherSafeBuffer()
     {
         final SafeBuffer original = new SafeBuffer(new byte[64]);
         original.putInt(0, 42);
@@ -105,7 +104,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapAnotherSafeBufferWithOffset()
+    public void shouldWrapAnotherSafeBufferWithOffset()
     {
         final SafeBuffer original = new SafeBuffer(new byte[64]);
         original.putInt(8, 99);
@@ -116,7 +115,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapUnsafeBufferBackedByArray()
+    public void shouldWrapUnsafeBufferBackedByArray()
     {
         final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(new byte[64]);
         unsafeBuffer.putInt(4, 123);
@@ -127,7 +126,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapUnsafeBufferBackedByDirectByteBuffer()
+    public void shouldWrapUnsafeBufferBackedByDirectByteBuffer()
     {
         final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocateDirect(64));
         unsafeBuffer.putInt(4, 456);
@@ -137,14 +136,14 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldWrapDefaultConstructor()
+    public void shouldWrapDefaultConstructor()
     {
         final SafeBuffer buffer = new SafeBuffer();
         assertEquals(0, buffer.capacity());
     }
 
     @Test
-    void shouldReWrap()
+    public void shouldReWrap()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[32]);
         assertEquals(32, buffer.capacity());
@@ -154,7 +153,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldExposeSegment()
+    public void shouldExposeSegment()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[16]);
         final MemorySegment seg = buffer.segment();
@@ -168,7 +167,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutInt()
+    public void shouldGetAndPutInt()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -187,7 +186,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutLong()
+    public void shouldGetAndPutLong()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -203,7 +202,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutShort()
+    public void shouldGetAndPutShort()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -219,7 +218,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutByte()
+    public void shouldGetAndPutByte()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -235,7 +234,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutDouble()
+    public void shouldGetAndPutDouble()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -251,7 +250,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutFloat()
+    public void shouldGetAndPutFloat()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -264,7 +263,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutChar()
+    public void shouldGetAndPutChar()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -277,7 +276,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutIntBigEndian()
+    public void shouldGetAndPutIntBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -292,7 +291,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutLongBigEndian()
+    public void shouldGetAndPutLongBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -301,7 +300,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutShortBigEndian()
+    public void shouldGetAndPutShortBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -310,7 +309,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutDoubleBigEndian()
+    public void shouldGetAndPutDoubleBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -319,7 +318,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutFloatBigEndian()
+    public void shouldGetAndPutFloatBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -328,7 +327,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutCharBigEndian()
+    public void shouldGetAndPutCharBigEndian()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
 
@@ -341,7 +340,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutByteArray()
+    public void shouldGetAndPutByteArray()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         final byte[] src = {1, 2, 3, 4, 5};
@@ -354,7 +353,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutByteArrayWithOffset()
+    public void shouldGetAndPutByteArrayWithOffset()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         final byte[] src = {0, 0, 1, 2, 3};
@@ -369,7 +368,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutBytesFromDirectBuffer()
+    public void shouldPutBytesFromDirectBuffer()
     {
         final SafeBuffer src = new SafeBuffer(new byte[64]);
         src.putInt(0, 0xDEADBEEF);
@@ -381,7 +380,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutBytesFromUnsafeBuffer()
+    public void shouldPutBytesFromUnsafeBuffer()
     {
         final UnsafeBuffer src = new UnsafeBuffer(new byte[64]);
         src.putInt(0, 0xCAFEBABE);
@@ -393,7 +392,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetBytesToByteBuffer()
+    public void shouldGetBytesToByteBuffer()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.putBytes(0, new byte[]{10, 20, 30, 40});
@@ -408,7 +407,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutBytesFromByteBuffer()
+    public void shouldPutBytesFromByteBuffer()
     {
         final ByteBuffer src = ByteBuffer.allocate(8);
         src.put(new byte[]{10, 20, 30, 40});
@@ -422,7 +421,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetBytesToMutableDirectBuffer()
+    public void shouldGetBytesToMutableDirectBuffer()
     {
         final SafeBuffer src = new SafeBuffer(new byte[64]);
         src.putInt(0, 42);
@@ -438,7 +437,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldSetMemory()
+    public void shouldSetMemory()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.setMemory(0, 16, (byte) 0xFF);
@@ -455,7 +454,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutIntVolatile()
+    public void shouldGetAndPutIntVolatile()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -464,7 +463,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutIntOrdered()
+    public void shouldPutIntOrdered()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -473,7 +472,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCompareAndSetInt()
+    public void shouldCompareAndSetInt()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -486,7 +485,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndAddInt()
+    public void shouldGetAndAddInt()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -498,7 +497,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndSetInt()
+    public void shouldGetAndSetInt()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -510,7 +509,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldAddIntOrdered()
+    public void shouldAddIntOrdered()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -526,7 +525,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutLongVolatile()
+    public void shouldGetAndPutLongVolatile()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -535,7 +534,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutLongOrdered()
+    public void shouldPutLongOrdered()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -544,7 +543,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCompareAndSetLong()
+    public void shouldCompareAndSetLong()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -557,7 +556,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndAddLong()
+    public void shouldGetAndAddLong()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -569,7 +568,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndSetLong()
+    public void shouldGetAndSetLong()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -581,7 +580,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldAddLongOrdered()
+    public void shouldAddLongOrdered()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -597,7 +596,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutLongAcquireRelease()
+    public void shouldGetAndPutLongAcquireRelease()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -606,7 +605,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutLongOpaque()
+    public void shouldGetAndPutLongOpaque()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -615,7 +614,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutIntAcquireRelease()
+    public void shouldGetAndPutIntAcquireRelease()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -624,7 +623,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutIntOpaque()
+    public void shouldGetAndPutIntOpaque()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -633,7 +632,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCompareAndExchangeInt()
+    public void shouldCompareAndExchangeInt()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -645,7 +644,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCompareAndExchangeLong()
+    public void shouldCompareAndExchangeLong()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -657,7 +656,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldAddIntRelease()
+    public void shouldAddIntRelease()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -669,7 +668,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldAddLongRelease()
+    public void shouldAddLongRelease()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -685,7 +684,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutShortVolatile()
+    public void shouldGetAndPutShortVolatile()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -694,7 +693,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutCharVolatile()
+    public void shouldGetAndPutCharVolatile()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -703,7 +702,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutByteVolatile()
+    public void shouldGetAndPutByteVolatile()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
 
@@ -715,51 +714,67 @@ class SafeBufferTest
     // Bounds checking
     // -----------------------------------------------------------------------
 
-    @Test
-    void shouldThrowOnGetIntOutOfBounds()
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnGetIntOutOfBounds()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[8]);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.getInt(8));
+        buffer.getInt(8);
     }
 
-    @Test
-    void shouldThrowOnPutIntOutOfBounds()
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnPutIntOutOfBounds()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[8]);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.putInt(8, 0));
+        buffer.putInt(8, 0);
     }
 
-    @Test
-    void shouldThrowOnGetLongOutOfBounds()
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnGetLongOutOfBounds()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[4]);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.getLong(0));
+        buffer.getLong(0);
     }
 
-    @Test
-    void shouldThrowOnNegativeIndex()
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnNegativeIndex()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.getInt(-1));
+        buffer.getInt(-1);
     }
 
     @Test
-    void shouldCheckLimit()
+    public void shouldCheckLimit()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[16]);
+        buffer.checkLimit(16);
+    }
 
-        buffer.checkLimit(16); // should not throw
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.checkLimit(17));
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnCheckLimitExceeded()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[16]);
+        buffer.checkLimit(17);
     }
 
     @Test
-    void shouldBoundsCheck()
+    public void shouldBoundsCheck()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[16]);
+        buffer.boundsCheck(0, 16);
+    }
 
-        buffer.boundsCheck(0, 16); // should not throw
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.boundsCheck(0, 17));
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.boundsCheck(-1, 4));
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnBoundsCheckExceeded()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[16]);
+        buffer.boundsCheck(0, 17);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void shouldThrowOnBoundsCheckNegativeIndex()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[16]);
+        buffer.boundsCheck(-1, 4);
     }
 
     // -----------------------------------------------------------------------
@@ -767,7 +782,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldGetAndPutStringAscii()
+    public void shouldGetAndPutStringAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
 
@@ -777,7 +792,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutStringAsciiWithByteOrder()
+    public void shouldGetAndPutStringAsciiWithByteOrder()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
 
@@ -786,7 +801,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutStringWithoutLengthAscii()
+    public void shouldGetAndPutStringWithoutLengthAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
 
@@ -796,7 +811,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldGetAndPutStringUtf8()
+    public void shouldGetAndPutStringUtf8()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
 
@@ -805,7 +820,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutStringWithoutLengthAsciiWithOffset()
+    public void shouldPutStringWithoutLengthAsciiWithOffset()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
 
@@ -815,7 +830,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldAppendStringAscii()
+    public void shouldAppendStringAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
         buffer.putStringAscii(0, "test");
@@ -827,7 +842,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutNullStringAscii()
+    public void shouldPutNullStringAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);
         final int written = buffer.putStringWithoutLengthAscii(0, (String) null);
@@ -839,7 +854,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldParseNaturalIntAscii()
+    public void shouldParseNaturalIntAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.putStringWithoutLengthAscii(0, "12345");
@@ -847,7 +862,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldParseIntAsciiNegative()
+    public void shouldParseIntAsciiNegative()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.putStringWithoutLengthAscii(0, "-42");
@@ -855,7 +870,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldParseLongAscii()
+    public void shouldParseLongAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.putStringWithoutLengthAscii(0, "9876543210");
@@ -863,7 +878,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutIntAscii()
+    public void shouldPutIntAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         final int written = buffer.putIntAscii(0, -99);
@@ -872,7 +887,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutNaturalIntAscii()
+    public void shouldPutNaturalIntAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         final int written = buffer.putNaturalIntAscii(0, 42);
@@ -881,7 +896,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutNaturalPaddedIntAscii()
+    public void shouldPutNaturalPaddedIntAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         buffer.putNaturalPaddedIntAscii(0, 5, 42);
@@ -889,7 +904,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldPutNaturalLongAscii()
+    public void shouldPutNaturalLongAscii()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[64]);
         final int written = buffer.putNaturalLongAscii(0, 123456789L);
@@ -901,7 +916,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldBeByteCompatibleWithUnsafeBuffer()
+    public void shouldBeByteCompatibleWithUnsafeBuffer()
     {
         final byte[] backing = new byte[64];
         final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(backing);
@@ -915,7 +930,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCopyBetweenSafeAndUnsafe()
+    public void shouldCopyBetweenSafeAndUnsafe()
     {
         final SafeBuffer safe = new SafeBuffer(new byte[64]);
         safe.putInt(0, 111);
@@ -933,7 +948,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldCompareBuffers()
+    public void shouldCompareBuffers()
     {
         final SafeBuffer a = new SafeBuffer(new byte[]{1, 2, 3});
         final SafeBuffer b = new SafeBuffer(new byte[]{1, 2, 4});
@@ -945,7 +960,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldCompareBuffersOfDifferentLength()
+    public void shouldCompareBuffersOfDifferentLength()
     {
         final SafeBuffer shorter = new SafeBuffer(new byte[]{1, 2});
         final SafeBuffer longer = new SafeBuffer(new byte[]{1, 2, 3});
@@ -955,7 +970,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldBeEqualForSameContent()
+    public void shouldBeEqualForSameContent()
     {
         final SafeBuffer a = new SafeBuffer(new byte[]{1, 2, 3, 4});
         final SafeBuffer b = new SafeBuffer(new byte[]{1, 2, 3, 4});
@@ -965,7 +980,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldNotBeEqualForDifferentContent()
+    public void shouldNotBeEqualForDifferentContent()
     {
         final SafeBuffer a = new SafeBuffer(new byte[]{1, 2, 3});
         final SafeBuffer b = new SafeBuffer(new byte[]{1, 2, 4});
@@ -974,7 +989,7 @@ class SafeBufferTest
     }
 
     @Test
-    void shouldNotBeEqualForDifferentCapacity()
+    public void shouldNotBeEqualForDifferentCapacity()
     {
         final SafeBuffer a = new SafeBuffer(new byte[]{1, 2});
         final SafeBuffer b = new SafeBuffer(new byte[]{1, 2, 3});
@@ -987,7 +1002,7 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldToString()
+    public void shouldToString()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[32]);
         assertEquals("SafeBuffer{capacity=32}", buffer.toString());
@@ -998,10 +1013,9 @@ class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    void shouldVerifyAlignmentOnAlignedBuffer()
+    public void shouldVerifyAlignmentOnAlignedBuffer()
     {
         final SafeBuffer buffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
-        // Direct buffers are typically 8-byte aligned; should not throw
         buffer.verifyAlignment();
     }
 }
