@@ -37,7 +37,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>common</artifactId>
+      <artifactId>common-feature</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-agrona</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -358,7 +363,8 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
-              <include>io.aklivity.zilla:common</include>
+              <include>io.aklivity.zilla:common-feature</include>
+              <include>io.aklivity.zilla:common-agrona</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

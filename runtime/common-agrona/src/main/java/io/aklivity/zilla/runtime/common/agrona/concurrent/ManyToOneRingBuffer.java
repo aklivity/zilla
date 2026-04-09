@@ -28,7 +28,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.concurent;
+package io.aklivity.zilla.runtime.common.agrona.concurrent;
 
 import static org.agrona.BitUtil.align;
 import static org.agrona.concurrent.ControlledMessageHandler.Action.ABORT;

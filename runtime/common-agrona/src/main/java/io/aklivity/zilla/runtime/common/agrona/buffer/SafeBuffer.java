@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.concurrent;
+package io.aklivity.zilla.runtime.common.agrona.buffer;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -35,7 +35,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 
 /**
  * An {@link AtomicBufferEx} implementation backed by Java's {@link MemorySegment}

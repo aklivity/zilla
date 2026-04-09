@@ -28,7 +28,7 @@ import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class MetricsLayout extends Layout
 {

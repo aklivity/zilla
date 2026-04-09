@@ -26,7 +26,7 @@ import org.agrona.concurrent.AtomicBuffer;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy.SpyPosition;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class StreamsLayout extends Layout
 {

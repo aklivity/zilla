@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfUint32FW;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class VariantEnumKindOfUint32FWTest
 {

@@ -69,7 +69,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.AmqpBeginExBuilder;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpPropertiesFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.stream.AmqpAbortExFW;

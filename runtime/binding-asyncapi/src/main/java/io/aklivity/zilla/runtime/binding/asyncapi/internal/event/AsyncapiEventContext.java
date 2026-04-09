@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiE
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class AsyncapiEventContext
 {

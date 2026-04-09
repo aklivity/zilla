@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.Filesys
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class FilesystemEventContext
 {
