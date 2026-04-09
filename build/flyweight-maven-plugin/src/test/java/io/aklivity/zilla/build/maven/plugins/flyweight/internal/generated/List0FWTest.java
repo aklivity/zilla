@@ -23,8 +23,8 @@ import static org.junit.Assert.assertSame;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.List0FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class List0FWTest
 {

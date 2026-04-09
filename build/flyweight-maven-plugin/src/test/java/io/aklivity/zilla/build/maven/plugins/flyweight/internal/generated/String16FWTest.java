@@ -33,8 +33,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 @RunWith(Parameterized.class)
 public class String16FWTest
