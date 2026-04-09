@@ -54,7 +54,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -238,8 +238,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     public ZillaDumpCommand()
     {
-        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
+        this.patchBuffer = new SafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
+        this.writeBuffer = new SafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
         this.initialByWorker = new Long2LongHashMap(0L);
     }
 
@@ -532,7 +532,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.supplyInstant = supplyInstant;
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
-            this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
+            this.labelsBuffer = new SafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
             this.sequence = new Long2LongHashMap(0L);
             this.crcCache = new Int2IntHashMap(0);
         }

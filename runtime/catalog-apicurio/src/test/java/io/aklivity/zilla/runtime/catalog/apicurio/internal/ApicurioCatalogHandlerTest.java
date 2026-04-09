@@ -24,7 +24,7 @@ import java.time.Duration;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
@@ -83,7 +83,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {
             0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73,
@@ -108,7 +108,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {
             0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73,
@@ -132,7 +132,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09,
@@ -158,7 +158,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {
             0x00, 0x00, 0x00, 0x00, 0x09,
@@ -183,7 +183,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        MutableDirectBuffer data = new UnsafeBuffer(new byte[SIZE_OF_DEFAULT_PREFIX + 13]);
+        MutableDirectBuffer data = new SafeBuffer(new byte[SIZE_OF_DEFAULT_PREFIX + 13]);
 
         data.putByte(0, (byte) 0);
 
@@ -211,7 +211,7 @@ public class ApicurioCatalogHandlerTest
 
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        MutableDirectBuffer data = new UnsafeBuffer(new byte[SIZE_OF_LEGACY_PREFIX + 13]);
+        MutableDirectBuffer data = new SafeBuffer(new byte[SIZE_OF_LEGACY_PREFIX + 13]);
 
         data.putByte(0, (byte) 0);
 

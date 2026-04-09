@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,7 +95,7 @@ public class AvroValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -134,7 +134,7 @@ public class AvroValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
@@ -170,7 +170,7 @@ public class AvroValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -210,7 +210,7 @@ public class AvroValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
@@ -244,7 +244,7 @@ public class AvroValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -280,7 +280,7 @@ public class AvroValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroValidatorHandler validator = new AvroValidatorHandler(config, model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);

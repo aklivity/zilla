@@ -20,14 +20,14 @@ import static java.lang.Integer.toHexString;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class SseEventFWTest
 {
     private static final int BUFFER_SIZE = 1024;
 
-    private final UnsafeBuffer actual = new UnsafeBuffer(allocateDirect(BUFFER_SIZE))
+    private final SafeBuffer actual = new SafeBuffer(allocateDirect(BUFFER_SIZE))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -35,7 +35,7 @@ public class SseEventFWTest
         }
     };
 
-    private final UnsafeBuffer expected = new UnsafeBuffer(allocateDirect(BUFFER_SIZE))
+    private final SafeBuffer expected = new SafeBuffer(allocateDirect(BUFFER_SIZE))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0

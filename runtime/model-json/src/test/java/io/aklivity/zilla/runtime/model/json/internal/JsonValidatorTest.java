@@ -25,7 +25,7 @@ import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,7 +99,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -142,7 +142,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -183,7 +183,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -227,7 +227,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -269,7 +269,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "[" +
@@ -356,7 +356,7 @@ public class JsonValidatorTest
               "status": "OK"
             }""".getBytes();
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
         data.wrap(event, 0, event.length);
 
         assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));

@@ -35,7 +35,7 @@ import java.util.zip.CRC32C;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -108,12 +108,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-        .wrap(new UnsafeBuffer(new byte[64]), 0, 64).build();
+        .wrap(new SafeBuffer(new byte[64]), 0, 64).build();
 
     private static final short PRODUCE_API_KEY = 0;
     private static final short PRODUCE_API_VERSION = 3;
@@ -207,8 +207,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;

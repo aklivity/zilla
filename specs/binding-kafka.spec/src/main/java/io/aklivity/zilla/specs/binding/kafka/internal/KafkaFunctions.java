@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -332,7 +332,7 @@ public final class KafkaFunctions
 
         private KafkaTransactionBuilder()
         {
-            MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+            MutableDirectBuffer buffer = new SafeBuffer(new byte[1024]);
             transactionRW.wrap(buffer, 0, buffer.capacity());
         }
 
@@ -379,13 +379,13 @@ public final class KafkaFunctions
     public abstract static class KafkaHeadersBuilder<T>
     {
         private final KafkaHeadersFW.Builder headersRW = new KafkaHeadersFW.Builder();
-        private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+        private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
         private KafkaHeadersBuilder(
             String name)
         {
-            MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+            MutableDirectBuffer buffer = new SafeBuffer(new byte[1024]);
             headersRW.wrap(buffer, 0, buffer.capacity());
             nameRO.wrap(name.getBytes(UTF_8));
 
@@ -474,13 +474,13 @@ public final class KafkaFunctions
     public abstract static class KafkaFilterBuilder<T>
     {
         private final KafkaFilterFW.Builder filterRW = new KafkaFilterFW.Builder();
-        private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+        private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+        private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
         private KafkaFilterBuilder()
         {
-            MutableDirectBuffer filterBuffer = new UnsafeBuffer(new byte[1024]);
+            MutableDirectBuffer filterBuffer = new SafeBuffer(new byte[1024]);
             filterRW.wrap(filterBuffer, 0, filterBuffer.capacity());
         }
 
@@ -657,7 +657,7 @@ public final class KafkaFunctions
 
     public static final class KafkaGroupMemberMetadataBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
         private final KafkaGroupMemberMetadataFW.Builder groupMemberMetadataRW =
             new KafkaGroupMemberMetadataFW.Builder();
 
@@ -690,7 +690,7 @@ public final class KafkaFunctions
 
         class KafkaTopicsBuilder
         {
-            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final KafkaGroupTopicMetadataFW.Builder topicsRW = new KafkaGroupTopicMetadataFW.Builder();
 
             KafkaTopicsBuilder(
@@ -719,7 +719,7 @@ public final class KafkaFunctions
 
     public static final class KafkaMemberAssignmentsBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentsRW =
             new Array32FW.Builder<>(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
@@ -746,9 +746,9 @@ public final class KafkaFunctions
 
         class KafkaMemberBuilder
         {
-            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer memberBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final MemberAssignmentFW.Builder assignmentRW = new MemberAssignmentFW.Builder();
-            private final MutableDirectBuffer topicAssignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer topicAssignmentBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentsRW =
                 new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
 
@@ -778,7 +778,7 @@ public final class KafkaFunctions
 
             class KafkaTopicAssignmentBuilder
             {
-                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final MutableDirectBuffer assignmentBuffer = new SafeBuffer(new byte[1024 * 8]);
                 TopicAssignmentFW.Builder assignmentRW = new TopicAssignmentFW.Builder();
 
                 KafkaTopicAssignmentBuilder()
@@ -818,7 +818,7 @@ public final class KafkaFunctions
 
                 class KafkaConsumerBuilder
                 {
-                    private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer consumerBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
                     KafkaConsumerBuilder()
                     {
@@ -855,7 +855,7 @@ public final class KafkaFunctions
 
     public static final class KafkaTopicAssignmentsBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
             new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
@@ -881,7 +881,7 @@ public final class KafkaFunctions
 
         class KafkaTopicBuilder
         {
-            private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final TopicAssignmentFW.Builder topicAssignmentRW = new TopicAssignmentFW.Builder();
             KafkaTopicBuilder()
             {
@@ -920,7 +920,7 @@ public final class KafkaFunctions
 
             class KafkaConsumerBuilder
             {
-                private final MutableDirectBuffer consumerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final MutableDirectBuffer consumerBuffer = new SafeBuffer(new byte[1024 * 8]);
                 private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
                 KafkaConsumerBuilder()
                 {
@@ -956,7 +956,7 @@ public final class KafkaFunctions
 
     public static final class KafkaBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
 
@@ -1165,7 +1165,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaCreateTopicFW.Builder topicRW = new KafkaCreateTopicFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1294,7 +1294,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer resourceBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
 
                     KafkaResourceBuilder()
@@ -1444,7 +1444,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaCreateTopicStatusFW.Builder topicRW = new KafkaCreateTopicStatusFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1520,7 +1520,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaDeleteTopicStatusFW.Builder topicRW = new KafkaDeleteTopicStatusFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1588,7 +1588,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer resourceBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaResourceStatusFW.Builder resourceRW = new KafkaResourceStatusFW.Builder();
 
                     KafkaResourceBuilder()
@@ -1711,7 +1711,7 @@ public final class KafkaFunctions
 
                     KafkaBrokerBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                         brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -2232,7 +2232,7 @@ public final class KafkaFunctions
         public final class KafkaConsumerBeginExBuilder
         {
             private final KafkaConsumerBeginExFW.Builder consumerBeginExRW = new KafkaConsumerBeginExFW.Builder();
-            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer partitionBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
                 new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
 
@@ -2443,7 +2443,7 @@ public final class KafkaFunctions
 
     public static final class KafkaDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final KafkaDataExFW dataExRO = new KafkaDataExFW();
 
@@ -2526,9 +2526,9 @@ public final class KafkaFunctions
         }
         public final class KafkaFetchDataExBuilder
         {
-            private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+            private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+            private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
             private final KafkaFetchDataExFW.Builder fetchDataExRW = new KafkaFetchDataExFW.Builder();
 
@@ -2687,9 +2687,9 @@ public final class KafkaFunctions
 
             public final class KafkaMergedFetchDataExBuilder
             {
-                private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+                private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+                private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
                 private final KafkaMergedFetchDataExFW.Builder mergedFetchDataExRW = new KafkaMergedFetchDataExFW.Builder();
 
@@ -2909,10 +2909,10 @@ public final class KafkaFunctions
 
             public final class KafkaMergedProduceDataExBuilder
             {
-                private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-                private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+                private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+                private final DirectBuffer hashKeyRO = new SafeBuffer(0, 0);
+                private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+                private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
                 private final KafkaMergedProduceDataExFW.Builder mergedProduceDataExRW =
                     new KafkaMergedProduceDataExFW.Builder();
@@ -3180,9 +3180,9 @@ public final class KafkaFunctions
 
         public final class KafkaProduceDataExBuilder
         {
-            private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-            private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+            private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+            private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
             private final KafkaProduceDataExFW.Builder produceDataExRW = new KafkaProduceDataExFW.Builder();
 
@@ -3320,7 +3320,7 @@ public final class KafkaFunctions
 
             public final class KafkaConsumerAssignmentBuilder
             {
-                private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final MutableDirectBuffer assignmentBuffer = new SafeBuffer(new byte[1024 * 8]);
                 private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
 
                 KafkaConsumerAssignmentBuilder()
@@ -3450,9 +3450,9 @@ public final class KafkaFunctions
 
     public static final class KafkaFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
-        private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer keyRO = new SafeBuffer(0, 0);
         private final KafkaFlushExFW flushExRO = new KafkaFlushExFW();
 
         private final KafkaFlushExFW.Builder flushExRW = new KafkaFlushExFW.Builder();
@@ -3901,7 +3901,7 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExBuilder
         {
-            private final MutableDirectBuffer memberBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            private final MutableDirectBuffer memberBuffer = new SafeBuffer(new byte[1024 * 8]);
             private final KafkaGroupFlushExFW.Builder flushGroupExRW = new KafkaGroupFlushExFW.Builder();
             private final Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> memberRW =
                 new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new  KafkaGroupMemberFW());
@@ -4015,7 +4015,7 @@ public final class KafkaFunctions
 
     public static final class KafkaResetExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final KafkaResetExFW resetExRO = new KafkaResetExFW();
 
@@ -4058,12 +4058,12 @@ public final class KafkaFunctions
 
     public static final class KafkaDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
-        private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer hashKeyRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer nameRO = new UnsafeBuffer(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer keyRO = new SafeBuffer(0, 0);
+        private final DirectBuffer hashKeyRO = new SafeBuffer(0, 0);
+        private final DirectBuffer nameRO = new SafeBuffer(0, 0);
+        private final DirectBuffer valueRO = new SafeBuffer(0, 0);
 
         private final KafkaDataExFW dataExRO = new KafkaDataExFW();
 
@@ -4226,7 +4226,7 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW
                     .partitionId(partitionId)
@@ -4241,7 +4241,7 @@ public final class KafkaFunctions
                 String key)
             {
                 assert keyRW == null;
-                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 if (key == null)
                 {
@@ -4263,7 +4263,7 @@ public final class KafkaFunctions
                 long ancestorOffset)
             {
                 assert deltaRW == null;
-                deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                deltaRW = new KafkaDeltaFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
 
@@ -4277,7 +4277,7 @@ public final class KafkaFunctions
                 if (headersRW == null)
                 {
                     this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 if (value == null)
@@ -4446,7 +4446,7 @@ public final class KafkaFunctions
                 String key)
             {
                 assert keyRW == null;
-                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 if (key == null)
                 {
@@ -4470,7 +4470,7 @@ public final class KafkaFunctions
                 if (headersRW == null)
                 {
                     this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                                                  .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                                  .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 if (value == null)
@@ -4644,7 +4644,7 @@ public final class KafkaFunctions
                     long latestOffset)
                 {
                     assert partitionRW == null;
-                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
 
@@ -4667,7 +4667,7 @@ public final class KafkaFunctions
                     if (progressRW == null)
                     {
                         this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
                     return this;
@@ -4677,7 +4677,7 @@ public final class KafkaFunctions
                     String key)
                 {
                     assert keyRW == null;
-                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     if (key == null)
                     {
@@ -4699,7 +4699,7 @@ public final class KafkaFunctions
                     long ancestorOffset)
                 {
                     assert deltaRW == null;
-                    deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    deltaRW = new KafkaDeltaFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
 
@@ -4713,7 +4713,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     if (value == null)
@@ -4743,7 +4743,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     headersRW.item(i -> i.nameLen(nameRO.capacity())
@@ -4760,7 +4760,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
@@ -4778,7 +4778,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
@@ -4796,7 +4796,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
@@ -4814,7 +4814,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
@@ -4832,7 +4832,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     if (value == null)
@@ -4984,7 +4984,7 @@ public final class KafkaFunctions
                     long latestOffset)
                 {
                     assert partitionRW == null;
-                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
 
@@ -5007,7 +5007,7 @@ public final class KafkaFunctions
                     if (progressRW == null)
                     {
                         this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
                     return this;
@@ -5017,7 +5017,7 @@ public final class KafkaFunctions
                     String key)
                 {
                     assert keyRW == null;
-                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     if (key == null)
                     {
@@ -5039,7 +5039,7 @@ public final class KafkaFunctions
                     String hashKey)
                 {
                     assert hashKeyRW == null;
-                    hashKeyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    hashKeyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     if (hashKey == null)
                     {
@@ -5061,7 +5061,7 @@ public final class KafkaFunctions
                     long ancestorOffset)
                 {
                     assert deltaRW == null;
-                    deltaRW = new KafkaDeltaFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    deltaRW = new KafkaDeltaFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     deltaRW.type(t -> t.set(KafkaDeltaType.valueOf(delta))).ancestorOffset(ancestorOffset);
 
@@ -5075,7 +5075,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     if (value == null)
@@ -5105,7 +5105,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     headersRW.item(i -> i.nameLen(nameRO.capacity())
@@ -5122,7 +5122,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Byte.BYTES).put(value));
@@ -5140,7 +5140,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Short.BYTES).putShort(value));
@@ -5158,7 +5158,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
@@ -5176,7 +5176,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     nameRO.wrap(name.getBytes(UTF_8));
                     valueRO.wrap(ByteBuffer.allocate(Long.BYTES).putLong(value));
@@ -5194,7 +5194,7 @@ public final class KafkaFunctions
                     if (headersRW == null)
                     {
                         this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     if (value == null)
@@ -5290,10 +5290,10 @@ public final class KafkaFunctions
 
     public static final class KafkaFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final KafkaFlushExFW flushExRO = new KafkaFlushExFW();
-        private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
+        private final DirectBuffer keyRO = new SafeBuffer(0, 0);
 
         private Integer typeId;
         private Integer kind;
@@ -5431,7 +5431,7 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW
                         .partitionId(partitionId)
@@ -5447,7 +5447,7 @@ public final class KafkaFunctions
                 if (transactionRW == null)
                 {
                     transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 return new KafkaTransactionBuilder<>()
@@ -5467,7 +5467,7 @@ public final class KafkaFunctions
                 if (filtersRW == null)
                 {
                     filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 return new KafkaFilterBuilder<>()
@@ -5594,7 +5594,7 @@ public final class KafkaFunctions
                     if (progressRW == null)
                     {
                         this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
                     return this;
@@ -5609,7 +5609,7 @@ public final class KafkaFunctions
                     if (progressRW == null)
                     {
                         this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
                     progressRW.item(i -> i
                         .partitionId(partitionId)
@@ -5633,7 +5633,7 @@ public final class KafkaFunctions
                     long latestOffset)
                 {
                     assert partitionRW == null;
-                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
 
@@ -5644,7 +5644,7 @@ public final class KafkaFunctions
                     String key)
                 {
                     assert keyRW == null;
-                    keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     if (key == null)
                     {
@@ -5668,7 +5668,7 @@ public final class KafkaFunctions
                     if (filtersRW == null)
                     {
                         filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaFilterBuilder<>()
@@ -5753,7 +5753,7 @@ public final class KafkaFunctions
                     String metadata)
                 {
                     assert partitionRW == null;
-                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     partitionRW.partitionId(partitionId).partitionOffset(offset).metadata(metadata);
 
@@ -5765,7 +5765,7 @@ public final class KafkaFunctions
                     long offset)
                 {
                     assert partitionRW == null;
-                    partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                     partitionRW.partitionId(partitionId).partitionOffset(offset);
 
@@ -5822,7 +5822,7 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
 
@@ -5833,7 +5833,7 @@ public final class KafkaFunctions
                 String key)
             {
                 assert keyRW == null;
-                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                keyRW = new KafkaKeyFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 if (key == null)
                 {
@@ -5915,7 +5915,7 @@ public final class KafkaFunctions
                 if (membersRW == null)
                 {
                     this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 this.membersRW.item(m -> m.id(memberId).metadataLen(metadata.length())
                     .metadata(md -> md.set(metadata.getBytes())));
@@ -5928,7 +5928,7 @@ public final class KafkaFunctions
                 if (membersRW == null)
                 {
                     this.membersRW = new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new KafkaGroupMemberFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 this.membersRW.item(m -> m.id(memberId));
                 return this;
@@ -5999,7 +5999,7 @@ public final class KafkaFunctions
                 if (partitionRW == null)
                 {
                     this.partitionRW = new KafkaOffsetFW.Builder()
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 this.partitionRW
                     .partitionId(partitionId)
@@ -6044,7 +6044,7 @@ public final class KafkaFunctions
 
     public static final class KafkaBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
 
@@ -6216,7 +6216,7 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW.partitionId(partitionId).partitionOffset(partitionOffset).latestOffset(latestOffset);
 
@@ -6230,7 +6230,7 @@ public final class KafkaFunctions
                     long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW
                     .partitionId(partitionId)
@@ -6246,7 +6246,7 @@ public final class KafkaFunctions
                 if (filtersRW == null)
                 {
                     filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 return new KafkaFilterBuilder<>()
@@ -6266,7 +6266,7 @@ public final class KafkaFunctions
                 String isolation)
             {
                 assert this.isolation == null;
-                this.isolation = new KafkaIsolationFW.Builder().wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                this.isolation = new KafkaIsolationFW.Builder().wrap(new SafeBuffer(new byte[64]), 0, 64)
                         .set(KafkaIsolation.valueOf(isolation))
                         .build();
                 return this;
@@ -6276,7 +6276,7 @@ public final class KafkaFunctions
                 String deltaType)
             {
                 assert this.deltaType == null;
-                this.deltaType = new KafkaDeltaTypeFW.Builder().wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                this.deltaType = new KafkaDeltaTypeFW.Builder().wrap(new SafeBuffer(new byte[64]), 0, 64)
                         .set(KafkaDeltaType.valueOf(deltaType))
                         .build();
                 return this;
@@ -6286,7 +6286,7 @@ public final class KafkaFunctions
                 String evaluation)
             {
                 assert this.evaluation == null;
-                this.evaluation = new KafkaEvaluationFW.Builder().wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                this.evaluation = new KafkaEvaluationFW.Builder().wrap(new SafeBuffer(new byte[64]), 0, 64)
                         .set(KafkaEvaluation.valueOf(evaluation))
                         .build();
                 return this;
@@ -6391,7 +6391,7 @@ public final class KafkaFunctions
                 long latestOffset)
             {
                 assert partitionRW == null;
-                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
 
@@ -6705,7 +6705,7 @@ public final class KafkaFunctions
                 if (partitionsRW == null)
                 {
                     this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(),
-                        new KafkaOffsetFW()).wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        new KafkaOffsetFW()).wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 partitionsRW.item(i -> i
                     .partitionId(partitionId)
@@ -6721,7 +6721,7 @@ public final class KafkaFunctions
                 if (filtersRW == null)
                 {
                     filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 return new KafkaFilterBuilder<>()
@@ -6906,7 +6906,7 @@ public final class KafkaFunctions
                     if (topicsRW == null)
                     {
                         topicsRW = new Array32FW.Builder<>(new KafkaCreateTopicFW.Builder(), new KafkaCreateTopicFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaTopicBuilder();
@@ -6937,7 +6937,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7036,7 +7036,7 @@ public final class KafkaFunctions
                     if (topicsRW == null)
                     {
                         topicsRW = new Array32FW.Builder<>(new String16FW.Builder(), new String16FW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     topicsRW.item(i -> i.set(topic, UTF_8));
@@ -7093,7 +7093,7 @@ public final class KafkaFunctions
                     if (resourcesRW == null)
                     {
                         resourcesRW = new Array32FW.Builder<>(new KafkaResourceFW.Builder(), new KafkaResourceFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaResourceBuilder();
@@ -7113,7 +7113,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final MutableDirectBuffer resourceBuffer = new SafeBuffer(new byte[1024 * 8]);
                     private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
 
                     KafkaResourceBuilder()
@@ -7273,7 +7273,7 @@ public final class KafkaFunctions
                     if (topicsRW == null)
                     {
                         topicsRW = new Array32FW.Builder<>(new KafkaCreateTopicStatusFW.Builder(), new KafkaCreateTopicStatusFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaTopicBuilder();
@@ -7290,7 +7290,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7369,7 +7369,7 @@ public final class KafkaFunctions
                     if (topicsRW == null)
                     {
                         topicsRW = new Array32FW.Builder<>(new KafkaDeleteTopicStatusFW.Builder(), new KafkaDeleteTopicStatusFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaTopicBuilder();
@@ -7386,7 +7386,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7457,7 +7457,7 @@ public final class KafkaFunctions
                     if (resourcesRW == null)
                     {
                         resourcesRW = new Array32FW.Builder<>(new KafkaResourceStatusFW.Builder(), new KafkaResourceStatusFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaResourceBuilder();
@@ -7474,7 +7474,7 @@ public final class KafkaFunctions
 
                     KafkaResourceBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer topicBuffer = new SafeBuffer(new byte[1024 * 8]);
                         resourceRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7586,7 +7586,7 @@ public final class KafkaFunctions
                     if (brokersRW == null)
                     {
                         brokersRW = new Array32FW.Builder<>(new KafkaClusterBrokerFW.Builder(), new KafkaClusterBrokerFW())
-                                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                                .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                     }
 
                     return new KafkaBrokerBuilder();
@@ -7610,7 +7610,7 @@ public final class KafkaFunctions
 
                     KafkaBrokerBuilder()
                     {
-                        MutableDirectBuffer brokerBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                        MutableDirectBuffer brokerBuffer = new SafeBuffer(new byte[1024 * 8]);
                         brokerRW.wrap(brokerBuffer, 0, brokerBuffer.capacity());
                     }
 

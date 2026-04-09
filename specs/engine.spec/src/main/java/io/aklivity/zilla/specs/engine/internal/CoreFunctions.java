@@ -33,7 +33,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
@@ -99,7 +99,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_BYTE + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[capacity]);
         String8FW string = STRING_RW.get()
                                    .wrap(writeBuffer, 0, writeBuffer.capacity())
                                    .set(text, UTF_8)
@@ -115,7 +115,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_SHORT + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[capacity]);
         String16FW string16 = STRING16_RW.get()
                                          .wrap(writeBuffer, 0, writeBuffer.capacity())
                                          .set(text, UTF_8)
@@ -131,7 +131,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_SHORT + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[capacity]);
         String16FW string16 = STRING16N_RW.get()
                                           .wrap(writeBuffer, 0, writeBuffer.capacity())
                                           .set(text, UTF_8)

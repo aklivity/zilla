@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
@@ -45,7 +45,7 @@ public class HpackHeaderFieldFWTest
                         "400a637573746f6d2d6b65790d637573746f6d2d686561646572" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBuffer(bytes);
+        DirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(27, fw.limit());
@@ -70,7 +70,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC21()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -105,7 +105,7 @@ public class HpackHeaderFieldFWTest
                         "040c2f73616d706c652f70617468" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBuffer(bytes);
+        DirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(15, fw.limit());
@@ -129,7 +129,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC22()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -162,7 +162,7 @@ public class HpackHeaderFieldFWTest
                         "100870617373776f726406736563726574" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBuffer(bytes);
+        DirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(18, fw.limit());
@@ -186,11 +186,11 @@ public class HpackHeaderFieldFWTest
     @Test
     public void encodeC23()
     {
-        DirectBuffer password = new UnsafeBuffer("password".getBytes(UTF_8));
-        DirectBuffer secret = new UnsafeBuffer("secret".getBytes(UTF_8));
+        DirectBuffer password = new SafeBuffer("password".getBytes(UTF_8));
+        DirectBuffer secret = new SafeBuffer("secret".getBytes(UTF_8));
 
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -226,7 +226,7 @@ public class HpackHeaderFieldFWTest
                         "82" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBuffer(bytes);
+        DirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(2, fw.limit());
@@ -243,7 +243,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC24()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())

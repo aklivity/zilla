@@ -22,7 +22,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaBindingConfig;
@@ -65,7 +65,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private static final String8FW HEADER_NAME_ETAG = new String8FW("etag");
 
-    private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyExRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -114,7 +114,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;

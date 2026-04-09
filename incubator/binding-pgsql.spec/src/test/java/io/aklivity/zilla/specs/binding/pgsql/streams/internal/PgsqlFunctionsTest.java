@@ -27,7 +27,7 @@ import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
@@ -60,7 +60,7 @@ public class PgsqlFunctionsTest
             .parameter("name", "pgsql")
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlBeginExFW beginEx = new PgsqlBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, beginEx.parameters().fieldCount());
@@ -81,7 +81,7 @@ public class PgsqlFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlDataExFW dataEx = new PgsqlDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
 
@@ -98,7 +98,7 @@ public class PgsqlFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlDataExFW dataEx = new PgsqlDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
 
@@ -123,7 +123,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -148,7 +148,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, flushEx.typeId());
@@ -167,7 +167,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, flushEx.typeId());
@@ -188,7 +188,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
         PgsqlNoticeFlushExFW notice = flushEx.notice();
 
@@ -209,7 +209,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, flushEx.typeId());
@@ -227,7 +227,7 @@ public class PgsqlFunctionsTest
                                 .build()
                               .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         PgsqlFlushExFW flushEx = new PgsqlFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, flushEx.typeId());

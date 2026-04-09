@@ -40,7 +40,7 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioDefaultIdFW;
@@ -62,10 +62,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final ApicurioLegacyIdFW.Builder legacyIdRW = new ApicurioLegacyIdFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+        .wrap(new SafeBuffer(new byte[5]), 0, 5);
 
     private final ApicurioDefaultIdFW.Builder defaultIdRW = new ApicurioDefaultIdFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[9]), 0, 9);
+            .wrap(new SafeBuffer(new byte[9]), 0, 9);
 
     private final HttpClient client;
     private final String baseUrl;
