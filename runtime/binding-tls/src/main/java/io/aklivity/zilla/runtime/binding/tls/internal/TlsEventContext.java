@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class TlsEventContext
 {

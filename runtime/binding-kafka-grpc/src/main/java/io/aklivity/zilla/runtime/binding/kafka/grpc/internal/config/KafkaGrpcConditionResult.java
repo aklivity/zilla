@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class KafkaGrpcConditionResult
 {

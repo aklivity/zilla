@@ -32,7 +32,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfUint32FW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class List8FWTest
 {

@@ -31,7 +31,7 @@ import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.internal.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy;
 

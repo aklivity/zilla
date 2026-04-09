@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOp
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class FilesystemIT

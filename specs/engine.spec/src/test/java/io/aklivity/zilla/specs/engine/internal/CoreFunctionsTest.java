@@ -24,7 +24,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.specs.engine.internal.types.String16FW;
 import io.aklivity.zilla.specs.engine.internal.types.String8FW;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32nFW;

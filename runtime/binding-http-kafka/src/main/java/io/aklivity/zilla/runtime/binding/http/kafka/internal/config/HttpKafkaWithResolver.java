@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver

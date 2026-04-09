@@ -83,7 +83,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEn
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFlags;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 

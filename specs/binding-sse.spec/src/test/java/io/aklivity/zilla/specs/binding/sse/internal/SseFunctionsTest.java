@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseEndExFW;

@@ -24,7 +24,7 @@ import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public final class RoutesLayout extends Layout
 {

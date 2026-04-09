@@ -77,7 +77,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.Window
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 {

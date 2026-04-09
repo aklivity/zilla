@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class SseKafkaIdHelperTest
 {

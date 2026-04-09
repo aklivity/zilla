@@ -30,7 +30,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithVariantOfUint64;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithEnumAndVariantWithDefaultFW;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+import io.aklivity.zilla.runtime.engine.concurrent.SafeBuffer;
 
 public class ListWithEnumAndVariantWithDefaultFWTest
 {
