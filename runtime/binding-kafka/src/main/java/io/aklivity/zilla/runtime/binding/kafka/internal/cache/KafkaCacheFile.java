@@ -35,8 +35,8 @@ import org.agrona.IoUtil;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class KafkaCacheFile implements AutoCloseable
 {
