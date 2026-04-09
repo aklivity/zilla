@@ -286,6 +286,56 @@ navigating the class from the top encounter the stream logic first; the
 low-level frame-writing helpers at the bottom are only consulted when needed
 and do not need to be scrolled past to reach the interesting code.
 
+### Buffer slot usage
+
+When a binding needs to buffer data mid-decode or mid-encode (e.g., to
+reassemble a fragmented frame), it acquires a slot from a `BufferPool`:
+
+- **Field naming:** `decodeSlot` / `encodeSlot` (int, initialised to
+  `NO_SLOT`), with companion `decodeSlotOffset`, `decodeSlotReserved`,
+  `encodeSlotOffset`, `encodeSlotLimit` tracking the used region
+- **Acquire:** call `pool.acquire(streamId)` and immediately test the result;
+  if it is still `NO_SLOT` the pool is exhausted — call `cleanup()` to
+  abort/reset the stream rather than proceeding with a null buffer:
+
+```java
+if (decodeSlot == NO_SLOT)
+{
+    decodeSlot = decodePool.acquire(initialId);
+}
+
+if (decodeSlot == NO_SLOT)
+{
+    cleanupNetwork(traceId);
+}
+else
+{
+    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
+    decodeSlotOffset += limit - offset;
+}
+```
+
+- **Release:** always guard with `!= NO_SLOT`, release the slot, and reset
+  all tracking fields to zero / `NO_SLOT` in a dedicated
+  `cleanupDecodeSlot()` / `cleanupEncodeSlot()` helper:
+
+```java
+private void cleanupDecodeSlot()
+{
+    if (decodeSlot != NO_SLOT)
+    {
+        decodePool.release(decodeSlot);
+        decodeSlot = NO_SLOT;
+        decodeSlotOffset = 0;
+        decodeSlotReserved = 0;
+    }
+}
+```
+
+- Call the cleanup helper from the stream's `cleanup()` method so slots are
+  always returned on both orderly and abortive close paths
+
 ### Proxy binding patterns
 
 Proxy bindings connect two protocol sides and are implemented in two variants:
@@ -744,6 +794,10 @@ groups and no star imports.
   keep it as a single expression without braces or an explicit `return`
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
+- Avoid the `...IfNecessary` method naming suffix (e.g., `doEndIfNecessary`,
+  `cleanupDecodeSlotIfNecessary`) — name methods for what they do (`doEnd`,
+  `cleanupDecodeSlot`); internal conditionality based on stream state or slot
+  value is an implementation detail that does not belong in the name
 - Java 21; no preview features
 - No Lombok
 - Prefer interface types over implementation classes for field, parameter, and
