@@ -537,18 +537,18 @@ public class McpFunctionsTest
     @Test
     public void shouldGenerateBeginExWithNumericSessionId()
     {
-        assertNotNull(McpFunctions.beginEx().typeId(0).initialize().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).ping().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).tools().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).tool().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).prompts().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).prompt().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).resources().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).resource().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).completion().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).logging().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).cancel().sessionId(42L).build().build());
-        assertNotNull(McpFunctions.beginEx().typeId(0).disconnect().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).initialize().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).ping().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).tools().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).tool().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).prompts().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).prompt().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).resources().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).resource().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).completion().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).logging().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).cancel().sessionIdLong(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).disconnect().sessionIdLong(42L).build().build());
     }
 
     @Test
@@ -561,7 +561,7 @@ public class McpFunctionsTest
             .typeId(0)
             .ping(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).ping().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).ping().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -569,7 +569,7 @@ public class McpFunctionsTest
             .typeId(0)
             .tools(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tools().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tools().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -577,7 +577,7 @@ public class McpFunctionsTest
             .typeId(0)
             .tool(b -> b.sessionId(sid -> sid.id(42L)).name("t"))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tool().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tool().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -585,7 +585,7 @@ public class McpFunctionsTest
             .typeId(0)
             .prompts(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompts().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompts().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -593,7 +593,7 @@ public class McpFunctionsTest
             .typeId(0)
             .prompt(b -> b.sessionId(sid -> sid.id(42L)).name("p"))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompt().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompt().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -601,7 +601,7 @@ public class McpFunctionsTest
             .typeId(0)
             .resources(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resources().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resources().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -609,7 +609,7 @@ public class McpFunctionsTest
             .typeId(0)
             .resource(b -> b.sessionId(sid -> sid.id(42L)).uri("u"))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resource().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resource().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -617,7 +617,7 @@ public class McpFunctionsTest
             .typeId(0)
             .completion(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).completion().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).completion().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -625,7 +625,7 @@ public class McpFunctionsTest
             .typeId(0)
             .logging(b -> b.sessionId(sid -> sid.id(42L)).level("warn"))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).logging().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).logging().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -633,7 +633,7 @@ public class McpFunctionsTest
             .typeId(0)
             .cancel(b -> b.sessionId(sid -> sid.id(42L)).reason("r"))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).cancel().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).cancel().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -641,7 +641,7 @@ public class McpFunctionsTest
             .typeId(0)
             .disconnect(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).disconnect().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).disconnect().sessionIdLong(42L).build().build().match(byteBuf));
 
         byteBuf.clear();
         new McpBeginExFW.Builder()
@@ -649,7 +649,7 @@ public class McpFunctionsTest
             .typeId(0)
             .initialize(b -> b.sessionId(sid -> sid.id(42L)))
             .build();
-        assertNotNull(McpFunctions.matchBeginEx().typeId(0).initialize().sessionId(42L).build().build().match(byteBuf));
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).initialize().sessionIdLong(42L).build().build().match(byteBuf));
     }
 
     @Test
