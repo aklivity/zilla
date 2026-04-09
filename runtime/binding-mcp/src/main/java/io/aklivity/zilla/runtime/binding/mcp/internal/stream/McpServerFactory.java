@@ -775,6 +775,13 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
+            if (decodeSlotOffset + payload.sizeof() > slot.capacity())
+            {
+                cleanupDecodeSlot();
+                doReset(sender, originId, routedId, initialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+                return;
+            }
             slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
             decodeSlotOffset += payload.sizeof();
 
