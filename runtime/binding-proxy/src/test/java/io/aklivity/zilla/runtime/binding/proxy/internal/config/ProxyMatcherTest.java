@@ -25,7 +25,7 @@ import java.net.UnknownHostException;
 
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class ProxyMatcherTest
     @Before
     public void initBuilder()
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[1024]);
         builder = new ProxyBeginExFW.Builder().wrap(buffer, 0, buffer.capacity())
             .typeId(0);
     }

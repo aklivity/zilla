@@ -52,7 +52,7 @@ import javax.security.auth.x500.X500Principal;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
@@ -82,13 +82,13 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsServerFactory implements TlsStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final int MAXIMUM_HEADER_SIZE = 5 + 20 + 256;    // TODO version + MAC + padding
     private static final int NET_SIGNAL_HANDSHAKE_TASK_COMPLETE = 1;
     private static final int NET_SIGNAL_HANDSHAKE_TIMEOUT = 2;
     private static final int APP_SIGNAL_RESET_LATER = 1;
-    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new SafeBuffer(new byte[0]);
 
     static final Optional<TlsServer.TlsStream> NULL_STREAM = Optional.ofNullable(null);
 
@@ -190,13 +190,13 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.event = new TlsEventContext(context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
+        this.inNetBuffer = new SafeBuffer(inNetByteBuffer);
         this.outNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity() << 1);
-        this.outNetBuffer = new UnsafeBuffer(outNetByteBuffer);
+        this.outNetBuffer = new SafeBuffer(outNetByteBuffer);
         this.inAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inAppBuffer = new UnsafeBuffer(inAppByteBuffer);
+        this.inAppBuffer = new SafeBuffer(inAppByteBuffer);
         this.outAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.outAppBuffer = new UnsafeBuffer(outAppByteBuffer);
+        this.outAppBuffer = new SafeBuffer(outAppByteBuffer);
 
         this.random = new SecureRandom();
     }
@@ -1090,7 +1090,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
                 // TODO: use decodeSlot instead of allocation
-                MutableDirectBuffer bufferEx = new UnsafeBuffer(new byte[beginEx.sizeof()]);
+                MutableDirectBuffer bufferEx = new SafeBuffer(new byte[beginEx.sizeof()]);
                 bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
                 extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
             }

@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -42,7 +42,7 @@ public class StringConverterTest
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -59,7 +59,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {(byte) 0xc0};
         data.wrap(bytes, 0, bytes.length);
@@ -74,7 +74,7 @@ public class StringConverterTest
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_16);
         data.wrap(bytes, 0, bytes.length);
@@ -92,7 +92,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x48};
         data.wrap(bytes, 0, bytes.length);
@@ -109,7 +109,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {(byte) 0xD8, (byte) 0x00};
         data.wrap(bytes, 0, bytes.length);
@@ -126,7 +126,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {(byte) 0xDC, (byte) 0x01};
         data.wrap(bytes, 0, bytes.length);
@@ -143,7 +143,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {(byte) 0xDC, (byte) 0x80};
         data.wrap(bytes, 0, bytes.length);
@@ -160,7 +160,7 @@ public class StringConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         StringConverterHandler converter = new StringConverterHandler(config, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 65, 66, 67};
         data.wrap(bytes, 0, bytes.length);

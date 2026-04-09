@@ -17,14 +17,14 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 
 public final class RisingwaveConditionMatcher
 {
-    private final DirectBuffer commandBuffer = new UnsafeBuffer(0, 0);
-    private final DirectBuffer statementBuffer = new UnsafeBuffer(0, 0);
+    private final DirectBuffer commandBuffer = new SafeBuffer(0, 0);
+    private final DirectBuffer statementBuffer = new SafeBuffer(0, 0);
     private final List<RisingwaveCommandType> commands;
 
     public RisingwaveConditionMatcher(

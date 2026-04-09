@@ -28,7 +28,7 @@ import java.nio.file.Path;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -202,7 +202,7 @@ public class KafkaCachePartitionTest
             KafkaCacheTopicConfig topic = new KafkaCacheTopicConfig(config);
 
             int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(slotCapacity * 2));
+            MutableDirectBuffer writeBuffer = new SafeBuffer(ByteBuffer.allocate(slotCapacity * 2));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);
@@ -264,7 +264,7 @@ public class KafkaCachePartitionTest
             Path location = tempFolder.newFolder().toPath();
             KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
 
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024));
+            MutableDirectBuffer writeBuffer = new SafeBuffer(ByteBuffer.allocate(1024));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);

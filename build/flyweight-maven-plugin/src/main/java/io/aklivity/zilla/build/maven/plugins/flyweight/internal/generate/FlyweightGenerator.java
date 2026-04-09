@@ -115,7 +115,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     private FieldSpec compareBufferField()
     {
         return FieldSpec.builder(SAFE_BUFFER_TYPE, "compareBuffer", PRIVATE)
-                .initializer("new UnsafeBuffer(EMPTY_BYTES)")
+                .initializer("new SafeBuffer(EMPTY_BYTES)")
                 .build();
     }
 

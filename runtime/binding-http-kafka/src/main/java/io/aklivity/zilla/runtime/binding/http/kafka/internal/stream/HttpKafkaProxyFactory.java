@@ -24,7 +24,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaBindingConfig;
@@ -68,7 +68,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_INCOMPLETE = 0x04;
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
 
     private static final int SIGNAL_WAIT_EXPIRED = 1;
 
@@ -133,7 +133,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -2604,7 +2604,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 if (extension.sizeof() > 0)
                 {
                     // TODO: use buffer slot instead
-                    final UnsafeBuffer buf = new UnsafeBuffer(new byte[extension.sizeof()]);
+                    final SafeBuffer buf = new SafeBuffer(new byte[extension.sizeof()]);
                     buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
                     deferredDataEx = buf;
                     deferredPayload = payload;
@@ -4517,7 +4517,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         String status)
     {
         return new HttpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .wrap(new SafeBuffer(new byte[64]), 0, 64)
             .typeId(httpTypeId)
             .headersItem(h -> h.name(":status").value(status))
             .headersItem(h -> h.name("content-length").value("0"))
@@ -4529,7 +4529,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         String value)
     {
         return new HttpHeaderFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .wrap(new SafeBuffer(new byte[64]), 0, 64)
             .name(name).value(value)
             .build();
     }

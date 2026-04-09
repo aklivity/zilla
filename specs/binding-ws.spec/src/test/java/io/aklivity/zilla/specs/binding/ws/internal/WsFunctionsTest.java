@@ -27,7 +27,7 @@ import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,7 +81,7 @@ public class WsFunctionsTest
                                       .path("/path?query")
                                       .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         WsBeginExFW wsBeginEx = new WsBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(wsBeginEx.typeId(), 0x01);

@@ -24,7 +24,7 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
 
 public abstract class JsonModelHandler
 {
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final int DOUBLE_QUOTE_LENGTH = 1;
 
     protected final SchemaConfig catalog;

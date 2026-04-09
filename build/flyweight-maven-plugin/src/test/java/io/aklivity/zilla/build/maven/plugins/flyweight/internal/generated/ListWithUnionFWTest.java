@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
 import java.util.function.Consumer;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
@@ -35,7 +35,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 public class ListWithUnionFWTest
 {
     private static final int KIND_SIZE = Byte.BYTES;
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -258,21 +258,21 @@ public class ListWithUnionFWTest
     private static UnionOctetsFW asOctets4CaseOfUnionOctetsFW(
         Consumer<OctetsFW.Builder> mutator)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(KIND_SIZE + 4));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(KIND_SIZE + 4));
         return new UnionOctetsFW.Builder().wrap(buffer, 0, buffer.capacity()).octets4(mutator).build();
     }
 
     private static UnionOctetsFW asOctets16CaseOfUnionOctetsFW(
         Consumer<OctetsFW.Builder> mutator)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(KIND_SIZE + 16));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(KIND_SIZE + 16));
         return new UnionOctetsFW.Builder().wrap(buffer, 0, buffer.capacity()).octets16(mutator).build();
     }
 
     private static UnionOctetsFW asString1CaseOfUnionOctetsFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(KIND_SIZE + Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(KIND_SIZE + Byte.SIZE + value.length()));
         return new UnionOctetsFW.Builder().wrap(buffer, 0, buffer.capacity()).string1(value).build();
     }
 }

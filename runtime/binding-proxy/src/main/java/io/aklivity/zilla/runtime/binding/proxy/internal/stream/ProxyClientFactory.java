@@ -33,7 +33,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
@@ -70,7 +70,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private static final InetAddress INET4_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[4]);
     private static final InetAddress INET6_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[16]);
 
-    private static final DirectBuffer HEADER_V2 = new UnsafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBuffer HEADER_V2 = new SafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();

@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class HpackStringFWTest
@@ -34,10 +34,10 @@ public class HpackStringFWTest
     {
         String value = "custom-key";
         byte[] valueBytes = value.getBytes(US_ASCII);
-        DirectBuffer valueBuf = new UnsafeBuffer(valueBytes);
+        DirectBuffer valueBuf = new SafeBuffer(valueBytes);
         byte[] bytes = new byte[100];
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buffer = new SafeBuffer(bytes);
         HpackStringFW.Builder builder = new HpackStringFW.Builder();
         HpackStringFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())
@@ -55,12 +55,12 @@ public class HpackStringFWTest
     {
         String value = "custom-key";
         byte[] valueBytes = value.getBytes(US_ASCII);
-        DirectBuffer valueBuf = new UnsafeBuffer(valueBytes);
+        DirectBuffer valueBuf = new SafeBuffer(valueBytes);
         byte[] bytes = new byte[100];
         bytes[1] = (byte) valueBytes.length;
         System.arraycopy(valueBytes, 0, bytes, 2, value.length());
 
-        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        DirectBuffer buffer = new SafeBuffer(bytes);
         HpackStringFW fw = new HpackStringFW()
                 .wrap(buffer, 1, buffer.capacity());
 
@@ -75,10 +75,10 @@ public class HpackStringFWTest
         IntStream.range(0, 1337).forEach(x -> sb.append("a"));
         String value = sb.toString();
         byte[] valueBytes = value.getBytes(US_ASCII);
-        DirectBuffer valueBuf = new UnsafeBuffer(valueBytes);
+        DirectBuffer valueBuf = new SafeBuffer(valueBytes);
         byte[] bytes = new byte[2048];
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buffer = new SafeBuffer(bytes);
         HpackStringFW.Builder builder = new HpackStringFW.Builder();
         HpackStringFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())
@@ -100,14 +100,14 @@ public class HpackStringFWTest
         IntStream.range(0, 1337).forEach(x -> sb.append("a"));
         String value = sb.toString();
         byte[] valueBytes = value.getBytes(US_ASCII);
-        DirectBuffer valueBuf = new UnsafeBuffer(valueBytes);
+        DirectBuffer valueBuf = new SafeBuffer(valueBytes);
         byte[] bytes = new byte[2048];
         bytes[1] = (byte) 0x7f;
         bytes[2] = (byte) 0xba;
         bytes[3] = (byte) 0x09;
         System.arraycopy(valueBytes, 0, bytes, 4, value.length());
 
-        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        DirectBuffer buffer = new SafeBuffer(bytes);
         HpackStringFW fw = new HpackStringFW()
                 .wrap(buffer, 1, buffer.capacity());
 
@@ -124,10 +124,10 @@ public class HpackStringFWTest
         String value = sb.toString();
 
         byte[] valueBytes = value.getBytes(US_ASCII);
-        DirectBuffer valueBuf = new UnsafeBuffer(valueBytes);
+        DirectBuffer valueBuf = new SafeBuffer(valueBytes);
         byte[] bytes = new byte[2048];
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buffer = new SafeBuffer(bytes);
         HpackStringFW.Builder builder = new HpackStringFW.Builder();
         HpackStringFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())

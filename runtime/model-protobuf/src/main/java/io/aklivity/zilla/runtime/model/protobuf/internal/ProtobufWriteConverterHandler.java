@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import com.google.protobuf.Descriptors;
@@ -42,7 +42,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         EngineContext context)
     {
         super(config, context);
-        this.indexesRO = new UnsafeBuffer();
+        this.indexesRO = new SafeBuffer();
         this.in =  new DirectBufferInputStream();
         this.input = new InputStreamReader(in);
         this.parser = JsonFormat.parser();

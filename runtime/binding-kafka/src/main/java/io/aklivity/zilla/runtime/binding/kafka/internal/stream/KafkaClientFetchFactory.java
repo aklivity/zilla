@@ -29,7 +29,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongLongConsumer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -110,7 +110,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -167,7 +167,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final MessageHeaderFW messageHeaderRO = new MessageHeaderFW();
     private final ControlRecordKeyFW controlRecordKeyRO = new ControlRecordKeyFW();
     private final OctetsFW valueRO = new OctetsFW();
-    private final DirectBuffer headersRO = new UnsafeBuffer();
+    private final DirectBuffer headersRO = new SafeBuffer();
 
     private final KafkaFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -228,7 +228,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();

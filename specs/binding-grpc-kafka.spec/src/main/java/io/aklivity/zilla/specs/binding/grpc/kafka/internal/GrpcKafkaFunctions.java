@@ -16,7 +16,7 @@ package io.aklivity.zilla.specs.binding.grpc.kafka.internal;
 
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
@@ -36,7 +36,7 @@ public final class GrpcKafkaFunctions
         private final GrpcKafkaMessageFieldFW.Builder messageFieldRW = new GrpcKafkaMessageFieldFW.Builder();
         private final GrpcKafkaMessageFieldPartitionV1FW.Builder partitionV1RW =
             new GrpcKafkaMessageFieldPartitionV1FW.Builder();
-        private final MutableDirectBuffer progressBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer progressBuffer = new SafeBuffer(new byte[1024 * 8]);
         private int progressOffset;
 
         private MessageIdBuilder()

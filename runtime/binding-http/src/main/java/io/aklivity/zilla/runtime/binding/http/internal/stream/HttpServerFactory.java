@@ -77,7 +77,7 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
@@ -166,12 +166,12 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .build();
 
     private static final Pattern REQUEST_LINE_PATTERN =
@@ -194,7 +194,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
     private static final byte[] REASON_UNRECOGNIZED_STATUS_BYTES = "Unrecognized Status".getBytes(US_ASCII);
 
-    private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
+    private static final DirectBuffer ZERO_CHUNK = new SafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
     private static final DirectBuffer ERROR_400_BAD_REQUEST =
             initResponse(400, "Bad Request");
@@ -261,48 +261,48 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .name(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN)
                 .value(ACCESS_CONTROL_WILDCARD)
                 .build();
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .name(HEADER_ACCESS_CONTROL_ALLOW_METHODS)
                 .value(ACCESS_CONTROL_WILDCARD)
                 .build();
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS)
                 .value(ACCESS_CONTROL_WILDCARD)
                 .build();
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .name(HEADER_ACCESS_CONTROL_EXPOSE_HEADERS)
                 .value(ACCESS_CONTROL_WILDCARD)
                 .build();
 
     private static final HttpHeaderFW HEADER_VARY_ORIGIN =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .name(HEADER_VARY)
                 .value(HEADER_NAME_ORIGIN)
                 .build();
 
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .wrap(new SafeBuffer(new byte[64]), 0, 64)
                     .item(i -> i.name(HEADER_STATUS).value(STATUS_200))
                     .item(i -> i.name(HEADER_CONNECTION).value(CONNECTION_CLOSE))
                     .build();
     private static final Array32FW<HttpHeaderFW> DEFAULT_TRAILERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                         .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                         .wrap(new SafeBuffer(new byte[8]), 0, 8)
                          .build();
 
     private static final Map<String16FW, String> SCHEME_PORTS;
@@ -406,7 +406,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
 
     private final String16FW.Builder httpStatusRW =
-            new String16FW.Builder().wrap(new UnsafeBuffer(new byte[16]), 0, 16);
+            new String16FW.Builder().wrap(new SafeBuffer(new byte[16]), 0, 16);
 
     private final Array32FW<HttpHeaderFW> headers200;
     private final Array32FW<HttpHeaderFW> headers204;
@@ -421,7 +421,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
-    private final AtomicBuffer payloadRO = new UnsafeBuffer(0, 0);
+    private final AtomicBuffer payloadRO = new SafeBuffer(0, 0);
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -573,9 +573,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
-        this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.codecBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.frameBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
@@ -6838,14 +6838,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBuffer(dst, 0, length);
+                        value = new SafeBuffer(dst, 0, length);
                     }
                     nameValue.accept(name, value);
                     break;
@@ -6854,27 +6854,27 @@ public final class HttpServerFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(name, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        name = new UnsafeBuffer(dst, 0, length);
+                        name = new SafeBuffer(dst, 0, length);
                     }
 
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBuffer(dst, 0, length);
+                        value = new SafeBuffer(dst, 0, length);
                     }
                     nameValue.accept(name, value);
                     break;
@@ -6882,9 +6882,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
                 {
                     // make a copy for name and value as they go into dynamic table (outlives current frame)
-                    MutableDirectBuffer nameCopy = new UnsafeBuffer(new byte[name.capacity()]);
+                    MutableDirectBuffer nameCopy = new SafeBuffer(new byte[name.capacity()]);
                     nameCopy.putBytes(0, name, 0, name.capacity());
-                    MutableDirectBuffer valueCopy = new UnsafeBuffer(new byte[value.capacity()]);
+                    MutableDirectBuffer valueCopy = new SafeBuffer(new byte[value.capacity()]);
                     valueCopy.putBytes(0, value, 0, value.capacity());
                     context.add(nameCopy, valueCopy);
                 }
@@ -7119,7 +7119,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new SafeBuffer(new byte[64]), 0, 64)
                 .item(h -> h.name(HEADER_STATUS).value(status));
 
         final String16FW server = config.serverHeader();
@@ -7137,7 +7137,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
                 new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                        .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                        .wrap(new SafeBuffer(new byte[64]), 0, 64)
                         .item(h -> h.name(HEADER_STATUS).value(status));
         builder.item(h -> h.name(HEADER_CONTENT_LENGTH).value("0"));
 
@@ -7165,7 +7165,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int status,
         String reason)
     {
-        return new UnsafeBuffer(String.format("HTTP/1.1 %d %s\r\n" +
+        return new SafeBuffer(String.format("HTTP/1.1 %d %s\r\n" +
                                               "Connection: close\r\n" +
                                               "\r\n",
                                               status, reason).getBytes(UTF_8));
@@ -7176,7 +7176,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         String reason,
         String server)
     {
-        return new UnsafeBuffer(String.format("HTTP/1.1 %d %s\r\n" +
+        return new SafeBuffer(String.format("HTTP/1.1 %d %s\r\n" +
                                               "Server: %s\r\n" +
                                               "Connection: close\r\n" +
                                               "\r\n",

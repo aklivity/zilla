@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
@@ -162,7 +162,7 @@ public final class HttpKafkaWithResolver
     }
 
     private final String16FW.Builder stringRW = new String16FW.Builder()
-            .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+            .wrap(new SafeBuffer(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
 

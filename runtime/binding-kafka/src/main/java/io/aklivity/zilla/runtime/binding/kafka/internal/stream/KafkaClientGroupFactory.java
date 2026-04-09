@@ -43,7 +43,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -156,7 +156,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final String GROUP_INITIAL_REBALANCE_DELAY = "group.initial.rebalance.delay.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -333,9 +333,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.userdataBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.userdataBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -1372,7 +1372,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.resolveSasl = resolveSasl;
             this.cluster = new ClusterClient(routedId, resolvedId, servers, this);
             this.client = cluster;
-            this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
+            this.metadataBuffer = new SafeBuffer(new byte[2048]);
         }
 
         private void onStream(
