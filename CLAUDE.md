@@ -279,6 +279,13 @@ This pattern applies to all server and client bindings uniformly. The inner
 classes close over the factory instance to access shared flyweights and are
 non-static.
 
+**Method ordering in factory classes:** place the inner classes (e.g.,
+`XxxServer`, `XxxStream`) before the factory-level `do*` methods (e.g.,
+`doBegin`, `doData`, `doEnd`, `doAbort`, `doReset`, `doWindow`). Readers
+navigating the class from the top encounter the stream logic first; the
+low-level frame-writing helpers at the bottom are only consulted when needed
+and do not need to be scrolled past to reach the interesting code.
+
 ### Proxy binding patterns
 
 Proxy bindings connect two protocol sides and are implemented in two variants:
