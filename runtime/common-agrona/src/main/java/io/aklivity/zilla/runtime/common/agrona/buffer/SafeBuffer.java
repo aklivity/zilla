@@ -683,7 +683,9 @@ public class SafeBuffer implements AtomicBufferEx
         int dstOffset,
         int length)
     {
-        final MemorySegment dst = MemorySegment.ofBuffer(dstBuffer);
+        final MemorySegment dst = dstBuffer.isDirect()
+            ? MemorySegment.ofAddress(BufferUtil.address(dstBuffer)).reinterpret(dstBuffer.capacity())
+            : MemorySegment.ofArray(BufferUtil.array(dstBuffer));
         MemorySegment.copy(segment, index, dst, dstOffset, length);
     }
 
@@ -733,7 +735,9 @@ public class SafeBuffer implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        final MemorySegment src = MemorySegment.ofBuffer(srcBuffer);
+        final MemorySegment src = srcBuffer.isDirect()
+            ? MemorySegment.ofAddress(BufferUtil.address(srcBuffer)).reinterpret(srcBuffer.capacity())
+            : MemorySegment.ofArray(BufferUtil.array(srcBuffer));
         MemorySegment.copy(src, srcOffset, segment, index, length);
     }
 
@@ -763,7 +767,9 @@ public class SafeBuffer implements AtomicBufferEx
                 final ByteBuffer srcBb = srcBuffer.byteBuffer();
                 if (srcBb != null)
                 {
-                    final MemorySegment src = MemorySegment.ofBuffer(srcBb);
+                    final MemorySegment src = srcBb.isDirect()
+                        ? MemorySegment.ofAddress(BufferUtil.address(srcBb)).reinterpret(srcBb.capacity())
+                        : MemorySegment.ofArray(BufferUtil.array(srcBb));
                     MemorySegment.copy(src, srcBuffer.wrapAdjustment() + srcIndex,
                         segment, index, length);
                 }
