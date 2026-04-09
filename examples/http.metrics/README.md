@@ -1,4 +1,4 @@
-# http.telemetry.attributes
+# http.metrics
 
 Demonstrates HTTP metrics with arbitrary per-request attributes (method, path) exported via Prometheus.
 

@@ -1,7 +1,7 @@
-name: ${NAMESPACE:-zilla-http-telemetry-attributes}
+name: ${NAMESPACE:-zilla-http-metrics}
 services:
   zilla:
-    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-develop-SNAPSHOT}
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
     restart: unless-stopped
     hostname: zilla.examples.dev
     ports:

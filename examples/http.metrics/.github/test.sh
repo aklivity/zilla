@@ -8,7 +8,7 @@ PORT="7114"
 METRICS_PORT="7190"
 INPUT="Hello, Zilla!"
 EXPECTED="Hello, Zilla!"
-echo \# Testing http.telemetry.attributes/
+echo \# Testing http.metrics/
 echo PORT="$PORT"
 echo INPUT="$INPUT"
 echo EXPECTED="$EXPECTED"
