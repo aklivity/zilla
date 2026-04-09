@@ -586,7 +586,6 @@ The leading `.` of each method call lines up with the `.` before
 `matchBeginEx` (or `beginEx`, etc.), not under the `$` or the function
 argument list.
 
-
 **k3po and JUnit 4 rule compatibility:**
 
 The `.rpt` scripts are driven by [k3po](https://github.com/k3po/k3po), which
