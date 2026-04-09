@@ -1077,16 +1077,31 @@ public class EngineWorker implements EngineContext, Agent
     {
         assert thread != Thread.currentThread();
 
-        NamespaceTask attachTask = registry.attach(namespace);
-        dispatch(attachTask);
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        dispatch(() ->
+        {
+            NamespaceTask attachTask = registry.attach(namespace);
+            attachTask.run();
+            attachTask.future().whenComplete((v, ex) ->
+            {
+                if (ex != null)
+                {
+                    future.completeExceptionally(ex);
+                }
+                else
+                {
+                    future.complete(v);
+                }
+            });
+        });
 
         if (localIndex == 0)
         {
-            attachTask.future().join();
+            future.join();
             writeBindingTypes(registry);
         }
 
-        return attachTask.future();
+        return future;
     }
 
     public CompletableFuture<Void> detach(
@@ -1094,15 +1109,30 @@ public class EngineWorker implements EngineContext, Agent
     {
         assert thread != Thread.currentThread();
 
-        NamespaceTask detachTask = registry.detach(namespace);
-        dispatch(detachTask);
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        dispatch(() ->
+        {
+            NamespaceTask detachTask = registry.detach(namespace);
+            detachTask.run();
+            detachTask.future().whenComplete((v, ex) ->
+            {
+                if (ex != null)
+                {
+                    future.completeExceptionally(ex);
+                }
+                else
+                {
+                    future.complete(v);
+                }
+            });
+        });
 
         if (localIndex == 0)
         {
-            detachTask.future().join();
+            future.join();
             writeBindingTypes(registry);
         }
-        return detachTask.future();
+        return future;
     }
 
     public AgentRunner runner()
