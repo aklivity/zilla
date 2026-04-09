@@ -45,7 +45,6 @@ import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
@@ -59,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class ProxyConditionMatcher
 {

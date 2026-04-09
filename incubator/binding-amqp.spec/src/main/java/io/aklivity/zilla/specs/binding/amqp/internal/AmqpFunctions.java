@@ -26,10 +26,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpAnnotationFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpApplicationPropertyFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpBinaryFW;

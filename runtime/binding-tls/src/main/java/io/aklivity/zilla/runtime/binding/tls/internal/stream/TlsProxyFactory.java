@@ -28,7 +28,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsRouteConfig;
@@ -51,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExF
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

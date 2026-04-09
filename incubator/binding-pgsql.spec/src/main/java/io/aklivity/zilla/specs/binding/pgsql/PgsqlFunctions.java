@@ -16,9 +16,9 @@ package io.aklivity.zilla.specs.binding.pgsql;
 
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCancelRequestFlushExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlColumnInfoFW;
