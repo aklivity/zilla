@@ -23,6 +23,7 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG_UNALIGNED;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT_UNALIGNED;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.VarHandle;
@@ -136,6 +137,13 @@ public final class SafeBuffer implements AtomicBufferEx
         int length)
     {
         wrap(segment, offset, length);
+    }
+
+    public SafeBuffer(
+        Arena arena,
+        int capacity)
+    {
+        wrap(arena.allocate(capacity, Long.BYTES));
     }
 
     public SafeBuffer asReadOnly()
