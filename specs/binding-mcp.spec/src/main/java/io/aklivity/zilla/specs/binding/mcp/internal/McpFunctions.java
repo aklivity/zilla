@@ -154,7 +154,7 @@ public final class McpFunctions
             }
 
             public McpInitializeBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -180,7 +180,7 @@ public final class McpFunctions
             }
 
             public McpPingBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -206,7 +206,7 @@ public final class McpFunctions
             }
 
             public McpToolsBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -233,7 +233,7 @@ public final class McpFunctions
             }
 
             public McpToolBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -266,7 +266,7 @@ public final class McpFunctions
             }
 
             public McpPromptsBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -293,7 +293,7 @@ public final class McpFunctions
             }
 
             public McpPromptBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -326,7 +326,7 @@ public final class McpFunctions
             }
 
             public McpResourcesBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -353,7 +353,7 @@ public final class McpFunctions
             }
 
             public McpResourceBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -386,7 +386,7 @@ public final class McpFunctions
             }
 
             public McpCompletionBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -413,7 +413,7 @@ public final class McpFunctions
             }
 
             public McpLoggingBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -447,7 +447,7 @@ public final class McpFunctions
             }
 
             public McpCancelBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -480,7 +480,7 @@ public final class McpFunctions
             }
 
             public McpDisconnectBeginExBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -666,7 +666,7 @@ public final class McpFunctions
             }
 
             public McpInitializeBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -704,7 +704,7 @@ public final class McpFunctions
             }
 
             public McpPingBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -741,7 +741,7 @@ public final class McpFunctions
             }
 
             public McpToolsBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -779,7 +779,7 @@ public final class McpFunctions
             }
 
             public McpToolBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -830,7 +830,7 @@ public final class McpFunctions
             }
 
             public McpPromptsBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -868,7 +868,7 @@ public final class McpFunctions
             }
 
             public McpPromptBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -919,7 +919,7 @@ public final class McpFunctions
             }
 
             public McpResourcesBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -957,7 +957,7 @@ public final class McpFunctions
             }
 
             public McpResourceBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -1008,7 +1008,7 @@ public final class McpFunctions
             }
 
             public McpCompletionBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -1046,7 +1046,7 @@ public final class McpFunctions
             }
 
             public McpLoggingBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -1098,7 +1098,7 @@ public final class McpFunctions
             }
 
             public McpCancelBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
@@ -1149,7 +1149,7 @@ public final class McpFunctions
             }
 
             public McpDisconnectBeginExMatcherBuilder sessionId(
-                long sessionId)
+                Long sessionId)
             {
                 sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
                 return this;
