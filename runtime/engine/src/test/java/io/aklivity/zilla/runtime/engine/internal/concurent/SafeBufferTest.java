@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.concurent;
 
+import static java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -160,6 +161,37 @@ public class SafeBufferTest
 
         assertNotNull(seg);
         assertEquals(16, seg.byteSize());
+    }
+
+    @Test
+    public void shouldWrapMemorySegment()
+    {
+        final MemorySegment seg = MemorySegment.ofArray(new byte[64]);
+        final SafeBuffer buffer = new SafeBuffer(seg);
+
+        assertEquals(64, buffer.capacity());
+        assertNotNull(buffer.segment());
+        assertEquals(0, buffer.wrapAdjustment());
+    }
+
+    @Test
+    public void shouldWrapMemorySegmentWithOffset()
+    {
+        final MemorySegment seg = MemorySegment.ofArray(new byte[64]);
+        final SafeBuffer buffer = new SafeBuffer(seg, 8, 32);
+
+        assertEquals(32, buffer.capacity());
+        assertEquals(8, buffer.wrapAdjustment());
+    }
+
+    @Test
+    public void shouldWrapMemorySegmentAndReadWrite()
+    {
+        final MemorySegment seg = MemorySegment.ofArray(new byte[64]);
+        final SafeBuffer buffer = new SafeBuffer(seg);
+
+        buffer.putInt(0, 42);
+        assertEquals(42, buffer.getInt(0));
     }
 
     // -----------------------------------------------------------------------
@@ -430,6 +462,54 @@ public class SafeBufferTest
         src.getBytes(0, dst, 0, 4);
 
         assertEquals(42, dst.getInt(0));
+    }
+
+    @Test
+    public void shouldGetBytesToMemorySegment()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[64]);
+        buffer.putInt(0, 0xDEADBEEF);
+
+        final MemorySegment dst = MemorySegment.ofArray(new byte[64]);
+        buffer.getBytes(0, dst, 0, 4);
+
+        assertEquals(0xDEADBEEF, dst.get(JAVA_INT_UNALIGNED, 0));
+    }
+
+    @Test
+    public void shouldGetBytesToMemorySegmentWithOffset()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[64]);
+        buffer.putInt(4, 42);
+
+        final MemorySegment dst = MemorySegment.ofArray(new byte[64]);
+        buffer.getBytes(4, dst, 8, 4);
+
+        assertEquals(42, dst.get(JAVA_INT_UNALIGNED, 8));
+    }
+
+    @Test
+    public void shouldPutBytesFromMemorySegment()
+    {
+        final MemorySegment src = MemorySegment.ofArray(new byte[64]);
+        src.set(JAVA_INT_UNALIGNED, 0, 0xCAFEBABE);
+
+        final SafeBuffer buffer = new SafeBuffer(new byte[64]);
+        buffer.putBytes(0, src, 0, 4);
+
+        assertEquals(0xCAFEBABE, buffer.getInt(0));
+    }
+
+    @Test
+    public void shouldPutBytesFromMemorySegmentWithOffset()
+    {
+        final MemorySegment src = MemorySegment.ofArray(new byte[64]);
+        src.set(JAVA_INT_UNALIGNED, 8, 99);
+
+        final SafeBuffer buffer = new SafeBuffer(new byte[64]);
+        buffer.putBytes(4, src, 8, 4);
+
+        assertEquals(99, buffer.getInt(4));
     }
 
     // -----------------------------------------------------------------------
