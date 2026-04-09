@@ -43,7 +43,7 @@ import org.agrona.concurrent.UnsafeBuffer;
  * {@code MemorySegment}, providing the same memory ordering guarantees as
  * {@link UnsafeBuffer} without depending on {@code jdk.unsupported}.
  */
-public final class SafeBuffer implements AtomicBufferEx
+public class SafeBuffer implements AtomicBufferEx
 {
     private static final ValueLayout.OfByte BYTE_LAYOUT = JAVA_BYTE;
     private static final ValueLayout.OfInt INT_LAYOUT = JAVA_INT_UNALIGNED;
