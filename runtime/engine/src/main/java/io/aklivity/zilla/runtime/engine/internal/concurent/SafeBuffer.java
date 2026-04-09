@@ -23,6 +23,7 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG_UNALIGNED;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT_UNALIGNED;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.VarHandle;
@@ -43,9 +44,6 @@ import io.aklivity.zilla.runtime.engine.internal.buffer.AtomicBufferEx;
  * All atomic operations use {@link VarHandle} access modes on the underlying
  * {@code MemorySegment}, providing the same memory ordering guarantees as
  * {@link UnsafeBuffer} without depending on {@code jdk.unsupported}.
- * <p>
- * This is a standalone prototype; it is not yet wired into the engine's
- * buffer allocation or worker lifecycle.
  */
 public final class SafeBuffer implements AtomicBufferEx
 {
@@ -139,6 +137,18 @@ public final class SafeBuffer implements AtomicBufferEx
         int length)
     {
         wrap(segment, offset, length);
+    }
+
+    public SafeBuffer(
+        Arena arena,
+        int capacity)
+    {
+        wrap(arena.allocate(capacity, Long.BYTES));
+    }
+
+    public SafeBuffer asReadOnly()
+    {
+        return new SafeBuffer(segment.asReadOnly());
     }
 
     @Override

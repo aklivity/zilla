@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
@@ -112,7 +112,7 @@ public final class StreamsLayout implements AutoCloseable
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
+            final AtomicBuffer atomicStreams = new SafeBuffer(mappedStreams);
 
             return new StreamsLayout(new ManyToOneRingBuffer(atomicStreams));
         }
