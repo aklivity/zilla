@@ -33,7 +33,7 @@ import java.util.stream.IntStream;
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class HistogramsLayout extends MetricsLayout
 {
@@ -178,7 +178,7 @@ public final class HistogramsLayout extends MetricsLayout
             }
             FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
             MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, HISTOGRAMS_LABEL);
-            final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+            final AtomicBuffer atomicBuffer = new SafeBuffer(mappedBuffer);
             return new HistogramsLayout(atomicBuffer);
         }
     }

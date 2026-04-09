@@ -46,6 +46,7 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
+import java.lang.foreign.Arena;
 import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
@@ -91,7 +92,6 @@ import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
@@ -125,6 +125,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
@@ -193,6 +194,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private final int localIndex;
     private final EngineConfiguration config;
+    private final Arena arena;
     private final LabelManager labels;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
@@ -308,6 +310,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
+        this.arena = Arena.ofConfined();
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
         this.labels = labels;
@@ -379,7 +382,7 @@ public class EngineWorker implements EngineContext, Agent
         this.readLimit = config.maximumMessagesPerRead();
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
-        this.writeBuffer = new UnsafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
+        this.writeBuffer = new SafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
@@ -465,6 +468,12 @@ public class EngineWorker implements EngineContext, Agent
     public int index()
     {
         return localIndex;
+    }
+
+    @Override
+    public Arena arena()
+    {
+        return arena;
     }
 
     @Override
@@ -1072,6 +1081,8 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         targetsByIndex.forEach((k, v) -> v.detach());
+
+        arena.close();
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
@@ -2173,7 +2184,7 @@ public class EngineWorker implements EngineContext, Agent
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
