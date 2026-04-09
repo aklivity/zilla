@@ -24,7 +24,7 @@ import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
@@ -53,7 +53,7 @@ public class GrpcKafkaFunctionsTest
             .partition(0, 2)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         final GrpcKafkaMessageFieldFW partitionCount =
             new GrpcKafkaMessageFieldFW();
         partitionCount.wrap(buffer, 0, buffer.capacity());

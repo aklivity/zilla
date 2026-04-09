@@ -21,7 +21,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
@@ -78,10 +78,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
         new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .wrap(new SafeBuffer(new byte[64]), 0, 64)
             .build();
     private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new String16FW("-bind").value(), 0, 4);
 
@@ -133,8 +133,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
@@ -144,7 +144,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.helper = new HttpGrpcResponseHeaderHelper(metadataBuffer);
 
-        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new SafeBuffer(new byte[32]), 0, 32)
                 .typeId(grpcTypeId)
                 .status(HEADER_VALUE_GRPC_ABORTED)
                 .build();

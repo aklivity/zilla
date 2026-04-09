@@ -31,7 +31,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
@@ -83,7 +83,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
     private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_NAME_GRPC_ENCODING = new String8FW("grpc-encoding");
     private static final String8FW HEADER_NAME_GRPC_STATUS = new String8FW("grpc-status");
@@ -249,8 +249,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

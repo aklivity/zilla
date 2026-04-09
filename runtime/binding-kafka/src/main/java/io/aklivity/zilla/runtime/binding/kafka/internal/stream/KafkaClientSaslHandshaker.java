@@ -37,7 +37,7 @@ import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -104,7 +104,7 @@ public abstract class KafkaClientSaslHandshaker
 
     private final SecureRandom random = new SecureRandom();
 
-    private final MutableDirectBuffer scramBuffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBuffer scramBuffer = new SafeBuffer(new byte[1024]);
 
     private MessageDigest messageDigest;
     private Mac mac;
@@ -127,7 +127,7 @@ public abstract class KafkaClientSaslHandshaker
         this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
         this.event = new KafkaEventContext(context);

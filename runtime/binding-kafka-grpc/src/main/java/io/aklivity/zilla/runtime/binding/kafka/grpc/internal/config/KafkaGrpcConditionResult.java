@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.List;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
@@ -38,7 +38,7 @@ public class KafkaGrpcConditionResult
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+            .wrap(new SafeBuffer(new byte[32]), 0, 32)
             .partitionId(-1)
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();

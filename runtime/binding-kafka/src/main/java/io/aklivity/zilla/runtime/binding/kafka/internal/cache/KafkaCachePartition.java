@@ -61,7 +61,7 @@ import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
@@ -114,7 +114,7 @@ public final class KafkaCachePartition
 
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                .wrap(new SafeBuffer(new byte[8]), 0, 8)
                 .build();
     private static final int SIZEOF_EMPTY_TRAILERS = EMPTY_TRAILERS.sizeof();
 
@@ -125,15 +125,15 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[FIELD_OFFSET_PADDED_KEY]);
-    private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
+    private final MutableDirectBuffer entryInfo = new SafeBuffer(new byte[FIELD_OFFSET_PADDED_KEY]);
+    private final MutableDirectBuffer valueInfo = new SafeBuffer(new byte[Integer.BYTES]);
 
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[8192]), 0, 8192);
+        .wrap(new SafeBuffer(new byte[8192]), 0, 8192);
     private final String32FW.Builder stringRW = new String32FW.Builder()
-        .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
-    private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+        .wrap(new SafeBuffer(new byte[256]), 0, 256);
+    private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new SafeBuffer(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
@@ -175,7 +175,7 @@ public final class KafkaCachePartition
         this.cache = cache;
         this.topic = topic;
         this.id = id;
-        this.appendBuf = new UnsafeBuffer(allocateDirect(appendCapacity));
+        this.appendBuf = new SafeBuffer(allocateDirect(appendCapacity));
         this.sortSpaceRef = sortSpaceRef;
         this.sentinel = new Node();
         this.checksum = new CRC32C();
@@ -201,7 +201,7 @@ public final class KafkaCachePartition
         this.produceCapacity = produceCapacity;
         this.topic = topic;
         this.id = id;
-        this.appendBuf = new UnsafeBuffer(allocateDirect(appendCapacity));
+        this.appendBuf = new SafeBuffer(allocateDirect(appendCapacity));
         this.sortSpaceRef = sortSpaceRef;
         this.sentinel = new Node();
         this.checksum = new CRC32C();

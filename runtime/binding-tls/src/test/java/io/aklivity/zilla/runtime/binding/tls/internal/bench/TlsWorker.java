@@ -32,7 +32,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 
@@ -73,8 +73,8 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 public class TlsWorker implements EngineContext
 {
     private static final int BUFFER_SIZE = 1024 * 64;
-    private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
-    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new UnsafeBuffer(new byte[1024 * 1024 + 768]));
+    private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[BUFFER_SIZE]);
+    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new SafeBuffer(new byte[1024 * 1024 + 768]));
     private final BufferPool bufferPool;
     private final Long2ObjectHashMap<BindingHandler> handlers;
     private final Object2ObjectHashMap<String, Binding> bindings;
@@ -600,7 +600,7 @@ public class TlsWorker implements EngineContext
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 

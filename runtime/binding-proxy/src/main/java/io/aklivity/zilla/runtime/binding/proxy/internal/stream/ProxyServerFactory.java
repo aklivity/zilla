@@ -26,7 +26,7 @@ import java.util.zip.CRC32C;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
@@ -62,9 +62,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyServerFactory implements ProxyStreamFactory
 {
-    private static final DirectBuffer HEADER_V2 = new UnsafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBuffer HEADER_V2 = new SafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
     private static final int HEADER_V2_SIZE = HEADER_V2.capacity();
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(0, 0);
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(0, 0);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private static final int PROXY_ADDRESS_LENGTH_INET4 = 12;

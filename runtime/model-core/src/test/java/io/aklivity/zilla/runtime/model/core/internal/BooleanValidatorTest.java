@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -38,7 +38,7 @@ public class BooleanValidatorTest
     public void shouldValidateBooleanMessage()
     {
         BooleanValidatorHandler handler = new BooleanValidatorHandler(context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {1};
 
@@ -52,7 +52,7 @@ public class BooleanValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         BooleanValidatorHandler handler = new BooleanValidatorHandler(context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {127, -17, 94, -95, -120, 23, -78, 63};
 

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -44,7 +44,7 @@ public class FloatValidatorTest
             .format(BINARY)
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {62, -128, 5, 8};
         data.wrap(bytes, 0, bytes.length);
@@ -57,7 +57,7 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "+10.1119f";
         byte[] bytes = payload.getBytes();
@@ -71,7 +71,7 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "-.1119f";
         byte[] bytes = payload.getBytes();
@@ -87,7 +87,7 @@ public class FloatValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "-.11.19f";
         byte[] bytes = payload.getBytes();
@@ -105,7 +105,7 @@ public class FloatValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "99.99f";
         byte[] bytes = payload.getBytes();
@@ -120,7 +120,7 @@ public class FloatValidatorTest
             .max(99.99f)
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "99.99f";
         byte[] bytes = payload.getBytes();
@@ -134,7 +134,7 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "-99.99f";
         byte[] bytes = payload.getBytes();
@@ -157,7 +157,7 @@ public class FloatValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload = "-.99.99f";
         byte[] bytes = payload.getBytes();
@@ -179,7 +179,7 @@ public class FloatValidatorTest
             .format(BINARY)
             .build();
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {-13, -96, 0, 0};
 
@@ -202,7 +202,7 @@ public class FloatValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);

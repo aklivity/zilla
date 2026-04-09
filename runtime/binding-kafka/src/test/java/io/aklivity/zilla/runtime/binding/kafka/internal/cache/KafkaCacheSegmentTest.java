@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,7 +39,7 @@ public class KafkaCacheSegmentTest
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         Path location = tempFolder.getRoot().toPath();
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(0));
+        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(0));
 
         try (KafkaCacheSegment head = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new);
                 KafkaCacheSegment tail = head.freeze())
@@ -66,7 +66,7 @@ public class KafkaCacheSegmentTest
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         Path location = tempFolder.getRoot().toPath();
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(0));
+        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(0));
 
         try (KafkaCacheSegment segment = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new))
         {

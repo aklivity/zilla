@@ -63,7 +63,7 @@ import org.agrona.collections.LongHashSet;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
@@ -149,20 +149,20 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
 
-    private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
+    private static final DirectBuffer ZERO_CHUNK = new SafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final ProxyBeginExFW beginProxyExRO = new ProxyBeginExFW();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private static final Array32FW<HttpHeaderFW> HEADERS_431_REQUEST_TOO_LARGE =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .wrap(new SafeBuffer(new byte[64]), 0, 64)
                     .item(h -> h.name(":status").value("431"))
                     .build();
 
     private static final Array32FW<HttpHeaderFW> HEADERS_503_RETRY_AFTER =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .wrap(new SafeBuffer(new byte[64]), 0, 64)
                     .item(h -> h.name(":status").value("503"))
                     .item(h -> h.name("retry-after").value("0"))
                     .build();
@@ -196,21 +196,21 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String16FW CONNECTION_UPGRADE_HTTP2_SETTINGS = new String16FW("Upgrade, HTTP2-Settings");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .wrap(new SafeBuffer(new byte[64]), 0, 64)
                     .item(i -> i.name(HEADER_METHOD).value(METHOD_GET))
                     .item(i -> i.name(HEADER_PATH).value(PATH_SLASH))
                     .build();
     private static final Array32FW<HttpHeaderFW> DEFAULT_TRAILERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                         .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                         .wrap(new SafeBuffer(new byte[8]), 0, 8)
                          .build();
     private static final Map<String8FW, String16FW> EMPTY_OVERRIDES = emptyMap();
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
-    private final DirectBuffer payloadRO = new UnsafeBuffer(0, 0);
+    private final DirectBuffer payloadRO = new SafeBuffer(0, 0);
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -355,9 +355,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.config = config;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.codecBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.frameBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.headersPool = bufferPool.duplicate();
         this.creditor = context.creditor();
@@ -5571,14 +5571,14 @@ public final class HttpClientFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBuffer(dst, 0, length);
+                        value = new SafeBuffer(dst, 0, length);
                     }
                     nameValue.accept(name, value);
                     break;
@@ -5587,27 +5587,27 @@ public final class HttpClientFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(name, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        name = new UnsafeBuffer(dst, 0, length);
+                        name = new SafeBuffer(dst, 0, length);
                     }
 
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBuffer(dst, 0, length);
+                        value = new SafeBuffer(dst, 0, length);
                     }
                     nameValue.accept(name, value);
                     break;
@@ -5615,9 +5615,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
                 {
                     // make a copy for name and value as they go into dynamic table (outlives current frame)
-                    MutableDirectBuffer nameCopy = new UnsafeBuffer(new byte[name.capacity()]);
+                    MutableDirectBuffer nameCopy = new SafeBuffer(new byte[name.capacity()]);
                     nameCopy.putBytes(0, name, 0, name.capacity());
-                    MutableDirectBuffer valueCopy = new UnsafeBuffer(new byte[value.capacity()]);
+                    MutableDirectBuffer valueCopy = new SafeBuffer(new byte[value.capacity()]);
                     valueCopy.putBytes(0, value, 0, value.capacity());
                     context.add(nameCopy, valueCopy);
                 }

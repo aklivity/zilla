@@ -25,7 +25,7 @@ import java.time.Clock;
 import java.util.regex.Pattern;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioEventExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.EventFW;
@@ -36,8 +36,8 @@ public class ApicurioEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final MutableDirectBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBuffer eventBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBuffer extensionBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final ApicurioEventExFW.Builder apicurioEventExRW = new ApicurioEventExFW.Builder();
     private final int apicurioTypeId;

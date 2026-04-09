@@ -24,7 +24,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
@@ -49,7 +49,7 @@ public final class WsFunctions
 
         private WsBeginExHelper()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[MAX_BUFFER_SIZE]);
             this.wsBeginExRW = new WsBeginExFW.Builder()
                                     .wrap(writeBuffer, 0, writeBuffer.capacity());
         }

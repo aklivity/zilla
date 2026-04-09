@@ -34,7 +34,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
@@ -105,7 +105,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String POSTGRES_USER = "postgres\u0000";
     private static final String DEFAULT_USER = "default\u0000";
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -184,8 +184,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.statementBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.statementBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

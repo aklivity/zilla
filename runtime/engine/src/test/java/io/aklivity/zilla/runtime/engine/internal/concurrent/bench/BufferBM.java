@@ -29,7 +29,7 @@ import java.util.Random;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -75,11 +75,11 @@ public class BufferBM
         final File bufferFile = new File("target/benchmarks/baseline/buffer").getAbsoluteFile();
         createEmptyFile(bufferFile, capacity).close();
 
-        this.buffer = new UnsafeBuffer(mapExistingFile(bufferFile, "buffer"));
+        this.buffer = new SafeBuffer(mapExistingFile(bufferFile, "buffer"));
         this.source = new ManyToOneRingBuffer(buffer);
         this.target = new ManyToOneRingBuffer(buffer);
 
-        this.writeBuffer = new UnsafeBuffer(allocateDirect(payload).order(nativeOrder()));
+        this.writeBuffer = new SafeBuffer(allocateDirect(payload).order(nativeOrder()));
         this.writeBuffer.setMemory(0, payload, (byte)new Random().nextInt(256));
     }
 

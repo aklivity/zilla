@@ -21,7 +21,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.IOException;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -62,7 +62,7 @@ public class EchoHandshakeBM
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
+    private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[BUFFER_SIZE]);
 
     private BindingHandler handler;
     private Runnable detacher;
