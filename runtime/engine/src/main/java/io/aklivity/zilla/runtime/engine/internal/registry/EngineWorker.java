@@ -45,7 +45,6 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
-import java.lang.foreign.Arena;
 import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
@@ -187,7 +186,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private final int localIndex;
     private final EngineConfiguration config;
-    private final Arena arena;
     private final LabelManager labels;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
@@ -286,7 +284,6 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.arena = Arena.ofConfined();
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
         this.labels = labels;
@@ -508,12 +505,6 @@ public class EngineWorker implements EngineContext, Agent
     public int index()
     {
         return localIndex;
-    }
-
-    @Override
-    public Arena arena()
-    {
-        return arena;
     }
 
     @Override
@@ -1012,8 +1003,6 @@ public class EngineWorker implements EngineContext, Agent
         debitorsByIndex.forEach((k, v) -> quietClose(v));
         quietClose(creditor);
         quietClose(eventWriter);
-
-        arena.close();
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
