@@ -26,10 +26,10 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varint32FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ListWithOctetsFWTest
 {
@@ -106,7 +106,6 @@ public class ListWithOctetsFWTest
             assertNull(listWithOctetsRO.tryWrap(buffer,  offsetPhysicalLength, maxLimit));
         }
     }
-
 
     @Test
     public void shouldWrapWhenLengthSufficientForMinimumRequiredLength()

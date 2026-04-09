@@ -41,9 +41,9 @@ import org.agrona.collections.MutableInteger;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
@@ -1452,7 +1452,6 @@ public class KafkaFunctionsTest
                                                  .header("name", "value")
                                                  .build()
                                              .build();
-
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
@@ -3632,7 +3631,6 @@ public class KafkaFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
-
     @Test
     public void shouldMatchMergedBeginExtensionAckMode() throws Exception
     {
@@ -4135,7 +4133,6 @@ public class KafkaFunctionsTest
         assertEquals("consumer-1", resetEx.consumerId().asString());
     }
 
-
     @Test
     public void shouldMatchProduceDataExtensionTimestamp() throws Exception
     {
@@ -4410,7 +4407,6 @@ public class KafkaFunctionsTest
                 .partition(0, 1L, 1L)
             .build()
             .build();
-
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
@@ -5256,7 +5252,6 @@ public class KafkaFunctionsTest
                     .build()
                 .build();
 
-
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new KafkaFlushExFW.Builder().wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
@@ -5398,7 +5393,6 @@ public class KafkaFunctionsTest
 
         matcher.match(byteBuf);
     }
-
 
     @Test
     public void shouldMatchFetchFlushExtension() throws Exception
@@ -5654,7 +5648,6 @@ public class KafkaFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
-
     @Test
     public void shouldMatchGroupFlushExtensionMembers() throws Exception
     {
@@ -5709,7 +5702,6 @@ public class KafkaFunctionsTest
 
         assertNotNull(matcher.match(byteBuf));
     }
-
 
     @Test(expected = Exception.class)
     public void shouldNotMatchFetchFlushExtensionWithLatestOffset() throws Exception

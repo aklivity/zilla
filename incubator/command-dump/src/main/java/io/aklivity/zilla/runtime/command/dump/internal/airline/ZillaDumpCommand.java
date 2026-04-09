@@ -58,6 +58,7 @@ import org.agrona.concurrent.IdleStrategy;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.Info;
@@ -83,7 +84,6 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")
@@ -803,7 +803,6 @@ public final class ZillaDumpCommand extends ZillaCommand
 
             writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, 0);
         }
-
 
         private void writeFrame(
             int frameTypeId,

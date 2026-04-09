@@ -50,7 +50,6 @@ public final class MetricsLayout extends Layout
     private final AtomicBuffer labelsBuffer = new SafeBuffer(new byte[0]);
     private final AtomicBuffer valuesBuffer = new SafeBuffer(new byte[0]);
 
-
     public AtomicBuffer labelsBuffer()
     {
         return labelsBuffer;

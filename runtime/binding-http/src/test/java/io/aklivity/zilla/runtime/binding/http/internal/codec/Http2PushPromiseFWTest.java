@@ -26,9 +26,9 @@ import java.util.Map;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFWTest;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class Http2PushPromiseFWTest
 {
@@ -57,7 +57,6 @@ public class Http2PushPromiseFWTest
         assertEquals(PUSH_PROMISE, push.type());
         assertEquals(1, push.streamId());
         assertEquals(2, push.promisedStreamId());
-
 
         Map<String, String> headers = new LinkedHashMap<>();
         HpackContext context = new HpackContext();

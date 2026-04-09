@@ -39,6 +39,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionResult;
@@ -72,7 +73,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactory
 {
@@ -153,7 +153,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final int grpcTypeId;
     private final int kafkaTypeId;
     private long reconnectAt = NO_CANCEL_ID;
-
 
     public KafkaGrpcRemoteServerFactory(
         KafkaGrpcConfiguration config,
@@ -1312,7 +1311,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-
         private void doKafkaDataNull(
             long traceId,
             long authorization)
@@ -1853,7 +1851,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             server.flushGrpcMessagesIfBuffered(traceId, initialAuth, correlationId);
         }
     }
-
 
     private void doData(
         MessageConsumer receiver,

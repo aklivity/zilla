@@ -21,6 +21,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
@@ -28,7 +29,6 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMess
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class GrpcKafkaIdHelper
 {

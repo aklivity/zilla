@@ -26,11 +26,11 @@ import java.util.regex.Pattern;
 
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioEventExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ApicurioEventContext
 {

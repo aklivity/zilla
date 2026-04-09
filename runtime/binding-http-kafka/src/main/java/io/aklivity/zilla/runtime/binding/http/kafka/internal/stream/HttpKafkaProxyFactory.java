@@ -25,6 +25,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaRouteConfig;
@@ -57,7 +58,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 {
@@ -3955,7 +3955,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                     final KafkaDataExFW kafkaDataEx =
                             dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-
 
                     if (kafkaDataEx != null)
                     {

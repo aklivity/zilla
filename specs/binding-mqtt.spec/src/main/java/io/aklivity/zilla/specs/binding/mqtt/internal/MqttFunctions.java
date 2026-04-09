@@ -29,10 +29,10 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttExpirySignalFW;
@@ -167,7 +167,6 @@ public final class MqttFunctions
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
         private final MqttBeginExFW.Builder beginExRW = new MqttBeginExFW.Builder();
-
 
         private MqttBeginExBuilder()
         {
@@ -1051,7 +1050,6 @@ public final class MqttFunctions
 
         private final MqttSessionSignalFW.Builder signalRW = new MqttSessionSignalFW.Builder();
 
-
         private MqttSessionSignalBuilder()
         {
             signalRW.wrap(writeBuffer, 0, writeBuffer.capacity());
@@ -1078,7 +1076,6 @@ public final class MqttFunctions
             signal.buffer().getBytes(signal.offset(), array);
             return array;
         }
-
 
         public final class MqttSessionWillSignalBuilder
         {
@@ -1184,7 +1181,6 @@ public final class MqttFunctions
             }
         }
     }
-
 
     public static final class MqttBeginExMatcherBuilder
     {
@@ -1744,7 +1740,6 @@ public final class MqttFunctions
                 this.qos = MqttQoS.valueOf(qos).ordinal();
                 return this;
             }
-
 
             public MqttSubscribeDataExMatcherBuilder flags(
                 String... flagNames)

@@ -28,10 +28,10 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
@@ -429,7 +429,6 @@ public final class KafkaFunctions
 
         protected abstract T build(
             KafkaHeadersFW headers);
-
 
         protected void set(
             KafkaConditionFW.Builder builder,
@@ -2166,7 +2165,6 @@ public final class KafkaFunctions
         {
             private final KafkaGroupBeginExFW.Builder groupBeginExRW = new KafkaGroupBeginExFW.Builder();
 
-
             private KafkaGroupBeginExBuilder()
             {
                 groupBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
@@ -2236,7 +2234,6 @@ public final class KafkaFunctions
             private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
                 new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
 
-
             private KafkaConsumerBeginExBuilder()
             {
                 consumerBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_CONSUMER, writeBuffer.capacity());
@@ -2305,7 +2302,6 @@ public final class KafkaFunctions
         {
             private final KafkaOffsetFetchBeginExFW.Builder offsetFetchBeginExRW = new KafkaOffsetFetchBeginExFW.Builder();
 
-
             private KafkaOffsetFetchBeginExBuilder()
             {
                 offsetFetchBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
@@ -2357,7 +2353,6 @@ public final class KafkaFunctions
         public final class KafkaOffsetCommitBeginExBuilder
         {
             private final KafkaOffsetCommitBeginExFW.Builder offsetCommitBeginExRW = new KafkaOffsetCommitBeginExFW.Builder();
-
 
             private KafkaOffsetCommitBeginExBuilder()
             {
@@ -2416,7 +2411,6 @@ public final class KafkaFunctions
             {
                 initProduceIdBeginExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
-
 
             public KafkaInitProducerIdBeginExBuilder producerId(
                 long producerId)
@@ -2952,7 +2946,6 @@ public final class KafkaFunctions
                     mergedProduceDataExRW.producerEpoch(producerEpoch);
                     return this;
                 }
-
 
                 public KafkaMergedProduceDataExBuilder partition(
                     int partitionId,
@@ -3637,7 +3630,6 @@ public final class KafkaFunctions
                     return this;
                 }
 
-
                 public KafkaMergedFetchFlushExBuilder key(
                     String key)
                 {
@@ -3872,7 +3864,6 @@ public final class KafkaFunctions
                     .latestOffset(latestOffset));
                 return this;
             }
-
 
             public KafkaProduceFlushExBuilder key(
                 String key)
@@ -4179,7 +4170,6 @@ public final class KafkaFunctions
                 this.timestamp = timestamp;
                 return this;
             }
-
 
             public KafkaFetchDataExMatcherBuilder timestampType(
                 String timestampType)
@@ -4905,7 +4895,6 @@ public final class KafkaFunctions
                     return keyRW == null || keyRW.build().equals(mergedFetchDataEx.key());
                 }
 
-
                 private boolean matchDelta(
                     final KafkaMergedFetchDataExFW mergedFetchDataEx)
                 {
@@ -5033,7 +5022,6 @@ public final class KafkaFunctions
 
                     return this;
                 }
-
 
                 public KafkaMergedProduceDataExMatcherBuilder hashKey(
                     String hashKey)
@@ -7025,7 +7013,6 @@ public final class KafkaFunctions
                 private Array32FW.Builder<String16FW.Builder, String16FW> topicsRW;
                 private Integer timeout;
 
-
                 private KafkaDeleteTopicsRequestMatcherBuilder()
                 {
                 }
@@ -7050,7 +7037,6 @@ public final class KafkaFunctions
                     this.timeout = timeout;
                     return this;
                 }
-
 
                 public KafkaBeginExMatcherBuilder build()
                 {

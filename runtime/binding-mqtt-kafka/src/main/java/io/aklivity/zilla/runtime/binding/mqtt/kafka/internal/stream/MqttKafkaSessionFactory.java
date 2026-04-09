@@ -49,6 +49,7 @@ import org.agrona.collections.LongArrayList;
 import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -119,8 +120,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
-
 
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
@@ -613,7 +612,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final DirectBuffer buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
-
 
             final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
             final MqttDataExFW mqttDataEx =
@@ -1913,7 +1911,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doKafkaBegin(traceId, 0, 0);
         }
 
-
         private void doKafkaBegin(
             long timeMillis)
         {
@@ -1989,7 +1986,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, 0, capabilities);
         }
-
 
         private void doKafkaData(
             long traceId,
@@ -2122,7 +2118,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence + reserved;
-
 
             assert replyAck <= replySeq;
 
@@ -2508,7 +2503,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
-
         private void onWillDeliverSignal(
             SignalFW signal)
         {
@@ -2636,7 +2630,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight kafkaDataEx;
 
             kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
-
 
             String topicName = will.topic().asString();
             assert topicName != null;
@@ -2821,7 +2814,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         return (flags & REDIRECT_AVAILABLE_MASK) != 0;
     }
-
 
     private static long partitionKey(
         String topic,
@@ -3960,7 +3952,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final OctetsFW extension = reset.extension();
 
             assert acknowledge <= sequence;
-
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
@@ -5264,7 +5255,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 })
                 .build();
 
-
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -5309,7 +5299,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
                     .ackMode(b -> b.set(ackMode)))
                 .build();
-
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -5366,7 +5355,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .evaluation(b -> b.set(KafkaEvaluation.EAGER)))
                 .build();
 
-
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -5420,7 +5408,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .evaluation(b -> b.set(KafkaEvaluation.EAGER)))
                 .build();
 
-
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -5441,7 +5428,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         return receiver;
     }
-
 
     private MessageConsumer newSignalStream(
         MessageConsumer sender,
