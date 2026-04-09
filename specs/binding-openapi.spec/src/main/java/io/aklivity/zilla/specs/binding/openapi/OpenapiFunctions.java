@@ -20,10 +20,10 @@ import java.nio.ByteBuffer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
 public final class OpenapiFunctions
