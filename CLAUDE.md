@@ -627,6 +627,14 @@ Add a builder and a matcher for every extension type declared in the binding's
 constraints have been set, allowing unconditional reads when the extension
 content is irrelevant.
 
+**Typed method variants for non-string values:** JUEL (the expression language
+used in `.rpt` scripts) cannot dispatch Java method overloads by argument type
+— it always coerces numeric literals to `long`. Where a field accepts values
+of different primitive types, provide explicitly typed method variants rather
+than overloading a single method name. For example, use `headerInt(name, int)`,
+`headerLong(name, long)`, `headerShort(name, short)` instead of overloading
+`header(name, value)`. See `KafkaFunctions` for examples of this pattern.
+
 **Alignment in `.rpt` scripts:** when a function call is chained across
 multiple lines inside `${ }`, align each `.` directly under the `.` of the
 opening function name:
