@@ -20,7 +20,7 @@ import java.util.function.LongUnaryOperator;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
@@ -765,16 +765,76 @@ public final class McpServerFactory implements McpStreamFactory
             final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
             String parsedMethod = null;
             boolean parsedHasId = false;
-            JsonValue parsedParams = null;
+            JsonObject parsedParams = null;
+            boolean parseIncomplete = false;
 
-            try
+            try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
             {
-                final JsonObject request = Json.createReader(new StringReader(fullJson)).readObject();
-                parsedMethod = request.getString("method", null);
-                parsedHasId = request.containsKey("id") && !request.isNull("id");
-                parsedParams = request.get("params");
+                String currentKey = null;
+                while (parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case KEY_NAME:
+                        currentKey = parser.getString();
+                        break;
+                    case VALUE_STRING:
+                        if ("method".equals(currentKey))
+                        {
+                            parsedMethod = parser.getString();
+                        }
+                        else if ("id".equals(currentKey))
+                        {
+                            parsedHasId = true;
+                        }
+                        currentKey = null;
+                        break;
+                    case VALUE_NUMBER:
+                    case VALUE_TRUE:
+                    case VALUE_FALSE:
+                        if ("id".equals(currentKey))
+                        {
+                            parsedHasId = true;
+                        }
+                        currentKey = null;
+                        break;
+                    case VALUE_NULL:
+                        currentKey = null;
+                        break;
+                    case START_OBJECT:
+                        if ("params".equals(currentKey))
+                        {
+                            parsedParams = parser.getObject();
+                        }
+                        else if (currentKey != null)
+                        {
+                            parser.skipObject();
+                        }
+                        currentKey = null;
+                        break;
+                    case START_ARRAY:
+                        parser.skipArray();
+                        currentKey = null;
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
             catch (JsonParsingException ex)
+            {
+                parseIncomplete = true;
+            }
+
+            final boolean needsParams = "initialize".equals(parsedMethod) ||
+                "tools/call".equals(parsedMethod) ||
+                "prompts/get".equals(parsedMethod) ||
+                "resources/read".equals(parsedMethod) ||
+                "logging/setLevel".equals(parsedMethod) ||
+                "notifications/cancelled".equals(parsedMethod);
+
+            if (parseIncomplete && (parsedMethod == null || needsParams && parsedParams == null))
             {
                 if ((flags & FLAG_FIN) == 0)
                 {
@@ -782,32 +842,32 @@ public final class McpServerFactory implements McpStreamFactory
                 }
             }
 
-            if (parsedParams instanceof JsonObject paramsObj)
+            if (parsedParams != null)
             {
                 if ("initialize".equals(parsedMethod))
                 {
-                    mcpVersion = paramsObj.containsKey("protocolVersion")
-                        ? paramsObj.getString("protocolVersion") : null;
+                    mcpVersion = parsedParams.containsKey("protocolVersion")
+                        ? parsedParams.getString("protocolVersion") : null;
                 }
                 else if ("tools/call".equals(parsedMethod))
                 {
-                    toolName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                    toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                 }
                 else if ("prompts/get".equals(parsedMethod))
                 {
-                    promptName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                    promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                 }
                 else if ("resources/read".equals(parsedMethod))
                 {
-                    resourceUri = paramsObj.containsKey("uri") ? paramsObj.getString("uri") : null;
+                    resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
                 }
                 else if ("logging/setLevel".equals(parsedMethod))
                 {
-                    loggingLevel = paramsObj.containsKey("level") ? paramsObj.getString("level") : null;
+                    loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
                 }
                 else if ("notifications/cancelled".equals(parsedMethod))
                 {
-                    cancelReason = paramsObj.containsKey("reason") ? paramsObj.getString("reason") : null;
+                    cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
                 }
             }
 
@@ -850,46 +910,93 @@ public final class McpServerFactory implements McpStreamFactory
                 final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
                 String parsedMethod = null;
                 boolean parsedHasId = false;
-                JsonValue parsedParams = null;
+                JsonObject parsedParams = null;
 
-                try
+                try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
                 {
-                    final JsonObject request = Json.createReader(new StringReader(fullJson)).readObject();
-                    parsedMethod = request.getString("method", null);
-                    parsedHasId = request.containsKey("id") && !request.isNull("id");
-                    parsedParams = request.get("params");
+                    String currentKey = null;
+                    while (parser.hasNext())
+                    {
+                        final JsonParser.Event event = parser.next();
+                        switch (event)
+                        {
+                        case KEY_NAME:
+                            currentKey = parser.getString();
+                            break;
+                        case VALUE_STRING:
+                            if ("method".equals(currentKey))
+                            {
+                                parsedMethod = parser.getString();
+                            }
+                            else if ("id".equals(currentKey))
+                            {
+                                parsedHasId = true;
+                            }
+                            currentKey = null;
+                            break;
+                        case VALUE_NUMBER:
+                        case VALUE_TRUE:
+                        case VALUE_FALSE:
+                            if ("id".equals(currentKey))
+                            {
+                                parsedHasId = true;
+                            }
+                            currentKey = null;
+                            break;
+                        case VALUE_NULL:
+                            currentKey = null;
+                            break;
+                        case START_OBJECT:
+                            if ("params".equals(currentKey))
+                            {
+                                parsedParams = parser.getObject();
+                            }
+                            else if (currentKey != null)
+                            {
+                                parser.skipObject();
+                            }
+                            currentKey = null;
+                            break;
+                        case START_ARRAY:
+                            parser.skipArray();
+                            currentKey = null;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
                 }
                 catch (JsonParsingException ex)
                 {
-                    // fall through with null method (disconnect kind)
+                    // fall through with what we have (END has arrived)
                 }
 
-                if (parsedParams instanceof JsonObject paramsObj)
+                if (parsedParams != null)
                 {
                     if ("initialize".equals(parsedMethod))
                     {
-                        mcpVersion = paramsObj.containsKey("protocolVersion")
-                            ? paramsObj.getString("protocolVersion") : null;
+                        mcpVersion = parsedParams.containsKey("protocolVersion")
+                            ? parsedParams.getString("protocolVersion") : null;
                     }
                     else if ("tools/call".equals(parsedMethod))
                     {
-                        toolName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                        toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                     }
                     else if ("prompts/get".equals(parsedMethod))
                     {
-                        promptName = paramsObj.containsKey("name") ? paramsObj.getString("name") : null;
+                        promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
                     }
                     else if ("resources/read".equals(parsedMethod))
                     {
-                        resourceUri = paramsObj.containsKey("uri") ? paramsObj.getString("uri") : null;
+                        resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
                     }
                     else if ("logging/setLevel".equals(parsedMethod))
                     {
-                        loggingLevel = paramsObj.containsKey("level") ? paramsObj.getString("level") : null;
+                        loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
                     }
                     else if ("notifications/cancelled".equals(parsedMethod))
                     {
-                        cancelReason = paramsObj.containsKey("reason") ? paramsObj.getString("reason") : null;
+                        cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
                     }
                 }
 

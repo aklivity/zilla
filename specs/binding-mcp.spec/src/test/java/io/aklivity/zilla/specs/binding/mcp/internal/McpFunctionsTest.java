@@ -558,4 +558,122 @@ public class McpFunctionsTest
 
         assertNull(matcher.match(ByteBuffer.allocate(0)));
     }
+
+    @Test
+    public void shouldGenerateBeginExWithNumericSessionId()
+    {
+        assertNotNull(McpFunctions.beginEx().typeId(0).initialize().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).ping().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).tools().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).tool().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).prompts().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).prompt().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).resources().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).resource().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).completion().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).logging().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).cancel().sessionId(42L).build().build());
+        assertNotNull(McpFunctions.beginEx().typeId(0).disconnect().sessionId(42L).build().build());
+    }
+
+    @Test
+    public void shouldMatchBeginExWithNumericSessionId() throws Exception
+    {
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .ping(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).ping().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .tools(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tools().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .tool(b -> b.sessionId("42").name("t"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).tool().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .prompts(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompts().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .prompt(b -> b.sessionId("42").name("p"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).prompt().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resources(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resources().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resource(b -> b.sessionId("42").uri("u"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).resource().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .completion(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).completion().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .logging(b -> b.sessionId("42").level("warn"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).logging().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .cancel(b -> b.sessionId("42").reason("r"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).cancel().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .disconnect(b -> b.sessionId("42"))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).disconnect().sessionId(42L).build().build().match(byteBuf));
+
+        byteBuf.clear();
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .initialize(b -> b.sessionId("42").version((String) null))
+            .build();
+        assertNotNull(McpFunctions.matchBeginEx().typeId(0).initialize().sessionId(42L).build().build().match(byteBuf));
+    }
 }
