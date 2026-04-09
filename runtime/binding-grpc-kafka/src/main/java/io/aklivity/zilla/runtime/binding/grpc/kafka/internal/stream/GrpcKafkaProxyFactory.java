@@ -26,7 +26,6 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaBindingConfig;
@@ -64,6 +63,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {

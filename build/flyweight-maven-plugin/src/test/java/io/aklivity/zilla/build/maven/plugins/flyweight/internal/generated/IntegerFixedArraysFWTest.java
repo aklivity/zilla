@@ -29,10 +29,10 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerFixedArraysFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class IntegerFixedArraysFWTest
 {

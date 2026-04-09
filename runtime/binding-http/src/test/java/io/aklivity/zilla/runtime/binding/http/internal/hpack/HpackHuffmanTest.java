@@ -22,9 +22,9 @@ import static org.junit.Assert.assertNotEquals;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class HpackHuffmanTest
 {
 

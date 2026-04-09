@@ -29,7 +29,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongLongConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -91,7 +90,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -111,7 +110,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -168,7 +167,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final MessageHeaderFW messageHeaderRO = new MessageHeaderFW();
     private final ControlRecordKeyFW controlRecordKeyRO = new ControlRecordKeyFW();
     private final OctetsFW valueRO = new OctetsFW();
-    private final DirectBuffer headersRO = new SafeBuffer();
+    private final DirectBuffer headersRO = new UnsafeBufferEx();
 
     private final KafkaFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -228,7 +227,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
@@ -296,8 +295,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     initialOffset,
                     isolation,
                     server,
-                    sasl,
-                    binding.guard)::onApplication;
+                    sasl)::onApplication;
             }
         }
 
@@ -1762,8 +1760,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long initialOffset,
             KafkaIsolation isolation,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl,
-            GuardHandler guard)
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.originId = originId;
@@ -1773,7 +1770,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
-                    initialOffset, latestOffset, isolation, server, sasl, guard);
+                    initialOffset, latestOffset, isolation, server, sasl);
         }
 
         private int replyBudget()
@@ -2235,10 +2232,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long latestOffset,
                 KafkaIsolation isolation,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl,
-                GuardHandler guard)
+                KafkaSaslConfig sasl)
             {
-                super(server, sasl, guard, originId, routedId);
+                super(server, sasl, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);

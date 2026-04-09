@@ -22,9 +22,9 @@ import static org.junit.Assert.assertTrue;
 import java.nio.charset.StandardCharsets;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class StringEncodingTest
 {
     private StringState state = new StringState();

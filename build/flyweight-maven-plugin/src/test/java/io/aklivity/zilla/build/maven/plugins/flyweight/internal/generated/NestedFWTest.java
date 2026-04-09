@@ -23,10 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.NestedFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class NestedFWTest
 {

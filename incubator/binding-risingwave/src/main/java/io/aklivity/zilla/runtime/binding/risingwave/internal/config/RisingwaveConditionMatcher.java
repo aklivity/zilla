@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class RisingwaveConditionMatcher
 {

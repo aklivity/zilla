@@ -35,7 +35,6 @@ import java.util.zip.CRC32C;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -82,7 +81,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -109,12 +108,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-        .wrap(new SafeBuffer(new byte[64]), 0, 64).build();
+        .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
 
     private static final short PRODUCE_API_KEY = 0;
     private static final short PRODUCE_API_VERSION = 3;
@@ -208,8 +207,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -270,8 +269,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         topicName,
                         partitionId,
                         server,
-                        sasl,
-                        binding.guard)::onApplication;
+                        sasl)::onApplication;
             }
         }
 
@@ -925,8 +923,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             String topic,
             int partitionId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl,
-            GuardHandler guard)
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.originId = originId;
@@ -934,7 +931,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl, guard);
+            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl);
         }
 
         private void onApplication(
@@ -1262,10 +1259,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 String topic,
                 int partitionId,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl,
-                GuardHandler guard)
+                KafkaSaslConfig sasl)
             {
-                super(server, sasl, guard, stream.routedId, resolvedId);
+                super(server, sasl, stream.routedId, resolvedId);
                 this.stream = stream;
                 this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.topic = requireNonNull(topic);

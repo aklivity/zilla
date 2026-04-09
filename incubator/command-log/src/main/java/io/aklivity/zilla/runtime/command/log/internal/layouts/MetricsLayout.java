@@ -27,8 +27,8 @@ import java.nio.file.Path;
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public final class MetricsLayout extends Layout
 {
     private static final int METRICS_VERSION = 1;

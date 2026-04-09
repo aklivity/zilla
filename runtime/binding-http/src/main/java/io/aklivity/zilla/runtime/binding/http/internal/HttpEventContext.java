@@ -22,7 +22,6 @@ import java.time.Clock;
 import java.util.Map;
 
 import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
@@ -32,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventExFW
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class HttpEventContext
 {

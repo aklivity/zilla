@@ -24,11 +24,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfUint8FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class VariantEnumKindOfUint8FWTest
 {

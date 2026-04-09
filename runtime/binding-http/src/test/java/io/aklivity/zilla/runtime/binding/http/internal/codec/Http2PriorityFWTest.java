@@ -20,9 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class Http2PriorityFWTest
 {
 

@@ -24,11 +24,11 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class EventWriterTest
 {
     // capacity=64, zero-length events = 8 bytes each (HEADER_LENGTH only).

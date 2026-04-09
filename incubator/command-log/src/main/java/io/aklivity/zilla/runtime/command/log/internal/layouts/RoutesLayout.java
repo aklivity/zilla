@@ -23,8 +23,8 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public final class RoutesLayout extends Layout
 {
     private final DirectBuffer routesBuffer;

@@ -22,9 +22,9 @@ import static org.junit.Assert.assertNull;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.specs.engine.internal.types.String16FW;
 import io.aklivity.zilla.specs.engine.internal.types.String8FW;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32nFW;

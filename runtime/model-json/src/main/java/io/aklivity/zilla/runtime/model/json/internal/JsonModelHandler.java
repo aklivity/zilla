@@ -22,7 +22,6 @@ import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -31,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
 

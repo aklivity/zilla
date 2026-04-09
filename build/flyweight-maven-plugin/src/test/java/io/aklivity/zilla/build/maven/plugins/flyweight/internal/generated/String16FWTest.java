@@ -27,7 +27,6 @@ import java.util.Collection;
 
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,6 +34,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String16FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 @RunWith(Parameterized.class)
 public class String16FWTest

@@ -25,11 +25,11 @@ import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class KafkaCacheFileTest
 {
     @Rule

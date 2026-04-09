@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.List8FW;
@@ -36,6 +35,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfListFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfMapFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantWithFourTypesFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class VariantWithFourTypesFWTest
 {

@@ -34,7 +34,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -72,7 +71,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -81,7 +80,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -169,8 +168,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -220,8 +219,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     resolvedId,
                     topicName,
                     binding.servers(),
-                    sasl,
-                    binding.guard)::onApplication;
+                    sasl)::onApplication;
         }
 
         return newStream;
@@ -845,8 +843,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             long resolvedId,
             String topic,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl,
-            GuardHandler guard)
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.originId = originId;
@@ -855,7 +852,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl, guard);
+            this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl);
         }
 
         private void onApplication(
@@ -1186,10 +1183,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long routedId,
                 String topic,
                 List<KafkaServerConfig> servers,
-                KafkaSaslConfig sasl,
-                GuardHandler guard)
+                KafkaSaslConfig sasl)
             {
-                super(servers, sasl, guard, originId, routedId);
+                super(servers, sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.newServers = new Long2ObjectHashMap<>();

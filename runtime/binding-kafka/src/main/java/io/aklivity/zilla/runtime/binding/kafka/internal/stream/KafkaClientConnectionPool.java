@@ -36,7 +36,6 @@ import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -62,7 +61,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 {
@@ -144,8 +143,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         super(config, context);
 
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.encodeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.encodeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -248,7 +247,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         final List<KafkaServerConfig> servers = binding.servers();
         final KafkaSaslConfig sasl = binding.sasl();
 
-        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl, binding.guard);
+        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl);
     }
 
     private MessageConsumer newNetworkStream(
@@ -1252,10 +1251,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long routedId,
             long authorization,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl,
-            GuardHandler guard)
+            KafkaSaslConfig sasl)
         {
-            super(servers, sasl, guard, originId, routedId);
+            super(servers, sasl, originId, routedId);
 
             this.saslAuthorization = authorization;
             this.originId = originId;

@@ -22,7 +22,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.MutableInteger;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
@@ -31,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagV1FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class HttpKafkaEtagHelper
 {

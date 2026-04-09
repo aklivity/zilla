@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import java.nio.charset.StandardCharsets;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt64;
@@ -40,6 +39,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithEnumFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.Roll;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.RollFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class ListWithEnumFWTest
 {
