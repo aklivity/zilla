@@ -39,6 +39,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -48,7 +49,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

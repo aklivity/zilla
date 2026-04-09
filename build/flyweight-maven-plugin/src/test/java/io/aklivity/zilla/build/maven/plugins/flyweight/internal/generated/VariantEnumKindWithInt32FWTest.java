@@ -26,9 +26,9 @@ import static org.junit.Assert.fail;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindWithInt32FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class VariantEnumKindWithInt32FWTest
 {

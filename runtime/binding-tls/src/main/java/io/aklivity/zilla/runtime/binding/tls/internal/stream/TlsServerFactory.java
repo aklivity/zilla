@@ -54,6 +54,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
@@ -78,18 +79,17 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsServerFactory implements TlsStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final int MAXIMUM_HEADER_SIZE = 5 + 20 + 256;    // TODO version + MAC + padding
     private static final int NET_SIGNAL_HANDSHAKE_TASK_COMPLETE = 1;
     private static final int NET_SIGNAL_HANDSHAKE_TIMEOUT = 2;
     private static final int APP_SIGNAL_RESET_LATER = 1;
-    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new SafeBuffer(new byte[0]);
+    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBufferEx(new byte[0]);
 
     static final Optional<TlsServer.TlsStream> NULL_STREAM = Optional.ofNullable(null);
 
@@ -191,13 +191,13 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.event = new TlsEventContext(context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inNetBuffer = new SafeBuffer(inNetByteBuffer);
+        this.inNetBuffer = new UnsafeBufferEx(inNetByteBuffer);
         this.outNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity() << 1);
-        this.outNetBuffer = new SafeBuffer(outNetByteBuffer);
+        this.outNetBuffer = new UnsafeBufferEx(outNetByteBuffer);
         this.inAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inAppBuffer = new SafeBuffer(inAppByteBuffer);
+        this.inAppBuffer = new UnsafeBufferEx(inAppByteBuffer);
         this.outAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.outAppBuffer = new SafeBuffer(outAppByteBuffer);
+        this.outAppBuffer = new UnsafeBufferEx(outAppByteBuffer);
 
         this.random = new SecureRandom();
     }
@@ -1091,7 +1091,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
                 // TODO: use decodeSlot instead of allocation
-                MutableDirectBuffer bufferEx = new SafeBuffer(new byte[beginEx.sizeof()]);
+                MutableDirectBuffer bufferEx = new UnsafeBufferEx(new byte[beginEx.sizeof()]);
                 bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
                 extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
             }
@@ -1684,12 +1684,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsMutualConfig mutual = binding != null && binding.options != null ? binding.options.mutual : null;
-            final Certificate[] clientCerts = clientCertificates(tlsSession, mutual);
-
-            final TlsRouteConfig route = binding != null
-                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCerts)
-                : null;
+            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port) : null;
 
             if (route != null)
             {
@@ -2272,7 +2267,6 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
             }
 
-
             private void doAppAbort(
                 long traceId)
             {
@@ -2429,24 +2423,5 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
 
         return commonName;
-    }
-
-    private static Certificate[] clientCertificates(
-        SSLSession session,
-        TlsMutualConfig mutual)
-    {
-        Certificate[] certs = null;
-        if (mutual == TlsMutualConfig.REQUIRED || mutual == TlsMutualConfig.REQUESTED)
-        {
-            try
-            {
-                certs = session.getPeerCertificates();
-            }
-            catch (SSLPeerUnverifiedException ex)
-            {
-                // no client cert presented under mutual: requested
-            }
-        }
-        return certs;
     }
 }

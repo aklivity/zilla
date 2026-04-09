@@ -29,8 +29,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
 
 public class HpackHeaderFieldFWTest
 {
@@ -93,7 +93,6 @@ public class HpackHeaderFieldFWTest
         DirectBuffer value = valueRO.payload();
         assertEquals("custom-header", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
-
 
     // Decoding "C.2.2.  Literal Header Field without Indexing"
     @Test

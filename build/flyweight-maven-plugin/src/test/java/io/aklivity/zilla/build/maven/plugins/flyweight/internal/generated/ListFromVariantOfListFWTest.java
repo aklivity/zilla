@@ -25,12 +25,12 @@ import static org.junit.Assert.fail;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListFromVariantOfListFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ListFromVariantOfListFWTest
 {

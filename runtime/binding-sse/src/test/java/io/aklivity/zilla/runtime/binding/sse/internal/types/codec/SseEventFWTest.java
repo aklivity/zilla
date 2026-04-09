@@ -88,7 +88,6 @@ public class SseEventFWTest
         assertEquals(expectedHexString.length(), length);
     }
 
-
     @Test
     public void shouldPutLong5124095576030447()
     {

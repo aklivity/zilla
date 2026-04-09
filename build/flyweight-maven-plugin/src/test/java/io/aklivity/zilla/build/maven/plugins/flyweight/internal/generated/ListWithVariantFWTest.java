@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt16;
@@ -33,7 +34,6 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithVariantFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ListWithVariantFWTest
 {
@@ -201,7 +201,6 @@ public class ListWithVariantFWTest
         int offsetVariantOfString32 = offsetKindVariantOfString32 + Byte.BYTES;
         buffer.putByte(offsetVariantOfString32, (byte) 7);
         buffer.putBytes(offsetVariantOfString32 + 1, "variant".getBytes());
-
 
         assertSame(listWithVariantOfIntRO, listWithVariantOfIntRO.wrap(buffer, offsetLength,
             offsetLength + length));

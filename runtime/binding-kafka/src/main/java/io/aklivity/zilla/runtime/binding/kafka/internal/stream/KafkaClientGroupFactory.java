@@ -44,6 +44,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -114,7 +115,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -4727,7 +4727,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
-
         @Override
         protected void onStreamMigrate(
             long traceId)
@@ -4909,7 +4908,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 });
             }
 
-
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress.get() - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
 
@@ -5040,7 +5038,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
                 buffer, offset, sizeof);
         }
-
 
         private void doHeartbeatRequest(
             long traceId)

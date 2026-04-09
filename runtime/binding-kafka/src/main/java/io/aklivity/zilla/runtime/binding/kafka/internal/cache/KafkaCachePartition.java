@@ -64,6 +64,7 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
@@ -83,7 +84,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEn
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFlags;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 

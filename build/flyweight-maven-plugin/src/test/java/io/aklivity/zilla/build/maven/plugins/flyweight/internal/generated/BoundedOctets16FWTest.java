@@ -27,8 +27,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
 
 public class BoundedOctets16FWTest
 {
@@ -45,7 +45,6 @@ public class BoundedOctets16FWTest
     private final BoundedOctets16FW flyweightRO = new BoundedOctets16FW();
 
     private final int lengthSize = Short.BYTES;
-
 
     private int setValue(
         MutableDirectBuffer buffer,

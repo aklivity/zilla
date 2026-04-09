@@ -90,6 +90,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.ObjectHashSet;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
@@ -159,7 +160,6 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class MqttClientFactory implements MqttStreamFactory
 {
@@ -225,7 +225,6 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
-
 
     private final BeginFW beginRO = new BeginFW();
     private final FlushFW flushRO = new FlushFW();
@@ -1587,7 +1586,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                     break decode;
                 }
 
-
                 Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
@@ -1925,7 +1923,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                     final Array32FW<MqttUserPropertyFW> userProperties = userPropertiesRW.build();
                     userProperties.forEach(c -> s.propertiesItem(p -> p.key(c.key()).value(c.value())));
                 });
-
 
             final MqttDataExFW dataEx = builder.build();
             if (stream != null)
@@ -2782,7 +2779,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                 flags |= NO_LOCAL_FLAG_MASK;
             }
 
-
             return flags;
         }
 
@@ -3082,7 +3078,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                 subscription.qos = filter.qos();
                 newSubscribeState.add(subscription);
             });
-
 
             final List<Subscription> newSubscriptions = newSubscribeState.stream()
                 .filter(s -> !subscriptions.contains(s))
@@ -3454,7 +3449,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                 traceId, authorization, affinity, EMPTY_OCTETS);
         }
 
-
         private void doSubscribeAbort(
             long traceId,
             long authorization)
@@ -3565,7 +3559,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             doSubscribeReset(traceId, authorization);
         }
 
-
         private void doSubscribeWindow(
             long traceId,
             long authorization,
@@ -3601,7 +3594,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
         }
 
-
         private void doSubscribeData(
             long traceId,
             long authorization,
@@ -3625,7 +3617,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert replySeq <= replyAck + replyMax;
         }
     }
-
 
     private class MqttPublishStream
     {
@@ -3655,7 +3646,6 @@ public final class MqttClientFactory implements MqttStreamFactory
         private long publishExpiresId = NO_CANCEL_ID;
         private long publishExpiresAt;
         private String topic;
-
 
         MqttPublishStream(
             MqttClient client,
@@ -3898,7 +3888,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                 doSignalPublishExpiration(traceId);
             }
         }
-
 
         private void doPublishBegin(
             long traceId,
@@ -4267,7 +4256,6 @@ public final class MqttClientFactory implements MqttStreamFactory
         private int qos;
         private int flags;
         private int reasonCode;
-
 
         @Override
         public boolean equals(Object obj)

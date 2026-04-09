@@ -37,6 +37,7 @@ import org.agrona.collections.LongHashSet;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -61,7 +62,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 {
@@ -115,7 +115,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final KafkaConnectionClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
     private final KafkaConnectionClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaConnectionClientDecoder decodeReject = this::decodeReject;
-
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
@@ -724,7 +723,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
         private int state;
 
-
         private KafkaClientStream(
             KafkaClientConnection connection,
             MessageConsumer sender,
@@ -787,7 +785,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             connection.doConnectionBegin(traceId, extension);
         }
-
 
         private void onStreamBegin(
             BeginFW begin)
@@ -1119,7 +1116,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             connection.doConnectionSignalNow(initialId, traceId, signalId, buffer, offset, length);
         }
-
 
         private long doStreamSignalAt(
             long traceId,
@@ -1828,7 +1824,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 currentTimeMillis() + connectionPoolCleanupMillis,
                 SIGNAL_CONNECTION_CLEANUP, this::onStreamCleanupSignal);
         }
-
 
         private void onStreamCleanupSignal(
             int signalId)

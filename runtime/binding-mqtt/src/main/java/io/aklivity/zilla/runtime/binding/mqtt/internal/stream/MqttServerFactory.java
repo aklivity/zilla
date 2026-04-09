@@ -108,6 +108,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
@@ -195,7 +196,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -1531,7 +1531,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     payload, payload.offset(), payload.offset() + sizeClaimed, publisher.contentType);
 
                 progress = payload.offset() + sizeClaimed;
-
 
                 if (server.decodeablePublishPayloadBytes == 0)
                 {
@@ -3070,7 +3069,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 progress = limit;
             }
 
-
             return progress;
         }
 
@@ -3745,7 +3743,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 decodeProgress = mqttUnsubscribePayload.limit();
             }
-
 
             if (decodeReasonCode != SUCCESS)
             {
@@ -6107,7 +6104,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-
             private void setPublishAppClosed()
             {
                 assert !MqttState.replyClosed(state);
@@ -6513,7 +6509,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-
             private void onSubscribeReset(
                 ResetFW reset)
             {
@@ -6620,7 +6615,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doSubscribeAbort(traceId);
             }
 
-
             private void doSubscribeWindow(
                 long traceId,
                 int minReplyNoAck,
@@ -6666,7 +6660,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                         traceId, sessionId, EMPTY_OCTETS);
                 }
             }
-
 
             private void setSubscribeAppClosed()
             {

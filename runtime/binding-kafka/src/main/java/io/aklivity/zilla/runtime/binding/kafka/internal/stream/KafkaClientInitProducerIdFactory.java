@@ -29,6 +29,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -59,7 +60,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -480,7 +480,6 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
             progress = responseHeader.limit();
 
-
             final InitProducerIdResponseFW initProducerIdResponse = initProducerrIdResponseRO.tryWrap(buffer, progress, limit);
             if (initProducerIdResponse == null)
             {
@@ -504,7 +503,6 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
         return progress;
     }
-
 
     private int decodeReject(
         KafkaInitProducerIdClient client,
@@ -833,7 +831,6 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         private int decodeSlotReserved;
 
         private int nextResponseId;
-
 
         private BudgetDebitor initialDeb;
         private KafkaInitProducerIdClientDecoder decoder;

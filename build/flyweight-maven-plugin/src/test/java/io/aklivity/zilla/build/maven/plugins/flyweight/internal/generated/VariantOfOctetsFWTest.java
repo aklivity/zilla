@@ -27,13 +27,13 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfOctetsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class VariantOfOctetsFWTest
 {

@@ -18,9 +18,8 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
-
+import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 
 /*
  *  Flyweight for HTTP2 client preface

@@ -67,6 +67,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
@@ -121,7 +122,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -3547,7 +3547,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                                EMPTY_OVERRIDES, promisedStreamId);
                 exchanges.put(promisedStreamId, promisedExchange);
 
-
                 addNewPromise(traceId, promisedStreamId, headers);
 
                 exchange.doResponseFlush(traceId, authorization,
@@ -4258,7 +4257,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final int encodeReserved = encodeLength + initialPad;
                     final int encodeReservedMin = (int) (((long) encodeSlotReserved * encodeLength) / encodeSlotOffset);
 
-
                     initialSharedBudget -= encodeReserved;
                     encodeSlotReserved -= encodeReservedMin;
 
@@ -4571,7 +4569,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
     }
-
 
     private final class HttpExchange
     {
@@ -5387,7 +5384,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private final Consumer<HpackHeaderFieldFW> decodeHeader;
         private final Consumer<HpackHeaderFieldFW> decodeTrailer;
-
 
         Http2ErrorCode connectionError;
         Http2ErrorCode streamError;

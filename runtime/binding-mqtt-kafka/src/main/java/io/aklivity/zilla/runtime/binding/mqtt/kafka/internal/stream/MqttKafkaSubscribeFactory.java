@@ -44,6 +44,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2IntHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -92,7 +93,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 {
@@ -608,7 +608,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
         }
 
-
         private void onMqttEnd(
             EndFW end)
         {
@@ -624,7 +623,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
-
 
             messages.values().forEach(m -> m.doKafkaEnd(traceId, authorization));
             messages.clear();
@@ -649,7 +647,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
-
 
             messages.values().forEach(m -> m.doKafkaAbort(traceId, authorization));
             messages.clear();
@@ -677,7 +674,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
-
 
             messages.values().forEach(m -> m.doKafkaReset(traceId));
             messages.clear();
@@ -1033,7 +1029,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
         }
 
-
         private void doKafkaBeginAt(
             long timeMillis)
         {
@@ -1291,7 +1286,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
                 final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
-
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
                 {
@@ -1416,7 +1410,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             cleanup(traceId, authorization);
                         }
-
 
                         final MutableDirectBuffer dataBuffer = bufferPool.buffer(dataSlot);
                         Flyweight message = mqttSubscribeMessageRW.wrap(dataBuffer, messageSlotLimit, dataBuffer.capacity())
@@ -1619,7 +1612,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final PartitionOffset offset = offsetCommit.partitionOffset;
             final MqttOffsetStateFlags state = offsetCommit.state;
             final int packetId = offsetCommit.packetId;
-
 
             if (qos == MqttQoS.EXACTLY_ONCE.value() && state == MqttOffsetStateFlags.COMPLETE)
             {
@@ -1992,7 +1984,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final KafkaMergedBeginExFW kafkaMergedBeginEx =
                 kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
 
-
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
             assert acknowledge >= replyAck;
@@ -2191,7 +2182,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
             final KafkaFlushExFW kafkaFlushEx =
                 flushEx != null && flushEx.typeId() == kafkaTypeId ? extension.get(kafkaFlushExRO::tryWrap) : null;
-
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -2751,7 +2741,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 })
                 .build();
 
-
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -2795,7 +2784,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     .groupId(serverRef != null ? MQTT_CLIENTS_GROUP_ID : null)
                     .consumerId(serverRef))
                 .build();
-
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)

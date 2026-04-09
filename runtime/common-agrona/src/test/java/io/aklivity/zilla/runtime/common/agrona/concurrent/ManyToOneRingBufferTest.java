@@ -164,7 +164,6 @@ public class ManyToOneRingBufferTest
         final int srcIndex = 0;
         assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
 
-
         final InOrder inOrder = inOrder(buffer);
         inOrder.verify(buffer).putInt(typeOffset((int)tail), PADDING_MSG_TYPE_ID);
         inOrder.verify(buffer).putIntOrdered(lengthOffset((int)tail), HEADER_LENGTH);

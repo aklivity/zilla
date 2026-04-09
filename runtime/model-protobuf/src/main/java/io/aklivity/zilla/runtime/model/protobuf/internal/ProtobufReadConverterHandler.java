@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -24,18 +26,12 @@ import java.util.regex.Pattern;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
-import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.util.JsonFormat;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
@@ -46,11 +42,12 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     private static final int TAG_TYPE_BITS = 3;
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
 
     private final Matcher matcher;
-    private final Map<String, ProtobufFieldValue> extracted;
-    private final Map<String, JsonState> jsonStates;
+    private final JsonFormat.Printer printer;
+    private final OutputStreamWriter output;
+    private final Map<String, ProtobufField> extracted;
 
     private int progress;
 
@@ -59,9 +56,13 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         EngineContext context)
     {
         super(config, context);
+        this.printer = JsonFormat.printer()
+            .omittingInsignificantWhitespace()
+            .preservingProtoFieldNames()
+            .includingDefaultValueFields();
+        this.output = new OutputStreamWriter(out);
         this.matcher = PATH_PATTERN.matcher("");
         this.extracted = new HashMap<>();
-        this.jsonStates = new HashMap<>();
     }
 
     @Override
@@ -92,7 +93,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     {
         if (matcher.reset(path).matches())
         {
-            extracted.put(matcher.group(1), new ProtobufFieldValue());
+            extracted.put(matcher.group(1), new ProtobufField());
         }
     }
 
@@ -105,7 +106,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         int length,
         ValueConsumer next)
     {
-        for (ProtobufFieldValue field : extracted.values())
+        for (ProtobufField field: extracted.values())
         {
             field.value.wrap(EMPTY_BUFFER, 0, 0);
         }
@@ -175,21 +176,33 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         ValueConsumer next)
     {
         int valLength = -1;
-        ProtobufSchema schema = supplySchema(schemaId);
-        if (schema != null)
+        DescriptorTree tree = supplyDescriptorTree(schemaId);
+        if (tree != null)
         {
-            ProtobufMessage message = schema.messageByIndexes(decodedPath());
-            if (message != null)
+            Descriptors.Descriptor descriptor = tree.findByIndexes(indexes);
+            if (descriptor != null)
             {
-                String messageName = message.name();
-                if (schema.validate(messageName, data, index, length))
+                in.wrap(data, index, length);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
+                validate:
+                try
                 {
+                    DynamicMessage message = builder.mergeFrom(in).build();
+                    if (!message.getUnknownFields().asMap().isEmpty())
+                    {
+                        break validate;
+                    }
+
                     progress = index;
-                    extractFields(data, index + length, message);
+                    extractFields(data, length, descriptor);
 
                     if (VIEW_JSON.equals(view))
                     {
-                        valLength = toJson(schemaId, schema, messageName, data, index, length, next);
+                        out.wrap(out.buffer());
+                        printer.appendTo(message, output);
+                        output.flush();
+                        valLength = out.position();
+                        next.accept(out.buffer(), 0, valLength);
                     }
                     else
                     {
@@ -197,58 +210,48 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                         valLength = length;
                     }
                 }
-                else
+                catch (IOException ex)
                 {
-                    event.validationFailure(traceId, bindingId, "Invalid Protobuf event");
+                    event.validationFailure(traceId, bindingId, ex.getMessage());
+                }
+                finally
+                {
+                    builder.clear();
                 }
             }
         }
         return valLength;
     }
 
-    private int toJson(
-        int schemaId,
-        ProtobufSchema schema,
-        String messageName,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        JsonState state = jsonStates.computeIfAbsent(messageName, name -> new JsonState(schema, name));
-        return transcode(state.pipeline, state.generator, data, index, length, next);
-    }
-
     private void extractFields(
         DirectBuffer data,
         int length,
-        ProtobufMessage message)
+        Descriptors.Descriptor descriptor)
     {
         while (progress < length)
         {
             int lastTag = decodeVarint32(data, length) >>> TAG_TYPE_BITS;
-            ProtobufField field = message.field(lastTag);
-            if (field != null)
+            for (Descriptors.FieldDescriptor field : descriptor.getFields())
             {
-                extract(field, data, length, extracted.get(field.name()));
-            }
-            else
-            {
-                progress = length;
+                if (lastTag == field.getNumber())
+                {
+                    extract(field, data, length, extracted.get(field.getName()));
+                    break;
+                }
             }
         }
     }
 
     private void extract(
-        ProtobufField descriptor,
+        Descriptors.FieldDescriptor descriptor,
         DirectBuffer data,
         int limit,
-        ProtobufFieldValue field)
+        ProtobufField field)
     {
-        switch (descriptor.type())
+        switch (descriptor.getType())
         {
         case MESSAGE:
-            extractFields(data, limit, descriptor.message());
+            extractFields(data, limit, descriptor.getMessageType());
             break;
         case BYTES:
         case STRING:
@@ -323,7 +326,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             if (field != null)
             {
                 MutableDirectBuffer text = field.buffer;
-                length = text.putIntAscii(0, (sintValue >>> 1) ^ -(sintValue & 1));
+                length = text.putIntAscii(0, (sintValue >>> 1) ^ - (sintValue & 1));
                 field.value.wrap(text, 0, length);
             }
             break;
@@ -332,7 +335,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             if (field != null)
             {
                 MutableDirectBuffer text = field.buffer;
-                length = text.putLongAscii(0, (sint64Value >>> 1) ^ -(sint64Value & 1));
+                length = text.putLongAscii(0, (sint64Value >>> 1) ^ - (sint64Value & 1));
                 field.value.wrap(text, 0, length);
             }
             break;
@@ -501,24 +504,5 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             ((data.getByte(progress++) & 0xffL) << 40) |
             ((data.getByte(progress++) & 0xffL) << 48) |
             ((data.getByte(progress++) & 0xffL) << 56);
-    }
-
-    private final class JsonState
-    {
-        private final ProtobufGenerator generator;
-        private final ProtobufPipeline pipeline;
-
-        private JsonState(
-            ProtobufSchema schema,
-            String messageName)
-        {
-            Map<String, Object> config = new HashMap<>();
-            config.put(ProtobufJson.FIELD_NAMES, ProtobufJson.FieldNames.PROTO);
-            config.put(ProtobufJson.INCLUDE_DEFAULTS, Boolean.TRUE);
-            JsonGeneratorEx jsonGenerator = JsonEx.createGenerator();
-            this.generator = ProtobufJson.generator(jsonGenerator, schema, messageName, config);
-            this.pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
-                .into(ProtobufSink.of(generator, schema, messageName));
-        }
     }
 }

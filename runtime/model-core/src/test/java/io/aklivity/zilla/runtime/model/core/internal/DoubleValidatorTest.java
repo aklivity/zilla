@@ -24,9 +24,9 @@ import java.time.Clock;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
@@ -182,7 +182,6 @@ public class DoubleValidatorTest
         DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {-1, -17, 94, -95, -120, 23, -78, 63};
-
 
         data.wrap(bytes, 0, 2);
         assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
