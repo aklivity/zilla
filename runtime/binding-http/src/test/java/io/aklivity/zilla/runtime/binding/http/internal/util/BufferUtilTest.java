@@ -19,9 +19,9 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.assertEquals;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class BufferUtilTest
 {
     private static final byte[] CRLFCRLF = "\r\n\r\n".getBytes(US_ASCII);

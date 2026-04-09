@@ -20,9 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 /*
  * Flyweight for HPACK String Literal Representation

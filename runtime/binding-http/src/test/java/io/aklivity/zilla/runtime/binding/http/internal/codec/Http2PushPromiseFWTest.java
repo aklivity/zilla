@@ -24,11 +24,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFWTest;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class Http2PushPromiseFWTest
 {

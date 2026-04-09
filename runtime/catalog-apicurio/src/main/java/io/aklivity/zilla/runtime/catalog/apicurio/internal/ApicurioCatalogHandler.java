@@ -40,13 +40,13 @@ import jakarta.json.stream.JsonParsingException;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioDefaultIdFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioLegacyIdFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class ApicurioCatalogHandler implements CatalogHandler

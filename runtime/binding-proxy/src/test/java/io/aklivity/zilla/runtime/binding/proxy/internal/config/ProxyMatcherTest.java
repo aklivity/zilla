@@ -25,7 +25,6 @@ import java.net.UnknownHostException;
 
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class ProxyMatcherTest
 {

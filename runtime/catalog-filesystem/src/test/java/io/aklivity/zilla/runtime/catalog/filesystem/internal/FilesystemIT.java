@@ -25,7 +25,6 @@ import java.net.URL;
 import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -34,6 +33,7 @@ import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOp
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class FilesystemIT

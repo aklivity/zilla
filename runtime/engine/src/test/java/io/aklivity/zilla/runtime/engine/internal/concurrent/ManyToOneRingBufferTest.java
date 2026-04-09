@@ -53,13 +53,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.agrona.concurrent.MessageHandler;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class ManyToOneRingBufferTest
 {

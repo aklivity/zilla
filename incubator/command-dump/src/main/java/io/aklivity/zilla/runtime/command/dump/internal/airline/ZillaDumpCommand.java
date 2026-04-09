@@ -54,7 +54,6 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -84,6 +83,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")

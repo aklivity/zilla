@@ -30,8 +30,8 @@ import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public final class BudgetsLayout extends Layout
 {
     public static final int OFFSET_BUDGET_ID = 0;
