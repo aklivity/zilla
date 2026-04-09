@@ -38,7 +38,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{},"prompts":{},"resources":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
+read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 read closed
 
 connect "zilla://streams/app0"
