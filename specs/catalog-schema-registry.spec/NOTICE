@@ -13,14 +13,13 @@ under the License.
 
 This project includes:
   agrona under The Apache License, Version 2.0
+  ANTLR 4 Runtime under BSD-3-Clause
   ICU4J under Unicode/ICU License
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  Java Unified Expression Language API under The Apache Software License, Version 2.0
+  Java Unified Expression Language Implementation under The Apache Software License, Version 2.0
+  k3po::runtime::lang under The Apache Software License, Version 2.0
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
-  zilla::specs::binding-http.spec under The Apache Software License, Version 2.0
-  zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 
-
-This project also includes code under copyright of the following entities:
-  https://github.com/reaktivity/
