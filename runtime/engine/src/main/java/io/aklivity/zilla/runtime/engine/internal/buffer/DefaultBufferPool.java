@@ -57,7 +57,7 @@ public class DefaultBufferPool implements BufferPool
         int slotCapacity)
     {
         this(slotCapacity, poolCapacity / slotCapacity,
-                ByteBuffer.allocate((slotCapacity + Long.BYTES) * poolCapacity / slotCapacity + Integer.BYTES));
+                ByteBuffer.allocateDirect((slotCapacity + Long.BYTES) * poolCapacity / slotCapacity + Integer.BYTES));
     }
 
     public DefaultBufferPool(
