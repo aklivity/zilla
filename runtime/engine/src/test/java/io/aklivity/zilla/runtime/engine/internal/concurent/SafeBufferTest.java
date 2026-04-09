@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+
 public class SafeBufferTest
 {
     // -----------------------------------------------------------------------
