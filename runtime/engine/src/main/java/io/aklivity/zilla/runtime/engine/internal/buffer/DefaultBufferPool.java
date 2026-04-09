@@ -26,9 +26,9 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Hashing;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 /**
  * A chunk of shared memory for temporary storage of data. This is logically segmented into a set of
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
  */
 public class DefaultBufferPool implements BufferPool
 {
-    private final MutableDirectBuffer slotBuffer = new UnsafeBuffer(new byte[0]);
+    private final MutableDirectBuffer slotBuffer = new SafeBuffer(new byte[0]);
 
     private final int slotCapacity;
     private final int slotCount;
@@ -84,7 +84,7 @@ public class DefaultBufferPool implements BufferPool
         this.slotCount = slotCount;
         this.bitsPerSlot = numberOfTrailingZeros(slotCapacity);
         this.hashMask = slotCount - 1;
-        this.poolBuffer = new UnsafeBuffer(poolByteBuffer);
+        this.poolBuffer = new SafeBuffer(poolByteBuffer);
         this.slotByteBuffer = poolByteBuffer.duplicate();
 
         this.used = new BitSet(slotCount);
