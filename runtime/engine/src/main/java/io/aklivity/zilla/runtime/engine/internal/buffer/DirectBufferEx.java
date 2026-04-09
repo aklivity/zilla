@@ -22,4 +22,12 @@ import org.agrona.DirectBuffer;
 public interface DirectBufferEx extends DirectBuffer
 {
     MemorySegment segment();
+
+    void wrap(
+        MemorySegment segment);
+
+    void wrap(
+        MemorySegment segment,
+        int offset,
+        int length);
 }

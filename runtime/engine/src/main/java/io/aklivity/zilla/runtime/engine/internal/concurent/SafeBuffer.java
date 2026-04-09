@@ -67,12 +67,6 @@ public final class SafeBuffer implements AtomicBufferEx
     private static final VarHandle LONG_HANDLE = LONG_ALIGNED.varHandle();
     private static final VarHandle INT_HANDLE = INT_ALIGNED.varHandle();
 
-    private static final String DISABLE_BOUNDS_CHECKS_PROP_NAME =
-        "agrona.disable.bounds.checks";
-
-    private static final boolean SHOULD_BOUNDS_CHECK =
-        !Boolean.getBoolean(DISABLE_BOUNDS_CHECKS_PROP_NAME);
-
     private MemorySegment segment;
     private byte[] byteArray;
     private ByteBuffer byteBuffer;
@@ -131,6 +125,20 @@ public final class SafeBuffer implements AtomicBufferEx
         int length)
     {
         wrap(address, length);
+    }
+
+    public SafeBuffer(
+        MemorySegment segment)
+    {
+        wrap(segment);
+    }
+
+    public SafeBuffer(
+        MemorySegment segment,
+        int offset,
+        int length)
+    {
+        wrap(segment, offset, length);
     }
 
     @Override
@@ -257,6 +265,30 @@ public final class SafeBuffer implements AtomicBufferEx
         wrapAdjustment = 0;
     }
 
+    @Override
+    public void wrap(
+        MemorySegment segment)
+    {
+        byteArray = null;
+        byteBuffer = null;
+        this.segment = segment;
+        capacity = (int) segment.byteSize();
+        wrapAdjustment = 0;
+    }
+
+    @Override
+    public void wrap(
+        MemorySegment segment,
+        int offset,
+        int length)
+    {
+        byteArray = null;
+        byteBuffer = null;
+        this.segment = segment.asSlice(offset, length);
+        capacity = length;
+        wrapAdjustment = offset;
+    }
+
     private void wrapFromUnsafe(
         DirectBuffer buffer,
         int offset,
@@ -365,7 +397,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public long getLong(
         int index)
     {
-        boundsCheck0(index, Long.BYTES);
         return segment.get(LONG_LAYOUT, index);
     }
 
@@ -373,7 +404,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public int getInt(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         return segment.get(INT_LAYOUT, index);
     }
 
@@ -381,7 +411,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public short getShort(
         int index)
     {
-        boundsCheck0(index, Short.BYTES);
         return segment.get(SHORT_LAYOUT, index);
     }
 
@@ -389,7 +418,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public byte getByte(
         int index)
     {
-        boundsCheck0(index, Byte.BYTES);
         return segment.get(BYTE_LAYOUT, index);
     }
 
@@ -397,7 +425,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public double getDouble(
         int index)
     {
-        boundsCheck0(index, Double.BYTES);
         return Double.longBitsToDouble(segment.get(LONG_LAYOUT, index));
     }
 
@@ -405,7 +432,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public float getFloat(
         int index)
     {
-        boundsCheck0(index, Float.BYTES);
         return Float.intBitsToFloat(segment.get(INT_LAYOUT, index));
     }
 
@@ -413,7 +439,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public char getChar(
         int index)
     {
-        boundsCheck0(index, Character.BYTES);
         return (char) segment.get(SHORT_LAYOUT, index);
     }
 
@@ -426,7 +451,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Long.BYTES);
         return segment.get(LONG_LAYOUT.withOrder(byteOrder), index);
     }
 
@@ -435,7 +459,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Integer.BYTES);
         return segment.get(INT_LAYOUT.withOrder(byteOrder), index);
     }
 
@@ -444,7 +467,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Short.BYTES);
         return segment.get(SHORT_LAYOUT.withOrder(byteOrder), index);
     }
 
@@ -453,7 +475,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Double.BYTES);
         return Double.longBitsToDouble(segment.get(LONG_LAYOUT.withOrder(byteOrder), index));
     }
 
@@ -462,7 +483,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Float.BYTES);
         return Float.intBitsToFloat(segment.get(INT_LAYOUT.withOrder(byteOrder), index));
     }
 
@@ -471,7 +491,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Character.BYTES);
         return (char) segment.get(SHORT_LAYOUT.withOrder(byteOrder), index);
     }
 
@@ -484,7 +503,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         segment.set(LONG_LAYOUT, index, value);
     }
 
@@ -493,7 +511,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         segment.set(INT_LAYOUT, index, value);
     }
 
@@ -502,7 +519,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         short value)
     {
-        boundsCheck0(index, Short.BYTES);
         segment.set(SHORT_LAYOUT, index, value);
     }
 
@@ -511,7 +527,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         byte value)
     {
-        boundsCheck0(index, Byte.BYTES);
         segment.set(BYTE_LAYOUT, index, value);
     }
 
@@ -520,7 +535,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         double value)
     {
-        boundsCheck0(index, Double.BYTES);
         segment.set(LONG_LAYOUT, index, Double.doubleToRawLongBits(value));
     }
 
@@ -529,7 +543,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         float value)
     {
-        boundsCheck0(index, Float.BYTES);
         segment.set(INT_LAYOUT, index, Float.floatToRawIntBits(value));
     }
 
@@ -538,7 +551,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         char value)
     {
-        boundsCheck0(index, Character.BYTES);
         segment.set(SHORT_LAYOUT, index, (short) value);
     }
 
@@ -552,7 +564,6 @@ public final class SafeBuffer implements AtomicBufferEx
         long value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Long.BYTES);
         segment.set(LONG_LAYOUT.withOrder(byteOrder), index, value);
     }
 
@@ -562,7 +573,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Integer.BYTES);
         segment.set(INT_LAYOUT.withOrder(byteOrder), index, value);
     }
 
@@ -572,7 +582,6 @@ public final class SafeBuffer implements AtomicBufferEx
         short value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Short.BYTES);
         segment.set(SHORT_LAYOUT.withOrder(byteOrder), index, value);
     }
 
@@ -582,7 +591,6 @@ public final class SafeBuffer implements AtomicBufferEx
         double value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Double.BYTES);
         segment.set(LONG_LAYOUT.withOrder(byteOrder), index, Double.doubleToRawLongBits(value));
     }
 
@@ -592,7 +600,6 @@ public final class SafeBuffer implements AtomicBufferEx
         float value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Float.BYTES);
         segment.set(INT_LAYOUT.withOrder(byteOrder), index, Float.floatToRawIntBits(value));
     }
 
@@ -602,7 +609,6 @@ public final class SafeBuffer implements AtomicBufferEx
         char value,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Character.BYTES);
         segment.set(SHORT_LAYOUT.withOrder(byteOrder), index, (short) value);
     }
 
@@ -625,7 +631,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        boundsCheck0(index, length);
         MemorySegment.copy(segment, BYTE_LAYOUT, index,
             MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
     }
@@ -637,7 +642,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int dstIndex,
         int length)
     {
-        boundsCheck0(index, length);
         if (dstBuffer instanceof SafeBuffer safe)
         {
             MemorySegment.copy(segment, index, safe.segment, dstIndex, length);
@@ -668,7 +672,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int dstOffset,
         int length)
     {
-        boundsCheck0(index, length);
         final MemorySegment dst = MemorySegment.ofBuffer(dstBuffer);
         MemorySegment.copy(segment, index, dst, dstOffset, length);
     }
@@ -688,7 +691,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        boundsCheck0(index, length);
         MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset,
             segment, BYTE_LAYOUT, index, length);
     }
@@ -710,7 +712,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        boundsCheck0(index, length);
         final MemorySegment src = MemorySegment.ofBuffer(srcBuffer);
         MemorySegment.copy(src, srcOffset, segment, index, length);
     }
@@ -722,7 +723,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        boundsCheck0(index, length);
         if (srcBuffer instanceof SafeBuffer safe)
         {
             MemorySegment.copy(safe.segment, srcIndex, segment, index, length);
@@ -763,7 +763,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int length,
         byte value)
     {
-        boundsCheck0(index, length);
         segment.asSlice(index, length).fill(value);
     }
 
@@ -775,7 +774,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public long getLongVolatile(
         int index)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.getVolatile(segment, (long) index);
     }
 
@@ -784,7 +782,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         LONG_HANDLE.setVolatile(segment, (long) index, value);
     }
 
@@ -793,7 +790,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         LONG_HANDLE.setRelease(segment, (long) index, value);
     }
 
@@ -802,7 +798,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long increment)
     {
-        boundsCheck0(index, Long.BYTES);
         final long currentValue = (long) LONG_HANDLE.getAcquire(segment, (long) index);
         LONG_HANDLE.setRelease(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -814,7 +809,6 @@ public final class SafeBuffer implements AtomicBufferEx
         long expectedValue,
         long updateValue)
     {
-        boundsCheck0(index, Long.BYTES);
         return LONG_HANDLE.compareAndSet(segment, (long) index, expectedValue, updateValue);
     }
 
@@ -823,7 +817,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.getAndSet(segment, (long) index, value);
     }
 
@@ -832,7 +825,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long delta)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.getAndAdd(segment, (long) index, delta);
     }
 
@@ -844,7 +836,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public int getIntVolatile(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.getVolatile(segment, (long) index);
     }
 
@@ -853,7 +844,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         INT_HANDLE.setVolatile(segment, (long) index, value);
     }
 
@@ -862,7 +852,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         INT_HANDLE.setRelease(segment, (long) index, value);
     }
 
@@ -871,7 +860,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int increment)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int currentValue = (int) INT_HANDLE.getAcquire(segment, (long) index);
         INT_HANDLE.setRelease(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -883,7 +871,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int expectedValue,
         int updateValue)
     {
-        boundsCheck0(index, Integer.BYTES);
         return INT_HANDLE.compareAndSet(segment, (long) index, expectedValue, updateValue);
     }
 
@@ -892,7 +879,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.getAndSet(segment, (long) index, value);
     }
 
@@ -901,7 +887,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int delta)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.getAndAdd(segment, (long) index, delta);
     }
 
@@ -913,7 +898,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public short getShortVolatile(
         int index)
     {
-        boundsCheck0(index, Short.BYTES);
         // No VarHandle for short on MemorySegment; use int volatile and mask
         return (short) segment.get(SHORT_LAYOUT, index);
     }
@@ -923,7 +907,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         short value)
     {
-        boundsCheck0(index, Short.BYTES);
         segment.set(SHORT_LAYOUT, index, value);
     }
 
@@ -931,7 +914,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public char getCharVolatile(
         int index)
     {
-        boundsCheck0(index, Character.BYTES);
         return (char) segment.get(SHORT_LAYOUT, index);
     }
 
@@ -940,7 +922,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         char value)
     {
-        boundsCheck0(index, Character.BYTES);
         segment.set(SHORT_LAYOUT, index, (short) value);
     }
 
@@ -948,7 +929,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public byte getByteVolatile(
         int index)
     {
-        boundsCheck0(index, Byte.BYTES);
         return segment.get(BYTE_LAYOUT, index);
     }
 
@@ -957,7 +937,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         byte value)
     {
-        boundsCheck0(index, Byte.BYTES);
         segment.set(BYTE_LAYOUT, index, value);
     }
 
@@ -969,7 +948,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public long getLongAcquire(
         int index)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.getAcquire(segment, (long) index);
     }
 
@@ -978,7 +956,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         LONG_HANDLE.setRelease(segment, (long) index, value);
     }
 
@@ -986,7 +963,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public long getLongOpaque(
         int index)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.getOpaque(segment, (long) index);
     }
 
@@ -995,7 +971,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long value)
     {
-        boundsCheck0(index, Long.BYTES);
         LONG_HANDLE.setOpaque(segment, (long) index, value);
     }
 
@@ -1004,7 +979,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long increment)
     {
-        boundsCheck0(index, Long.BYTES);
         final long currentValue = (long) LONG_HANDLE.getAcquire(segment, (long) index);
         LONG_HANDLE.setRelease(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -1015,7 +989,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         long increment)
     {
-        boundsCheck0(index, Long.BYTES);
         final long currentValue = (long) LONG_HANDLE.getOpaque(segment, (long) index);
         LONG_HANDLE.setOpaque(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -1027,7 +1000,6 @@ public final class SafeBuffer implements AtomicBufferEx
         long expectedValue,
         long updateValue)
     {
-        boundsCheck0(index, Long.BYTES);
         return (long) LONG_HANDLE.compareAndExchange(segment, (long) index, expectedValue, updateValue);
     }
 
@@ -1035,7 +1007,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public int getIntAcquire(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.getAcquire(segment, (long) index);
     }
 
@@ -1044,7 +1015,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         INT_HANDLE.setRelease(segment, (long) index, value);
     }
 
@@ -1052,7 +1022,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public int getIntOpaque(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.getOpaque(segment, (long) index);
     }
 
@@ -1061,7 +1030,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int value)
     {
-        boundsCheck0(index, Integer.BYTES);
         INT_HANDLE.setOpaque(segment, (long) index, value);
     }
 
@@ -1070,7 +1038,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int increment)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int currentValue = (int) INT_HANDLE.getAcquire(segment, (long) index);
         INT_HANDLE.setRelease(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -1081,7 +1048,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int increment)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int currentValue = (int) INT_HANDLE.getOpaque(segment, (long) index);
         INT_HANDLE.setOpaque(segment, (long) index, currentValue + increment);
         return currentValue;
@@ -1093,7 +1059,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int expectedValue,
         int updateValue)
     {
-        boundsCheck0(index, Integer.BYTES);
         return (int) INT_HANDLE.compareAndExchange(segment, (long) index, expectedValue, updateValue);
     }
 
@@ -1105,7 +1070,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public String getStringAscii(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT, index);
         return getStringWithoutLengthAscii(index + Integer.BYTES, length);
     }
@@ -1115,7 +1079,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT.withOrder(byteOrder), index);
         return getStringWithoutLengthAscii(index + Integer.BYTES, length);
     }
@@ -1133,7 +1096,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         Appendable appendable)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT, index);
         return getStringWithoutLengthAscii(index + Integer.BYTES, length, appendable);
     }
@@ -1144,7 +1106,6 @@ public final class SafeBuffer implements AtomicBufferEx
         Appendable appendable,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT.withOrder(byteOrder), index);
         return getStringWithoutLengthAscii(index + Integer.BYTES, length, appendable);
     }
@@ -1167,7 +1128,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         final byte[] bytes = new byte[length];
         MemorySegment.copy(segment, BYTE_LAYOUT, index,
             MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0, length);
@@ -1180,7 +1140,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int length,
         Appendable appendable)
     {
-        boundsCheck0(index, length);
         try
         {
             for (int i = 0; i < length; i++)
@@ -1203,7 +1162,6 @@ public final class SafeBuffer implements AtomicBufferEx
     public String getStringUtf8(
         int index)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT, index);
         return getStringWithoutLengthUtf8(index + Integer.BYTES, length);
     }
@@ -1213,7 +1171,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        boundsCheck0(index, Integer.BYTES);
         final int length = segment.get(INT_LAYOUT.withOrder(byteOrder), index);
         return getStringWithoutLengthUtf8(index + Integer.BYTES, length);
     }
@@ -1231,7 +1188,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         final byte[] bytes = new byte[length];
         MemorySegment.copy(segment, BYTE_LAYOUT, index,
             MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0, length);
@@ -1248,7 +1204,6 @@ public final class SafeBuffer implements AtomicBufferEx
         String value)
     {
         final int length = value != null ? value.length() : 0;
-        boundsCheck0(index, Integer.BYTES + length);
         segment.set(INT_LAYOUT, index, length);
         return Integer.BYTES + putStringWithoutLengthAscii(index + Integer.BYTES, value);
     }
@@ -1259,7 +1214,6 @@ public final class SafeBuffer implements AtomicBufferEx
         CharSequence value)
     {
         final int length = value != null ? value.length() : 0;
-        boundsCheck0(index, Integer.BYTES + length);
         segment.set(INT_LAYOUT, index, length);
         return Integer.BYTES + putStringWithoutLengthAscii(index + Integer.BYTES, value);
     }
@@ -1271,7 +1225,6 @@ public final class SafeBuffer implements AtomicBufferEx
         ByteOrder byteOrder)
     {
         final int length = value != null ? value.length() : 0;
-        boundsCheck0(index, Integer.BYTES + length);
         segment.set(INT_LAYOUT.withOrder(byteOrder), index, length);
         return Integer.BYTES + putStringWithoutLengthAscii(index + Integer.BYTES, value);
     }
@@ -1283,7 +1236,6 @@ public final class SafeBuffer implements AtomicBufferEx
         ByteOrder byteOrder)
     {
         final int length = value != null ? value.length() : 0;
-        boundsCheck0(index, Integer.BYTES + length);
         segment.set(INT_LAYOUT.withOrder(byteOrder), index, length);
         return Integer.BYTES + putStringWithoutLengthAscii(index + Integer.BYTES, value);
     }
@@ -1302,7 +1254,6 @@ public final class SafeBuffer implements AtomicBufferEx
             return 0;
         }
         final int length = value.length();
-        boundsCheck0(index, length);
         for (int i = 0; i < length; i++)
         {
             segment.set(BYTE_LAYOUT, index + i, (byte) value.charAt(i));
@@ -1320,7 +1271,6 @@ public final class SafeBuffer implements AtomicBufferEx
             return 0;
         }
         final int length = value.length();
-        boundsCheck0(index, length);
         for (int i = 0; i < length; i++)
         {
             segment.set(BYTE_LAYOUT, index + i, (byte) value.charAt(i));
@@ -1339,7 +1289,6 @@ public final class SafeBuffer implements AtomicBufferEx
         {
             return 0;
         }
-        boundsCheck0(index, length);
         for (int i = 0; i < length; i++)
         {
             segment.set(BYTE_LAYOUT, index + i, (byte) value.charAt(valueOffset + i));
@@ -1358,7 +1307,6 @@ public final class SafeBuffer implements AtomicBufferEx
         {
             return 0;
         }
-        boundsCheck0(index, length);
         for (int i = 0; i < length; i++)
         {
             segment.set(BYTE_LAYOUT, index + i, (byte) value.charAt(valueOffset + i));
@@ -1407,7 +1355,6 @@ public final class SafeBuffer implements AtomicBufferEx
             ? value.getBytes(java.nio.charset.StandardCharsets.UTF_8)
             : new byte[0];
         final int length = Math.min(bytes.length, maxEncodedLength);
-        boundsCheck0(index, Integer.BYTES + length);
         segment.set(INT_LAYOUT.withOrder(byteOrder), index, length);
         MemorySegment.copy(MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0,
             segment, BYTE_LAYOUT, index + Integer.BYTES, length);
@@ -1422,7 +1369,6 @@ public final class SafeBuffer implements AtomicBufferEx
         final byte[] bytes = value != null
             ? value.getBytes(java.nio.charset.StandardCharsets.UTF_8)
             : new byte[0];
-        boundsCheck0(index, bytes.length);
         MemorySegment.copy(MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0,
             segment, BYTE_LAYOUT, index, bytes.length);
         return bytes.length;
@@ -1437,7 +1383,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         int result = 0;
         for (int i = 0; i < length; i++)
         {
@@ -1452,7 +1397,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         long result = 0;
         for (int i = 0; i < length; i++)
         {
@@ -1467,7 +1411,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         if (length == 0)
         {
             return 0;
@@ -1484,7 +1427,6 @@ public final class SafeBuffer implements AtomicBufferEx
         int index,
         int length)
     {
-        boundsCheck0(index, length);
         if (length == 0)
         {
             return 0;
@@ -1641,13 +1583,4 @@ public final class SafeBuffer implements AtomicBufferEx
     // Internal
     // -----------------------------------------------------------------------
 
-    private void boundsCheck0(
-        int index,
-        int length)
-    {
-        if (SHOULD_BOUNDS_CHECK)
-        {
-            boundsCheck(index, length);
-        }
-    }
 }
