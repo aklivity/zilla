@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
+
 public class SseEventFWTest
 {
     private static final int BUFFER_SIZE = 1024;
