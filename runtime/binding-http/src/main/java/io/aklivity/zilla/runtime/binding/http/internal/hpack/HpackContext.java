@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class HpackContext
 {
     private static final DirectBuffer EMPTY_VALUE = new SafeBuffer(new byte[0]);

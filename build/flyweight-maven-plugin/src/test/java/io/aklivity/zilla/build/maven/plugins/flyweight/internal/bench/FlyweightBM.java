@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.Random;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -42,6 +41,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithOctetsFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

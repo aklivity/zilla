@@ -24,7 +24,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
@@ -33,6 +32,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfInt32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantWithoutOfFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class VariantWithoutOfFWTest
 {

@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.agrona.DirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import com.google.protobuf.Descriptors;
@@ -26,6 +25,7 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;

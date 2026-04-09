@@ -21,13 +21,13 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 
 import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class MqttEventContext
 {

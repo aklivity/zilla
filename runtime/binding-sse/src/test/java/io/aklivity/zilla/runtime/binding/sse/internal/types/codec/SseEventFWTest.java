@@ -20,9 +20,9 @@ import static java.lang.Integer.toHexString;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 public class SseEventFWTest
 {
     private static final int BUFFER_SIZE = 1024;

@@ -17,10 +17,10 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import static org.junit.Assert.assertTrue;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class ValidatorTest

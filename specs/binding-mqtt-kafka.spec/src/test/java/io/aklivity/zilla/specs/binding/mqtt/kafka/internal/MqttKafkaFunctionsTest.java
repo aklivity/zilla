@@ -21,9 +21,9 @@ import java.util.function.IntConsumer;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.IntArrayList;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 

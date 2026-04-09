@@ -20,7 +20,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.MutableInteger;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
@@ -32,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdV1FW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public final class SseKafkaIdHelper
 {

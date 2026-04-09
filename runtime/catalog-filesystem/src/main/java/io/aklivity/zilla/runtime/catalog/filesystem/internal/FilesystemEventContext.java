@@ -18,13 +18,13 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventExFW;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class FilesystemEventContext
 {

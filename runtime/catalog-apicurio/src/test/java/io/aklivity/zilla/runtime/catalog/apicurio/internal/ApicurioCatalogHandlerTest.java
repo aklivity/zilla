@@ -24,12 +24,12 @@ import java.time.Duration;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class ApicurioCatalogHandlerTest

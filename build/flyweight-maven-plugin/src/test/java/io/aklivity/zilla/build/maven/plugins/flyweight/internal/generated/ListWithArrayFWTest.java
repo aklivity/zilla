@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.ArrayFW;
@@ -38,6 +37,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithArrayFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfArrayFW;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class ListWithArrayFWTest
 {
