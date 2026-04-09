@@ -800,6 +800,8 @@ groups and no star imports.
   value is an implementation detail that does not belong in the name
 - Java 21; no preview features
 - No Lombok
+- Use `jakarta.json` APIs (e.g., `JsonObject`, `JsonReader`, `JsonParser`)
+  for JSON processing — do not introduce Jackson (`com.fasterxml.jackson`)
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
   `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
