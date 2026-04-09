@@ -739,6 +739,9 @@ by group (`java`, `javax`, `jakarta`, `org`, `com`) with a blank line between
 groups and no star imports.
 
 - YAML files use 2-space indentation, no tabs; JSON files use 4-space indentation, no tabs
+- Prefer non-block lambdas (expression lambdas) over block lambdas (`{ return
+  ...; }`) — even when the expression spans multiple lines via a builder chain,
+  keep it as a single expression without braces or an explicit `return`
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
 - Java 21; no preview features
