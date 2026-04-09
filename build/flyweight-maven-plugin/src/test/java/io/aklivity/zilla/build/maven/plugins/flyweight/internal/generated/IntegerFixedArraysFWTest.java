@@ -31,8 +31,8 @@ import java.util.stream.LongStream;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerFixedArraysFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class IntegerFixedArraysFWTest
 {
