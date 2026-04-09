@@ -64,6 +64,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>io.aklivity.zilla</groupId>
+        <artifactId>common-agrona</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>engine.spec</artifactId>
         <version>${project.version}</version>
