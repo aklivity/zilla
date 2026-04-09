@@ -771,6 +771,7 @@ public class EngineWorker implements EngineContext, Agent
     public void doStart()
     {
         thread = startOnThread(runner, Thread::new);
+        awaitStarted();
     }
 
     public void doClose()
@@ -1082,8 +1083,6 @@ public class EngineWorker implements EngineContext, Agent
     {
         assert thread != Thread.currentThread();
 
-        awaitStarted();
-
         NamespaceTask attachTask = registry.attach(namespace);
         dispatch(attachTask);
 
@@ -1100,8 +1099,6 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace)
     {
         assert thread != Thread.currentThread();
-
-        awaitStarted();
 
         NamespaceTask detachTask = registry.detach(namespace);
         dispatch(detachTask);
