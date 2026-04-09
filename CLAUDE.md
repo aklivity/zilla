@@ -794,6 +794,10 @@ groups and no star imports.
   keep it as a single expression without braces or an explicit `return`
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
+- Avoid the `...IfNecessary` method naming suffix (e.g., `doEndIfNecessary`,
+  `cleanupDecodeSlotIfNecessary`) — name methods for what they do (`doEnd`,
+  `cleanupDecodeSlot`); internal conditionality based on stream state or slot
+  value is an implementation detail that does not belong in the name
 - Java 21; no preview features
 - No Lombok
 - Prefer interface types over implementation classes for field, parameter, and
