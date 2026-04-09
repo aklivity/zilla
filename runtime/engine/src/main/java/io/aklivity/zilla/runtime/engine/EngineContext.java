@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
-import java.lang.foreign.Arena;
 import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
@@ -81,16 +80,6 @@ public interface EngineContext
      * @return the thread index
      */
     int index();
-
-    /**
-     * Returns the per-worker {@link Arena} for confined-scope memory allocation.
-     * <p>
-     * The arena is confined to the owning I/O thread and closed when the worker shuts down.
-     * </p>
-     *
-     * @return the confined arena
-     */
-    Arena arena();
 
     /**
      * Returns the {@link Signaler} for scheduling time-based and task-based signals on
