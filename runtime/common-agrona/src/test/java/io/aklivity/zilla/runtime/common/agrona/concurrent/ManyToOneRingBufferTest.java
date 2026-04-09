@@ -28,7 +28,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.concurrent;
+package io.aklivity.zilla.runtime.common.agrona.concurrent;
 
 import static java.lang.Boolean.TRUE;
 import static org.agrona.BitUtil.align;
@@ -58,7 +58,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class ManyToOneRingBufferTest
