@@ -27,7 +27,6 @@ import java.util.zip.CRC32C;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
 import io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyBindingConfig;
@@ -54,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

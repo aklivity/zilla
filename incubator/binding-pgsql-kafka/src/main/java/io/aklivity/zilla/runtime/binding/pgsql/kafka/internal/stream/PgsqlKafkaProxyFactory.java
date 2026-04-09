@@ -34,7 +34,6 @@ import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaRouteConfig;
@@ -57,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

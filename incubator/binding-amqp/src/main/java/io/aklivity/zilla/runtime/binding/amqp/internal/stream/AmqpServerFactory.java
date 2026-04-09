@@ -99,7 +99,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpBinding;
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpConfiguration;
 import io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpBindingConfig;
@@ -171,6 +170,7 @@ import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;

@@ -26,10 +26,10 @@ import java.util.Map;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFWTest;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class Http2ContinuationFWTest
 {
