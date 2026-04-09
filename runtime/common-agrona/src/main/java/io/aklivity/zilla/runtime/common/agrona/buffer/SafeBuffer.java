@@ -332,7 +332,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public long addressOffset()
     {
-        return segment.address();
+        return 0;
     }
 
     @Override
