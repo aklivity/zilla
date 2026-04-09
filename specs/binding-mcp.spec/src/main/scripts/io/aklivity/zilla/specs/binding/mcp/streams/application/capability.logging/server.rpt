@@ -21,12 +21,12 @@ accept "zilla://streams/app0"
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .logging()
-                               .sessionId("test-session-id")
-                               .level("error")
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .logging()
+                              .sessionId("test-session-id")
+                              .level("error")
+                              .build()
+                          .build()}
 
 connected
 
@@ -34,11 +34,11 @@ read '{"jsonrpc":"2.0","id":8,"method":"logging/setLevel","params":{"level":"err
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .logging()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .logging()
+                               .sessionId("test-session-id")
+                               .build()
+                           .build()}
 write flush
 
 write '{"jsonrpc":"2.0","id":8,"result":{}}'

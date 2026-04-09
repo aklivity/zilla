@@ -21,12 +21,12 @@ accept "zilla://streams/app0"
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .cancel()
-                               .sessionId("test-session-id")
-                               .reason("User cancelled")
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .cancel()
+                              .sessionId("test-session-id")
+                              .reason("User cancelled")
+                              .build()
+                          .build()}
 
 connected
 
@@ -34,11 +34,11 @@ read '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .cancel()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .cancel()
+                               .sessionId("test-session-id")
+                               .build()
+                           .build()}
 write flush
 
 write close

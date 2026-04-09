@@ -21,22 +21,22 @@ accept "zilla://streams/app0"
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .disconnect()
-                               .sessionId("test-session-id")
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .disconnect()
+                              .sessionId("test-session-id")
+                              .build()
+                          .build()}
 
 connected
 
 read closed
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .disconnect()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .disconnect()
+                               .sessionId("test-session-id")
+                               .build()
+                           .build()}
 write flush
 
 write close

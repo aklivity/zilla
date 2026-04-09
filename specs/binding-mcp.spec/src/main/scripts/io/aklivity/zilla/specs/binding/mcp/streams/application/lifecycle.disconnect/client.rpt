@@ -19,21 +19,21 @@ connect "zilla://streams/app0"
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .disconnect()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .disconnect()
+                               .sessionId("test-session-id")
+                               .build()
+                           .build()}
 
 connected
 
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .disconnect()
-                               .sessionId("test-session-id")
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .disconnect()
+                              .sessionId("test-session-id")
+                              .build()
+                          .build()}
 
 read closed

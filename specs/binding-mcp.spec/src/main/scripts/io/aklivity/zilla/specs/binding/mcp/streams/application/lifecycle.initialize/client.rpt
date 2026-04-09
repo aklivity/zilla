@@ -19,11 +19,11 @@ connect "zilla://streams/app0"
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .initialize()
-                                .version("2025-11-25")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .initialize()
+                               .version("2025-11-25")
+                               .build()
+                           .build()}
 
 connected
 
@@ -31,13 +31,13 @@ write '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion"
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .initialize()
-                               .sessionId("test-session-id")
-                               .version("2025-11-25")
-                               .capabilities(0x07)
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .initialize()
+                              .sessionId("test-session-id")
+                              .version("2025-11-25")
+                              .capabilities(0x07)
+                              .build()
+                          .build()}
 
 read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{},"prompts":{},"resources":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 read closed
@@ -47,11 +47,11 @@ connect "zilla://streams/app0"
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .initialize()
-                                .sessionId("test-session-id")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .initialize()
+                               .sessionId("test-session-id")
+                               .build()
+                           .build()}
 
 connected
 
@@ -59,10 +59,10 @@ write '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 write close
 
 read zilla:begin.ext ${mcp:matchBeginEx()
-                           .typeId(zilla:id("mcp"))
-                           .initialize()
-                               .sessionId("test-session-id")
-                               .build()
-                           .build()}
+                          .typeId(zilla:id("mcp"))
+                          .initialize()
+                              .sessionId("test-session-id")
+                              .build()
+                          .build()}
 
 read closed
