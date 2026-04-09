@@ -45,6 +45,7 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
+import java.lang.foreign.Arena;
 import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
@@ -191,17 +192,17 @@ public class EngineWorker implements EngineContext, Agent
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
-    private final Map<String, MetricGroup> metricGroupsByName;
-    private final StreamsLayout streamsLayout;
-    private final BufferPoolLayout bufferPoolLayout;
-    private final RingBuffer streamsBuffer;
-    private final MutableDirectBuffer writeBuffer;
+    private Map<String, MetricGroup> metricGroupsByName;
+    private StreamsLayout streamsLayout;
+    private BufferPoolLayout bufferPoolLayout;
+    private RingBuffer streamsBuffer;
+    private MutableDirectBuffer writeBuffer;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
     private final Int2ObjectHashMap<Target> targetsByIndex;
-    private final BufferPool bufferPool;
+    private BufferPool bufferPool;
     private final long mask;
     private final MessageHandler readHandler;
     private final TimerHandler expireHandler;
@@ -213,7 +214,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private final Poller poller;
 
-    private final DefaultBudgetCreditor creditor;
+    private DefaultBudgetCreditor creditor;
     private final Int2ObjectHashMap<DefaultBudgetDebitor> debitorsByIndex;
 
     private final Long2ObjectHashMap<Affinity> affinityByBindingId;
@@ -224,9 +225,9 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private final Map<String, ModelContext> modelsByType;
+    private Map<String, ModelContext> modelsByType;
 
-    private final EngineRegistry registry;
+    private EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -237,16 +238,29 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
-    private final CountersLayout countersLayout;
-    private final GaugesLayout gaugesLayout;
-    private final HistogramsLayout histogramsLayout;
-    private final EventWriter eventWriter;
+    private CountersLayout countersLayout;
+    private GaugesLayout gaugesLayout;
+    private HistogramsLayout histogramsLayout;
+    private EventWriter eventWriter;
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private final LongSupplier usageMetric;
+    private LongSupplier usageMetric;
     private final boolean readonly;
     private final int maxIdleCount;
+
+    private final Collection<Binding> bindings;
+    private final Collection<Exporter> exporters;
+    private final Collection<Guard> guards;
+    private final Collection<Vault> vaults;
+    private final Collection<Catalog> catalogs;
+    private final Collection<Model> models;
+    private final Collection<MetricGroup> metricGroups;
+    private final Collection<Store> stores;
+    private final Collector collector;
+    private final Consumer<NamespaceConfig> process;
+
+    private Arena arena;
 
     private long initialId;
     private long promiseId;
@@ -301,61 +315,17 @@ public class EngineWorker implements EngineContext, Agent
         this.maxIdleCount = config.maxIdleCount();
         this.boss = boss;
 
-        this.countersLayout = new CountersLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/counters%d", index)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .label("counters")
-                .build();
-
-        this.gaugesLayout = new GaugesLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .label("gauges")
-                .build();
-
-        this.histogramsLayout = new HistogramsLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .build();
-
-        metricWriterSuppliers = new Object2ObjectHashMap<>();
-        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
-        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
-        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
-
-        final StreamsLayout streamsLayout = new StreamsLayout.Builder()
-                .path(config.directory().resolve(String.format("data%d", index)))
-                .streamsCapacity(config.streamsBufferCapacity())
-                .readonly(readonly)
-                .build();
-
-        final BufferPoolLayout bufferPoolLayout = new BufferPoolLayout.Builder()
-                .path(config.directory().resolve(String.format("buffers%d", index)))
-                .slotCapacity(config.bufferSlotCapacity())
-                .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
-                .readonly(readonly)
-                .build();
-
-        this.eventWriter = new EventWriter(
-                config.directory().resolve(String.format("events%d", index)),
-                config.eventsBufferCapacity());
+        this.metricWriterSuppliers = new Object2ObjectHashMap<>();
 
         this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/worker#%d", index);
-        this.streamsLayout = streamsLayout;
-        this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(supplyIdleStrategy.apply(TRUE), errorHandler, null, this);
 
         this.resolveHost = config.hostResolver();
         this.timestamps = config.timestamps();
         this.readLimit = config.maximumMessagesPerRead();
         this.expireLimit = config.maximumExpirationsPerPoll();
-        this.streamsBuffer = streamsLayout.streamsBuffer();
-        this.writeBuffer = new SafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
@@ -375,115 +345,28 @@ public class EngineWorker implements EngineContext, Agent
 
         this.poller = new Poller();
 
-        final BufferPool bufferPool = bufferPoolLayout.bufferPool();
-
         final long initial = ((long) index) << SHIFT_SIZE;
         final long mask = initial | (-1L >>> RESERVED_SIZE);
 
         this.mask = mask;
-        this.bufferPool = bufferPool;
         this.initialId = initial;
         this.promiseId = initial;
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
 
-        final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
-                .path(config.directory().resolve(String.format("budgets%d", index)))
-                .capacity(config.budgetsBufferCapacity())
-                .owner(true)
-                .build();
-
-        this.creditor = new DefaultBudgetCreditor(index, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
-            signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
 
-        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
-        for (Binding binding : bindings)
-        {
-            String type = binding.name();
-            bindingsByType.put(type, binding.supply(this));
-        }
-
-        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
-        for (Exporter exporter : exporters)
-        {
-            String type = exporter.name();
-            exportersByType.put(type, exporter.supply(this));
-        }
-
-        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
-        for (Guard guard : guards)
-        {
-            String type = guard.name();
-            guardsByType.put(type, guard.supply(this));
-        }
-
-        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
-        for (Vault vault : vaults)
-        {
-            String type = vault.name();
-            Set<String> aliases = vault.aliases();
-
-            VaultContext context = vault.supply(this);
-
-            vaultsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                vaultsByType.put(alias, context);
-            }
-        }
-
-        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
-        for (Catalog catalog : catalogs)
-        {
-            String type = catalog.name();
-            Set<String> aliases = catalog.aliases();
-
-            CatalogContext context = catalog.supply(this);
-
-            catalogsByType.put(type, context);
-            for (String alias : aliases)
-            {
-                catalogsByType.put(alias, context);
-            }
-        }
-
-        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
-        for (Store store : stores)
-        {
-            String type = store.name();
-            storesByType.put(type, store.supply(this));
-        }
-
-        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
-        for (Model model : models)
-        {
-            String type = model.name();
-            modelsByType.put(type, model.supply(this));
-        }
-        this.modelsByType = modelsByType;
-
-        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            for (String metricName : metricGroup.metricNames())
-            {
-                Metric metric = metricGroup.supply(metricName);
-                metricsByName.put(metricName, metric.supply(this));
-            }
-        }
-
-        this.metricGroupsByName = new Object2ObjectHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            metricGroupsByName.put(metricGroup.name(), metricGroup);
-        }
-
-        this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
-                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+        this.bindings = bindings;
+        this.exporters = exporters;
+        this.guards = guards;
+        this.vaults = vaults;
+        this.catalogs = catalogs;
+        this.models = models;
+        this.metricGroups = metricGroups;
+        this.stores = stores;
+        this.collector = collector;
+        this.process = process;
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -492,7 +375,6 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -946,6 +828,151 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onStart()
     {
+        this.arena = Arena.ofConfined();
+
+        this.countersLayout = new CountersLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/counters%d", localIndex)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .label("counters")
+                .build();
+
+        this.gaugesLayout = new GaugesLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/gauges%d", localIndex)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .label("gauges")
+                .build();
+
+        this.histogramsLayout = new HistogramsLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/histograms%d", localIndex)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .build();
+
+        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
+        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
+        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
+
+        this.streamsLayout = new StreamsLayout.Builder()
+                .path(config.directory().resolve(String.format("data%d", localIndex)))
+                .streamsCapacity(config.streamsBufferCapacity())
+                .readonly(readonly)
+                .build();
+
+        this.bufferPoolLayout = new BufferPoolLayout.Builder()
+                .path(config.directory().resolve(String.format("buffers%d", localIndex)))
+                .slotCapacity(config.bufferSlotCapacity())
+                .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
+                .readonly(readonly)
+                .build();
+
+        this.eventWriter = new EventWriter(
+                config.directory().resolve(String.format("events%d", localIndex)),
+                config.eventsBufferCapacity());
+
+        this.streamsBuffer = streamsLayout.streamsBuffer();
+        this.writeBuffer = new SafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
+        this.bufferPool = bufferPoolLayout.bufferPool();
+
+        final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
+                .path(config.directory().resolve(String.format("budgets%d", localIndex)))
+                .capacity(config.budgetsBufferCapacity())
+                .owner(true)
+                .build();
+
+        this.creditor = new DefaultBudgetCreditor(localIndex, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
+            signaler::executeTaskAt, config.childCleanupLingerMillis());
+
+        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
+        for (Binding binding : bindings)
+        {
+            String type = binding.name();
+            bindingsByType.put(type, binding.supply(this));
+        }
+
+        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
+        for (Exporter exporter : exporters)
+        {
+            String type = exporter.name();
+            exportersByType.put(type, exporter.supply(this));
+        }
+
+        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
+        for (Guard guard : guards)
+        {
+            String type = guard.name();
+            guardsByType.put(type, guard.supply(this));
+        }
+
+        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
+        for (Vault vault : vaults)
+        {
+            String type = vault.name();
+            Set<String> aliases = vault.aliases();
+
+            VaultContext context = vault.supply(this);
+
+            vaultsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                vaultsByType.put(alias, context);
+            }
+        }
+
+        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
+        for (Catalog catalog : catalogs)
+        {
+            String type = catalog.name();
+            Set<String> aliases = catalog.aliases();
+
+            CatalogContext context = catalog.supply(this);
+
+            catalogsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                catalogsByType.put(alias, context);
+            }
+        }
+
+        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
+        for (Store store : stores)
+        {
+            String type = store.name();
+            storesByType.put(type, store.supply(this));
+        }
+
+        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
+        for (Model model : models)
+        {
+            String type = model.name();
+            modelsByType.put(type, model.supply(this));
+        }
+        this.modelsByType = modelsByType;
+
+        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            for (String metricName : metricGroup.metricNames())
+            {
+                Metric metric = metricGroup.supply(metricName);
+                metricsByName.put(metricName, metric.supply(this));
+            }
+        }
+
+        this.metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
+        }
+
+        this.registry = new EngineRegistry(
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
+                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
+                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
+
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+
         if (!readonly)
         {
             int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
@@ -1003,6 +1030,7 @@ public class EngineWorker implements EngineContext, Agent
         debitorsByIndex.forEach((k, v) -> quietClose(v));
         quietClose(creditor);
         quietClose(eventWriter);
+        arena.close();
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
