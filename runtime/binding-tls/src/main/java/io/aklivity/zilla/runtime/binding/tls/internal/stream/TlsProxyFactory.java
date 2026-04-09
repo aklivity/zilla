@@ -27,7 +27,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
@@ -731,7 +731,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
                 // TODO: use decodeSlot instead of allocation
-                MutableDirectBuffer bufferEx = new UnsafeBuffer(new byte[beginEx.sizeof()]);
+                MutableDirectBuffer bufferEx = new SafeBuffer(new byte[beginEx.sizeof()]);
                 bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
                 extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
             }

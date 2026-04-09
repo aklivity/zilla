@@ -27,7 +27,7 @@ import java.util.Collection;
 
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,7 +41,7 @@ public class String16FWTest
 {
     private static final int LENGTH_SIZE = 2;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100000))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -363,14 +363,14 @@ public class String16FWTest
 
     private static MutableDirectBuffer asBuffer(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(value.length()));
         buffer.putStringWithoutLengthUtf8(0, value);
         return buffer;
     }
 
     private static String16FW asStringFW(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
         return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 

@@ -28,7 +28,7 @@ import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -74,7 +74,7 @@ public final class MqttFunctions
     public static byte[] payloadFormat(String format)
     {
         final MqttPayloadFormat mqttPayloadFormat = MqttPayloadFormat.valueOf(format);
-        final MqttPayloadFormatFW formatFW = new MqttPayloadFormatFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+        final MqttPayloadFormatFW formatFW = new MqttPayloadFormatFW.Builder().wrap(new SafeBuffer(new byte[1]), 0, 1)
             .set(mqttPayloadFormat)
             .build();
         final byte[] array = new byte[formatFW.sizeof()];
@@ -162,7 +162,7 @@ public final class MqttFunctions
 
     public static final class MqttBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
@@ -407,7 +407,7 @@ public final class MqttFunctions
 
     public static final class MqttDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final MqttDataExFW dataExRO = new MqttDataExFW();
 
@@ -692,7 +692,7 @@ public final class MqttFunctions
 
     public static final class MqttFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final MqttFlushExFW flushExRO = new MqttFlushExFW();
 
@@ -823,7 +823,7 @@ public final class MqttFunctions
 
         private MqttResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             this.resetExRW = new MqttResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -870,7 +870,7 @@ public final class MqttFunctions
 
         private MqttSessionStateBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -928,7 +928,7 @@ public final class MqttFunctions
 
         private MqttWillMessageBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             willMessageRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -1045,7 +1045,7 @@ public final class MqttFunctions
 
     public static final class MqttSessionSignalBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final MqttSessionSignalFW signalRO = new MqttSessionSignalFW();
 
@@ -1188,7 +1188,7 @@ public final class MqttFunctions
 
     public static final class MqttBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
@@ -1400,7 +1400,7 @@ public final class MqttFunctions
                 if (filters == null)
                 {
                     this.filters = new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 filters.item(i -> i
                     .pattern(pattern));
@@ -1414,7 +1414,7 @@ public final class MqttFunctions
                 if (filters == null)
                 {
                     this.filters = new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 filters.item(i -> i
                     .subscriptionId(id)
@@ -1431,7 +1431,7 @@ public final class MqttFunctions
                 if (filters == null)
                 {
                     this.filters = new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW())
-                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
 
                 int flags = Arrays.stream(flagNames)
@@ -1626,7 +1626,7 @@ public final class MqttFunctions
 
     public static final class MqttDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final MqttDataExFW dataExRo = new MqttDataExFW();
 
@@ -1708,7 +1708,7 @@ public final class MqttFunctions
         public final class MqttSubscribeDataExMatcherBuilder
         {
             private MqttBinaryFW.Builder correlationRW;
-            private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer correlationRO = new SafeBuffer(0, 0);
             private String16FW topic;
             private Integer packetId;
             private Integer qos;
@@ -1763,7 +1763,7 @@ public final class MqttFunctions
                 {
                     this.subscriptionIdsRW =
                         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 subscriptionIdsRW.item(p -> p.set(subscriptionId));
                 return this;
@@ -1787,7 +1787,7 @@ public final class MqttFunctions
                 String format)
             {
                 MqttPayloadFormatFW.Builder builder =
-                    new MqttPayloadFormatFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    new MqttPayloadFormatFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 this.format = builder.set(MqttPayloadFormat.valueOf(format)).build();
                 return this;
             }
@@ -1803,7 +1803,7 @@ public final class MqttFunctions
                 String correlation)
             {
                 assert correlationRW == null;
-                correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                correlationRW = new MqttBinaryFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 correlationRO.wrap(correlation.getBytes(UTF_8));
                 correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
@@ -1815,7 +1815,7 @@ public final class MqttFunctions
                 byte[] correlation)
             {
                 assert correlationRW == null;
-                correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                correlationRW = new MqttBinaryFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 correlationRO.wrap(correlation);
                 correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
@@ -1831,7 +1831,7 @@ public final class MqttFunctions
                 {
                     this.userPropertiesRW =
                         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 userPropertiesRW.item(p -> p.key(name).value(value));
                 return this;
@@ -1929,7 +1929,7 @@ public final class MqttFunctions
         public final class MqttPublishDataExMatcherBuilder
         {
             private MqttBinaryFW.Builder correlationRW;
-            private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
+            private final DirectBuffer correlationRO = new SafeBuffer(0, 0);
             private Integer qos;
             private Integer flags;
             private Integer packetId;
@@ -1992,7 +1992,7 @@ public final class MqttFunctions
                 String format)
             {
                 MqttPayloadFormatFW.Builder builder =
-                    new MqttPayloadFormatFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    new MqttPayloadFormatFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 this.format = builder.set(MqttPayloadFormat.valueOf(format)).build();
                 return this;
             }
@@ -2008,7 +2008,7 @@ public final class MqttFunctions
                 String correlation)
             {
                 assert correlationRW == null;
-                correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                correlationRW = new MqttBinaryFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 correlationRO.wrap(correlation.getBytes(UTF_8));
                 correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
@@ -2020,7 +2020,7 @@ public final class MqttFunctions
                 byte[] correlation)
             {
                 assert correlationRW == null;
-                correlationRW = new MqttBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                correlationRW = new MqttBinaryFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
 
                 correlationRO.wrap(correlation);
                 correlationRW.bytes(correlationRO, 0, correlationRO.capacity());
@@ -2036,7 +2036,7 @@ public final class MqttFunctions
                 {
                     this.userPropertiesRW =
                         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW())
-                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                            .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
                 }
                 userPropertiesRW.item(p -> p.key(name).value(value));
                 return this;
@@ -2127,7 +2127,7 @@ public final class MqttFunctions
 
     public static final class MqttFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final MqttFlushExFW flushExRo = new MqttFlushExFW();
 

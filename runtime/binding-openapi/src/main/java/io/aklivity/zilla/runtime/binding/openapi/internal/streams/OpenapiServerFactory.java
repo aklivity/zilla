@@ -19,7 +19,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -93,7 +93,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;

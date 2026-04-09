@@ -45,7 +45,7 @@ import javax.net.ssl.SSLProtocolException;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
@@ -75,12 +75,12 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsClientFactory implements TlsStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final int MAXIMUM_HEADER_SIZE = 5 + 20 + 256;    // TODO version + MAC + padding
     private static final int HANDSHAKE_TASK_COMPLETE_SIGNAL = 1;
     private static final int HANDSHAKE_TIMEOUT_SIGNAL = 2;
-    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new SafeBuffer(new byte[0]);
 
     private static final Optional<TlsStream> NULL_STREAM = ofNullable(null);
 
@@ -174,13 +174,13 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.event = new TlsEventContext(context);
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
+        this.inNetBuffer = new SafeBuffer(inNetByteBuffer);
         this.outNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity() << 1);
-        this.outNetBuffer = new UnsafeBuffer(outNetByteBuffer);
+        this.outNetBuffer = new SafeBuffer(outNetByteBuffer);
         this.inAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inAppBuffer = new UnsafeBuffer(inAppByteBuffer);
+        this.inAppBuffer = new SafeBuffer(inAppByteBuffer);
         this.outAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.outAppBuffer = new UnsafeBuffer(outAppByteBuffer);
+        this.outAppBuffer = new SafeBuffer(outAppByteBuffer);
 
         this.random = new SecureRandom();
     }

@@ -26,7 +26,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaBindingConfig;
@@ -85,16 +85,16 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-            .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+            .wrap(new SafeBuffer(new byte[8]), 0, 8)
             .build();
 
     private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
     private final Varuint32FW.Builder lenRW =
-        new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
+        new Varuint32FW.Builder().wrap(new SafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -102,9 +102,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final AbortFW abortRO = new AbortFW();
 
     private final String16FW.Builder statusRW = new
-        String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
+        String16FW.Builder().wrap(new SafeBuffer(new byte[256], 0, 256), 0, 256);
     private final String16FW.Builder messageRW = new
-        String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
+        String16FW.Builder().wrap(new SafeBuffer(new byte[256], 0, 256), 0, 256);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -154,9 +154,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.progressBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.metaBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.progressBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.metaBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;

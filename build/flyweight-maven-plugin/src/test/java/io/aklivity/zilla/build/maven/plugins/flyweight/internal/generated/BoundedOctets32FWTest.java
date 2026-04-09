@@ -25,14 +25,14 @@ import static org.junit.Assert.fail;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets32FW;
 
 public class BoundedOctets32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -191,7 +191,7 @@ public class BoundedOctets32FWTest
     private static DirectBuffer asBuffer(
         String value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(value.length()));
+        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(value.length()));
         valueBuffer.putStringWithoutLengthUtf8(0, value);
         return valueBuffer;
     }
@@ -199,7 +199,7 @@ public class BoundedOctets32FWTest
     private static BoundedOctets32FW asBoundedOctets32FW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Integer.BYTES + value.length()));
         return new BoundedOctets32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
     }
 }

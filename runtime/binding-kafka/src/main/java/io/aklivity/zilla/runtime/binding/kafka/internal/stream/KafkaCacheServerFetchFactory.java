@@ -43,7 +43,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -102,15 +102,15 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final ArrayFW<KafkaHeaderFW> EMPTY_HEADERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                .wrap(new SafeBuffer(new byte[8]), 0, 8)
                 .build();
     private static final KafkaKeyFW EMPTY_KEY =
-            new OctetsFW().wrap(new UnsafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
+            new OctetsFW().wrap(new SafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
                 .get(new KafkaKeyFW()::wrap);
 
     private static final int FLAGS_INIT = 0x02;
@@ -178,7 +178,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

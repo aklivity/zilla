@@ -16,7 +16,7 @@ package io.aklivity.zilla.specs.binding.mqtt.kafka.internal;
 
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
@@ -46,7 +46,7 @@ public final class MqttKafkaFunctions
             new MqttSubscribeOffsetMetadataFW.Builder();
 
         private final MqttSubscribeOffsetMetadataFW offsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private MqttSubscribeOffsetMetadataBuilder()
         {
@@ -131,7 +131,7 @@ public final class MqttKafkaFunctions
 
         private MqttPublishOffsetMetadataBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
             offsetMetadataRW.version(version);
         }

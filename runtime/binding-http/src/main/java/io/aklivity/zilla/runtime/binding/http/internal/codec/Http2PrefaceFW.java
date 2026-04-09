@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 
@@ -35,9 +35,9 @@ public class Http2PrefaceFW extends Flyweight
         'S', 'M', '\r', '\n',
         '\r', '\n'
     };
-    private static final DirectBuffer PREFACE = new UnsafeBuffer(PRI_REQUEST);
+    private static final DirectBuffer PREFACE = new SafeBuffer(PRI_REQUEST);
 
-    private final DirectBuffer payloadRO = new UnsafeBuffer(new byte[0]);
+    private final DirectBuffer payloadRO = new SafeBuffer(new byte[0]);
 
     @Override
     public int limit()

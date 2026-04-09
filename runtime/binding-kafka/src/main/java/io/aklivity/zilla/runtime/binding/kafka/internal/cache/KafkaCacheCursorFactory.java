@@ -35,7 +35,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableLong;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
@@ -74,7 +74,7 @@ public final class KafkaCacheCursorFactory
     public KafkaCacheCursorFactory(
         int writeCapacity)
     {
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(writeCapacity));
+        this.writeBuffer = new SafeBuffer(ByteBuffer.allocate(writeCapacity));
         this.checksum = new CRC32C();
     }
 
@@ -574,7 +574,7 @@ public final class KafkaCacheCursorFactory
                 this.mask = mask;
                 this.value = shared;
                 this.hash = computeHash(shared, 0, shared.capacity(), checksum);
-                this.comparable = new UnsafeBuffer();
+                this.comparable = new SafeBuffer();
             }
 
             protected Equals(
@@ -587,7 +587,7 @@ public final class KafkaCacheCursorFactory
                 this.mask = mask;
                 this.value = copyBuffer(buffer, index, length);
                 this.hash = computeHash(buffer, index, length, checksum);
-                this.comparable = new UnsafeBuffer();
+                this.comparable = new SafeBuffer();
             }
 
             protected final long test(
@@ -702,7 +702,7 @@ public final class KafkaCacheCursorFactory
                         final OctetsFW value = match.value();
 
                         final MutableDirectBuffer headerCopyBuf =
-                                new UnsafeBuffer(ByteBuffer.allocate(name.sizeof() + value.sizeof() + 8));
+                                new SafeBuffer(ByteBuffer.allocate(name.sizeof() + value.sizeof() + 8));
 
                         final KafkaHeaderFW headerCopy = new KafkaHeaderFW.Builder()
                                 .wrap(headerCopyBuf, 0, headerCopyBuf.capacity())
@@ -1124,7 +1124,7 @@ public final class KafkaCacheCursorFactory
             int index,
             int length)
         {
-            UnsafeBuffer copy = new UnsafeBuffer(new byte[length]);
+            SafeBuffer copy = new SafeBuffer(new byte[length]);
             copy.putBytes(0, buffer, index, length);
             return copy;
         }
@@ -1263,7 +1263,7 @@ public final class KafkaCacheCursorFactory
     private static KafkaKeyFW initNullKeyRO()
     {
         final KafkaKeyFW nullKeyRO = new KafkaKeyFW.Builder()
-                .wrap(new UnsafeBuffer(ByteBuffer.allocate(5)), 0, 5)
+                .wrap(new SafeBuffer(ByteBuffer.allocate(5)), 0, 5)
                 .length(-1)
                 .value((OctetsFW) null)
                 .build();

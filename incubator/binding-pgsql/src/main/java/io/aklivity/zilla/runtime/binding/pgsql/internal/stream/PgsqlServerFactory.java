@@ -27,7 +27,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlBinding;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.PgsqlConfiguration;
@@ -90,7 +90,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -175,7 +175,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.messageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.messageBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

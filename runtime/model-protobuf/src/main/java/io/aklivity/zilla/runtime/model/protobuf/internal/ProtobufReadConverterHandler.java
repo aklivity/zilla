@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -46,7 +46,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     private static final int TAG_TYPE_BITS = 3;
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
 
     private final Matcher matcher;
     private final Map<String, ProtobufFieldValue> extracted;

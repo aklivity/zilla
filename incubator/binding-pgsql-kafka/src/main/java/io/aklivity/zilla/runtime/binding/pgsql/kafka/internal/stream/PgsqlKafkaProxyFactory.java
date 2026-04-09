@@ -33,7 +33,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaBindingConfig;
@@ -87,7 +87,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final PgsqlParser parser = new PgsqlParser();
@@ -155,7 +155,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

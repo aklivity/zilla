@@ -41,7 +41,7 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableLong;
 import org.agrona.collections.MutableReference;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -127,7 +127,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
     private static final int DYNAMIC_PARTITION = -1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final KafkaKeyFW EMPTY_KEY = new KafkaKeyFW();
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -184,8 +184,8 @@ public final class KafkaMergedFactory implements BindingHandler
         MergedBudgetCreditor creditor)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.detachSender = context::detachSender;
@@ -389,7 +389,7 @@ public final class KafkaMergedFactory implements BindingHandler
         final DirectBuffer buffer = value.buffer();
         final int index = value.offset();
         final int length = value.sizeof();
-        final MutableDirectBuffer copy = new UnsafeBuffer(new byte[length]);
+        final MutableDirectBuffer copy = new SafeBuffer(new byte[length]);
         copy.putBytes(0, buffer, index, length);
         return copy;
     }

@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class SafeBufferTest
@@ -118,7 +118,7 @@ public class SafeBufferTest
     @Test
     public void shouldWrapUnsafeBufferBackedByArray()
     {
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(new byte[64]);
+        final UnsafeBuffer unsafeBuffer = new SafeBuffer(new byte[64]);
         unsafeBuffer.putInt(4, 123);
 
         final SafeBuffer buffer = new SafeBuffer(unsafeBuffer);
@@ -129,7 +129,7 @@ public class SafeBufferTest
     @Test
     public void shouldWrapUnsafeBufferBackedByDirectByteBuffer()
     {
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocateDirect(64));
+        final UnsafeBuffer unsafeBuffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
         unsafeBuffer.putInt(4, 456);
 
         final SafeBuffer buffer = new SafeBuffer(unsafeBuffer);
@@ -412,9 +412,9 @@ public class SafeBufferTest
     }
 
     @Test
-    public void shouldPutBytesFromUnsafeBuffer()
+    public void shouldPutBytesFromSafeBuffer()
     {
-        final UnsafeBuffer src = new UnsafeBuffer(new byte[64]);
+        final UnsafeBuffer src = new SafeBuffer(new byte[64]);
         src.putInt(0, 0xCAFEBABE);
 
         final SafeBuffer dst = new SafeBuffer(new byte[64]);
@@ -996,10 +996,10 @@ public class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void shouldBeByteCompatibleWithUnsafeBuffer()
+    public void shouldBeByteCompatibleWithSafeBuffer()
     {
         final byte[] backing = new byte[64];
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(backing);
+        final UnsafeBuffer unsafeBuffer = new SafeBuffer(backing);
         final SafeBuffer safeBuffer = new SafeBuffer(backing);
 
         unsafeBuffer.putInt(0, 0xDEADC0DE);
@@ -1016,7 +1016,7 @@ public class SafeBufferTest
         safe.putInt(0, 111);
         safe.putInt(4, 222);
 
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final UnsafeBuffer unsafe = new SafeBuffer(new byte[64]);
         safe.getBytes(0, unsafe, 0, 8);
 
         assertEquals(111, unsafe.getInt(0));

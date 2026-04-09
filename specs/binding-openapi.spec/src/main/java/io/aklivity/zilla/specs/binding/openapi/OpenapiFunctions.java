@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -46,7 +46,7 @@ public final class OpenapiFunctions
 
         private OpenapiBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             this.beginExRW = new OpenapiBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -89,7 +89,7 @@ public final class OpenapiFunctions
 
     public static final class OpenapiBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final OpenapiBeginExFW beginExRO = new OpenapiBeginExFW();
 

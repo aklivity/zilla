@@ -28,7 +28,7 @@ import org.agrona.collections.ArrayUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
@@ -72,7 +72,7 @@ public final class ZillaScope implements AutoCloseable
         this.config = config;
         this.labels = labels;
 
-        this.writeBuffer = new UnsafeBuffer(new byte[config.streamsBufferCapacity() / 8]);
+        this.writeBuffer = new SafeBuffer(new byte[config.streamsBufferCapacity() / 8]);
         this.streamsById = new Long2ObjectHashMap<>();
         this.throttlesById = new Long2ObjectHashMap<>();
         this.correlations = new Long2ObjectHashMap<>();

@@ -24,7 +24,7 @@ import java.time.Clock;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -102,7 +102,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonReadConverterHandler converter = new JsonReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
         String payload =
                 "{" +
                     "\"id\": \"123\"," +
@@ -145,7 +145,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
             "[" +
@@ -191,7 +191,7 @@ public class JsonConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonReadConverterHandler converter = new JsonReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -201,7 +201,7 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBuffer value = new UnsafeBuffer(new byte[data.capacity() + 5]);
+        MutableDirectBuffer value = new SafeBuffer(new byte[data.capacity() + 5]);
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
@@ -236,7 +236,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
                 "{" +
@@ -282,7 +282,7 @@ public class JsonConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
             "[" +
@@ -332,7 +332,7 @@ public class JsonConverterTest
         String zillaIdPath = "$.zillaId";
         converter.extract(zillaIdPath);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
             "{" +

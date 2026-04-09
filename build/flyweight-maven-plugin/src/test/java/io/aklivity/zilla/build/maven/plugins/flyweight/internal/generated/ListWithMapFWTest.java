@@ -27,7 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.MapFW;
@@ -43,7 +43,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class ListWithMapFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -277,14 +277,14 @@ public class ListWithMapFWTest
         switch (highestByteIndex)
         {
         case 0:
-            buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
             return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 1:
-            buffer = new UnsafeBuffer(allocateDirect(Short.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Short.SIZE + value.length()));
             return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 2:
         case 3:
-            buffer = new UnsafeBuffer(allocateDirect(Integer.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Integer.SIZE + value.length()));
             return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);
@@ -299,7 +299,7 @@ public class ListWithMapFWTest
             VariantEnumKindOfStringFW.Builder, TypedefStringFW.Builder> variantOfMapRW =
             new VariantOfMapFW.Builder<>(new VariantEnumKindOfStringFW(), new TypedefStringFW(),
                 new VariantEnumKindOfStringFW.Builder(), new TypedefStringFW.Builder());
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100));
         variantOfMapRW.wrap(buffer, 0, buffer.capacity());
         for (int i = 0; i < keys.size(); i++)
         {

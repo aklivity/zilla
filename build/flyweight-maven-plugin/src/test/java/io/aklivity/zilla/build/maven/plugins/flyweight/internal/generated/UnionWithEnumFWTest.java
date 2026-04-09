@@ -23,7 +23,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
@@ -34,7 +34,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class UnionWithEnumFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -203,7 +203,7 @@ public class UnionWithEnumFWTest
     @Test
     public void shouldSetList()
     {
-        MutableDirectBuffer listBuffer = new UnsafeBuffer(allocateDirect(20));
+        MutableDirectBuffer listBuffer = new SafeBuffer(allocateDirect(20));
         ListWithEnumAndVariantWithDefaultFW listWithEnumAndVariantWithDefault =
             new ListWithEnumAndVariantWithDefaultFW.Builder()
                 .wrap(listBuffer, 0, listBuffer.capacity())

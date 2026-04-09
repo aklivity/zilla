@@ -15,31 +15,18 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
 
-public final class AvroField
+public class AvroField
 {
-    private static final int INITIAL_CAPACITY = 24;
-
     public final OctetsFW value;
-
-    private MutableDirectBuffer buffer;
+    public final MutableDirectBuffer buffer;
 
     public AvroField()
     {
         this.value = new OctetsFW();
-        this.buffer = new UnsafeBuffer(new byte[INITIAL_CAPACITY]);
-    }
-
-    public MutableDirectBuffer buffer(
-        int capacity)
-    {
-        if (capacity > buffer.capacity())
-        {
-            buffer = new UnsafeBuffer(new byte[Math.max(buffer.capacity() * 2, capacity)]);
-        }
-        return buffer;
+        this.buffer = new UnsafeBufferEx(new byte[24]);
     }
 }

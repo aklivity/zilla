@@ -19,7 +19,7 @@ import java.util.Arrays;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -62,7 +62,7 @@ public final class FileSystemFunctions
 
         private FileSystemBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             this.beginExRW = new FileSystemBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -137,7 +137,7 @@ public final class FileSystemFunctions
 
     public static final class FileSystemBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final FileSystemBeginExFW beginExRO = new FileSystemBeginExFW();
 
@@ -300,9 +300,9 @@ public final class FileSystemFunctions
 
         private FileSystemResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
             this.resetExRW = new FileSystemResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-            MutableDirectBuffer errorBuffer = new UnsafeBuffer(new byte[1]);
+            MutableDirectBuffer errorBuffer = new SafeBuffer(new byte[1]);
             this.errorExRW = new FileSystemErrorFW.Builder().wrap(errorBuffer, 0, errorBuffer.capacity());
         }
 
@@ -331,7 +331,7 @@ public final class FileSystemFunctions
 
     public static final class FileSystemResetExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBuffer bufferRO = new SafeBuffer();
 
         private final FileSystemResetExFW resetExRO = new FileSystemResetExFW();
 

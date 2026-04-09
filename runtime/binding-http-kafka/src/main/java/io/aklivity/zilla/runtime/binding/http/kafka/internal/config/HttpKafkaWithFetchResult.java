@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
@@ -37,7 +37,7 @@ public class HttpKafkaWithFetchResult
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
             new KafkaOffsetFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+                .wrap(new SafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
                 .stableOffset(KafkaOffsetType.HISTORICAL.value())
@@ -46,7 +46,7 @@ public class HttpKafkaWithFetchResult
 
     private static final KafkaOffsetFW KAFKA_OFFSET_LIVE =
             new KafkaOffsetFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+                .wrap(new SafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
                 .stableOffset(KafkaOffsetType.LIVE.value())

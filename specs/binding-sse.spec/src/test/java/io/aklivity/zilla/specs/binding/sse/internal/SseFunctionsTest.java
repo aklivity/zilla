@@ -28,7 +28,7 @@ import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -236,7 +236,7 @@ public class SseFunctionsTest
                                    .path("/events")
                                    .lastId("id-42")
                                    .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         SseBeginExFW beginEx = new SseBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals("/events", beginEx.path().asString());
@@ -252,7 +252,7 @@ public class SseFunctionsTest
                                    .id("id-42")
                                    .type("custom")
                                    .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         SseDataExFW dataEx = new SseDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(12345678L, dataEx.timestamp());
@@ -269,7 +269,7 @@ public class SseFunctionsTest
                                    .idAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
                                    .typeAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
                                    .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         SseDataExFW dataEx = new SseDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(12345678L, dataEx.timestamp());
@@ -284,7 +284,7 @@ public class SseFunctionsTest
                                    .typeId(0x01)
                                    .id("id-42")
                                    .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
         SseEndExFW endEx = new SseEndExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, endEx.typeId());
         assertEquals("id-42", endEx.id().asString());

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class Http2PingFWTest
@@ -31,9 +31,9 @@ public class Http2PingFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
-        DirectBuffer payload = new UnsafeBuffer(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
+        DirectBuffer payload = new SafeBuffer(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
         Http2PingFW ping = new Http2PingFW.Builder()
                 .wrap(buf, 1, buf.capacity())       // non-zero offset
                 .ack()

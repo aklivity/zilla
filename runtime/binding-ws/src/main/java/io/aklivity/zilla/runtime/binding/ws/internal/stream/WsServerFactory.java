@@ -38,7 +38,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.ws.internal.WsBinding;
 import io.aklivity.zilla.runtime.binding.ws.internal.WsConfiguration;
@@ -79,7 +79,7 @@ public final class WsServerFactory implements WsStreamFactory
 
     private static final int PONG_SIGNAL_ID = 1;
 
-    private static final DirectBuffer CLOSE_PAYLOAD = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer CLOSE_PAYLOAD = new SafeBuffer(new byte[0]);
 
     private final MessageDigest sha1 = initSHA1();
 
@@ -135,7 +135,7 @@ public final class WsServerFactory implements WsStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -322,8 +322,8 @@ public final class WsServerFactory implements WsStreamFactory
             this.authority = authority;
             this.path = path;
 
-            this.header = new UnsafeBuffer(new byte[MAXIMUM_HEADER_SIZE]);
-            this.status = new UnsafeBuffer(new byte[2]);
+            this.header = new SafeBuffer(new byte[MAXIMUM_HEADER_SIZE]);
+            this.status = new SafeBuffer(new byte[2]);
 
             this.decodeState = this::decodeHeader;
             this.stream = new WsStream(routedId, resolvedId);

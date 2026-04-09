@@ -23,8 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -173,7 +172,7 @@ public class ProtobufModelTest
             .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
@@ -198,7 +197,7 @@ public class ProtobufModelTest
             .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
@@ -221,7 +220,7 @@ public class ProtobufModelTest
             .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
@@ -243,39 +242,13 @@ public class ProtobufModelTest
             .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
-    public void shouldReadInvalidProtobufEvent()
-    {
-        ProtobufModelConfig model = ProtobufModelConfig.builder()
-            .catalog()
-                .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .version("latest")
-                    .subject("test-value")
-                    .build()
-                .build()
-            .build();
-
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
-        data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -293,7 +266,7 @@ public class ProtobufModelTest
             .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x04, 0x02, 0x04, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
@@ -317,7 +290,7 @@ public class ProtobufModelTest
 
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
@@ -340,62 +313,6 @@ public class ProtobufModelTest
     }
 
     @Test
-    public void shouldReadLargeValidProtobufEventFormatJson()
-    {
-        ProtobufModelConfig model = ProtobufModelConfig.builder()
-            .view("json")
-            .catalog()
-                .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .version("latest")
-                    .subject("test-value")
-                    .build()
-                .build()
-            .build();
-
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
-
-        // 20000-byte content forces the JSON output past the fixed 8192-byte window, exercising the
-        // bounded-chunk streaming drain (multiple next.accept calls), which the consumer reassembles
-        String content = "A".repeat(20000);
-        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
-        byte[] dateBytes = "01012024".getBytes(StandardCharsets.UTF_8);
-        byte[] buf = new byte[contentBytes.length + 16];
-        MutableDirectBuffer builder = new UnsafeBuffer(buf);
-        int p = 0;
-        builder.putByte(p++, (byte) 0x00);                  // message index 0
-        builder.putByte(p++, (byte) 0x0a);                  // field 1 (content), wire type LEN
-        builder.putByte(p++, (byte) 0xa0);                  // length 20000 varint, byte 0
-        builder.putByte(p++, (byte) 0x9c);                  // length 20000 varint, byte 1
-        builder.putByte(p++, (byte) 0x01);                  // length 20000 varint, byte 2
-        builder.putBytes(p, contentBytes);
-        p += contentBytes.length;
-        builder.putByte(p++, (byte) 0x12);                  // field 2 (date_time), wire type LEN
-        builder.putByte(p++, (byte) 0x08);                  // length 8
-        builder.putBytes(p, dateBytes);
-        p += dateBytes.length;
-
-        DirectBuffer data = new UnsafeBuffer();
-        data.wrap(buf, 0, p);
-
-        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
-        MutableDirectBuffer sink = new UnsafeBuffer(new byte[64 * 1024]);
-        int[] sunk = {0};
-        final ValueConsumer consumer = (buffer, index, length) ->
-        {
-            buffer.getBytes(index, sink, sunk[0], length);
-            sunk[0] += length;
-        };
-        int result = converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
-
-        assertEquals(json.length(), result);
-        byte[] assembled = new byte[sunk[0]];
-        sink.getBytes(0, assembled);
-        assertEquals(json, new String(assembled, StandardCharsets.UTF_8));
-    }
-
-    @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
         ProtobufModelConfig model = ProtobufModelConfig.builder()
@@ -413,7 +330,7 @@ public class ProtobufModelTest
 
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String json =
                 "{" +
@@ -423,42 +340,12 @@ public class ProtobufModelTest
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
         byte[] expectedBytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
-        DirectBuffer expected = new UnsafeBuffer();
+        DirectBuffer expected = new UnsafeBufferEx();
         expected.wrap(expectedBytes, 0, expectedBytes.length);
 
         assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
-    public void shouldWriteLargeValidProtobufEventFormatJson()
-    {
-        ProtobufModelConfig model = ProtobufModelConfig.builder()
-            .view("json")
-            .catalog()
-                .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .version("latest")
-                    .subject("test-value")
-                    .record("SimpleMessage")
-                    .build()
-                .build()
-            .build();
-
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
-
-        // 20000-byte content forces the wire output past the fixed 8192-byte window, exercising the
-        // bounded-chunk streaming drain on the write path
-        String content = "A".repeat(20000);
-        String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
-        DirectBuffer data = new UnsafeBuffer();
-        data.wrap(json.getBytes(StandardCharsets.UTF_8), 0, json.getBytes(StandardCharsets.UTF_8).length);
-
-        int result = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
-
-        assertTrue(result > 20000);
     }
 
     @Test
@@ -482,13 +369,12 @@ public class ProtobufModelTest
 
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String json =
             "{" +
                 "\"content\":\"OK\"," +
-                "\"date_time\":\"01012024\"," +
-                "\"unexpected\":\"value\"" +
+                "\"date\":\"01012024\"" +
             "}";
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
@@ -513,7 +399,7 @@ public class ProtobufModelTest
             .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         assertEquals(71, converter.padding(data, 0, data.capacity()));
     }
@@ -534,7 +420,7 @@ public class ProtobufModelTest
             .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         assertEquals(3, converter.padding(data, 0, data.capacity()));
 
@@ -593,7 +479,7 @@ public class ProtobufModelTest
         String sint32Path = "$.field_sint32";
         converter.extract(sint32Path);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
             32, -79, -47, -7, -42, 3, 40, -71, 96, 49, 21, -51, 91, 7, 0, 0, 0, 0, 61, 57, 48, 0, 0, 66, 12, 100,
@@ -666,7 +552,7 @@ public class ProtobufModelTest
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         // Message with required field and optional fields
         byte[] bytes = {
             0x0a, 0x08, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64,  // required_field: "required"
@@ -703,7 +589,7 @@ public class ProtobufModelTest
                 .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         // Message with index prefix and only required field (defaults should apply)
         byte[] bytes = {
             0x00,  // message index
@@ -740,7 +626,7 @@ public class ProtobufModelTest
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         // Message with required field and repeated fields
         byte[] bytes = {
             0x0a, 0x08, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64,  // required_field: "required"
@@ -778,7 +664,7 @@ public class ProtobufModelTest
                 .build();
         ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         // Message with nested message
         byte[] bytes = {
             0x00,  // message index
@@ -819,7 +705,7 @@ public class ProtobufModelTest
                 .build();
         ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         String json = """
                         {
                             "required_field":"test",

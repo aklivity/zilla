@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNull;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.specs.engine.internal.types.String16FW;
@@ -52,7 +52,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string("value");
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         String8FW string = new String8FW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("value", string.asString());
@@ -63,7 +63,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string(null);
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         String8FW string = new String8FW().wrap(buffer, 0, buffer.capacity());
 
         assertNull(string.asString());
@@ -74,7 +74,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string("");
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[array.length + 1]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[array.length + 1]);
         buffer.putBytes(0, array);
         String8FW string = new String8FW().wrap(buffer, 0, buffer.capacity());
 
@@ -86,7 +86,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string16("value");
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         String16FW string = new String16FW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("value", string.asString());
@@ -97,7 +97,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string16(null);
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         String16FW string = new String16FW().wrap(buffer, 0, buffer.capacity());
 
         assertNull(string.asString());
@@ -108,7 +108,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string16("");
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[array.length + 1]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[array.length + 1]);
         buffer.putBytes(0, array);
         String16FW string = new String16FW().wrap(buffer, 0, buffer.capacity());
 
@@ -120,7 +120,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.string16n("value");
 
-        DirectBuffer buffer = new UnsafeBuffer(array);
+        DirectBuffer buffer = new SafeBuffer(array);
         String16FW string = new String16FW(BIG_ENDIAN).wrap(buffer, 0, buffer.capacity());
 
         assertEquals("value", string.asString());
@@ -131,7 +131,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.varstring("value");
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[array.length + 1]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[array.length + 1]);
         buffer.putBytes(0, array);
         Varuint32nFW length = new Varuint32nFW().wrap(buffer, 0, buffer.capacity());
 
@@ -145,7 +145,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.varstring(null);
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[array.length + 1]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[array.length + 1]);
         buffer.putBytes(0, array);
         Varuint32nFW length = new Varuint32nFW().wrap(buffer, 0, buffer.capacity());
 
@@ -158,7 +158,7 @@ public class CoreFunctionsTest
     {
         byte[] array = CoreFunctions.varstring("");
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[array.length + 1]);
+        MutableDirectBuffer buffer = new SafeBuffer(new byte[array.length + 1]);
         buffer.putBytes(0, array);
         Varuint32nFW length = new Varuint32nFW().wrap(buffer, 0, buffer.capacity());
 

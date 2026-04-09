@@ -22,7 +22,7 @@ import java.time.Clock;
 import java.util.Map;
 
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
@@ -41,8 +41,8 @@ public class HttpEventContext
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_PATH = new String8FW(":path");
 
-    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final HttpEventExFW.Builder httpEventExRW = new HttpEventExFW.Builder();
     private final int httpTypeId;

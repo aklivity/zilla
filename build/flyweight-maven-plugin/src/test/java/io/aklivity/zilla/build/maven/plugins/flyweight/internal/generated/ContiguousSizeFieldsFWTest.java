@@ -25,15 +25,15 @@ import static org.junit.Assert.fail;
 import java.util.stream.IntStream;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ContiguousSizeFieldsFW;
 
 public class ContiguousSizeFieldsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[100]);
-    private final MutableDirectBuffer expected = new UnsafeBuffer(new byte[100]);
+    private final MutableDirectBuffer buffer = new SafeBuffer(new byte[100]);
+    private final MutableDirectBuffer expected = new SafeBuffer(new byte[100]);
 
     {
         {

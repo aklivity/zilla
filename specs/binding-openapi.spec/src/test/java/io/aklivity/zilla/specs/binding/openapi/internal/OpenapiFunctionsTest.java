@@ -27,7 +27,7 @@ import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
@@ -59,7 +59,7 @@ public class OpenapiFunctionsTest
             .extension("extension".getBytes())
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBuffer buffer = new SafeBuffer(build);
 
         OpenapiBeginExFW beginEx = new OpenapiBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(1L, beginEx.apiId());
@@ -78,9 +78,9 @@ public class OpenapiFunctionsTest
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(34);
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
+        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1]);
 
-        new OpenapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new OpenapiBeginExFW.Builder().wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .apiId(1)
             .operationId("operationId")

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Map32FW;
@@ -39,7 +39,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class Map32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -244,7 +244,7 @@ public class Map32FWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

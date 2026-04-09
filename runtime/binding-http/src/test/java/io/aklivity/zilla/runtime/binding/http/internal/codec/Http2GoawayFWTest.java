@@ -20,7 +20,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameTy
 import static org.junit.Assert.assertEquals;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class Http2GoawayFWTest
@@ -30,7 +30,7 @@ public class Http2GoawayFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         Http2GoawayFW goaway = new Http2GoawayFW.Builder()
                 .wrap(buf, 1, buf.capacity())       // non-zero offset

@@ -24,7 +24,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt16;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class VariantEnumKindOfInt16FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0

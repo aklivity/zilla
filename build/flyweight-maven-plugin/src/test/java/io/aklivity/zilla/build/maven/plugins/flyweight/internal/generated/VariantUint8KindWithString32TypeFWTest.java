@@ -24,7 +24,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
@@ -38,7 +38,7 @@ public class VariantUint8KindWithString32TypeFWTest
     private static final int LENGTH_SIZE_STRING32 = 4;
     private static final int KIND_SIZE = 1;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -186,7 +186,7 @@ public class VariantUint8KindWithString32TypeFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

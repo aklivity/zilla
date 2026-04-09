@@ -39,7 +39,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
@@ -119,7 +119,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
         final int readBufferSize = writeBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
         this.readByteBuffer = ByteBuffer.allocateDirect(readBufferSize).order(nativeOrder());
-        this.readBuffer = new UnsafeBuffer(readByteBuffer);
+        this.readBuffer = new SafeBuffer(readByteBuffer);
         this.replyMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
         this.bindings = new Long2ObjectHashMap<>();

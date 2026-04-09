@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.List8FW;
@@ -39,7 +39,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class VariantWithFourTypesFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -62,7 +62,7 @@ public class VariantWithFourTypesFWTest
     @Test
     public void shouldSetAsVariantOfList()
     {
-        MutableDirectBuffer variantOfListBuffer = new UnsafeBuffer(allocateDirect(20));
+        MutableDirectBuffer variantOfListBuffer = new SafeBuffer(allocateDirect(20));
         VariantEnumKindOfStringFW.Builder field1RW = new VariantEnumKindOfStringFW.Builder();
         ListFW.Builder<List8FW> listRW = new List8FW.Builder()
             .wrap(variantOfListBuffer, 0, variantOfListBuffer.capacity())
@@ -85,7 +85,7 @@ public class VariantWithFourTypesFWTest
     @Test
     public void shouldSetAsVariantOfMap()
     {
-        MutableDirectBuffer variantOfMapBuffer = new UnsafeBuffer(allocateDirect(30));
+        MutableDirectBuffer variantOfMapBuffer = new SafeBuffer(allocateDirect(30));
 
         VariantOfMapFW<VariantWithFourTypesFW, VariantWithFourTypesFW> variantOfMap =
             new VariantOfMapFW.Builder<>(new VariantWithFourTypesFW(), new VariantWithFourTypesFW(),
@@ -133,7 +133,7 @@ public class VariantWithFourTypesFWTest
     private static VariantEnumKindOfStringFW asVariantEnumKindOfStringFW(
         StringFW value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
         return new VariantEnumKindOfStringFW.Builder().wrap(buffer, 0, buffer.capacity())
             .set(value).build();
     }
@@ -141,7 +141,7 @@ public class VariantWithFourTypesFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

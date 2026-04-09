@@ -43,7 +43,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2IntHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
@@ -107,11 +107,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_CONNECT_BOOTSTRAP_STREAM = 1;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
     private static final String16FW EMPTY_STRING = new String16FW("");
     private static final int OFFSET_METADATA_VERSION = 2;
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -191,11 +191,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.filterBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.offsetBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.subscriptionIdsBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.filterBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.offsetBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
         this.bufferPool = context.bufferPool();
@@ -1869,7 +1869,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String16FW metadata)
     {
         final IntArrayList metadataList = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
+        SafeBuffer buffer = new SafeBuffer(BitUtil.fromHex(metadata.asString()));
         final MqttSubscribeOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
         switch (offsetMetadata.kind())
         {

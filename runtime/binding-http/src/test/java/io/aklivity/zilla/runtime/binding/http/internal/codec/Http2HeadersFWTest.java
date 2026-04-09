@@ -26,7 +26,7 @@ import java.util.Map;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
@@ -50,7 +50,7 @@ public class Http2HeadersFWTest
             0x7f, 0x7f
         };
 
-        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        DirectBuffer buffer = new SafeBuffer(bytes);
         Http2HeadersFW fw = new Http2HeadersFW().wrap(buffer, 2, buffer.capacity());  // non-zero offset
         assertEquals(26, fw.limit());
         assertTrue(fw.endStream());
@@ -75,7 +75,7 @@ public class Http2HeadersFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         Http2HeadersFW fw = new Http2HeadersFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.ArrayFW;
@@ -41,7 +41,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class ListWithArrayFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -268,14 +268,14 @@ public class ListWithArrayFWTest
         switch (highestByteIndex)
         {
         case 0:
-            buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.length()));
             return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 1:
-            buffer = new UnsafeBuffer(allocateDirect(Short.BYTES + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Short.BYTES + value.length()));
             return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 2:
         case 3:
-            buffer = new UnsafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Integer.BYTES + value.length()));
             return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);
@@ -287,7 +287,7 @@ public class ListWithArrayFWTest
     {
         VariantOfArrayFW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> variantOfArrayRW =
             new VariantOfArrayFW.Builder<>(new VariantEnumKindOfStringFW.Builder(), new VariantEnumKindOfStringFW());
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100));
         variantOfArrayRW.wrap(buffer, 0, buffer.capacity());
         for (StringFW value : values)
         {

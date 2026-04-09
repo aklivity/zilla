@@ -24,7 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
@@ -38,7 +38,7 @@ public class Http2ContinuationFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         Http2ContinuationFW fw = new Http2ContinuationFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

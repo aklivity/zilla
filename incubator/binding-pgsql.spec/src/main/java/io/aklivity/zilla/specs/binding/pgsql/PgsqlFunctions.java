@@ -15,7 +15,7 @@
 package io.aklivity.zilla.specs.binding.pgsql;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
@@ -57,7 +57,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
 
@@ -95,7 +95,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final PgsqlDataExFW dataExRO = new PgsqlDataExFW();
 
@@ -186,7 +186,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
 
         private final PgsqlFlushExFW flushExRO = new PgsqlFlushExFW();
 
@@ -270,7 +270,7 @@ public final class PgsqlFunctions
 
             public final class PgsqlColumnInfoBuilder
             {
-                private final MutableDirectBuffer columnInfoBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                private final MutableDirectBuffer columnInfoBuffer = new SafeBuffer(new byte[1024 * 8]);
                 private final PgsqlColumnInfoFW.Builder columnInfoRW = new PgsqlColumnInfoFW.Builder();
 
                 PgsqlColumnInfoBuilder()

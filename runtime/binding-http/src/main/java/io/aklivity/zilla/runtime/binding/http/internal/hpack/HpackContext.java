@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 public class HpackContext
 {
-    private static final DirectBuffer EMPTY_VALUE = new UnsafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_VALUE = new SafeBuffer(new byte[0]);
 
     private static final HeaderField[] STATIC_TABLE =
     {
@@ -99,14 +99,14 @@ public class HpackContext
 
     private static final int STATIC_TABLE_LENGTH = STATIC_TABLE.length;
 
-    public static final DirectBuffer CONNECTION = new UnsafeBuffer("connection".getBytes(UTF_8));
-    public static final DirectBuffer CONTENT_LENGTH = new UnsafeBuffer("content-length".getBytes(UTF_8));
-    public static final DirectBuffer TE = new UnsafeBuffer("te".getBytes(UTF_8));
-    public static final DirectBuffer TRAILERS = new UnsafeBuffer("trailers".getBytes(UTF_8));
-    public static final DirectBuffer KEEP_ALIVE = new UnsafeBuffer("keep-alive".getBytes(UTF_8));
-    public static final DirectBuffer PROXY_CONNECTION = new UnsafeBuffer("proxy-connection".getBytes(UTF_8));
-    public static final DirectBuffer UPGRADE = new UnsafeBuffer("upgrade".getBytes(UTF_8));
-    public static final DirectBuffer DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN = new UnsafeBuffer("*".getBytes(UTF_8));
+    public static final DirectBuffer CONNECTION = new SafeBuffer("connection".getBytes(UTF_8));
+    public static final DirectBuffer CONTENT_LENGTH = new SafeBuffer("content-length".getBytes(UTF_8));
+    public static final DirectBuffer TE = new SafeBuffer("te".getBytes(UTF_8));
+    public static final DirectBuffer TRAILERS = new SafeBuffer("trailers".getBytes(UTF_8));
+    public static final DirectBuffer KEEP_ALIVE = new SafeBuffer("keep-alive".getBytes(UTF_8));
+    public static final DirectBuffer PROXY_CONNECTION = new SafeBuffer("proxy-connection".getBytes(UTF_8));
+    public static final DirectBuffer UPGRADE = new SafeBuffer("upgrade".getBytes(UTF_8));
+    public static final DirectBuffer DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN = new SafeBuffer("*".getBytes(UTF_8));
 
     // Dynamic table. Entries are added at the end (since it is in reverse order,
     // need to calculate the index accordingly)
@@ -150,7 +150,7 @@ public class HpackContext
 
         private static DirectBuffer buffer(String str)
         {
-            return str == null ? EMPTY_VALUE : new UnsafeBuffer(str.getBytes(UTF_8));
+            return str == null ? EMPTY_VALUE : new SafeBuffer(str.getBytes(UTF_8));
         }
     }
 
@@ -167,8 +167,8 @@ public class HpackContext
 
     void add(String name, String value)
     {
-        DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes(UTF_8));
-        DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes(UTF_8));
+        DirectBuffer nameBuffer = new SafeBuffer(name.getBytes(UTF_8));
+        DirectBuffer valueBuffer = new SafeBuffer(value.getBytes(UTF_8));
 
         add(nameBuffer, valueBuffer);
     }
@@ -304,7 +304,7 @@ public class HpackContext
 
     int index(String name)
     {
-        DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes(UTF_8));
+        DirectBuffer nameBuffer = new SafeBuffer(name.getBytes(UTF_8));
         return index(nameBuffer);
     }
 
@@ -322,8 +322,8 @@ public class HpackContext
 
     int index(String name, String value)
     {
-        DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes(UTF_8));
-        DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes(UTF_8));
+        DirectBuffer nameBuffer = new SafeBuffer(name.getBytes(UTF_8));
+        DirectBuffer valueBuffer = new SafeBuffer(value.getBytes(UTF_8));
 
         return index(nameBuffer, valueBuffer);
     }

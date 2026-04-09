@@ -23,7 +23,7 @@ import static org.junit.Assert.fail;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.Roll;
@@ -31,14 +31,14 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class RollFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -176,7 +176,7 @@ public class RollFWTest
 
     private static DirectBuffer asBuffer(byte value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(1));
+        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(1));
         valueBuffer.putByte(0, value);
         return valueBuffer;
     }

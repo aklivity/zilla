@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 public class Http2SettingsFWTest
@@ -38,7 +38,7 @@ public class Http2SettingsFWTest
             0x7f, 0x7f
         };
 
-        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        DirectBuffer buffer = new SafeBuffer(bytes);
         Http2SettingsFW settings = new Http2SettingsFW().wrap(buffer, 2, buffer.capacity());
         assertEquals(17, settings.limit());
         assertEquals(65535L, settings.initialWindowSize());
@@ -48,7 +48,7 @@ public class Http2SettingsFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         Http2SettingsFW settings = new Http2SettingsFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset
@@ -70,7 +70,7 @@ public class Http2SettingsFWTest
     public void encodeAck()
     {
         byte[] bytes = new byte[10];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBuffer buf = new SafeBuffer(bytes);
 
         Http2SettingsFW settings = new Http2SettingsFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

@@ -44,7 +44,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
@@ -380,7 +380,7 @@ public final class ProxyConditionMatcher
 
         if (info.identity != null)
         {
-            DirectBuffer buffer = new UnsafeBuffer(info.identity);
+            DirectBuffer buffer = new SafeBuffer(info.identity);
             OctetsFW identity = new OctetsFW().wrap(buffer, 0, buffer.capacity());
             matchers.put(IDENTITY.value(), i -> identity.equals(i.identity().value()));
         }

@@ -20,14 +20,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.OctetsDefaultedNoAnchorFW;
 
 public class OctetsDefaultedNoAnchorFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(150))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(150))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0

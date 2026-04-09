@@ -36,7 +36,7 @@ import java.util.zip.CRC32C;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -94,12 +94,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private static final int FLAG_INIT = 0x02;
     private static final int FLAG_NONE = 0x00;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64).build();
+            .wrap(new SafeBuffer(new byte[64]), 0, 64).build();
 
     private final BeginFW beginRO = new BeginFW();
     private final FlushFW flushRO = new FlushFW();
@@ -156,7 +156,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

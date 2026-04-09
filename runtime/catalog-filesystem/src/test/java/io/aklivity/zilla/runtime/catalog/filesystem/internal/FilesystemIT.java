@@ -25,7 +25,7 @@ import java.net.URL;
 import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -81,7 +81,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         String payload =
             "{" +
@@ -101,7 +101,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};

@@ -38,7 +38,7 @@ import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcBindingConfig;
@@ -95,7 +95,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -163,8 +163,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.metaBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.metaBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -443,7 +443,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     {
                         final int correlationLength = helper.correlationId.sizeof();
                         OctetsFW newCorrelationId = new OctetsFW.Builder()
-                            .wrap(new UnsafeBuffer(new byte[correlationLength]), 0, correlationLength)
+                            .wrap(new SafeBuffer(new byte[correlationLength]), 0, correlationLength)
                             .set(helper.correlationId)
                             .build();
                         lastCorrelationId = newCorrelationId;
@@ -1274,7 +1274,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW correlationId)
         {
             correlationIds.add(new OctetsFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
+                .wrap(new SafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
                 .set(correlationId)
                 .build());
 

@@ -22,7 +22,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
@@ -93,7 +93,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
+            final AtomicBuffer atomicStreams = new SafeBuffer(mappedStreams);
 
             final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams, initial);
 

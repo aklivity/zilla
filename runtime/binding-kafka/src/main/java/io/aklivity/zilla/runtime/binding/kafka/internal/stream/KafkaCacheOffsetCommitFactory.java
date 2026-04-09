@@ -21,7 +21,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -45,7 +45,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 {
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -79,7 +79,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

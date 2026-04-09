@@ -19,7 +19,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -94,7 +94,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.compositeRouteId = config.compositeRouteId();

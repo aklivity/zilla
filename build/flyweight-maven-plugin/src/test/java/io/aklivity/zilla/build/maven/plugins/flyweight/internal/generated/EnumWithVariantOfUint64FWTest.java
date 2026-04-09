@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithVariantOfUint64;
@@ -31,7 +31,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class EnumWithVariantOfUint64FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -192,7 +192,7 @@ public class EnumWithVariantOfUint64FWTest
     private static EnumWithVariantOfUint64FW asEnumWithVariantOfUint64FW(
         EnumWithVariantOfUint64 value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(3));
+        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(3));
         return new EnumWithVariantOfUint64FW.Builder().wrap(valueBuffer, 0, valueBuffer.capacity()).set(value).build();
     }
 }

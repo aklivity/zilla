@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class EnumWithUint32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -40,7 +40,7 @@ public class EnumWithUint32FWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -192,7 +192,7 @@ public class EnumWithUint32FWTest
     private static DirectBuffer asBuffer(
         long value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(SIZE_OF_INT));
+        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(SIZE_OF_INT));
         valueBuffer.putInt(0, (int) (value & 0xFFFF_FFFFL));
         return valueBuffer;
     }

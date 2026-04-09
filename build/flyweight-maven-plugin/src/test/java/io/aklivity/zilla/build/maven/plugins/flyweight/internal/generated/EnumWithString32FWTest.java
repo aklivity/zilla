@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString32;
@@ -33,14 +33,14 @@ public class EnumWithString32FWTest
 {
     private static final int LENGTH_SIZE = 4;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(1000000))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(1000000))
+    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -190,7 +190,7 @@ public class EnumWithString32FWTest
 
     private static EnumWithString32FW asEnumWithString32FW(EnumWithString32 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(LENGTH_SIZE + value.value().length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(LENGTH_SIZE + value.value().length()));
         return new EnumWithString32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

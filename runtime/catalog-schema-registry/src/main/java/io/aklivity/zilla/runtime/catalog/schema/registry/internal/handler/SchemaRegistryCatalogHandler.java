@@ -41,7 +41,7 @@ import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
@@ -70,7 +70,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+        .wrap(new SafeBuffer(new byte[5]), 0, 5);
 
     private final HttpClient client;
     private final String baseUrl;

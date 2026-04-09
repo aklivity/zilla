@@ -20,7 +20,7 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
@@ -46,7 +46,7 @@ public class Http2FrameFW extends Flyweight
     private static final int STREAM_ID_OFFSET = 5;
     private static final int PAYLOAD_OFFSET = 9;
 
-    private final AtomicBuffer payloadRO = new UnsafeBuffer(new byte[0]);
+    private final AtomicBuffer payloadRO = new SafeBuffer(new byte[0]);
 
     public int length()
     {

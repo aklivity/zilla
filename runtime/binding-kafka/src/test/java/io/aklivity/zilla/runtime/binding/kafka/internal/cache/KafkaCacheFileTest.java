@@ -25,7 +25,7 @@ import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -40,11 +40,11 @@ public class KafkaCacheFileTest
     {
         Path location = tempFolder.newFile().toPath();
         int capacity = 1024;
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(1024));
+        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(1024));
 
         try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
         {
-            file.appendBytes(new UnsafeBuffer("Hello, world".getBytes(UTF_8)));
+            file.appendBytes(new SafeBuffer("Hello, world".getBytes(UTF_8)));
         }
 
         assertEquals("Hello, world", new String(Files.readAllBytes(location), UTF_8));
@@ -55,11 +55,11 @@ public class KafkaCacheFileTest
     {
         Path location = tempFolder.newFile().toPath();
         int capacity = 1024;
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(1024));
+        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(1024));
 
         try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
         {
-            file.appendBytes(new UnsafeBuffer("Hello, world".getBytes(UTF_8)));
+            file.appendBytes(new SafeBuffer("Hello, world".getBytes(UTF_8)));
             file.freeze();
 
             assertEquals(0, file.available());
@@ -77,7 +77,7 @@ public class KafkaCacheFileTest
 
         try (KafkaCacheFile file = new KafkaCacheFile(location))
         {
-            DirectBuffer buffer = new UnsafeBuffer("Hello, again".getBytes(UTF_8));
+            DirectBuffer buffer = new SafeBuffer("Hello, again".getBytes(UTF_8));
             file.writeBytes(0, buffer, 0, buffer.capacity());
         }
 

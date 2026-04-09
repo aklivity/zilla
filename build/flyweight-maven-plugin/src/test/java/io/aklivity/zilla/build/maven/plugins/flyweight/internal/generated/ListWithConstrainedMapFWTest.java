@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String16FW;
@@ -44,7 +44,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class ListWithConstrainedMapFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -279,14 +279,14 @@ public class ListWithConstrainedMapFWTest
         switch (highestByteIndex)
         {
         case 0:
-            buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
             return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 1:
-            buffer = new UnsafeBuffer(allocateDirect(Short.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Short.SIZE + value.length()));
             return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 2:
         case 3:
-            buffer = new UnsafeBuffer(allocateDirect(Integer.SIZE + value.length()));
+            buffer = new SafeBuffer(allocateDirect(Integer.SIZE + value.length()));
             return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);
@@ -296,7 +296,7 @@ public class ListWithConstrainedMapFWTest
     private static VariantEnumKindOfStringFW asVariantEnumKindOfStringFW(
         StringFW value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
         return new VariantEnumKindOfStringFW.Builder().wrap(buffer, 0, buffer.capacity())
             .set(value).build();
     }
@@ -304,7 +304,7 @@ public class ListWithConstrainedMapFWTest
     private static VariantOfInt32FW asVariantOfInt32FW(
         int value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + Integer.BYTES));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + Integer.BYTES));
         return new VariantOfInt32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
@@ -315,7 +315,7 @@ public class ListWithConstrainedMapFWTest
         ConstrainedMapFW.Builder<VariantWithoutOfFW, VariantWithoutOfFW.Builder> constrainedMapRW =
             new ConstrainedMapFW.Builder<>(new VariantEnumKindOfStringFW(), new VariantWithoutOfFW(),
                 new VariantEnumKindOfStringFW.Builder(), new VariantWithoutOfFW.Builder());
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100));
         constrainedMapRW.wrap(buffer, 0, buffer.capacity());
         for (int i = 0; i < keys.size(); i++)
         {
@@ -334,7 +334,7 @@ public class ListWithConstrainedMapFWTest
         ConstrainedMapFW.Builder<VariantWithoutOfFW, VariantWithoutOfFW.Builder> constrainedMapRW =
             new ConstrainedMapFW.Builder<>(new VariantEnumKindOfStringFW(), new VariantWithoutOfFW(),
                 new VariantEnumKindOfStringFW.Builder(), new VariantWithoutOfFW.Builder());
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100));
         constrainedMapRW.wrap(buffer, 0, buffer.capacity());
         for (int i = 0; i < keys.size(); i++)
         {

@@ -53,7 +53,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +70,7 @@ public class ManyToOneRingBufferTest
     private static final int HEAD_COUNTER_INDEX = CAPACITY + RingBufferDescriptor.HEAD_POSITION_OFFSET;
     private static final int HEAD_COUNTER_CACHE_INDEX = CAPACITY + RingBufferDescriptor.HEAD_CACHE_POSITION_OFFSET;
 
-    private final UnsafeBuffer buffer = mock(UnsafeBuffer.class);
+    private final SafeBuffer buffer = mock(SafeBuffer.class);
     private ManyToOneRingBuffer ringBuffer;
 
     @Before
@@ -94,7 +94,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(tail);
         when(buffer.compareAndSetInt(lengthOffset((int)tail), 0, -recordLength)).thenReturn(TRUE);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
         final int srcIndex = 0;
 
         assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
@@ -116,7 +116,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(HEAD_COUNTER_INDEX)).thenReturn(head);
         when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(tail);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
 
         final int srcIndex = 0;
         assertFalse(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
@@ -137,7 +137,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(HEAD_COUNTER_INDEX)).thenReturn(head);
         when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(tail);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
 
         final int srcIndex = 0;
         assertFalse(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
@@ -160,7 +160,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(tail);
         when(buffer.compareAndSetInt(lengthOffset((int)tail), 0, -recordLength)).thenReturn(TRUE);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
 
         final int srcIndex = 0;
         assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
@@ -189,7 +189,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(tail);
         when(buffer.compareAndSetInt(lengthOffset((int)tail), 0, -recordLength)).thenReturn(TRUE);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
 
         final int srcIndex = 0;
         assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, srcIndex, length));
@@ -413,13 +413,13 @@ public class ManyToOneRingBufferTest
     {
         final int capacity = 777;
         final int totalBufferLength = capacity + RingBufferDescriptor.TRAILER_LENGTH;
-        new ManyToOneRingBuffer(new UnsafeBuffer(new byte[totalBufferLength]));
+        new ManyToOneRingBuffer(new SafeBuffer(new byte[totalBufferLength]));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowExceptionWhenMaxMessageSizeExceeded()
     {
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[1024]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[1024]);
 
         ringBuffer.write(MSG_TYPE_ID, srcBuffer, 0, ringBuffer.maxMsgLength() + 1);
     }
@@ -444,7 +444,7 @@ public class ManyToOneRingBufferTest
         when(buffer.getLongVolatile(HEAD_COUNTER_CACHE_INDEX)).thenReturn(headCache);
         when(buffer.compareAndSetInt(lengthOffset(tailIndex), 0, -recordLength)).thenReturn(TRUE);
 
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(new byte[messageLength]);
+        final SafeBuffer srcBuffer = new SafeBuffer(new byte[messageLength]);
 
         assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, 0, messageLength));
 

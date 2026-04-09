@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -30,6 +30,6 @@ public class DecoderTest
     {
         CatalogHandler.Decoder decoder = CatalogHandler.Decoder.IDENTITY;
 
-        assertEquals(1, decoder.accept(0L, 0L, 1, new UnsafeBuffer(), 1, 1, ValueConsumer.NOP));
+        assertEquals(1, decoder.accept(0L, 0L, 1, new SafeBuffer(), 1, 1, ValueConsumer.NOP));
     }
 }

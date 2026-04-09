@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
@@ -39,7 +39,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class ConstrainedMapFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -232,7 +232,7 @@ public class ConstrainedMapFWTest
     private static VariantEnumKindOfStringFW asVariantEnumKindOfStringFW(
         StringFW value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
         return new VariantEnumKindOfStringFW.Builder().wrap(buffer, 0, buffer.capacity())
             .set(value).build();
     }
@@ -240,7 +240,7 @@ public class ConstrainedMapFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

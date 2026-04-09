@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -49,7 +49,7 @@ public class ModelTest
             .build();
         ConverterHandler handler = new TestConverterHandler(TestModelConfig.class.cast(config), supplyCatalog);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);

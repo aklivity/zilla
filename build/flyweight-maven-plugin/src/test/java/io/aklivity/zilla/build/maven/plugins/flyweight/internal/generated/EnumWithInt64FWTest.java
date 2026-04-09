@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt64;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 
 public class EnumWithInt64FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -58,14 +58,14 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldSetUsingEnum()
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(8))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(8))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
                 setMemory(0, capacity(), (byte) 0xab);
             }
         };
-        MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(8))
+        MutableDirectBuffer expected = new SafeBuffer(allocateDirect(8))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -84,7 +84,7 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldNotTryWrapWhenIncomplete()
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(10 + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(10 + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -101,7 +101,7 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldNotWrapWhenIncomplete()
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(10 + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(10 + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -130,7 +130,7 @@ public class EnumWithInt64FWTest
     public void shouldTryWrapAndReadAllValues() throws Exception
     {
         final int offset = 1;
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -146,7 +146,7 @@ public class EnumWithInt64FWTest
     public void shouldWrapAndReadAllValues() throws Exception
     {
         final int offset = 10;
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -163,7 +163,7 @@ public class EnumWithInt64FWTest
     public void shouldNotTryWrapAndReadInvalidValue() throws Exception
     {
         final int offset = 12;
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -179,7 +179,7 @@ public class EnumWithInt64FWTest
     public void shouldNotWrapAndReadInvalidValue() throws Exception
     {
         final int offset = 12;
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -195,7 +195,7 @@ public class EnumWithInt64FWTest
     public void shouldSetUsingEnumWithInt64FW()
     {
         int offset = 10;
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
+        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(offset + SIZE_OF_LONG))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -236,7 +236,7 @@ public class EnumWithInt64FWTest
 
     private static DirectBuffer asBuffer(long value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(8));
+        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(8));
         valueBuffer.putLong(0, value);
         return valueBuffer;
     }

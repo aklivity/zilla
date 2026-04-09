@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -36,7 +36,7 @@ public class ModelTest
         ConverterHandler converter = ConverterHandler.NONE;
 
         assertEquals(1, converter.convert(0L, 0L,
-            new UnsafeBuffer(), 1, 1, (b, i, l) -> {}));
+            new SafeBuffer(), 1, 1, (b, i, l) -> {}));
     }
 
     @Test
@@ -48,7 +48,7 @@ public class ModelTest
         ModelContext context = new TestModelContext(mock(EngineContext.class));
         ValidatorHandler handler = context.supplyValidatorHandler(modelConfig);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBuffer data = new SafeBuffer();
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);

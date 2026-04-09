@@ -29,21 +29,21 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.engine.internal.concurent.SafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerFixedArraysFW;
 
 public class IntegerFixedArraysFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(199))
+    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(199))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xFF);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(199))
+    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(199))
     {
         {
             setMemory(0, capacity(), (byte) 0xFF);
