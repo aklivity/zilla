@@ -543,7 +543,17 @@ public final class SafeBuffer implements AtomicBufferEx
     public void getBytes(int index, MutableDirectBuffer dstBuffer, int dstIndex, int length)
     {
         boundsCheck0(index, length);
-        dstBuffer.putBytes(dstIndex, this, index, length);
+        if (dstBuffer instanceof SafeBuffer safe)
+        {
+            MemorySegment.copy(segment, index, safe.segment, dstIndex, length);
+        }
+        else
+        {
+            final byte[] tmp = new byte[length];
+            MemorySegment.copy(segment, BYTE_LAYOUT, index,
+                MemorySegment.ofArray(tmp), BYTE_LAYOUT, 0, length);
+            dstBuffer.putBytes(dstIndex, tmp, 0, length);
+        }
     }
 
     @Override
