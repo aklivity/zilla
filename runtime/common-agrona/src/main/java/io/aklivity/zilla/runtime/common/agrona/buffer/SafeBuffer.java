@@ -188,17 +188,16 @@ public class SafeBuffer implements AtomicBufferEx
         ByteBuffer buffer)
     {
         byteBuffer = buffer;
-        final ByteBuffer fullView = buffer.duplicate();
-        fullView.clear();
         if (buffer.isDirect())
         {
             byteArray = null;
-            segment = MemorySegment.ofBuffer(fullView);
+            segment = MemorySegment.ofAddress(BufferUtil.address(buffer))
+                .reinterpret(buffer.capacity());
         }
         else
         {
             byteArray = BufferUtil.array(buffer);
-            segment = MemorySegment.ofBuffer(fullView);
+            segment = MemorySegment.ofArray(byteArray);
         }
         capacity = buffer.capacity();
         wrapAdjustment = 0;
@@ -211,17 +210,17 @@ public class SafeBuffer implements AtomicBufferEx
         int length)
     {
         byteBuffer = buffer;
-        final ByteBuffer fullView = buffer.duplicate();
-        fullView.clear();
         if (buffer.isDirect())
         {
             byteArray = null;
-            segment = MemorySegment.ofBuffer(fullView).asSlice(offset, length);
+            segment = MemorySegment.ofAddress(BufferUtil.address(buffer))
+                .reinterpret(buffer.capacity())
+                .asSlice(offset, length);
         }
         else
         {
             byteArray = BufferUtil.array(buffer);
-            segment = MemorySegment.ofBuffer(fullView).asSlice(offset, length);
+            segment = MemorySegment.ofArray(byteArray).asSlice(offset, length);
         }
         capacity = length;
         wrapAdjustment = offset;
