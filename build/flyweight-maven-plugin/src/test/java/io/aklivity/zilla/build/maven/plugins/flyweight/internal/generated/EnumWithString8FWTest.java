@@ -26,9 +26,9 @@ import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 
 public class EnumWithString8FWTest
 {
