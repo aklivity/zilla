@@ -32,6 +32,8 @@ import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+
 public abstract class ScalarsLayout extends MetricsLayout
 {
     // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long value (8) = 24 bytes

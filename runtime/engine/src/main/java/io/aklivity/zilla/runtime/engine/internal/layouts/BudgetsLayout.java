@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+
 public final class BudgetsLayout implements AutoCloseable
 {
     public static final int OFFSET_BUDGET_ID = 0;
