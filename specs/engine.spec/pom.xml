@@ -47,7 +47,6 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>common-agrona</artifactId>
     </dependency>
