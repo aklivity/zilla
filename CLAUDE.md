@@ -44,6 +44,10 @@ src/test/java/    # Unit tests
 
 Zilla uses Maven with Java 25.
 
+Every new Maven project directory must include `mvnw` and `mvnw.cmd` copied
+from an existing module — this applies to all new projects regardless of type
+(`runtime/`, `specs/`, `incubator/`, etc.).
+
 ```bash
 # Add license headers to new files — run this first after creating new source
 # files, otherwise the build will fail on the license check before compilation
