@@ -66,6 +66,7 @@ public class SafeBuffer implements AtomicBufferEx
     private MemorySegment segment;
     private byte[] byteArray;
     private ByteBuffer byteBuffer;
+    private long addressOffset;
     private int capacity;
     private int wrapAdjustment;
 
@@ -166,6 +167,7 @@ public class SafeBuffer implements AtomicBufferEx
         byteArray = buffer;
         byteBuffer = null;
         segment = MemorySegment.ofArray(buffer);
+        addressOffset = BufferUtil.ARRAY_BASE_OFFSET;
         capacity = buffer.length;
         wrapAdjustment = 0;
     }
@@ -179,6 +181,7 @@ public class SafeBuffer implements AtomicBufferEx
         byteArray = buffer;
         byteBuffer = null;
         segment = MemorySegment.ofArray(buffer).asSlice(offset, length);
+        addressOffset = BufferUtil.ARRAY_BASE_OFFSET + offset;
         capacity = length;
         wrapAdjustment = offset;
     }
@@ -191,12 +194,14 @@ public class SafeBuffer implements AtomicBufferEx
         if (buffer.isDirect())
         {
             byteArray = null;
-            segment = MemorySegment.ofAddress(BufferUtil.address(buffer))
+            addressOffset = BufferUtil.address(buffer);
+            segment = MemorySegment.ofAddress(addressOffset)
                 .reinterpret(buffer.capacity());
         }
         else
         {
             byteArray = BufferUtil.array(buffer);
+            addressOffset = BufferUtil.ARRAY_BASE_OFFSET + buffer.arrayOffset();
             segment = MemorySegment.ofArray(byteArray);
         }
         capacity = buffer.capacity();
@@ -213,6 +218,7 @@ public class SafeBuffer implements AtomicBufferEx
         if (buffer.isDirect())
         {
             byteArray = null;
+            addressOffset = BufferUtil.address(buffer) + offset;
             segment = MemorySegment.ofAddress(BufferUtil.address(buffer))
                 .reinterpret(buffer.capacity())
                 .asSlice(offset, length);
@@ -220,6 +226,7 @@ public class SafeBuffer implements AtomicBufferEx
         else
         {
             byteArray = BufferUtil.array(buffer);
+            addressOffset = BufferUtil.ARRAY_BASE_OFFSET + buffer.arrayOffset() + offset;
             segment = MemorySegment.ofArray(byteArray).asSlice(offset, length);
         }
         capacity = length;
@@ -235,6 +242,7 @@ public class SafeBuffer implements AtomicBufferEx
             segment = safe.segment;
             byteArray = safe.byteArray;
             byteBuffer = safe.byteBuffer;
+            addressOffset = safe.addressOffset;
             capacity = safe.capacity;
             wrapAdjustment = safe.wrapAdjustment;
         }
@@ -255,6 +263,7 @@ public class SafeBuffer implements AtomicBufferEx
             segment = safe.segment.asSlice(offset, length);
             byteArray = safe.byteArray;
             byteBuffer = safe.byteBuffer;
+            addressOffset = safe.addressOffset + offset;
             capacity = length;
             wrapAdjustment = safe.wrapAdjustment + offset;
         }
@@ -272,6 +281,7 @@ public class SafeBuffer implements AtomicBufferEx
         byteArray = null;
         byteBuffer = null;
         segment = MemorySegment.ofAddress(address).reinterpret(length);
+        addressOffset = address;
         capacity = length;
         wrapAdjustment = 0;
     }
@@ -283,6 +293,7 @@ public class SafeBuffer implements AtomicBufferEx
         byteArray = null;
         byteBuffer = null;
         this.segment = segment;
+        addressOffset = segment.address();
         capacity = (int) segment.byteSize();
         wrapAdjustment = 0;
     }
@@ -296,6 +307,7 @@ public class SafeBuffer implements AtomicBufferEx
         byteArray = null;
         byteBuffer = null;
         this.segment = segment.asSlice(offset, length);
+        addressOffset = segment.address() + offset;
         capacity = length;
         wrapAdjustment = offset;
     }
@@ -332,7 +344,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public long addressOffset()
     {
-        return 0;
+        return addressOffset;
     }
 
     @Override
