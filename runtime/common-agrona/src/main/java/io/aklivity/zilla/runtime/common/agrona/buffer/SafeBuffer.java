@@ -260,16 +260,37 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
+        DirectBufferEx buffer)
+    {
+        segment = buffer.segment();
+        byteArray = buffer.byteArray();
+        byteBuffer = buffer.byteBuffer();
+        addressOffset = buffer.addressOffset();
+        capacity = buffer.capacity();
+        wrapAdjustment = buffer.wrapAdjustment();
+    }
+
+    @Override
+    public void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        segment = buffer.segment().asSlice(offset, length);
+        byteArray = buffer.byteArray();
+        byteBuffer = buffer.byteBuffer();
+        addressOffset = buffer.addressOffset() + offset;
+        capacity = length;
+        wrapAdjustment = buffer.wrapAdjustment() + offset;
+    }
+
+    @Override
+    public void wrap(
         DirectBuffer buffer)
     {
-        if (buffer instanceof SafeBuffer safe)
+        if (buffer instanceof DirectBufferEx ex)
         {
-            segment = safe.segment;
-            byteArray = safe.byteArray;
-            byteBuffer = safe.byteBuffer;
-            addressOffset = safe.addressOffset;
-            capacity = safe.capacity;
-            wrapAdjustment = safe.wrapAdjustment;
+            wrap(ex);
         }
         else
         {
@@ -283,14 +304,9 @@ public class SafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        if (buffer instanceof SafeBuffer safe)
+        if (buffer instanceof DirectBufferEx ex)
         {
-            segment = safe.segment.asSlice(offset, length);
-            byteArray = safe.byteArray;
-            byteBuffer = safe.byteBuffer;
-            addressOffset = safe.addressOffset + offset;
-            capacity = length;
-            wrapAdjustment = safe.wrapAdjustment + offset;
+            wrap(ex, offset, length);
         }
         else
         {
