@@ -343,7 +343,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             else
             {
-                MutableDirectBufferEx buffer = (MutableDirectBuffer) payload.buffer();
+                MutableDirectBufferEx buffer = (MutableDirectBufferEx) payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
