@@ -55,7 +55,6 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonWriter;
 import jakarta.json.spi.JsonProvider;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.agrona.LangUtil;
 import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
