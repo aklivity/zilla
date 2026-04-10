@@ -3973,11 +3973,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int encodeHeadersSlotMarkOffset;
         private int encodeReservedSlotMarkOffset;
 
-        private org.agrona.MutableDirectBuffer encodeHeadersBuffer;
+        private MutableDirectBufferEx encodeHeadersBuffer;
         private int encodeHeadersSlotOffset;
         private long encodeHeadersSlotTraceId;
 
-        private org.agrona.MutableDirectBuffer encodeReservedBuffer;
+        private MutableDirectBufferEx encodeReservedBuffer;
         private int encodeReservedSlotOffset;
         private long encodeReservedSlotTraceId;
 
