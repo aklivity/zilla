@@ -18,9 +18,9 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate;
 import static com.squareup.javapoet.MethodSpec.constructorBuilder;
 import static com.squareup.javapoet.MethodSpec.methodBuilder;
 import static com.squareup.javapoet.TypeSpec.classBuilder;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_EX_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MEMORY_SEGMENT_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_EX_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_EX_TYPE;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
@@ -93,7 +93,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                 .addMethod(MethodSpec.methodBuilder("visit")
                         .addModifiers(PUBLIC, ABSTRACT)
                         .returns(typeVarT)
-                        .addParameter(DIRECT_BUFFER_EX_TYPE, "buffer")
+                        .addParameter(DIRECT_BUFFER_TYPE, "buffer")
                         .addParameter(int.class, "offset")
                         .addParameter(int.class, "maxLimit")
                         .build())
@@ -102,7 +102,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
 
     private FieldSpec bufferField()
     {
-        return FieldSpec.builder(DIRECT_BUFFER_EX_TYPE, "buffer", PRIVATE).build();
+        return FieldSpec.builder(DIRECT_BUFFER_TYPE, "buffer", PRIVATE).build();
     }
 
     private FieldSpec segmentField()
@@ -156,7 +156,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     {
         return methodBuilder("buffer")
                   .addModifiers(PUBLIC, FINAL)
-                  .returns(DIRECT_BUFFER_EX_TYPE)
+                  .returns(DIRECT_BUFFER_TYPE)
                   .addStatement("return buffer")
                   .build();
     }
@@ -191,7 +191,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     {
         return methodBuilder("tryWrap")
                   .addModifiers(PUBLIC)
-                  .addParameter(DIRECT_BUFFER_EX_TYPE, "buffer")
+                  .addParameter(DIRECT_BUFFER_TYPE, "buffer")
                   .addParameter(int.class, "offset")
                   .addParameter(int.class, "maxLimit")
                   .returns(thisName)
@@ -210,7 +210,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     {
         return methodBuilder("wrap")
                   .addModifiers(PUBLIC)
-                  .addParameter(DIRECT_BUFFER_EX_TYPE, "buffer")
+                  .addParameter(DIRECT_BUFFER_TYPE, "buffer")
                   .addParameter(int.class, "offset")
                   .addParameter(int.class, "maxLimit")
                   .returns(thisName)
@@ -231,7 +231,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     {
         return methodBuilder("wrap")
             .addModifiers(PUBLIC)
-            .addParameter(DIRECT_BUFFER_EX_TYPE, "buffer")
+            .addParameter(DIRECT_BUFFER_TYPE, "buffer")
             .addParameter(int.class, "offset")
             .addParameter(int.class, "maxLimit")
             .addParameter(arrayAnyType, "array")
@@ -348,7 +348,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                     .addAnnotation(FunctionalInterface.class)
                     .addMethod(MethodSpec.methodBuilder("visit")
                             .addModifiers(PUBLIC, ABSTRACT)
-                            .addParameter(MUTABLE_DIRECT_BUFFER_EX_TYPE, "buffer")
+                            .addParameter(MUTABLE_DIRECT_BUFFER_TYPE, "buffer")
                             .addParameter(int.class, "offset")
                             .addParameter(int.class, "maxLimit")
                             .returns(int.class)
@@ -363,7 +363,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
 
         private FieldSpec bufferField()
         {
-            return FieldSpec.builder(MUTABLE_DIRECT_BUFFER_EX_TYPE, "buffer", PRIVATE).build();
+            return FieldSpec.builder(MUTABLE_DIRECT_BUFFER_TYPE, "buffer", PRIVATE).build();
         }
 
         private FieldSpec segmentField()
@@ -459,7 +459,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
         {
             return methodBuilder("buffer")
                       .addModifiers(PUBLIC, FINAL)
-                      .returns(MUTABLE_DIRECT_BUFFER_EX_TYPE)
+                      .returns(MUTABLE_DIRECT_BUFFER_TYPE)
                       .addStatement("return buffer")
                       .build();
         }
@@ -496,7 +496,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
             return methodBuilder("wrap")
                       .addModifiers(PUBLIC)
                       .returns(thisName)
-                      .addParameter(MUTABLE_DIRECT_BUFFER_EX_TYPE, "buffer")
+                      .addParameter(MUTABLE_DIRECT_BUFFER_TYPE, "buffer")
                       .addParameter(int.class, "offset")
                       .addParameter(int.class, "maxLimit")
                       .addStatement("this.buffer = buffer")

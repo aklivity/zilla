@@ -24,16 +24,18 @@ public final class TypeNames
     private static final String AGRONA_PACKAGE = "org.agrona";
     private static final String AGRONA_CONCURRENT_PACKAGE = AGRONA_PACKAGE + ".concurrent";
     private static final String AGRONA_COLLECTIONS_PACKAGE = AGRONA_PACKAGE + ".collections";
+    private static final String ZILLA_COMMON_AGRONA_BUFFER_PACKAGE =
+        "io.aklivity.zilla.runtime.common.agrona.buffer";
 
     public static final ClassName BIT_UTIL_TYPE = ClassName.get(AGRONA_PACKAGE, "BitUtil");
     public static final ClassName BUFFER_UTIL_TYPE = ClassName.get(AGRONA_PACKAGE, "BufferUtil");
-    public static final ClassName DIRECT_BUFFER_TYPE = ClassName.get(AGRONA_PACKAGE, "DirectBuffer");
-    public static final ClassName MUTABLE_DIRECT_BUFFER_TYPE = ClassName.get(AGRONA_PACKAGE, "MutableDirectBuffer");
+    public static final ClassName DIRECT_BUFFER_TYPE =
+        ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "DirectBufferEx");
+    public static final ClassName MUTABLE_DIRECT_BUFFER_TYPE =
+        ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "MutableDirectBufferEx");
 
     public static final ClassName UNSAFE_BUFFER_TYPE = ClassName.get(AGRONA_CONCURRENT_PACKAGE, "UnsafeBuffer");
 
-    private static final String ZILLA_COMMON_AGRONA_BUFFER_PACKAGE =
-        "io.aklivity.zilla.runtime.common.agrona.buffer";
     public static final ClassName DIRECT_BUFFER_EX_TYPE =
         ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "DirectBufferEx");
     public static final ClassName MUTABLE_DIRECT_BUFFER_EX_TYPE =
