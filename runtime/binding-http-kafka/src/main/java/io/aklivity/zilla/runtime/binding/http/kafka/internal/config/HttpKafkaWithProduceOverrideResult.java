@@ -23,14 +23,14 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 public final class HttpKafkaWithProduceOverrideResult
 {
     public final DirectBufferEx name;
-    public final Supplier<DirectBuffer> valueRef;
+    public final Supplier<DirectBufferEx> valueRef;
 
-    private final Consumer<DirectBuffer> updateHash;
+    private final Consumer<DirectBufferEx> updateHash;
 
     HttpKafkaWithProduceOverrideResult(
         DirectBufferEx name,
-        Supplier<DirectBuffer> valueRef,
-        Consumer<DirectBuffer> updateHash)
+        Supplier<DirectBufferEx> valueRef,
+        Consumer<DirectBufferEx> updateHash)
     {
         this.name = name;
         this.valueRef = valueRef;

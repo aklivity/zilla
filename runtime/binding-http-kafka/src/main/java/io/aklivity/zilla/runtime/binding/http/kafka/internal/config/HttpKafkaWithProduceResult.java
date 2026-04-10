@@ -61,7 +61,7 @@ public class HttpKafkaWithProduceResult
     private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private final KafkaAckMode acks;
-    private final Supplier<DirectBuffer> keyRef;
+    private final Supplier<DirectBufferEx> keyRef;
     private final List<HttpKafkaWithProduceOverrideResult> overrides;
     private final String16FW ifMatch;
     private final String16FW replyTo;
@@ -76,7 +76,7 @@ public class HttpKafkaWithProduceResult
         HttpKafkaCorrelationConfig correlation,
         String16FW topic,
         KafkaAckMode acks,
-        Supplier<DirectBuffer> keyRef,
+        Supplier<DirectBufferEx> keyRef,
         List<HttpKafkaWithProduceOverrideResult> overrides,
         String16FW ifMatch,
         String16FW replyTo,
