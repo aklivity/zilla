@@ -87,7 +87,6 @@ import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
