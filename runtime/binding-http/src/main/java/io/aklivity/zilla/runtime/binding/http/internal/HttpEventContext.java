@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.Map;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;

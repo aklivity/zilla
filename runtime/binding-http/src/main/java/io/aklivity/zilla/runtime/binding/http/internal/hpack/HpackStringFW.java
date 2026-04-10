@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
