@@ -51,8 +51,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
@@ -64,6 +63,7 @@ import io.aklivity.k3po.runtime.driver.internal.netty.channel.CompositeChannelFu
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.Layout;
@@ -105,7 +105,7 @@ final class ZillaTarget implements AutoCloseable
     private final Path streamsPath;
     private final Layout layout;
     private final RingBuffer streamsBuffer;
-    private final LongObjectBiConsumer<MessageHandler> registerThrottle;
+    private final LongObjectBiConsumer<MessageHandlerEx> registerThrottle;
     private final LongConsumer unregisterThrottle;
     private final MutableDirectBufferEx writeBuffer;
     private final LongObjectBiConsumer<ZillaCorrelation> correlateNew;
@@ -116,7 +116,7 @@ final class ZillaTarget implements AutoCloseable
         Path streamsPath,
         StreamsLayout layout,
         MutableDirectBufferEx writeBuffer,
-        LongObjectBiConsumer<MessageHandler> registerThrottle,
+        LongObjectBiConsumer<MessageHandlerEx> registerThrottle,
         LongConsumer unregisterThrottle,
         LongObjectBiConsumer<ZillaCorrelation> correlateNew,
         LongSupplier supplyTraceId)
