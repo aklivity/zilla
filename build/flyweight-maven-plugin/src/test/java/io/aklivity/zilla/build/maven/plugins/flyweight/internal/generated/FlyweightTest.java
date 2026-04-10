@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Flyweight;
@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class FlyweightTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(150))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(150))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -50,7 +50,7 @@ public class FlyweightTest
         }
 
         @Override
-        public Flyweight wrap(org.agrona.DirectBuffer buffer, int offset, int maxLimit)
+        public Flyweight wrap(DirectBufferEx buffer, int offset, int maxLimit)
         {
             return super.wrap(buffer, offset, maxLimit);
         };
@@ -117,7 +117,7 @@ public class FlyweightTest
     }
 
     public static void putMediumInt(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int value)
     {

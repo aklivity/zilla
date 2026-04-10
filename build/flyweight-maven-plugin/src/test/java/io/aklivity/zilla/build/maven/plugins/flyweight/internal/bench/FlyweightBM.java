@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Random;
 
-import org.agrona.MutableDirectBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -41,6 +40,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithOctetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 @State(Scope.Benchmark)
@@ -51,8 +51,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 @OutputTimeUnit(SECONDS)
 public class FlyweightBM
 {
-    private MutableDirectBuffer buffer;
-    private MutableDirectBuffer values;
+    private MutableDirectBufferEx buffer;
+    private MutableDirectBufferEx values;
     private long iterations;
 
     private FlatFW.Builder flatRW = new FlatFW.Builder();

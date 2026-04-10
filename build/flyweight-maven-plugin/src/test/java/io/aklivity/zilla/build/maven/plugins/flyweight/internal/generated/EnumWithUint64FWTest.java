@@ -22,8 +22,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint64;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class EnumWithUint64FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -40,7 +40,7 @@ public class EnumWithUint64FWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -52,7 +52,7 @@ public class EnumWithUint64FWTest
     private final EnumWithUint64FW flyweightRO = new EnumWithUint64FW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         buffer.putLong(offset,  EnumWithUint64.NI.value());
@@ -188,10 +188,10 @@ public class EnumWithUint64FWTest
             .build();
     }
 
-    private static DirectBuffer asBuffer(
+    private static DirectBufferEx asBuffer(
         long value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(SIZE_OF_LONG));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(SIZE_OF_LONG));
         valueBuffer.putLong(0, value);
         return valueBuffer;
     }
