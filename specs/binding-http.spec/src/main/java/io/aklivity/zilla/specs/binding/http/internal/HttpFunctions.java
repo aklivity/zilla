@@ -35,7 +35,7 @@ import org.agrona.collections.MutableBoolean;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
@@ -283,7 +283,7 @@ public final class HttpFunctions
 
         private HttpBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new HttpBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -320,7 +320,7 @@ public final class HttpFunctions
 
     public static final class HttpBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final HttpBeginExFW beginExRO = new HttpBeginExFW();
 
@@ -416,7 +416,7 @@ public final class HttpFunctions
 
         private HttpFlushExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.flushExRW = new HttpFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -453,7 +453,7 @@ public final class HttpFunctions
 
     public static final class HttpFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final HttpFlushExFW flushExRO = new HttpFlushExFW();
 
@@ -542,7 +542,7 @@ public final class HttpFunctions
 
         private HttpEndExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.endExRW = new HttpEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -576,7 +576,7 @@ public final class HttpFunctions
 
         private HttpResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.resetExRW = new HttpResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -610,7 +610,7 @@ public final class HttpFunctions
 
         private HttpChallengeExBuilder()
         {
-            MutableDirectBuffer writeExBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeExBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.challengeExRW = new HttpChallengeExFW.Builder().wrap(writeExBuffer, 0, writeExBuffer.capacity());
         }
 

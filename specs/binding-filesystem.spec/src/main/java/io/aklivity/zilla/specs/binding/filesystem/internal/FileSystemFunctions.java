@@ -23,7 +23,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
@@ -62,7 +62,7 @@ public final class FileSystemFunctions
 
         private FileSystemBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new FileSystemBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -137,7 +137,7 @@ public final class FileSystemFunctions
 
     public static final class FileSystemBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final FileSystemBeginExFW beginExRO = new FileSystemBeginExFW();
 
@@ -300,9 +300,9 @@ public final class FileSystemFunctions
 
         private FileSystemResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.resetExRW = new FileSystemResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-            MutableDirectBuffer errorBuffer = new SafeBuffer(new byte[1]);
+            MutableDirectBuffer errorBuffer = new UnsafeBufferEx(new byte[1]);
             this.errorExRW = new FileSystemErrorFW.Builder().wrap(errorBuffer, 0, errorBuffer.capacity());
         }
 
@@ -331,7 +331,7 @@ public final class FileSystemFunctions
 
     public static final class FileSystemResetExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final FileSystemResetExFW resetExRO = new FileSystemResetExFW();
 

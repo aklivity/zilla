@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.WsBeginExHelper;
 import io.aklivity.zilla.specs.binding.ws.internal.types.stream.WsBeginExFW;
 
@@ -81,7 +81,7 @@ public class WsFunctionsTest
                                       .path("/path?query")
                                       .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         WsBeginExFW wsBeginEx = new WsBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(wsBeginEx.typeId(), 0x01);

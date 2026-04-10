@@ -22,7 +22,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 /*
  * Flyweight for HPACK String Literal Representation
@@ -39,7 +39,7 @@ public class HpackStringFW extends Flyweight
 {
 
     private final HpackIntegerFW integerRO = new HpackIntegerFW(7);
-    private final AtomicBuffer payloadRO = new SafeBuffer(new byte[0]);
+    private final AtomicBuffer payloadRO = new UnsafeBufferEx(new byte[0]);
 
     public boolean huffman()
     {

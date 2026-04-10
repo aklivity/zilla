@@ -31,7 +31,7 @@ import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -81,7 +81,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
             "{" +
@@ -101,7 +101,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};

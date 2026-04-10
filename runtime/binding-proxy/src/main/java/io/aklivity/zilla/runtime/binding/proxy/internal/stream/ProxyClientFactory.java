@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -70,7 +70,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private static final InetAddress INET4_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[4]);
     private static final InetAddress INET6_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[16]);
 
-    private static final DirectBuffer HEADER_V2 = new SafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBuffer HEADER_V2 = new UnsafeBufferEx("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();

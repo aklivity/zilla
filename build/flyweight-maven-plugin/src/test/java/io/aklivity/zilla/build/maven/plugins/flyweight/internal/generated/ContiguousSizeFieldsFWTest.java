@@ -28,12 +28,12 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ContiguousSizeFieldsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ContiguousSizeFieldsFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(new byte[100]);
-    private final MutableDirectBuffer expected = new SafeBuffer(new byte[100]);
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[100]);
+    private final MutableDirectBuffer expected = new UnsafeBufferEx(new byte[100]);
 
     {
         {

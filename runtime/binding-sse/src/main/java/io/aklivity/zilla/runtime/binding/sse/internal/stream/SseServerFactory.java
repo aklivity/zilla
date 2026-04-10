@@ -71,7 +71,7 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseEndExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.util.Flags;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -107,7 +107,7 @@ public final class SseServerFactory implements SseStreamFactory
 
     private static final String8FW LAST_EVENT_ID_NULL = new String8FW(null);
 
-    private static final DirectBuffer EMPTY_COMMENT = new SafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_COMMENT = new UnsafeBufferEx(new byte[0]);
 
     private static final byte ASCII_COLON = 0x3a;
     private static final String METHOD_PROPERTY = "method";
@@ -187,7 +187,7 @@ public final class SseServerFactory implements SseStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.challengeBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.challengeBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
@@ -1347,7 +1347,7 @@ public final class SseServerFactory implements SseStreamFactory
 
     private final class HttpDecodeHelper
     {
-        private final String8FW.Builder lastIdRW = new String8FW.Builder().wrap(new SafeBuffer(new byte[256]), 0, 256);
+        private final String8FW.Builder lastIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
         private final String16FW schemeRO = new String16FW();
         private final String16FW authorityRO = new String16FW();

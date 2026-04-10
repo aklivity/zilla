@@ -77,7 +77,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -88,14 +88,14 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
     private static final KafkaKeyFW EMPTY_KEY =
-        new OctetsFW().wrap(new SafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
+        new OctetsFW().wrap(new UnsafeBufferEx(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
             .get(new KafkaKeyFW()::wrap);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                .wrap(new SafeBuffer(new byte[8]), 0, 8)
+                .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
                 .build();
     private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
     private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
@@ -110,7 +110,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-            .wrap(new SafeBuffer(new byte[64]), 0, 64).build();
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
 
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_INIT = 0x02;
@@ -185,8 +185,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     {
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();

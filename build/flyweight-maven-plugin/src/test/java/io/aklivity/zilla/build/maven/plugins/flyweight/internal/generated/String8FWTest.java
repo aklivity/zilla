@@ -25,13 +25,13 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class String8FWTest
 {
     private static final int LENGTH_SIZE = 1;
 
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -319,7 +319,7 @@ public class String8FWTest
     private static MutableDirectBuffer asBuffer(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(value.length()));
         buffer.putStringWithoutLengthUtf8(0, value);
         return buffer;
     }
@@ -327,7 +327,7 @@ public class String8FWTest
     private static String8FW asString8FW(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 

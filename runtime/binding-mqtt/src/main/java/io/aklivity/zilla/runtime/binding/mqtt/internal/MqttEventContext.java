@@ -24,7 +24,7 @@ import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -33,8 +33,8 @@ public class MqttEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 2048;
 
-    private final AtomicBuffer eventBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final AtomicBuffer extensionBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final MqttEventExFW.Builder mqttEventExRW = new MqttEventExFW.Builder();
     private final int mqttTypeId;

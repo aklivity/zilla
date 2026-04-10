@@ -81,7 +81,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
@@ -238,8 +238,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     public ZillaDumpCommand()
     {
-        this.patchBuffer = new SafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
-        this.writeBuffer = new SafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
+        this.patchBuffer = new UnsafeBufferEx(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
+        this.writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
         this.initialByWorker = new Long2LongHashMap(0L);
     }
 
@@ -532,7 +532,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.supplyInstant = supplyInstant;
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
-            this.labelsBuffer = new SafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
+            this.labelsBuffer = new UnsafeBufferEx(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
             this.sequence = new Long2LongHashMap(0L);
             this.crcCache = new Int2IntHashMap(0);
         }

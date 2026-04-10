@@ -27,7 +27,7 @@ import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.ws.internal.types.stream.WsBeginExFW;
 
 public final class WsFunctions
@@ -49,7 +49,7 @@ public final class WsFunctions
 
         private WsBeginExHelper()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.wsBeginExRW = new WsBeginExFW.Builder()
                                     .wrap(writeBuffer, 0, writeBuffer.capacity());
         }

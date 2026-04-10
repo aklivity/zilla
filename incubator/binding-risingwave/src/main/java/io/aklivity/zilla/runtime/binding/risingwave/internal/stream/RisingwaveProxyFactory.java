@@ -78,7 +78,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -105,7 +105,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String POSTGRES_USER = "postgres\u0000";
     private static final String DEFAULT_USER = "default\u0000";
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -184,8 +184,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.statementBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.statementBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

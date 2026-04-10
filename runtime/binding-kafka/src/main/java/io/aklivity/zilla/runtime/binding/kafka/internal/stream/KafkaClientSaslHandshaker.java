@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public abstract class KafkaClientSaslHandshaker
@@ -104,7 +104,7 @@ public abstract class KafkaClientSaslHandshaker
 
     private final SecureRandom random = new SecureRandom();
 
-    private final MutableDirectBuffer scramBuffer = new SafeBuffer(new byte[1024]);
+    private final MutableDirectBuffer scramBuffer = new UnsafeBufferEx(new byte[1024]);
 
     private MessageDigest messageDigest;
     private Mac mac;
@@ -127,7 +127,7 @@ public abstract class KafkaClientSaslHandshaker
         this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
         this.event = new KafkaEventContext(context);

@@ -32,7 +32,7 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
@@ -72,7 +72,7 @@ public final class ZillaScope implements AutoCloseable
         this.config = config;
         this.labels = labels;
 
-        this.writeBuffer = new SafeBuffer(new byte[config.streamsBufferCapacity() / 8]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[config.streamsBufferCapacity() / 8]);
         this.streamsById = new Long2ObjectHashMap<>();
         this.throttlesById = new Long2ObjectHashMap<>();
         this.correlations = new Long2ObjectHashMap<>();

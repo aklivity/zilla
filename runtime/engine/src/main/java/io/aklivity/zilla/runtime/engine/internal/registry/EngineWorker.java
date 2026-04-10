@@ -93,7 +93,7 @@ import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -876,7 +876,7 @@ public class EngineWorker implements EngineContext, Agent
                 config.eventsBufferCapacity());
 
         this.streamsBuffer = streamsLayout.streamsBuffer();
-        this.writeBuffer = new SafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[config.bufferSlotCapacity() + 1024]);
         this.bufferPool = bufferPoolLayout.bufferPool();
 
         final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
@@ -2126,7 +2126,7 @@ public class EngineWorker implements EngineContext, Agent
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(new byte[capacity]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 

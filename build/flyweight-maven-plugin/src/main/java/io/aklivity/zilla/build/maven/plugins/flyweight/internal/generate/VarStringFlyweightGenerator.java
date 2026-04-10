@@ -21,7 +21,7 @@ import static com.squareup.javapoet.TypeSpec.classBuilder;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.BIT_UTIL_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.SAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_EX_TYPE;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PUBLIC;
@@ -93,7 +93,7 @@ public final class VarStringFlyweightGenerator extends ClassSpecGenerator
     private FieldSpec valueField()
     {
         return FieldSpec.builder(DIRECT_BUFFER_TYPE, "valueRO", PRIVATE, FINAL)
-                        .initializer("new $T(0L, 0)", SAFE_BUFFER_TYPE)
+                        .initializer("new $T(0L, 0)", UNSAFE_BUFFER_EX_TYPE)
                         .build();
     }
 
@@ -122,7 +122,7 @@ public final class VarStringFlyweightGenerator extends ClassSpecGenerator
                          .addStatement("final byte[] encoded = value != null ? value.getBytes(charset) : null")
                          .addStatement("final int encodedSize = encoded != null ? encoded.length : 1")
                          .addStatement("final $T buffer = new $T(new byte[FIELD_MAX_SIZE_LENGTH + encodedSize])",
-                                 MUTABLE_DIRECT_BUFFER_TYPE, SAFE_BUFFER_TYPE)
+                                 MUTABLE_DIRECT_BUFFER_TYPE, UNSAFE_BUFFER_EX_TYPE)
                          .addStatement("new Builder().wrap(buffer, 0, buffer.capacity()).set(value, charset).build();")
                          .build();
     }

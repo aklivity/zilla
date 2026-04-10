@@ -26,7 +26,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class MqttKafkaPublishMetadata
 {
@@ -146,7 +146,7 @@ public class MqttKafkaPublishMetadata
             String16FW metadata)
         {
             final IntArrayList packetIds = new IntArrayList();
-            SafeBuffer buffer = new SafeBuffer(BitUtil.fromHex(metadata.asString()));
+            UnsafeBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(metadata.asString()));
             final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
             if (offsetMetadata.packetIds() != null)
             {

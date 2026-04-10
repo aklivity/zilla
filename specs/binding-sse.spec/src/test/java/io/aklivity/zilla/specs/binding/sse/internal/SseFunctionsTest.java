@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseEndExFW;
@@ -236,7 +236,7 @@ public class SseFunctionsTest
                                    .path("/events")
                                    .lastId("id-42")
                                    .build();
-        DirectBuffer buffer = new SafeBuffer(build);
+        DirectBuffer buffer = new UnsafeBufferEx(build);
         SseBeginExFW beginEx = new SseBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals("/events", beginEx.path().asString());
@@ -252,7 +252,7 @@ public class SseFunctionsTest
                                    .id("id-42")
                                    .type("custom")
                                    .build();
-        DirectBuffer buffer = new SafeBuffer(build);
+        DirectBuffer buffer = new UnsafeBufferEx(build);
         SseDataExFW dataEx = new SseDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(12345678L, dataEx.timestamp());
@@ -269,7 +269,7 @@ public class SseFunctionsTest
                                    .idAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
                                    .typeAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
                                    .build();
-        DirectBuffer buffer = new SafeBuffer(build);
+        DirectBuffer buffer = new UnsafeBufferEx(build);
         SseDataExFW dataEx = new SseDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(12345678L, dataEx.timestamp());
@@ -284,7 +284,7 @@ public class SseFunctionsTest
                                    .typeId(0x01)
                                    .id("id-42")
                                    .build();
-        DirectBuffer buffer = new SafeBuffer(build);
+        DirectBuffer buffer = new UnsafeBufferEx(build);
         SseEndExFW endEx = new SseEndExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, endEx.typeId());
         assertEquals("id-42", endEx.id().asString());

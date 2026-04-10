@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 
@@ -90,7 +90,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBufferEx atomicStreams = new SafeBuffer(mappedStreams);
+            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams);
 
             return new StreamsLayout(new ManyToOneRingBuffer(atomicStreams));
         }
