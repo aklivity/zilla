@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET4;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET6;
-import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType.SECURE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.ByteOrder.BIG_ENDIAN;

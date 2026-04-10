@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET4;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET6;
-import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.UNIX;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType.AUTHORITY;
