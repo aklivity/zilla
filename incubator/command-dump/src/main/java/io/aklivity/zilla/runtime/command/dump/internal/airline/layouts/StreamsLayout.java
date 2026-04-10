@@ -21,7 +21,6 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;

@@ -25,7 +25,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;

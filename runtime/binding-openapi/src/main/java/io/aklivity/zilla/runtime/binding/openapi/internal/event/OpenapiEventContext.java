@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.openapi.internal.types.event.Ope
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.event.EventFW;

@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
-import org.agrona.concurrent.AtomicBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

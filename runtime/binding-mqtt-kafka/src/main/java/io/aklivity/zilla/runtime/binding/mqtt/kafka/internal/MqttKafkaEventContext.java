@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
