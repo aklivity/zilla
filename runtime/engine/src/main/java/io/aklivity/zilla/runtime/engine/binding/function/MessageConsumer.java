@@ -17,10 +17,9 @@ package io.aklivity.zilla.runtime.engine.binding.function;
 
 import static java.util.Objects.requireNonNull;
 
-import org.agrona.concurrent.MessageHandler;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 
 /**
  * Receives typed frames from a {@link DirectBuffer} slice on the I/O hot path.
@@ -45,7 +44,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
  * @see EngineContext#supplySender(long)
  */
 @FunctionalInterface
-public interface MessageConsumer extends MessageHandler, AutoCloseable
+public interface MessageConsumer extends MessageHandlerEx, AutoCloseable
 {
     /**
      * No-op consumer that discards all frames. Its {@link #andThen} and {@link #filter}
@@ -97,7 +96,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         int length);
 
     /**
-     * Bridges to the Agrona {@link MessageHandler} interface by delegating to {@link #accept}.
+     * Bridges to the {@link MessageHandlerEx} interface by delegating to {@link #accept}.
      */
     @Override
     default void onMessage(
