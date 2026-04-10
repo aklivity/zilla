@@ -28,7 +28,7 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacit
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.agrona.concurrent.AtomicBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
@@ -37,10 +37,10 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
 {
     private final int capacity;
     private final AtomicLong spyPosition;
-    private final AtomicBuffer buffer;
+    private final AtomicBufferEx buffer;
 
     public OneToOneRingBufferSpy(
-        final AtomicBuffer buffer)
+        final AtomicBufferEx buffer)
     {
         this.buffer = buffer;
         checkCapacity(buffer.capacity(), 0);
@@ -101,7 +101,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     {
         int messagesRead = 0;
 
-        final AtomicBuffer buffer = this.buffer;
+        final AtomicBufferEx buffer = this.buffer;
         final long head = spyPosition.get();
 
         int bytesRead = 0;
