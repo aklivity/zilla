@@ -79,7 +79,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEn
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFlags;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -136,7 +136,7 @@ public final class KafkaCachePartition
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-            .wrap(new ExpandableArrayBufferEx(512), 0, 8192);
+            .wrap(new ExpandableDirectByteBufferEx(512), 0, 8192);
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
