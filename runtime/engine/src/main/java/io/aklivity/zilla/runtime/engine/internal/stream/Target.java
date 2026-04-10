@@ -133,7 +133,7 @@ public final class Target implements AutoCloseable
 
         if (timestamps)
         {
-            ((MutableDirectBuffer) buffer).putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
+            ((MutableDirectBufferEx) buffer).putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
         }
 
         final FrameFW frame = frameRO.wrap(buffer, index, index + length);
