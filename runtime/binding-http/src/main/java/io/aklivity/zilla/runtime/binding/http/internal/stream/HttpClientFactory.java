@@ -54,7 +54,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.AsciiSequenceView;
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -2321,8 +2321,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.promises = new ArrayList<>(maximumPushPromiseListSize);
             this.decodeContext = new HpackContext(localSettings.headerTableSize, false);
             this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
-            this.encodeHeadersBuffer = new ExpandableArrayBuffer();
-            this.encodeReservedBuffer = new ExpandableArrayBuffer();
+            this.encodeHeadersBuffer = new ExpandableArrayBufferEx();
+            this.encodeReservedBuffer = new ExpandableArrayBufferEx();
             this.decodeSlot = NO_SLOT;
             this.encodeSlot = NO_SLOT;
         }
