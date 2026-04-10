@@ -25,7 +25,6 @@ import org.agrona.CloseHelper;
 import org.agrona.collections.ArrayUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.MessageHandler;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
@@ -33,6 +32,7 @@ import org.jboss.netty.channel.MessageEvent;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
@@ -53,8 +53,8 @@ public final class ZillaScope implements AutoCloseable
     private final ZillaExtConfiguration config;
     private final LabelManager labels;
     private final MutableDirectBufferEx writeBuffer;
-    private final Long2ObjectHashMap<MessageHandler> streamsById;
-    private final Long2ObjectHashMap<MessageHandler> throttlesById;
+    private final Long2ObjectHashMap<MessageHandlerEx> streamsById;
+    private final Long2ObjectHashMap<MessageHandlerEx> throttlesById;
     private final Long2ObjectHashMap<ZillaCorrelation> correlations;
     private final ToIntFunction<Long> lookupTargetIndex;
     private final LongSupplier supplyTraceId;
@@ -281,7 +281,7 @@ public final class ZillaScope implements AutoCloseable
 
     private void onSystemMessage(
         int msgTypeId,
-        DirectBufferEx buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {

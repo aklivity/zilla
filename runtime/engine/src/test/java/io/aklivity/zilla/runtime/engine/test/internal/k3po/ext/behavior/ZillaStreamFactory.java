@@ -35,12 +35,12 @@ import static org.jboss.netty.channel.Channels.fireMessageReceived;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
-import org.agrona.concurrent.MessageHandler;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelFuture;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -108,7 +108,7 @@ public final class ZillaStreamFactory
         sender.doChallenge(channel, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
     }
 
-    public MessageHandler newStream(
+    public MessageHandlerEx newStream(
         ZillaChannel channel,
         ZillaTarget sender,
         ChannelFuture beginFuture)
