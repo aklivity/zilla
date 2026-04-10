@@ -234,17 +234,6 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
     @Override
     public void putBytes(
         int index,
-        DirectBufferEx srcBuffer,
-        int srcIndex,
-        int length)
-    {
-        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcBuffer.wrapAdjustment() + srcIndex,
-            segment, JAVA_BYTE, wrapAdjustment() + index, length);
-    }
-
-    @Override
-    public void putBytes(
-        int index,
         MemorySegment srcSegment,
         int srcIndex,
         int length)
