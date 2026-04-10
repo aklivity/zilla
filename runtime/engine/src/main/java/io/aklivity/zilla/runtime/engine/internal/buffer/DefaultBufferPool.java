@@ -154,8 +154,7 @@ public class DefaultBufferPool implements BufferPool
         int offset)
     {
         assert used.get(slot);
-        final long slotAddressOffset = poolBuffer.addressOffset() + (slot << bitsPerSlot);
-        slotBuffer.wrap(slotAddressOffset + offset, slotCapacity);
+        slotBuffer.wrap(poolBuffer, (slot << bitsPerSlot) + offset, slotCapacity);
         return slotBuffer;
     }
 

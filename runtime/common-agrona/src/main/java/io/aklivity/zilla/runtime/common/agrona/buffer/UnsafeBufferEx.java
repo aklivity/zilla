@@ -56,7 +56,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super(buffer, offset, length);
-        this.segment = MemorySegment.ofArray(buffer).asSlice(offset, length);
+        this.segment = MemorySegment.ofArray(buffer);
     }
 
     public UnsafeBufferEx(
@@ -72,7 +72,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super(buffer, offset, length);
-        this.segment = segmentOf(buffer).asSlice(offset, length);
+        this.segment = segmentOf(buffer);
     }
 
     public UnsafeBufferEx(
@@ -88,7 +88,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super(buffer, offset, length);
-        this.segment = segmentOf(buffer).asSlice(offset, length);
+        this.segment = segmentOf(buffer);
     }
 
     public UnsafeBufferEx(
@@ -111,8 +111,8 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        super(segment.asSlice(offset, length).asByteBuffer());
-        this.segment = segment.asSlice(offset, length);
+        super(segment.asByteBuffer(), offset, length);
+        this.segment = segment;
     }
 
     @Override
@@ -136,7 +136,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super.wrap(buffer, offset, length);
-        segment = MemorySegment.ofArray(buffer).asSlice(offset, length);
+        segment = MemorySegment.ofArray(buffer);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super.wrap(buffer, offset, length);
-        segment = segmentOf(buffer).asSlice(offset, length);
+        segment = segmentOf(buffer);
     }
 
     @Override
@@ -172,7 +172,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super.wrap(buffer, offset, length);
-        segment = buffer.segment().asSlice(offset, length);
+        segment = buffer.segment();
     }
 
     @Override
@@ -190,7 +190,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         super.wrap(buffer, offset, length);
-        segment = segmentOf(buffer).asSlice(offset, length);
+        segment = segmentOf(buffer);
     }
 
     @Override
@@ -216,9 +216,8 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        final MemorySegment sliced = segment.asSlice(offset, length);
-        super.wrap(sliced.asByteBuffer());
-        this.segment = sliced;
+        super.wrap(segment.asByteBuffer(), offset, length);
+        this.segment = segment;
     }
 
     @Override
@@ -228,7 +227,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int dstIndex,
         int length)
     {
-        MemorySegment.copy(segment, JAVA_BYTE, index,
+        MemorySegment.copy(segment, JAVA_BYTE, wrapAdjustment() + index,
             dstSegment, JAVA_BYTE, dstIndex, length);
     }
 
@@ -239,8 +238,8 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcIndex,
-            segment, JAVA_BYTE, index, length);
+        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcBuffer.wrapAdjustment() + srcIndex,
+            segment, JAVA_BYTE, wrapAdjustment() + index, length);
     }
 
     @Override
@@ -251,7 +250,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         int length)
     {
         MemorySegment.copy(srcSegment, JAVA_BYTE, srcIndex,
-            segment, JAVA_BYTE, index, length);
+            segment, JAVA_BYTE, wrapAdjustment() + index, length);
     }
 
     private static MemorySegment segmentOf(
@@ -273,10 +272,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         final byte[] array = buffer.byteArray();
         if (array != null)
         {
-            final int adjustment = buffer.wrapAdjustment();
-            return adjustment == 0 && buffer.capacity() == array.length
-                ? MemorySegment.ofArray(array)
-                : MemorySegment.ofArray(array).asSlice(adjustment, buffer.capacity());
+            return MemorySegment.ofArray(array);
         }
 
         final ByteBuffer bb = buffer.byteBuffer();
