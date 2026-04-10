@@ -19,8 +19,6 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import java.util.List;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
-
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
@@ -35,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class GrpcKafkaWithProduceResult
