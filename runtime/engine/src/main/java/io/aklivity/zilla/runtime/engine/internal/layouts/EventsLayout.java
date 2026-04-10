@@ -30,6 +30,7 @@ import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.spy.OneToOneRingBufferSpy;
@@ -65,7 +66,7 @@ public final class EventsLayout implements AutoCloseable
     public RingBufferSpy createSpy()
     {
         final MappedByteBuffer mappedBuffer = mapExistingFile(path.toFile(), "events");
-        final AtomicBuffer atomicBuffer = new UnsafeBufferEx(mappedBuffer);
+        final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
         final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
         spy.spyAt(ZERO);
         return spy;
