@@ -74,8 +74,8 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DeadlineTimerWheel;
+import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
