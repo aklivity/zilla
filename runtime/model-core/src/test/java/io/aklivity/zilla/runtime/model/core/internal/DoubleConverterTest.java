@@ -23,7 +23,7 @@ import java.time.Clock;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -40,7 +40,7 @@ public class DoubleConverterTest
     @Test
     public void shouldVerifyValidDouble()
     {
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {127, -17, 94, -95, -120, 23, -78, 63};
         data.wrap(bytes, 0, bytes.length);
@@ -53,7 +53,7 @@ public class DoubleConverterTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         DoubleConverterHandler converter = new DoubleConverterHandler(config, context);
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = "Invalid Double".getBytes();
         data.wrap(bytes, 0, bytes.length);

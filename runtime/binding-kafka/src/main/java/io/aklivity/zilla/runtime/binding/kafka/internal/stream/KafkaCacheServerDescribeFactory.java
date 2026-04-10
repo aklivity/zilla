@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDescri
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -113,8 +113,8 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

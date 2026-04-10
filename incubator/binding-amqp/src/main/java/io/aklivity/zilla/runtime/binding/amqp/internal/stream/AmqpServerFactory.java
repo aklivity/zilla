@@ -170,7 +170,7 @@ import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -183,7 +183,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class AmqpServerFactory implements AmqpStreamFactory
 {
     private static final StringFW[] EMPTY_STRINGFW_ARRAY = new StringFW[0];
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private static final StringFW[] DEFAULT_INCOMING_LOCALES = asStringFWArray(AMQP_INCOMING_LOCALES_DEFAULT);
 
@@ -294,77 +294,77 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         new Array8FW.Builder<>(new AmqpIETFLanguageTagFW.Builder(), new AmqpIETFLanguageTagFW());
 
     private final AmqpPerformativeTypeFW openType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(OPEN)
         .build();
 
     private final AmqpPerformativeTypeFW beginType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(BEGIN)
         .build();
 
     private final AmqpPerformativeTypeFW attachType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(ATTACH)
         .build();
 
     private final AmqpPerformativeTypeFW flowType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(FLOW)
         .build();
 
     private final AmqpPerformativeTypeFW transferType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(TRANSFER)
         .build();
 
     private final AmqpPerformativeTypeFW detachType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(DETACH)
         .build();
 
     private final AmqpPerformativeTypeFW endType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(END)
         .build();
 
     private final AmqpPerformativeTypeFW closeType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(CLOSE)
         .build();
 
     private final AmqpDescribedTypeFW applicationPropertiesSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(APPLICATION_PROPERTIES)
         .build();
 
     private final AmqpDescribedTypeFW messagePropertiesSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(PROPERTIES)
         .build();
 
     private final AmqpDescribedTypeFW messageAnnotationsSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(MESSAGE_ANNOTATIONS)
         .build();
 
     private final AmqpDescribedTypeFW dataSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(DATA)
         .build();
 
     private final AmqpDescribedTypeFW sequenceSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(SEQUENCE)
         .build();
 
     private final AmqpDescribedTypeFW valueSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new SafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(VALUE)
         .build();
 
     private final AmqpProtocolHeaderFW plainProtocolHeader = new AmqpProtocolHeaderFW.Builder()
-        .wrap(new SafeBuffer(new byte[8]), 0, 8)
+        .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
         .name(n -> n.set("AMQP".getBytes(StandardCharsets.US_ASCII)))
         .id(PLAIN_PROTOCOL_ID)
         .major(1)
@@ -373,7 +373,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         .build();
 
     private final AmqpProtocolHeaderFW saslProtocolHeader = new AmqpProtocolHeaderFW.Builder()
-        .wrap(new SafeBuffer(new byte[8]), 0, 8)
+        .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
         .name(n -> n.set("AMQP".getBytes(StandardCharsets.US_ASCII)))
         .id(SASL_PROTOCOL_ID)
         .major(1)
@@ -382,10 +382,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         .build();
 
     private final OctetsFW nullConstructor = new OctetsFW()
-        .wrap(new SafeBuffer(new byte[] {0x40}), 0, 1);
+        .wrap(new UnsafeBufferEx(new byte[] {0x40}), 0, 1);
 
     private final OctetsFW emptyFrameHeader = new OctetsFW()
-        .wrap(new SafeBuffer(new byte[] {0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00}), 0, 8);
+        .wrap(new UnsafeBufferEx(new byte[] {0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00}), 0, 8);
 
     private final StringFW timeoutDescription = new String8FW("idle-timeout expired");
     private final StringFW timeoutTooSmallDescription = new String8FW("idle-timeout is too small");
@@ -476,10 +476,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.frameBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extraBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.stringBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.valueBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.frameBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extraBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.stringBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.valueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();

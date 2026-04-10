@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -78,10 +78,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
         new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-            .wrap(new SafeBuffer(new byte[64]), 0, 64)
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
             .build();
     private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new String16FW("-bind").value(), 0, 4);
 
@@ -133,8 +133,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.metadataBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
@@ -144,7 +144,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.helper = new HttpGrpcResponseHeaderHelper(metadataBuffer);
 
-        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new SafeBuffer(new byte[32]), 0, 32)
+        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBufferEx(new byte[32]), 0, 32)
                 .typeId(grpcTypeId)
                 .status(HEADER_VALUE_GRPC_ABORTED)
                 .build();

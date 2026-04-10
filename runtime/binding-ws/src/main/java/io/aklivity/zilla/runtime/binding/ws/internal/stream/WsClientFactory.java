@@ -63,7 +63,7 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsDataExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsEndExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -82,7 +82,7 @@ public final class WsClientFactory implements WsStreamFactory
     private static final int MAXIMUM_HEADER_SIZE = 14;
     private static final int PONG_SIGNAL_ID = 1;
 
-    private static final DirectBuffer CLOSE_PAYLOAD = new SafeBuffer(new byte[0]);
+    private static final DirectBuffer CLOSE_PAYLOAD = new UnsafeBufferEx(new byte[0]);
 
     private final MessageDigest sha1 = initSHA1();
 
@@ -141,7 +141,7 @@ public final class WsClientFactory implements WsStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -747,7 +747,7 @@ public final class WsClientFactory implements WsStreamFactory
                 this.protocol = protocol;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId =  supplyReplyId.applyAsLong(initialId);
-                this.header = new SafeBuffer(new byte[MAXIMUM_HEADER_SIZE]);
+                this.header = new UnsafeBufferEx(new byte[MAXIMUM_HEADER_SIZE]);
                 this.decodeState = this::decodeHeader;
             }
 

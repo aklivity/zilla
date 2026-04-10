@@ -29,7 +29,7 @@ import org.agrona.collections.MutableBoolean;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
@@ -95,7 +95,7 @@ public final class GrpcFunctions
 
         private GrpcBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new GrpcBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -153,9 +153,9 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            DirectBuffer nameBuffer = new SafeBuffer(name.getBytes());
+            DirectBuffer nameBuffer = new UnsafeBufferEx(name.getBytes());
             OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
-            DirectBuffer valueBuffer = new SafeBuffer(value.getBytes());
+            DirectBuffer valueBuffer = new UnsafeBufferEx(value.getBytes());
             OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
 
             beginExRW.metadataItem(b -> b.type(t -> t.set(GrpcType.valueOf(type)))
@@ -177,7 +177,7 @@ public final class GrpcFunctions
 
     public static final class GrpcBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final GrpcBeginExFW beginExRO = new GrpcBeginExFW();
 
@@ -243,9 +243,9 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            DirectBuffer nameBuffer = new SafeBuffer(name.getBytes());
+            DirectBuffer nameBuffer = new UnsafeBufferEx(name.getBytes());
             OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
-            DirectBuffer valueBuffer = new SafeBuffer(value.getBytes());
+            DirectBuffer valueBuffer = new UnsafeBufferEx(value.getBytes());
             OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
             metadata.put(nameOctets, new MetadataValue(GrpcType.valueOf(type), valueOctets::equals));
             return this;
@@ -343,7 +343,7 @@ public final class GrpcFunctions
 
         private GrpcDataExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.dataExRW = new GrpcDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -376,7 +376,7 @@ public final class GrpcFunctions
 
         private GrpcAbortExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.abortExRW = new GrpcAbortExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -416,7 +416,7 @@ public final class GrpcFunctions
 
         private GrpcResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.resetExRW = new GrpcResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -454,15 +454,15 @@ public final class GrpcFunctions
     {
         private final Varuint32FW.Builder keyRW;
         private final Varuint32FW.Builder lenRW;
-        private final MutableDirectBuffer messageBuffer = new SafeBuffer(new byte[1024 * 200]);
+        private final MutableDirectBuffer messageBuffer = new UnsafeBufferEx(new byte[1024 * 200]);
 
         private int messageBufferLimit = 5;
 
         private GrpcMessageBuilder()
         {
-            MutableDirectBuffer keyBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer keyBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             keyRW = new Varuint32FW.Builder().wrap(keyBuffer, 0, keyBuffer.capacity());
-            MutableDirectBuffer lenBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer lenBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             lenRW = new Varuint32FW.Builder().wrap(lenBuffer, 0, lenBuffer.capacity());
         }
 
@@ -499,14 +499,14 @@ public final class GrpcFunctions
     {
         private final Varuint32FW.Builder keyRW;
         private final Varuint32FW.Builder lenRW;
-        private final MutableDirectBuffer messageBuffer = new SafeBuffer(new byte[1024 * 200]);
+        private final MutableDirectBuffer messageBuffer = new UnsafeBufferEx(new byte[1024 * 200]);
         private int messageBufferLimit = 0;
 
         private ProtobufBuilder()
         {
-            MutableDirectBuffer keyBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer keyBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             keyRW = new Varuint32FW.Builder().wrap(keyBuffer, 0, keyBuffer.capacity());
-            MutableDirectBuffer lenBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer lenBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             lenRW = new Varuint32FW.Builder().wrap(lenBuffer, 0, lenBuffer.capacity());
         }
 

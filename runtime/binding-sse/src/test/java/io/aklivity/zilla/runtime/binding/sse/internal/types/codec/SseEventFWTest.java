@@ -22,13 +22,13 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class SseEventFWTest
 {
     private static final int BUFFER_SIZE = 1024;
 
-    private final SafeBuffer actual = new SafeBuffer(allocateDirect(BUFFER_SIZE))
+    private final UnsafeBufferEx actual = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -36,7 +36,7 @@ public class SseEventFWTest
         }
     };
 
-    private final SafeBuffer expected = new SafeBuffer(allocateDirect(BUFFER_SIZE))
+    private final UnsafeBufferEx expected = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0

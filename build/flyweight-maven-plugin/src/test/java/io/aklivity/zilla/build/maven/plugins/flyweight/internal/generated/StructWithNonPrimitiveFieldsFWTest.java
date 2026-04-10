@@ -35,11 +35,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.StructWithNonPrimitiveFieldsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfInt8FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class StructWithNonPrimitiveFieldsFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -172,7 +172,7 @@ public class StructWithNonPrimitiveFieldsFWTest
     @Test
     public void shouldSetFieldsWithFlyweights() throws Exception
     {
-        final MutableDirectBuffer fieldBuffer = new SafeBuffer(allocateDirect(100))
+        final MutableDirectBuffer fieldBuffer = new UnsafeBufferEx(allocateDirect(100))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0

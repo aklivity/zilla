@@ -29,7 +29,7 @@ import org.junit.Test;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantUint8KindWithString32TypeFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class VariantUint8KindWithString32TypeFWTest
 {
@@ -38,7 +38,7 @@ public class VariantUint8KindWithString32TypeFWTest
     private static final int LENGTH_SIZE_STRING32 = 4;
     private static final int KIND_SIZE = 1;
 
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -186,7 +186,7 @@ public class VariantUint8KindWithString32TypeFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

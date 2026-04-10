@@ -33,11 +33,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Bound
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfOctetsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class VariantOfOctetsFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(1000000))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -320,7 +320,7 @@ public class VariantOfOctetsFWTest
     private static DirectBuffer asBuffer(
         String value)
     {
-        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(value.length()));
+        MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(value.length()));
         valueBuffer.putStringWithoutLengthUtf8(0, value);
         return valueBuffer;
     }
@@ -335,14 +335,14 @@ public class VariantOfOctetsFWTest
         {
         case 0:
         case 4:
-            buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
             return new BoundedOctets8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         case 1:
-            buffer = new SafeBuffer(allocateDirect(Short.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Short.SIZE + value.length()));
             return new BoundedOctets16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         case 2:
         case 3:
-            buffer = new SafeBuffer(allocateDirect(Integer.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Integer.SIZE + value.length()));
             return new BoundedOctets32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);

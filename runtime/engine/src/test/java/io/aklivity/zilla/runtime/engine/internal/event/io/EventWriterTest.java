@@ -28,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class EventWriterTest
 {
@@ -50,7 +50,7 @@ public class EventWriterTest
 
         try (EventWriter writer = new EventWriter(path, CAPACITY))
         {
-            writer.writeEvent(42, new SafeBuffer(), 0, 0);
+            writer.writeEvent(42, new UnsafeBufferEx(), 0, 0);
             msgTypeId = 0;
             EventAccessor accessor = writer.createEventAccessor();
 
@@ -74,7 +74,7 @@ public class EventWriterTest
             // fill buffer - 7 events fit, 8th triggers rotation
             for (int i = 1; i <= EVENTS_PER_ROTATION + 1; i++)
             {
-                writer.writeEvent(i, new SafeBuffer(), 0, 0);
+                writer.writeEvent(i, new UnsafeBufferEx(), 0, 0);
             }
 
             // rotated file should now exist alongside the active file
@@ -117,7 +117,7 @@ public class EventWriterTest
             // fill buffer and trigger one rotation
             for (int i = 1; i <= EVENTS_PER_ROTATION + 1; i++)
             {
-                writer.writeEvent(i, new SafeBuffer(), 0, 0);
+                writer.writeEvent(i, new UnsafeBufferEx(), 0, 0);
             }
 
             Optional<Path> rotated = Files.list(dir)
@@ -158,7 +158,7 @@ public class EventWriterTest
         // fill buffer and trigger rotation — accessor has not drained the rotated entry
         for (int i = 1; i <= EVENTS_PER_ROTATION + 1; i++)
         {
-            writer.writeEvent(i, new SafeBuffer(), 0, 0);
+            writer.writeEvent(i, new UnsafeBufferEx(), 0, 0);
         }
 
         Optional<Path> rotated = Files.list(dir)

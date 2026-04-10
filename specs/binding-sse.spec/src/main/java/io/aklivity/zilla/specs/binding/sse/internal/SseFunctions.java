@@ -25,7 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.sse.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
@@ -72,7 +72,7 @@ public final class SseFunctions
 
         private SseBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new SseBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -131,7 +131,7 @@ public final class SseFunctions
 
     public static final class SseDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final SseDataExFW dataExRO = new SseDataExFW();
 
@@ -167,7 +167,7 @@ public final class SseFunctions
             final DirectBuffer buffer = DIRECT_BUFFER.get();
             buffer.wrap(id);
             this.id = new String8FW.Builder()
-                    .wrap(new SafeBuffer(new byte[1 + id.length]), 0, 1 + id.length)
+                    .wrap(new UnsafeBufferEx(new byte[1 + id.length]), 0, 1 + id.length)
                     .set(buffer, 0, id.length)
                     .build();
             return this;
@@ -186,7 +186,7 @@ public final class SseFunctions
             final DirectBuffer buffer = DIRECT_BUFFER.get();
             buffer.wrap(type);
             this.type = new String8FW.Builder()
-                    .wrap(new SafeBuffer(new byte[1 + type.length]), 0, 1 + type.length)
+                    .wrap(new UnsafeBufferEx(new byte[1 + type.length]), 0, 1 + type.length)
                     .set(buffer, 0, type.length)
                     .build();
             return this;
@@ -252,7 +252,7 @@ public final class SseFunctions
 
         private SseDataExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.dataExRW = new SseDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -313,7 +313,7 @@ public final class SseFunctions
 
     public static final class SseBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new SafeBuffer();
+        private final DirectBuffer bufferRO = new UnsafeBufferEx();
 
         private final SseBeginExFW beginExRO = new SseBeginExFW();
 
@@ -364,7 +364,7 @@ public final class SseFunctions
             final DirectBuffer buffer = DIRECT_BUFFER.get();
             buffer.wrap(lastId);
             this.lastId = new String8FW.Builder()
-                    .wrap(new SafeBuffer(new byte[1 + lastId.length]), 0, 1 + lastId.length)
+                    .wrap(new UnsafeBufferEx(new byte[1 + lastId.length]), 0, 1 + lastId.length)
                     .set(buffer, 0, lastId.length)
                     .build();
             return this;
@@ -437,7 +437,7 @@ public final class SseFunctions
 
         private SseEndExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1024 * 8]);
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.endExRW = new SseEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 

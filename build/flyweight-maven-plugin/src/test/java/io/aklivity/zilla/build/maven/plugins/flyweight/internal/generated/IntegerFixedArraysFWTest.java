@@ -32,18 +32,18 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerFixedArraysFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class IntegerFixedArraysFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(199))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(199))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xFF);
         }
     };
-    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(199))
+    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(199))
     {
         {
             setMemory(0, capacity(), (byte) 0xFF);

@@ -28,7 +28,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
@@ -73,7 +73,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(2, mqttBeginEx.kind());
@@ -98,7 +98,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(2, mqttBeginEx.kind());
@@ -116,7 +116,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(2, mqttBeginEx.kind());
@@ -135,7 +135,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, mqttBeginEx.kind());
@@ -159,7 +159,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, mqttBeginEx.kind());
@@ -181,7 +181,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, mqttBeginEx.kind());
@@ -210,7 +210,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .publish(f -> f
                 .clientId("client")
@@ -235,7 +235,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
@@ -258,7 +258,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
@@ -281,7 +281,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
@@ -310,7 +310,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
                 .flags(2)
@@ -339,7 +339,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
                 .expiry(10)
@@ -362,7 +362,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttBeginExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(s -> s
                 .expiry(10)
@@ -385,7 +385,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttBeginEx.kind());
@@ -418,7 +418,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .subscribe(s ->
             {
@@ -461,7 +461,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .subscribe(s ->
             {
@@ -495,7 +495,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .subscribe(s ->
             {
@@ -527,7 +527,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -558,7 +558,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -580,7 +580,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -598,7 +598,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -620,7 +620,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -650,7 +650,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -682,7 +682,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -712,7 +712,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -745,7 +745,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -778,7 +778,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -816,7 +816,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .publish(p ->
             {
@@ -854,7 +854,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .publish(p ->
             {
@@ -883,7 +883,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttDataExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .publish(p ->
             {
@@ -911,7 +911,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttPublishDataEx.typeId());
@@ -939,7 +939,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -960,7 +960,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -978,7 +978,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -999,7 +999,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1028,7 +1028,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1058,7 +1058,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1087,7 +1087,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1118,7 +1118,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1149,7 +1149,7 @@ public class MqttFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
@@ -1176,7 +1176,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttPublishDataEx.typeId());
@@ -1196,7 +1196,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
@@ -1215,7 +1215,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
@@ -1234,7 +1234,7 @@ public class MqttFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new MqttFlushExFW.Builder()
-            .wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .session(p -> p.packetId(1))
             .build();
@@ -1252,7 +1252,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
@@ -1274,7 +1274,7 @@ public class MqttFunctionsTest
             .reason("test")
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0, mqttResetEx.typeId());
         assertEquals("mqtt-1.example.com:1883", mqttResetEx.serverRef().asString());
@@ -1293,7 +1293,7 @@ public class MqttFunctionsTest
             .subscription("sensor/five")
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
         assertNotNull(sessionState.subscriptions()
@@ -1345,7 +1345,7 @@ public class MqttFunctionsTest
                 .payloadSize(10)
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("will.client", willMessage.topic().asString());
@@ -1377,7 +1377,7 @@ public class MqttFunctionsTest
             .payloadSize(10)
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("will.client", willMessage.topic().asString());
@@ -1404,7 +1404,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(MqttSessionSignalType.WILL.value(), signal.kind());
@@ -1429,7 +1429,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(MqttSessionSignalType.WILL.value(), signal.kind());
@@ -1453,7 +1453,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(MqttSessionSignalType.EXPIRY.value(), signal.kind());
@@ -1474,7 +1474,7 @@ public class MqttFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(MqttSessionSignalType.EXPIRY.value(), signal.kind());

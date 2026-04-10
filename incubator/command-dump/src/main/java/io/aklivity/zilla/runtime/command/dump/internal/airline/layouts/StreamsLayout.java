@@ -26,7 +26,7 @@ import org.agrona.concurrent.AtomicBuffer;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy.SpyPosition;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class StreamsLayout extends Layout
 {
@@ -93,7 +93,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new SafeBuffer(mappedStreams);
+            final AtomicBuffer atomicStreams = new UnsafeBufferEx(mappedStreams);
 
             final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams, initial);
 

@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class GrpcKafkaWithResolver
@@ -49,9 +49,9 @@ public final class GrpcKafkaWithResolver
 
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
-            .wrap(new SafeBuffer(new byte[256]), 0, 256);
+            .wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final String8FW.Builder string8RW =
-        new String8FW.Builder().wrap(new SafeBuffer(new byte[2048], 0, 2048), 0, 256);
+        new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[2048], 0, 2048), 0, 256);
     private final byte[] hashBytesRW = new byte[8192];
 
     private final Varuint32FW fieldId;
@@ -74,7 +74,7 @@ public final class GrpcKafkaWithResolver
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
         this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
-        this.fieldId = new Varuint32FW.Builder() .wrap(new SafeBuffer(new byte[8]), 0, 8)
+        this.fieldId = new Varuint32FW.Builder() .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
             .set(options.reliability.field << 3 | BYTES_WIRE_TYPE).build();
     }
 
@@ -194,7 +194,7 @@ public final class GrpcKafkaWithResolver
         if (idempotencyKey != null)
         {
             correlationId = new OctetsFW.Builder()
-                .wrap(new SafeBuffer(new byte[idempotencyKey.valueLen()]), 0, idempotencyKey.valueLen())
+                .wrap(new UnsafeBufferEx(new byte[idempotencyKey.valueLen()]), 0, idempotencyKey.valueLen())
                 .set(idempotencyKey.value())
                 .build();
         }
@@ -202,7 +202,7 @@ public final class GrpcKafkaWithResolver
         {
             final byte[] newIdempotencyKey = UUID.randomUUID().toString().getBytes();
             correlationId = new OctetsFW.Builder()
-                .wrap(new SafeBuffer(new byte[newIdempotencyKey.length]), 0, newIdempotencyKey.length)
+                .wrap(new UnsafeBufferEx(new byte[newIdempotencyKey.length]), 0, newIdempotencyKey.length)
                 .set(newIdempotencyKey)
                 .build();
         }

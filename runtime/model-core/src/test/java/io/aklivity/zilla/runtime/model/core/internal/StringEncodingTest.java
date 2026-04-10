@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class StringEncodingTest
 {
@@ -33,7 +33,7 @@ public class StringEncodingTest
     @Test
     public void shouldVerifyValidUTF8()
     {
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -46,7 +46,7 @@ public class StringEncodingTest
     @Test
     public void shouldVerifyValidUTF16()
     {
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_16);
         data.wrap(bytes, 0, bytes.length);
@@ -57,7 +57,7 @@ public class StringEncodingTest
     @Test
     public void shouldVerifyInvalidUTF16()
     {
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {(byte) 0xD8, (byte) 0x00};
         data.wrap(bytes, 0, bytes.length);

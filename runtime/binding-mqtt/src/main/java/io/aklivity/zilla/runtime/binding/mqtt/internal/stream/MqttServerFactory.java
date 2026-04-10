@@ -184,7 +184,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionD
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -201,7 +201,7 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     public static final int MQTT_PROTOCOL_VERSION_5 = 5;
@@ -337,7 +337,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final OctetsFW octetsRO = new OctetsFW();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final MqttPropertyFW mqttPropertyRO = new MqttPropertyFW();
     private final MqttPropertyFW.Builder mqttPropertyRW = new MqttPropertyFW.Builder();
 
@@ -491,16 +491,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.dataExtBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.propertyBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.userPropertiesBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
-        this.payloadBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionExtBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionStateBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willMessageBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willUserPropertiesBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.sessionExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.willMessageBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.willUserPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();
@@ -1439,7 +1439,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (mqttPublishHelper.correlationData != null)
                 {
                     final int correlationDataSize = mqttPublishHelper.correlationData.sizeof();
-                    MutableDirectBuffer correlationDataBuffer = new SafeBuffer(new byte[correlationDataSize]);
+                    MutableDirectBuffer correlationDataBuffer = new UnsafeBufferEx(new byte[correlationDataSize]);
                     server.correlationDataRW.wrap(correlationDataBuffer, 0, correlationDataSize)
                         .set(mqttPublishHelper.correlationData);
                     server.decodedCorrelationData = server.correlationDataRW.build();
@@ -1448,7 +1448,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (mqttPublishHelper.userProperties != null)
                 {
                     final int userPropertiesSize = mqttPublishHelper.userProperties.sizeof();
-                    MutableDirectBuffer userPropertiesBuffer = new SafeBuffer(new byte[userPropertiesSize]);
+                    MutableDirectBuffer userPropertiesBuffer = new UnsafeBufferEx(new byte[userPropertiesSize]);
                     server.userPropertiesRW.wrap(userPropertiesBuffer, 0, userPropertiesSize);
                     mqttPublishHelper.userProperties
                         .forEach(u -> server.userPropertiesRW.item(c -> c.key(u.key()).value(u.value())));

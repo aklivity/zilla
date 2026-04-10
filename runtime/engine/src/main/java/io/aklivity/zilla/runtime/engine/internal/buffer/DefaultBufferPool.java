@@ -27,7 +27,7 @@ import org.agrona.collections.Hashing;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 /**
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
  */
 public class DefaultBufferPool implements BufferPool
 {
-    private final MutableDirectBuffer slotBuffer = new SafeBuffer(new byte[0]);
+    private final MutableDirectBuffer slotBuffer = new UnsafeBufferEx(new byte[0]);
 
     private final int slotCapacity;
     private final int slotCount;
@@ -56,7 +56,7 @@ public class DefaultBufferPool implements BufferPool
         int slotCapacity)
     {
         this(slotCapacity, poolCapacity / slotCapacity,
-                ByteBuffer.allocateDirect((slotCapacity + Long.BYTES) * poolCapacity / slotCapacity + Integer.BYTES));
+                ByteBuffer.allocate((slotCapacity + Long.BYTES) * poolCapacity / slotCapacity + Integer.BYTES));
     }
 
     public DefaultBufferPool(
@@ -83,7 +83,7 @@ public class DefaultBufferPool implements BufferPool
         this.slotCount = slotCount;
         this.bitsPerSlot = numberOfTrailingZeros(slotCapacity);
         this.hashMask = slotCount - 1;
-        this.poolBuffer = new SafeBuffer(poolByteBuffer);
+        this.poolBuffer = new UnsafeBufferEx(poolByteBuffer);
         this.slotByteBuffer = poolByteBuffer.duplicate();
 
         this.used = new BitSet(slotCount);

@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -93,7 +93,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;

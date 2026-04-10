@@ -78,7 +78,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -91,7 +91,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final LinkOption[] LINK_OPTIONS_NONE = new LinkOption[0];
     private static final LinkOption[] LINK_OPTIONS_NOFOLLOW = new LinkOption[] { NOFOLLOW_LINKS };
 
-    private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private static final int READ_FILE_MASK = 1 << FileSystemCapabilities.READ_FILE.ordinal();
     private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
@@ -157,10 +157,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.readBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.errorBuffer = new SafeBuffer(new byte[1]);
-        this.directoryBuffer = new SafeBuffer();
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.readBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.errorBuffer = new UnsafeBufferEx(new byte[1]);
+        this.directoryBuffer = new UnsafeBufferEx();
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);

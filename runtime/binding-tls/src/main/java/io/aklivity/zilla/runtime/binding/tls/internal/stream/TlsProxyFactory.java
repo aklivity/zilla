@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExF
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -731,7 +731,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
                 // TODO: use decodeSlot instead of allocation
-                MutableDirectBuffer bufferEx = new SafeBuffer(new byte[beginEx.sizeof()]);
+                MutableDirectBuffer bufferEx = new UnsafeBufferEx(new byte[beginEx.sizeof()]);
                 bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
                 extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
             }

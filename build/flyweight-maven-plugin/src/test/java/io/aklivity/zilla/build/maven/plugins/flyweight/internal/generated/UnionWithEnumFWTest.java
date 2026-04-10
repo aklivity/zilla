@@ -30,11 +30,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithVariantOfUint64;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithEnumAndVariantWithDefaultFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionWithEnumFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class UnionWithEnumFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -203,7 +203,7 @@ public class UnionWithEnumFWTest
     @Test
     public void shouldSetList()
     {
-        MutableDirectBuffer listBuffer = new SafeBuffer(allocateDirect(20));
+        MutableDirectBuffer listBuffer = new UnsafeBufferEx(allocateDirect(20));
         ListWithEnumAndVariantWithDefaultFW listWithEnumAndVariantWithDefault =
             new ListWithEnumAndVariantWithDefaultFW.Builder()
                 .wrap(listBuffer, 0, listBuffer.capacity())

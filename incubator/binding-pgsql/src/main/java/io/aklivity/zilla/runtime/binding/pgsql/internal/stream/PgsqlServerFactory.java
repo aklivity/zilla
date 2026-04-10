@@ -61,7 +61,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlStatus
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlTypeFlushExFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -90,7 +90,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -175,7 +175,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.messageBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.messageBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

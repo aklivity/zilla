@@ -52,7 +52,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -68,7 +68,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_INCOMPLETE = 0x04;
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private static final int SIGNAL_WAIT_EXPIRED = 1;
 
@@ -133,7 +133,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -2604,7 +2604,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 if (extension.sizeof() > 0)
                 {
                     // TODO: use buffer slot instead
-                    final SafeBuffer buf = new SafeBuffer(new byte[extension.sizeof()]);
+                    final UnsafeBufferEx buf = new UnsafeBufferEx(new byte[extension.sizeof()]);
                     buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
                     deferredDataEx = buf;
                     deferredPayload = payload;
@@ -4516,7 +4516,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         String status)
     {
         return new HttpBeginExFW.Builder()
-            .wrap(new SafeBuffer(new byte[64]), 0, 64)
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
             .typeId(httpTypeId)
             .headersItem(h -> h.name(":status").value(status))
             .headersItem(h -> h.name("content-length").value("0"))
@@ -4528,7 +4528,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         String value)
     {
         return new HttpHeaderFW.Builder()
-            .wrap(new SafeBuffer(new byte[64]), 0, 64)
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
             .name(name).value(value)
             .build();
     }

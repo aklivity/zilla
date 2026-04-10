@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2RstStreamFWTest
 {
@@ -31,7 +31,7 @@ public class Http2RstStreamFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         Http2RstStreamFW reset = new Http2RstStreamFW.Builder()
                 .wrap(buf, 1, buf.capacity())       // non-zero offset

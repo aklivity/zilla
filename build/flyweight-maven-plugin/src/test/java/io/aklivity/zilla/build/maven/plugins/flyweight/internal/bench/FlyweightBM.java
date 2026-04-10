@@ -41,7 +41,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithOctetsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -64,9 +64,9 @@ public class FlyweightBM
     @Setup(Level.Trial)
     public void init()
     {
-        this.buffer = new SafeBuffer(allocateDirect(1024).order(nativeOrder()));
+        this.buffer = new UnsafeBufferEx(allocateDirect(1024).order(nativeOrder()));
         this.buffer.setMemory(0, 1024, (byte) new Random().nextInt(256));
-        this.values = new SafeBuffer(allocateDirect(1024).order(nativeOrder()));
+        this.values = new UnsafeBufferEx(allocateDirect(1024).order(nativeOrder()));
         this.values.setMemory(0, 1024, (byte) new Random().nextInt(256));
         iterations = 0;
     }

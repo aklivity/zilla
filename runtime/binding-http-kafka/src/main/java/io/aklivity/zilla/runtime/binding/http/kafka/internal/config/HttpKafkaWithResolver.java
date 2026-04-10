@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver
@@ -162,7 +162,7 @@ public final class HttpKafkaWithResolver
     }
 
     private final String16FW.Builder stringRW = new String16FW.Builder()
-            .wrap(new SafeBuffer(new byte[256]), 0, 256);
+            .wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
 

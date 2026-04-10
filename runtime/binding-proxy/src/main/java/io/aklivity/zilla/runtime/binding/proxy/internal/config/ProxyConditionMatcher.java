@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class ProxyConditionMatcher
 {
@@ -380,7 +380,7 @@ public final class ProxyConditionMatcher
 
         if (info.identity != null)
         {
-            DirectBuffer buffer = new SafeBuffer(info.identity);
+            DirectBuffer buffer = new UnsafeBufferEx(info.identity);
             OctetsFW identity = new OctetsFW().wrap(buffer, 0, buffer.capacity());
             matchers.put(IDENTITY.value(), i -> identity.equals(i.identity().value()));
         }

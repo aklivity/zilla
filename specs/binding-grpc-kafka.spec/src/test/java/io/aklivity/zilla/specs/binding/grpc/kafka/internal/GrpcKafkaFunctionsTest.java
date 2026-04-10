@@ -27,7 +27,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
 
@@ -52,7 +52,7 @@ public class GrpcKafkaFunctionsTest
             .partition(0, 2)
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(build);
+        DirectBuffer buffer = new UnsafeBufferEx(build);
         final GrpcKafkaMessageFieldFW partitionCount =
             new GrpcKafkaMessageFieldFW();
         partitionCount.wrap(buffer, 0, buffer.capacity());

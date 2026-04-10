@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public abstract class KafkaClientSaslHandshaker

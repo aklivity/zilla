@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -121,7 +121,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         final int readBufferSize = writeBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
         this.readByteBuffer = ByteBuffer.allocateDirect(readBufferSize).order(nativeOrder());
-        this.readBuffer = new SafeBuffer(readByteBuffer);
+        this.readBuffer = new UnsafeBufferEx(readByteBuffer);
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;

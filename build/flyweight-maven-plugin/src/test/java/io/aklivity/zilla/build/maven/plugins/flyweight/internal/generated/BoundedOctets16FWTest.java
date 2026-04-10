@@ -28,11 +28,11 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class BoundedOctets16FWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -190,7 +190,7 @@ public class BoundedOctets16FWTest
     private static DirectBuffer asBuffer(
         String value)
     {
-        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(value.length()));
+        MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(value.length()));
         valueBuffer.putStringWithoutLengthUtf8(0, value);
         return valueBuffer;
     }
@@ -198,7 +198,7 @@ public class BoundedOctets16FWTest
     private static BoundedOctets16FW asBoundedOctets16FW(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Short.BYTES + value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Short.BYTES + value.length()));
         return new BoundedOctets16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
     }
 }

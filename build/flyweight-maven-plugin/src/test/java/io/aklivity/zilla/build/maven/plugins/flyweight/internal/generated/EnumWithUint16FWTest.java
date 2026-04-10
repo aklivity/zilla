@@ -28,11 +28,11 @@ import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint16;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint16FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class EnumWithUint16FWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -40,7 +40,7 @@ public class EnumWithUint16FWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -195,7 +195,7 @@ public class EnumWithUint16FWTest
     private static DirectBuffer asBuffer(
         int value)
     {
-        MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(SIZE_OF_SHORT));
+        MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(SIZE_OF_SHORT));
         valueBuffer.putShort(0, (short) (value & 0xFFFF));
         return valueBuffer;
     }

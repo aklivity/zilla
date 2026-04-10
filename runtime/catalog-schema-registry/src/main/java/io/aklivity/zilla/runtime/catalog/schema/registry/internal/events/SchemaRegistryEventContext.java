@@ -28,7 +28,7 @@ import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -36,8 +36,8 @@ public final class SchemaRegistryEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final AtomicBuffer eventBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final AtomicBuffer extensionBuffer = new SafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final SchemaRegistryEventExFW.Builder schemaRegistryEventExRW = new SchemaRegistryEventExFW.Builder();
     private final int schemaRegistryTypeId;

@@ -20,7 +20,7 @@ import static com.squareup.javapoet.MethodSpec.methodBuilder;
 import static com.squareup.javapoet.TypeSpec.classBuilder;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.SAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_EX_TYPE;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PUBLIC;
@@ -70,7 +70,7 @@ public final class List0FWGenerator extends ClassSpecGenerator
     private FieldSpec fieldsEmptyValueField()
     {
         return FieldSpec.builder(DIRECT_BUFFER_TYPE, "FIELDS_EMPTY_VALUE", PRIVATE, STATIC, FINAL)
-            .initializer("new $T(0L, 0)", SAFE_BUFFER_TYPE)
+            .initializer("new $T(0L, 0)", UNSAFE_BUFFER_EX_TYPE)
             .build();
     }
 

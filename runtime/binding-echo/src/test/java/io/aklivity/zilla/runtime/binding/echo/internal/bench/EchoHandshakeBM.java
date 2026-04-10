@@ -41,7 +41,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
@@ -62,7 +62,7 @@ public class EchoHandshakeBM
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[BUFFER_SIZE]);
+    private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
 
     private BindingHandler handler;
     private Runnable detacher;

@@ -57,7 +57,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupM
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -68,7 +68,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
     private static final int OFFSET_COMMIT_REQUEST_RECORD_MAX = 512;
 
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -115,8 +115,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

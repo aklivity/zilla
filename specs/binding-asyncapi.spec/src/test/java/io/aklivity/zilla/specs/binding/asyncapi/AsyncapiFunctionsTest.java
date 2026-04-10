@@ -25,7 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
 
@@ -48,9 +48,9 @@ public class AsyncapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        DirectBuffer buffer = new SafeBuffer(array);
+        DirectBuffer buffer = new UnsafeBufferEx(array);
         AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
-        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1]);
+        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
 
         assertEquals(1, asyncapiBeginEx.apiId());
         assertEquals("operationId", asyncapiBeginEx.operationId().asString());
@@ -68,9 +68,9 @@ public class AsyncapiFunctionsTest
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(23);
-        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1]);
+        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
 
-        new AsyncapiBeginExFW.Builder().wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .apiId(1L)
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
@@ -90,9 +90,9 @@ public class AsyncapiFunctionsTest
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(34);
-        MutableDirectBuffer writeBuffer = new SafeBuffer(new byte[1]);
+        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
 
-        new AsyncapiBeginExFW.Builder().wrap(new SafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
             .apiId(1)
             .operationId("operationId")

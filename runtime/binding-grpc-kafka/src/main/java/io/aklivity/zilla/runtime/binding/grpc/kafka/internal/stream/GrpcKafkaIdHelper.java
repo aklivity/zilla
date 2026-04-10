@@ -28,16 +28,16 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMess
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class GrpcKafkaIdHelper
 {
     private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
         new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new SafeBuffer(new byte[2048]), 0, 2048);
+                .wrap(new UnsafeBufferEx(new byte[2048]), 0, 2048);
 
     private final GrpcKafkaMessageFieldFW.Builder messageFieldRW =
-            new GrpcKafkaMessageFieldFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
+            new GrpcKafkaMessageFieldFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
 
     private final GrpcKafkaMessageFieldFW messageFieldRO = new GrpcKafkaMessageFieldFW();
     private final GrpcKafkaMessageFieldPartitionV1FW partitionV1RO = new GrpcKafkaMessageFieldPartitionV1FW();
@@ -45,16 +45,16 @@ public final class GrpcKafkaIdHelper
 
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
-    private final MutableDirectBuffer bufferRW = new SafeBuffer(0L, 0);
+    private final MutableDirectBuffer bufferRW = new UnsafeBufferEx(0L, 0);
     private final OctetsFW.Builder lastMessageIdRW = new OctetsFW.Builder()
-        .wrap(new SafeBuffer(new byte[1024]), 0, 1024);
+        .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
 
     private final Array32FW<KafkaOffsetFW> historical =
         new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new SafeBuffer(new byte[38]), 0, 38)
+                .wrap(new UnsafeBufferEx(new byte[38]), 0, 38)
                 .item(o -> o
                     .partitionId(-1)
                     .partitionOffset(KafkaOffsetType.HISTORICAL.value()))

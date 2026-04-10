@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -87,7 +87,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(new byte[0]);
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final PgsqlParser parser = new PgsqlParser();
@@ -155,7 +155,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();

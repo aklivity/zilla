@@ -114,7 +114,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSe
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -142,7 +142,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final String16FW EXPIRY_SIGNAL_NAME = new String16FW("expiry-signal");
     private static final OctetsFW EXPIRY_SIGNAL_NAME_OCTETS =
         new OctetsFW().wrap(EXPIRY_SIGNAL_NAME.value(), 0, EXPIRY_SIGNAL_NAME.length());
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final String16FW DEFAULT_REASON = new String16FW(null, UTF_8);
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -171,7 +171,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
     private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
-        .wrap(new SafeBuffer(new byte[25]), 0, 25)
+        .wrap(new UnsafeBufferEx(new byte[25]), 0, 25)
         .name("cleanup.policy")
         .value("compact")
         .build();
@@ -292,14 +292,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
-        this.writeBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.willMessageBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.willKeyBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalKeyBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionExtBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.willMessageBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionSignalBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.willKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionSignalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionExtBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
@@ -325,7 +325,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(1, new String16FW("1"));
         this.qosLevels.put(2, new String16FW("2"));
         this.clientMetadata = clientMetadata;
-        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new SafeBuffer(new byte[context.writeBuffer().capacity()]));
+        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
@@ -2636,7 +2636,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             final DirectBuffer topicNameBuffer = will.topic().value();
 
-            final MutableDirectBuffer keyBuffer = new SafeBuffer(new byte[topicNameBuffer.capacity() + 4]);
+            final MutableDirectBuffer keyBuffer = new UnsafeBufferEx(new byte[topicNameBuffer.capacity() + 4]);
             final KafkaKeyFW key = new KafkaKeyFW.Builder()
                 .wrap(keyBuffer, 0, keyBuffer.capacity())
                 .length(topicNameBuffer.capacity())
@@ -2652,7 +2652,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (will.expiryInterval() != -1)
             {
-                final MutableDirectBuffer expiryBuffer = new SafeBuffer(new byte[4]);
+                final MutableDirectBuffer expiryBuffer = new UnsafeBufferEx(new byte[4]);
                 expiryBuffer.putInt(0, will.expiryInterval(), ByteOrder.BIG_ENDIAN);
                 kafkaHeadersRW.item(h ->
                 {

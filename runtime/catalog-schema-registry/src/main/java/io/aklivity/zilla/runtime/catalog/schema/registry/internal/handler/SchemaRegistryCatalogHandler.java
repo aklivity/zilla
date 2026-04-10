@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaR
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -70,7 +70,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
-        .wrap(new SafeBuffer(new byte[5]), 0, 5);
+        .wrap(new UnsafeBufferEx(new byte[5]), 0, 5);
 
     private final HttpClient client;
     private final String baseUrl;
