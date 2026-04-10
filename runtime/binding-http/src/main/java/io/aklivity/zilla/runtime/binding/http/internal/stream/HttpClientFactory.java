@@ -54,7 +54,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.AsciiSequenceView;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -109,6 +108,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginEx
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
