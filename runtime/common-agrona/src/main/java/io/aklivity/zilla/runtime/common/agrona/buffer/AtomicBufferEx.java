@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.common.agrona.buffer;
 
+import org.agrona.concurrent.AtomicBuffer;
 
 public interface AtomicBufferEx extends AtomicBuffer, MutableDirectBufferEx
 {
