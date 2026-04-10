@@ -29,7 +29,6 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacit
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
