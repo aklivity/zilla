@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.IntPredicate;
 import java.util.regex.Pattern;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -31,7 +31,7 @@ public class StringValidatorHandler implements ValidatorHandler
     private final IntPredicate check;
     private final StringState state;
     private final Pattern pattern;
-    private final ExpandableDirectByteBuffer buffer;
+    private final ExpandableDirectByteBufferEx buffer;
     private final CoreModelEventContext event;
 
     public StringValidatorHandler(
@@ -47,7 +47,7 @@ public class StringValidatorHandler implements ValidatorHandler
         this.check = max.and(min);
         String exp = config.pattern;
         this.pattern = exp != null ? Pattern.compile(exp) : null;
-        this.buffer = new ExpandableDirectByteBuffer();
+        this.buffer = new ExpandableDirectByteBufferEx();
         this.event = new CoreModelEventContext(context);
     }
 

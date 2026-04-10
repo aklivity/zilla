@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -318,7 +318,7 @@ public class JsonValidatorTest
 
         int length = encoded.length + event.length;
 
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(length);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
