@@ -98,8 +98,7 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
         int srcIndex,
         int length)
     {
-        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcBuffer.wrapAdjustment() + srcIndex,
-            segment(), JAVA_BYTE, wrapAdjustment() + index, length);
+        super.putBytes(index, srcBuffer, srcIndex, length);
     }
 
     @Override
