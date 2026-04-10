@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.agrona.buffer;
 
 import java.lang.foreign.MemorySegment;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
 
 public interface DirectBufferEx extends DirectBuffer
 {
