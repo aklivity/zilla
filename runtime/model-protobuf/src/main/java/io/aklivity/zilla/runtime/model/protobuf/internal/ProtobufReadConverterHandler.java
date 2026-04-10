@@ -197,11 +197,11 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
                     if (VIEW_JSON.equals(view))
                     {
-                        out.wrap(out.buffer());
+                        out.wrap(((DirectBufferEx) out.buffer()));
                         printer.appendTo(message, output);
                         output.flush();
                         valLength = out.position();
-                        next.accept(out.buffer(), 0, valLength);
+                        next.accept(((DirectBufferEx) out.buffer()), 0, valLength);
                     }
                     else
                     {

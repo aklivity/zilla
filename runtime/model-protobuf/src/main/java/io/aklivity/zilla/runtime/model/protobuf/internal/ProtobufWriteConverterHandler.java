@@ -180,9 +180,9 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                     DynamicMessage message = builder.build();
                     if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
                     {
-                        out.wrap(out.buffer());
+                        out.wrap(((DirectBufferEx) out.buffer()));
                         message.writeTo(out);
-                        valLength = encode(traceId, bindingId, schemaId, out.buffer(), 0, out.position(), next);
+                        valLength = encode(traceId, bindingId, schemaId, ((DirectBufferEx) out.buffer()), 0, out.position(), next);
                     }
                 }
                 catch (IOException ex)
