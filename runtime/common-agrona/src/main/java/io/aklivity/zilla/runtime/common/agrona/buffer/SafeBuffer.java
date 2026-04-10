@@ -819,13 +819,25 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public void putBytes(
         int index,
+        DirectBufferEx srcBuffer,
+        int srcIndex,
+        int length)
+    {
+        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcIndex,
+            segment, JAVA_BYTE, index, length);
+    }
+
+    @Override
+    public void putBytes(
+        int index,
         DirectBuffer srcBuffer,
         int srcIndex,
         int length)
     {
-        if (srcBuffer instanceof SafeBuffer safe)
+        if (srcBuffer instanceof DirectBufferEx safe)
         {
-            MemorySegment.copy(safe.segment, srcIndex, segment, index, length);
+            MemorySegment.copy(safe.segment(), JAVA_BYTE, srcIndex,
+                segment, JAVA_BYTE, index, length);
         }
         else
         {

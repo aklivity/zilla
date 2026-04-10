@@ -26,24 +26,24 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 
 public final class StreamsLayout implements AutoCloseable
 {
-    private final RingBuffer streamsBuffer;
+    private final RingBufferEx streamsBuffer;
 
     private StreamsLayout(
-        RingBuffer streamsBuffer)
+        RingBufferEx streamsBuffer)
     {
         this.streamsBuffer = streamsBuffer;
     }
 
-    public RingBuffer streamsBuffer()
+    public RingBufferEx streamsBuffer()
     {
         return streamsBuffer;
     }
@@ -112,7 +112,7 @@ public final class StreamsLayout implements AutoCloseable
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new SafeBuffer(mappedStreams);
+            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams);
 
             return new StreamsLayout(new ManyToOneRingBuffer(atomicStreams));
         }
