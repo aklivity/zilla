@@ -679,15 +679,8 @@ public class SafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        if (byteArray != null)
-        {
-            System.arraycopy(byteArray, wrapAdjustment + index, dst, offset, length);
-        }
-        else
-        {
-            MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
-        }
+        MemorySegment.copy(segment, BYTE_LAYOUT, index,
+            MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
     }
 
     @Override
@@ -699,15 +692,7 @@ public class SafeBuffer implements AtomicBufferEx
     {
         if (dstBuffer instanceof SafeBuffer safe)
         {
-            if (byteArray != null && safe.byteArray != null)
-            {
-                System.arraycopy(byteArray, wrapAdjustment + index,
-                    safe.byteArray, safe.wrapAdjustment + dstIndex, length);
-            }
-            else
-            {
-                MemorySegment.copy(segment, index, safe.segment, dstIndex, length);
-            }
+            MemorySegment.copy(segment, index, safe.segment, dstIndex, length);
         }
         else
         {
@@ -788,15 +773,8 @@ public class SafeBuffer implements AtomicBufferEx
         int offset,
         int length)
     {
-        if (byteArray != null)
-        {
-            System.arraycopy(src, offset, byteArray, wrapAdjustment + index, length);
-        }
-        else
-        {
-            MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset,
-                segment, BYTE_LAYOUT, index, length);
-        }
+        MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset,
+            segment, BYTE_LAYOUT, index, length);
     }
 
     @Override
@@ -831,15 +809,7 @@ public class SafeBuffer implements AtomicBufferEx
     {
         if (srcBuffer instanceof SafeBuffer safe)
         {
-            if (byteArray != null && safe.byteArray != null)
-            {
-                System.arraycopy(safe.byteArray, safe.wrapAdjustment + srcIndex,
-                    byteArray, wrapAdjustment + index, length);
-            }
-            else
-            {
-                MemorySegment.copy(safe.segment, srcIndex, segment, index, length);
-            }
+            MemorySegment.copy(safe.segment, srcIndex, segment, index, length);
         }
         else
         {
@@ -847,17 +817,9 @@ public class SafeBuffer implements AtomicBufferEx
             if (srcArray != null)
             {
                 final int adjustment = srcBuffer.wrapAdjustment();
-                if (byteArray != null)
-                {
-                    System.arraycopy(srcArray, adjustment + srcIndex,
-                        byteArray, wrapAdjustment + index, length);
-                }
-                else
-                {
-                    MemorySegment.copy(
-                        MemorySegment.ofArray(srcArray), BYTE_LAYOUT, adjustment + srcIndex,
-                        segment, BYTE_LAYOUT, index, length);
-                }
+                MemorySegment.copy(
+                    MemorySegment.ofArray(srcArray), BYTE_LAYOUT, adjustment + srcIndex,
+                    segment, BYTE_LAYOUT, index, length);
             }
             else
             {
@@ -897,14 +859,7 @@ public class SafeBuffer implements AtomicBufferEx
         int length,
         byte value)
     {
-        if (byteArray != null)
-        {
-            java.util.Arrays.fill(byteArray, wrapAdjustment + index, wrapAdjustment + index + length, value);
-        }
-        else
-        {
-            segment.asSlice(index, length).fill(value);
-        }
+        segment.asSlice(index, length).fill(value);
     }
 
     // -----------------------------------------------------------------------
