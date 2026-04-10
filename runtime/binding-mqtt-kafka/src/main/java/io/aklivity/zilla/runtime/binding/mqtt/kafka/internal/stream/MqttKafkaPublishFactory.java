@@ -28,8 +28,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
@@ -74,6 +72,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPu
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -139,10 +139,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer kafkaHeadersBuffer;
-    private final MutableDirectBuffer offsetBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx kafkaHeadersBuffer;
+    private final MutableDirectBufferEx offsetBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -184,7 +184,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer mqtt)
@@ -295,7 +295,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private void onMqttMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -358,7 +358,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.qos = mqttPublishBeginEx.qos();
 
             final String16FW clientId = mqttPublishBeginEx.clientId();
-            final MutableDirectBuffer clientIdBuffer = new UnsafeBufferEx(new byte[clientId.sizeof() + 2]);
+            final MutableDirectBufferEx clientIdBuffer = new UnsafeBufferEx(new byte[clientId.sizeof() + 2]);
             this.clientIdOctets = new OctetsFW.Builder().wrap(clientIdBuffer, 0, clientIdBuffer.capacity())
                 .set(clientId.value(), 0, mqttPublishBeginEx.clientId().length()).build();
 
@@ -367,7 +367,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             final int topicNameHeadersBufferSize = topicName.length() - (topicNameHeaders.length - 1) +
                 topicNameHeaders.length * 2 + BitUtil.SIZE_OF_INT + BitUtil.SIZE_OF_INT; //Array32FW count, length
-            final MutableDirectBuffer topicNameHeadersBuffer = new UnsafeBufferEx(new byte[topicNameHeadersBufferSize]);
+            final MutableDirectBufferEx topicNameHeadersBuffer = new UnsafeBufferEx(new byte[topicNameHeadersBufferSize]);
 
             final Array32FW.Builder<String16FW.Builder, String16FW> topicNameHeadersRW =
                 new Array32FW.Builder<>(new String16FW.Builder(), new String16FW());
@@ -380,8 +380,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
             this.topicNameHeaders = topicNameHeadersRW.build();
 
-            final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
-            final MutableDirectBuffer keyBuffer = new UnsafeBufferEx(new byte[topicNameBuffer.capacity() + 4]);
+            final DirectBufferEx topicNameBuffer = mqttPublishBeginEx.topic().value();
+            final MutableDirectBufferEx keyBuffer = new UnsafeBufferEx(new byte[topicNameBuffer.capacity() + 4]);
             key = new KafkaKeyFW.Builder()
                 .wrap(keyBuffer, 0, keyBuffer.capacity())
                 .length(topicNameBuffer.capacity())
@@ -391,8 +391,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final String clientHashKey = clientHashKey(topicName);
             if (clientHashKey != null)
             {
-                final DirectBuffer clientHashKeyBuffer = new String16FW(clientHashKey).value();
-                final MutableDirectBuffer hashKeyBuffer = new UnsafeBufferEx(new byte[clientHashKeyBuffer.capacity() + 4]);
+                final DirectBufferEx clientHashKeyBuffer = new String16FW(clientHashKey).value();
+                final MutableDirectBufferEx hashKeyBuffer = new UnsafeBufferEx(new byte[clientHashKeyBuffer.capacity() + 4]);
                 hashKey = new KafkaKeyFW.Builder()
                     .wrap(hashKeyBuffer, 0, hashKeyBuffer.capacity())
                     .length(clientHashKeyBuffer.capacity())
@@ -462,7 +462,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 if (mqttPublishDataEx.expiryInterval() != -1)
                 {
-                    final MutableDirectBuffer expiryBuffer = new UnsafeBufferEx(new byte[4]);
+                    final MutableDirectBufferEx expiryBuffer = new UnsafeBufferEx(new byte[4]);
                     expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval(), ByteOrder.BIG_ENDIAN);
                     kafkaHeadersRW.item(h ->
                     {
@@ -871,7 +871,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private void addFiltersHeader(
             String16FW responseTopic)
         {
-            final DirectBuffer responseBuffer = responseTopic.value();
+            final DirectBufferEx responseBuffer = responseTopic.value();
             final int capacity = responseBuffer.capacity();
 
             int offset = 0;
@@ -914,7 +914,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         OctetsFW key,
         String16FW value)
     {
-        DirectBuffer buffer = value.value();
+        DirectBufferEx buffer = value.value();
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.sizeof());
@@ -926,7 +926,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
     private void addHeader(
         OctetsFW key,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -943,8 +943,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         String16FW key,
         String16FW value)
     {
-        DirectBuffer keyBuffer = key.value();
-        DirectBuffer valueBuffer = value.value();
+        DirectBufferEx keyBuffer = key.value();
+        DirectBufferEx valueBuffer = value.value();
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.length());
@@ -955,7 +955,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte value)
@@ -1051,7 +1051,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         public void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1397,7 +1397,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1817,7 +1817,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private void onOffsetCommitMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

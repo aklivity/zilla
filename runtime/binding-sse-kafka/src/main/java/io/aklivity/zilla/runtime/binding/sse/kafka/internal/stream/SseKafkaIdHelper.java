@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream;
 
 import java.util.Base64;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.MutableInteger;
 
@@ -31,6 +29,8 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdV1FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class SseKafkaIdHelper
@@ -44,8 +44,8 @@ public final class SseKafkaIdHelper
     private final SseKafkaEventIdFW.Builder eventIdRW =
             new SseKafkaEventIdFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
 
-    private final MutableDirectBuffer progressOnlyRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
-    private final MutableDirectBuffer keyAndProgressRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
+    private final MutableDirectBufferEx progressOnlyRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
+    private final MutableDirectBufferEx keyAndProgressRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
 
     private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
     private final OctetsFW octetsRO = new OctetsFW();
@@ -57,8 +57,8 @@ public final class SseKafkaIdHelper
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
-    private final MutableDirectBuffer bufferRW = new UnsafeBufferEx(0L, 0);
-    private final DirectBuffer bufferRO = new UnsafeBufferEx(0L, 0);
+    private final MutableDirectBufferEx bufferRW = new UnsafeBufferEx(0L, 0);
+    private final DirectBufferEx bufferRO = new UnsafeBufferEx(0L, 0);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
@@ -76,7 +76,7 @@ public final class SseKafkaIdHelper
         final Array32FW<KafkaOffsetFW> progress,
         final KafkaHeaderFW etag)
     {
-        final MutableDirectBuffer encodedBuf = keyAndProgressRW;
+        final MutableDirectBufferEx encodedBuf = keyAndProgressRW;
         int encodedOffset = 0;
         encodedBuf.putByte(encodedOffset++, (byte) '[');
         if (key != null)
@@ -114,7 +114,7 @@ public final class SseKafkaIdHelper
                 .v1(v1 -> v1.partitionCount(progress.fieldCount()))
                 .build();
 
-        MutableDirectBuffer buffer = eventIdRW.buffer();
+        MutableDirectBufferEx buffer = eventIdRW.buffer();
         offset.value = eventId.limit();
         progress.forEach(p ->
         {
@@ -129,13 +129,13 @@ public final class SseKafkaIdHelper
 
         if (etag != null)
         {
-            final DirectBuffer encodedValue = encoded.value();
-            final DirectBuffer etagValue = etag.value().value();
+            final DirectBufferEx encodedValue = encoded.value();
+            final DirectBufferEx etagValue = etag.value().value();
             final int encodedValueLength = encodedValue.capacity();
             final int etagValueLength = etagValue.capacity();
             final int encodedLength = encodedValueLength + 1 + etagValueLength;
 
-            final MutableDirectBuffer encodedBuf = progressOnlyRW;
+            final MutableDirectBufferEx encodedBuf = progressOnlyRW;
             int encodedOffset = 0;
             encodedBuf.putBytes(encodedOffset, encodedValue, 0, encodedValueLength);
             encodedOffset += encodedValueLength;
@@ -165,7 +165,7 @@ public final class SseKafkaIdHelper
 
         if (encodable != null)
         {
-            final DirectBuffer buffer = encodable.buffer();
+            final DirectBufferEx buffer = encodable.buffer();
             final int index = encodable.offset();
             final int length = offset.value - index;
             encodedBuf = encode8(buffer, index, length);
@@ -175,7 +175,7 @@ public final class SseKafkaIdHelper
     }
 
     private String8FW encode8(
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int index,
         final int length)
     {
@@ -184,18 +184,18 @@ public final class SseKafkaIdHelper
 
         final byte[] encodedBase64 = base64RW;
         final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
-        MutableDirectBuffer encodeBuf = bufferRW;
+        MutableDirectBufferEx encodeBuf = bufferRW;
         encodeBuf.wrap(encodedBase64, 0, encodedBytes);
         return stringRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
     }
 
-    public DirectBuffer findProgress(
+    public DirectBufferEx findProgress(
         String8FW lastId)
     {
         // extract from progress64, progress64/etag, ["key64","progress64"], or ["key64","progress64/etag"]
-        DirectBuffer progress64 = null;
+        DirectBufferEx progress64 = null;
 
-        final DirectBuffer id = lastId != null ? lastId.value() : null;
+        final DirectBufferEx id = lastId != null ? lastId.value() : null;
         if (id != null)
         {
             int progressAt = 0;
@@ -229,13 +229,13 @@ public final class SseKafkaIdHelper
     }
 
     public Array32FW<KafkaOffsetFW> decode(
-        final DirectBuffer progress64)
+        final DirectBufferEx progress64)
     {
         Array32FW<KafkaOffsetFW> progress = historical;
 
         SseKafkaEventIdFW decoded = null;
 
-        DirectBuffer decodeBuf = progress64;
+        DirectBufferEx decodeBuf = progress64;
         decode:
         if (decodeBuf != null)
         {
@@ -278,7 +278,7 @@ public final class SseKafkaIdHelper
             final byte[] decodedBase64 = base64RW;
             final int decodedBytes = decoder64.decode(encodedBase64, decodedBase64);
 
-            DirectBuffer decodedBuf = bufferRW;
+            DirectBufferEx decodedBuf = bufferRW;
             decodedBuf.wrap(decodedBase64, 0, decodedBytes);
             decoded = eventIdRO.tryWrap(decodedBuf, 0, decodedBuf.capacity());
         }
@@ -293,7 +293,7 @@ public final class SseKafkaIdHelper
             case SseKafkaEventIdFW.KIND_V1:
                 final SseKafkaEventIdV1FW eventIdV1 = eventId.v1();
                 int partitionCount = eventIdV1.partitionCount();
-                DirectBuffer wrapBuffer = eventIdV1.buffer();
+                DirectBufferEx wrapBuffer = eventIdV1.buffer();
                 int wrapOffset = eventIdV1.limit();
 
                 final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressV1RW = progressRW;
@@ -326,7 +326,7 @@ public final class SseKafkaIdHelper
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte value)

@@ -24,13 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HpackContext
 {
-    private static final DirectBuffer EMPTY_VALUE = new UnsafeBufferEx(new byte[0]);
+    private static final DirectBufferEx EMPTY_VALUE = new UnsafeBufferEx(new byte[0]);
 
     private static final HeaderField[] STATIC_TABLE =
     {
@@ -100,14 +99,14 @@ public class HpackContext
 
     private static final int STATIC_TABLE_LENGTH = STATIC_TABLE.length;
 
-    public static final DirectBuffer CONNECTION = new UnsafeBufferEx("connection".getBytes(UTF_8));
-    public static final DirectBuffer CONTENT_LENGTH = new UnsafeBufferEx("content-length".getBytes(UTF_8));
-    public static final DirectBuffer TE = new UnsafeBufferEx("te".getBytes(UTF_8));
-    public static final DirectBuffer TRAILERS = new UnsafeBufferEx("trailers".getBytes(UTF_8));
-    public static final DirectBuffer KEEP_ALIVE = new UnsafeBufferEx("keep-alive".getBytes(UTF_8));
-    public static final DirectBuffer PROXY_CONNECTION = new UnsafeBufferEx("proxy-connection".getBytes(UTF_8));
-    public static final DirectBuffer UPGRADE = new UnsafeBufferEx("upgrade".getBytes(UTF_8));
-    public static final DirectBuffer DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN = new UnsafeBufferEx("*".getBytes(UTF_8));
+    public static final DirectBufferEx CONNECTION = new UnsafeBufferEx("connection".getBytes(UTF_8));
+    public static final DirectBufferEx CONTENT_LENGTH = new UnsafeBufferEx("content-length".getBytes(UTF_8));
+    public static final DirectBufferEx TE = new UnsafeBufferEx("te".getBytes(UTF_8));
+    public static final DirectBufferEx TRAILERS = new UnsafeBufferEx("trailers".getBytes(UTF_8));
+    public static final DirectBufferEx KEEP_ALIVE = new UnsafeBufferEx("keep-alive".getBytes(UTF_8));
+    public static final DirectBufferEx PROXY_CONNECTION = new UnsafeBufferEx("proxy-connection".getBytes(UTF_8));
+    public static final DirectBufferEx UPGRADE = new UnsafeBufferEx("upgrade".getBytes(UTF_8));
+    public static final DirectBufferEx DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN = new UnsafeBufferEx("*".getBytes(UTF_8));
 
     // Dynamic table. Entries are added at the end (since it is in reverse order,
     // need to calculate the index accordingly)
@@ -133,8 +132,8 @@ public class HpackContext
 
     private static final class HeaderField
     {
-        private final DirectBuffer name;
-        private final DirectBuffer value;
+        private final DirectBufferEx name;
+        private final DirectBufferEx value;
         private int size;
 
         HeaderField(String name, String value)
@@ -142,14 +141,14 @@ public class HpackContext
             this(buffer(name), buffer(value));
         }
 
-        HeaderField(DirectBuffer name, DirectBuffer value)
+        HeaderField(DirectBufferEx name, DirectBufferEx value)
         {
             this.name = requireNonNull(name);
             this.value = requireNonNull(value);
             this.size = name.capacity() + value.capacity() + 32;
         }
 
-        private static DirectBuffer buffer(String str)
+        private static DirectBufferEx buffer(String str)
         {
             return str == null ? EMPTY_VALUE : new UnsafeBufferEx(str.getBytes(UTF_8));
         }
@@ -168,13 +167,13 @@ public class HpackContext
 
     void add(String name, String value)
     {
-        DirectBuffer nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
-        DirectBuffer valueBuffer = new UnsafeBufferEx(value.getBytes(UTF_8));
+        DirectBufferEx nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
+        DirectBufferEx valueBuffer = new UnsafeBufferEx(value.getBytes(UTF_8));
 
         add(nameBuffer, valueBuffer);
     }
 
-    public void add(DirectBuffer nameBuffer, DirectBuffer valueBuffer)
+    public void add(DirectBufferEx nameBuffer, DirectBufferEx valueBuffer)
     {
         HeaderField header = new HeaderField(nameBuffer, valueBuffer);
 
@@ -271,11 +270,11 @@ public class HpackContext
 
     String name(int index)
     {
-        DirectBuffer nameBuffer = nameBuffer(index);
+        DirectBufferEx nameBuffer = nameBuffer(index);
         return nameBuffer.getStringWithoutLengthUtf8(0, nameBuffer.capacity());
     }
 
-    public DirectBuffer nameBuffer(int index)
+    public DirectBufferEx nameBuffer(int index)
     {
         if (!valid(index))
         {
@@ -288,11 +287,11 @@ public class HpackContext
 
     String value(int index)
     {
-        DirectBuffer valueBuffer = valueBuffer(index);
+        DirectBufferEx valueBuffer = valueBuffer(index);
         return valueBuffer.getStringWithoutLengthUtf8(0, valueBuffer.capacity());
     }
 
-    public DirectBuffer valueBuffer(int index)
+    public DirectBufferEx valueBuffer(int index)
     {
         if (!valid(index))
         {
@@ -305,11 +304,11 @@ public class HpackContext
 
     int index(String name)
     {
-        DirectBuffer nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
+        DirectBufferEx nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
         return index(nameBuffer);
     }
 
-    public int index(DirectBuffer name)
+    public int index(DirectBufferEx name)
     {
         int index = staticIndex(name);
         // If there is no entry in static table, look in dynamic table
@@ -323,13 +322,13 @@ public class HpackContext
 
     int index(String name, String value)
     {
-        DirectBuffer nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
-        DirectBuffer valueBuffer = new UnsafeBufferEx(value.getBytes(UTF_8));
+        DirectBufferEx nameBuffer = new UnsafeBufferEx(name.getBytes(UTF_8));
+        DirectBufferEx valueBuffer = new UnsafeBufferEx(value.getBytes(UTF_8));
 
         return index(nameBuffer, valueBuffer);
     }
 
-    public int index(DirectBuffer name, DirectBuffer value)
+    public int index(DirectBufferEx name, DirectBufferEx value)
     {
         int index = staticIndex(name, value);
         // If there is no entry in static table, look in dynamic table
@@ -349,11 +348,11 @@ public class HpackContext
 
     private static final class NameValue
     {
-        private final DirectBuffer name;
-        private final DirectBuffer value;
+        private final DirectBufferEx name;
+        private final DirectBufferEx value;
         private final int hash;
 
-        NameValue(DirectBuffer name, DirectBuffer value)
+        NameValue(DirectBufferEx name, DirectBufferEx value)
         {
             this.name = name;
             this.value = value;
@@ -385,7 +384,7 @@ public class HpackContext
      * @return index in static table if present
      *         -1 otherwise
      */
-    private static int staticIndex(DirectBuffer name, DirectBuffer value)
+    private static int staticIndex(DirectBufferEx name, DirectBufferEx value)
     {
         if (name.equals(STATIC_TABLE[16].name) && value.equals(STATIC_TABLE[16].value))
         {
@@ -438,7 +437,7 @@ public class HpackContext
      * @return index in static table if present
      *         -1 otherwise
      */
-    private static int staticIndex(DirectBuffer name)
+    private static int staticIndex(DirectBufferEx name)
     {
         switch (name.capacity())
         {
@@ -465,7 +464,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 3
-    private static int staticIndex3(DirectBuffer name)
+    private static int staticIndex3(DirectBufferEx name)
     {
         switch (name.getByte(2))
         {
@@ -486,7 +485,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 4
-    private static int staticIndex4(DirectBuffer name)
+    private static int staticIndex4(DirectBufferEx name)
     {
         switch (name.getByte(3))
         {
@@ -531,7 +530,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 5
-    private static int staticIndex5(DirectBuffer name)
+    private static int staticIndex5(DirectBufferEx name)
     {
         switch (name.getByte(4))
         {
@@ -558,7 +557,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 6
-    private static int staticIndex6(DirectBuffer name)
+    private static int staticIndex6(DirectBufferEx name)
     {
         switch (name.getByte(5))
         {
@@ -589,7 +588,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 7
-    private static int staticIndex7(DirectBuffer name)
+    private static int staticIndex7(DirectBufferEx name)
     {
         switch (name.getByte(6))
         {
@@ -632,7 +631,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 8
-    private static int staticIndex8(DirectBuffer name)
+    private static int staticIndex8(DirectBufferEx name)
     {
         switch (name.getByte(7))
         {
@@ -659,7 +658,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 10
-    private static int staticIndex10(DirectBuffer name)
+    private static int staticIndex10(DirectBufferEx name)
     {
         switch (name.getByte(9))
         {
@@ -686,13 +685,13 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 11
-    private static int staticIndex11(DirectBuffer name)
+    private static int staticIndex11(DirectBufferEx name)
     {
         return (name.getByte(10) == 'r' && STATIC_TABLE[53].name.equals(name)) ? 53 : -1;   // retry-after
     }
 
     // Index in static table for the given name of length 12
-    private static int staticIndex12(DirectBuffer name)
+    private static int staticIndex12(DirectBufferEx name)
     {
         switch (name.getByte(11))
         {
@@ -713,7 +712,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 13
-    private static int staticIndex13(DirectBuffer name)
+    private static int staticIndex13(DirectBufferEx name)
     {
         switch (name.getByte(12))
         {
@@ -758,7 +757,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 14
-    private static int staticIndex14(DirectBuffer name)
+    private static int staticIndex14(DirectBufferEx name)
     {
         switch (name.getByte(13))
         {
@@ -779,7 +778,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 15
-    private static int staticIndex15(DirectBuffer name)
+    private static int staticIndex15(DirectBufferEx name)
     {
         switch (name.getByte(14))
         {
@@ -800,7 +799,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 16
-    private static int staticIndex16(DirectBuffer name)
+    private static int staticIndex16(DirectBufferEx name)
     {
         switch (name.getByte(15))
         {
@@ -830,7 +829,7 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 17
-    private static int staticIndex17(DirectBuffer name)
+    private static int staticIndex17(DirectBufferEx name)
     {
         switch (name.getByte(16))
         {
@@ -851,13 +850,13 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 18
-    private static int staticIndex18(DirectBuffer name)
+    private static int staticIndex18(DirectBufferEx name)
     {
         return (name.getByte(17) == 'e' && STATIC_TABLE[48].name.equals(name)) ? 48 : -1;   // proxy-authenticate
     }
 
     // Index in static table for the given name of length 19
-    private static int staticIndex19(DirectBuffer name)
+    private static int staticIndex19(DirectBufferEx name)
     {
         switch (name.getByte(18))
         {
@@ -881,13 +880,13 @@ public class HpackContext
     }
 
     // Index in static table for the given name of length 25
-    private static int staticIndex25(DirectBuffer name)
+    private static int staticIndex25(DirectBufferEx name)
     {
         return (name.getByte(24) == 'y' && STATIC_TABLE[56].name.equals(name)) ? 56 : -1;   // strict-transport-security
     }
 
     // Index in static table for the given name of length 27
-    private static int staticIndex27(DirectBuffer name)
+    private static int staticIndex27(DirectBufferEx name)
     {
         return (name.getByte(26) == 'n' && STATIC_TABLE[20].name.equals(name)) ? 20 : -1;   // access-control-allow-origi
     }

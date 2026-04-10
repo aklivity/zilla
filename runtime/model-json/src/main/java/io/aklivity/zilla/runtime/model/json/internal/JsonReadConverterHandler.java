@@ -19,35 +19,19 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
-
-import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
 
 public class JsonReadConverterHandler extends JsonModelHandler implements ConverterHandler
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final int OUTPUT_CAPACITY = 8192;
 
     private final Matcher matcher;
-    private final JsonExtractor extractor;
-    private final JsonGeneratorEx generator;
-    private final MutableDirectBuffer output;
-    private final Int2ObjectCache<JsonPipeline> pipelines;
-
-    private String diagnostic;
 
     public JsonReadConverterHandler(
         JsonModelConfig config,
@@ -55,15 +39,11 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     {
         super(config, context);
         this.matcher = PATH_PATTERN.matcher("");
-        this.extractor = new JsonExtractor();
-        this.output = new UnsafeBuffer(new byte[OUTPUT_CAPACITY]);
-        this.generator = JsonEx.createGenerator();
-        this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
     }
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -76,7 +56,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     {
         if (matcher.reset(path).matches())
         {
-            extractor.register(matcher.group(1));
+            extracted.put(matcher.group(1), new OctetsFW());
         }
     }
 
@@ -84,7 +64,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -96,7 +76,12 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     public int extractedLength(
         String path)
     {
-        return matcher.reset(path).matches() ? extractor.length(matcher.group(1)) : 0;
+        OctetsFW value = null;
+        if (matcher.reset(path).matches())
+        {
+            value = extracted.get(matcher.group(1));
+        }
+        return value != null ? value.sizeof() : 0;
     }
 
     @Override
@@ -106,11 +91,10 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     {
         if (matcher.reset(path).matches())
         {
-            String name = matcher.group(1);
-            int length = extractor.length(name);
-            if (length != 0)
+            OctetsFW value = extracted.get(matcher.group(1));
+            if (value != null && value.sizeof() != 0)
             {
-                visitor.visit(extractor.value(name), 0, length);
+                visitor.visit(value.buffer(), value.offset(), value.sizeof());
             }
         }
     }
@@ -119,11 +103,13 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
     {
+        int valLength = -1;
+
         if (schemaId == NO_SCHEMA_ID)
         {
             if (catalog.id != NO_SCHEMA_ID)
@@ -136,72 +122,13 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
             }
         }
 
-        JsonPipeline pipeline = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
-
-        return pipeline != null
-            ? serialize(traceId, bindingId, pipeline, data, index, length, next)
-            : -1;
-    }
-
-    private int serialize(
-        long traceId,
-        long bindingId,
-        JsonPipeline pipeline,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        pipeline.reset();
-        diagnostic = null;
-
-        int produced = 0;
-        Status status;
-        do
+        if (schemaId != NO_SCHEMA_ID &&
+            validate(traceId, bindingId, schemaId, data, index, length))
         {
-            generator.wrap(output, 0, OUTPUT_CAPACITY);
-            status = pipeline.feed(data, index, index + length, true);
-            int chunk = generator.length();
-            if (chunk > 0 && status != Status.REJECTED)
-            {
-                next.accept(output, 0, chunk);
-                produced += chunk;
-            }
+            next.accept(data, index, length);
+            valLength = length;
         }
-        while (status == Status.SUSPENDED);
 
-        int valLength = -1;
-        if (status == Status.COMPLETED)
-        {
-            valLength = produced;
-        }
-        else
-        {
-            event.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
-        }
         return valLength;
-    }
-
-    private void onRejected(
-        JsonDiagnostic diagnostic)
-    {
-        this.diagnostic = diagnostic.message();
-    }
-
-    private JsonPipeline supplyPipeline(
-        int schemaId)
-    {
-        JsonSchema schema = supplySchema(schemaId);
-        return schema != null ? pipelines.computeIfAbsent(schemaId, id -> newPipeline(schema)) : null;
-    }
-
-    private JsonPipeline newPipeline(
-        JsonSchema schema)
-    {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(schema.validator())
-            .transform(extractor)
-            .reporting(this::onRejected)
-            .into(JsonEx.createSink(generator));
     }
 }

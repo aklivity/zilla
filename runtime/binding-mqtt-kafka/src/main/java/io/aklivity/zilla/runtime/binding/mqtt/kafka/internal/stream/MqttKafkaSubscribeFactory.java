@@ -35,8 +35,6 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
@@ -87,6 +85,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSu
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -153,11 +153,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer subscriptionIdsBuffer;
-    private final MutableDirectBuffer filterBuffer;
-    private final MutableDirectBuffer offsetBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx subscriptionIdsBuffer;
+    private final MutableDirectBufferEx filterBuffer;
+    private final MutableDirectBufferEx offsetBuffer;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
     private final BufferPool bufferPool;
@@ -257,7 +257,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer mqtt)
@@ -347,7 +347,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private void onMqttMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -895,7 +895,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1161,7 +1161,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1374,7 +1374,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 b.correlation(c -> c.bytes(helper.correlation));
                             }
 
-                            final DirectBuffer buffer = kafkaMergedDataEx.buffer();
+                            final DirectBufferEx buffer = kafkaMergedDataEx.buffer();
                             final int limit = kafkaMergedDataEx.limit();
                             helper.userPropertiesOffsets.forEach(o ->
                             {
@@ -1411,7 +1411,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             cleanup(traceId, authorization);
                         }
 
-                        final MutableDirectBuffer dataBuffer = bufferPool.buffer(dataSlot);
+                        final MutableDirectBufferEx dataBuffer = bufferPool.buffer(dataSlot);
                         Flyweight message = mqttSubscribeMessageRW.wrap(dataBuffer, messageSlotLimit, dataBuffer.capacity())
                             .extension(mqttSubscribeDataEx.buffer(), mqttSubscribeDataEx.offset(), mqttSubscribeDataEx.sizeof())
                             .payload(payload)
@@ -1683,7 +1683,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                     final boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                                     if (noLocal)
                                     {
-                                        final DirectBuffer valueBuffer = mqtt.clientId.value();
+                                        final DirectBufferEx valueBuffer = mqtt.clientId.value();
                                         fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                             h.nameLen(helper.kafkaLocalHeaderName.sizeof())
                                                 .name(helper.kafkaLocalHeaderName)
@@ -1698,7 +1698,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                         {
                                             if (level != qos)
                                             {
-                                                final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                                final DirectBufferEx valueBuffer = qosNames.get(level).value();
                                                 fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                                     h.nameLen(helper.kafkaQosHeaderName.sizeof())
                                                         .name(helper.kafkaQosHeaderName)
@@ -1711,7 +1711,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                     {
                                         for (int level = 0; level < maxQos; level++)
                                         {
-                                            final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                            final DirectBufferEx valueBuffer = qosNames.get(level).value();
                                             fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                                 h.nameLen(helper.kafkaQosHeaderName.sizeof())
                                                     .name(helper.kafkaQosHeaderName)
@@ -1825,7 +1825,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             int reserved = length + mqtt.replyPad;
             if (length > 0)
             {
-                final MutableDirectBuffer dataBuffer = bufferPool.buffer(dataSlot);
+                final MutableDirectBufferEx dataBuffer = bufferPool.buffer(dataSlot);
                 final MqttSubscribeMessageFW message = mqttSubscribeMessageRO.wrap(dataBuffer, messageSlotOffset,
                     dataBuffer.capacity());
                 mqtt.doMqttData(traceId, authorization, budgetId, reserved, bufferedDataFlags, message.payload(),
@@ -1931,7 +1931,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2139,7 +2139,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 b.correlation(c -> c.bytes(helper.correlation));
                             }
 
-                            final DirectBuffer buffer = kafkaMergedDataEx.buffer();
+                            final DirectBufferEx buffer = kafkaMergedDataEx.buffer();
                             final int limit = kafkaMergedDataEx.limit();
                             helper.userPropertiesOffsets.forEach(o ->
                             {
@@ -2700,7 +2700,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                             if (noLocal)
                             {
-                                final DirectBuffer valueBuffer = clientId.value();
+                                final DirectBufferEx valueBuffer = clientId.value();
                                 f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                     h.nameLen(helper.kafkaLocalHeaderName.sizeof())
                                         .name(helper.kafkaLocalHeaderName)
@@ -2715,7 +2715,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 {
                                     if (level != qos)
                                     {
-                                        final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                        final DirectBufferEx valueBuffer = qosNames.get(level).value();
                                         f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                             h.nameLen(helper.kafkaQosHeaderName.sizeof())
                                                 .name(helper.kafkaQosHeaderName)
@@ -2728,7 +2728,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             {
                                 for (int level = 0; level < maxQos; level++)
                                 {
-                                    final DirectBuffer valueBuffer = qosNames.get(level).value();
+                                    final DirectBufferEx valueBuffer = qosNames.get(level).value();
                                     f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
                                         h.nameLen(helper.kafkaQosHeaderName.sizeof())
                                             .name(helper.kafkaQosHeaderName)
@@ -2827,7 +2827,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
                 else
                 {
-                    final DirectBuffer valueBuffer = new String16FW(header).value();
+                    final DirectBufferEx valueBuffer = new String16FW(header).value();
                     hb.valuesItem(vi -> vi.value(vb -> vb.length(valueBuffer.capacity())
                         .value(valueBuffer, 0, valueBuffer.capacity())));
 

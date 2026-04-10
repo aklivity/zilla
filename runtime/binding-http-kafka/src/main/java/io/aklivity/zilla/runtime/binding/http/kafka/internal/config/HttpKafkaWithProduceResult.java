@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
@@ -31,6 +29,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HttpKafkaWithProduceResult
@@ -108,7 +107,7 @@ public class HttpKafkaWithProduceResult
     }
 
     public void updateHash(
-        DirectBuffer value)
+        DirectBufferEx value)
     {
         hash.updateHash(value);
     }
@@ -143,7 +142,7 @@ public class HttpKafkaWithProduceResult
     public void key(
         KafkaKeyFW.Builder builder)
     {
-        final DirectBuffer key = keyRef.get();
+        final DirectBufferEx key = keyRef.get();
         if (key != null)
         {
             builder
@@ -277,8 +276,8 @@ public class HttpKafkaWithProduceResult
         KafkaHeaderFW header,
         Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
     {
-        final DirectBuffer name = header.name().value();
-        final DirectBuffer value = header.value().value();
+        final DirectBufferEx name = header.name().value();
+        final DirectBufferEx value = header.value().value();
 
         if (!correlation.correlationId.value().equals(name))
         {

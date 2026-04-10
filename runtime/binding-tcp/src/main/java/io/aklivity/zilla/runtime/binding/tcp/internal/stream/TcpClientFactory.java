@@ -39,8 +39,6 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.CloseHelper;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -58,6 +56,8 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -89,8 +89,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
     private final BufferPool bufferPool;
     private final ByteBuffer readByteBuffer;
-    private final MutableDirectBuffer readBuffer;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx readBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final TcpUsageTracker usage;
     private final ByteBuffer writeByteBuffer;
     private final LongUnaryOperator supplyReplyId;
@@ -143,7 +143,7 @@ public class TcpClientFactory implements TcpStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer application)
@@ -399,7 +399,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 assert writeSlot != NO_SLOT;
 
                 long traceId = supplyTraceId.getAsLong();
-                DirectBuffer buffer = bufferPool.buffer(writeSlot);
+                DirectBufferEx buffer = bufferPool.buffer(writeSlot);
                 ByteBuffer byteBuffer = bufferPool.byteBuffer(writeSlot);
                 byteBuffer.limit(byteBuffer.position() + writeSlotOffset);
 
@@ -408,7 +408,7 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private int doNetWrite(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             ByteBuffer byteBuffer,
@@ -439,7 +439,7 @@ public class TcpClientFactory implements TcpStreamFactory
                     }
                     else
                     {
-                        final MutableDirectBuffer slotBuffer = bufferPool.buffer(writeSlot);
+                        final MutableDirectBufferEx slotBuffer = bufferPool.buffer(writeSlot);
                         slotBuffer.putBytes(0, buffer, offset + bytesWritten, length - bytesWritten);
                         writeSlotOffset = length - bytesWritten;
 
@@ -515,7 +515,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -594,7 +594,7 @@ public class TcpClientFactory implements TcpStreamFactory
             {
                 final OctetsFW payload = data.payload();
 
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int length = payload.sizeof();
 
@@ -605,7 +605,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                 if (writeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(writeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(writeSlot);
                     slotBuffer.putBytes(writeSlotOffset, buffer, offset, length);
                     writeSlotOffset += length;
 
@@ -743,7 +743,7 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private void doAppData(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -854,7 +854,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {

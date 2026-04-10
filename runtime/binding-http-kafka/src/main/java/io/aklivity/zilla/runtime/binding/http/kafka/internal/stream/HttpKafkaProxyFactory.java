@@ -21,8 +21,6 @@ import static java.time.Instant.now;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaConfiguration;
@@ -52,6 +50,8 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -104,8 +104,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -176,7 +176,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer http)
@@ -393,7 +393,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -892,7 +892,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1457,7 +1457,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1720,7 +1720,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2160,7 +2160,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2555,7 +2555,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private int replyPad;
         private int replyCap;
 
-        private DirectBuffer deferredDataEx;
+        private DirectBufferEx deferredDataEx;
         private int deferredDataExFlags;
         private OctetsFW deferredPayload;
 
@@ -2699,7 +2699,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2908,7 +2908,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3411,7 +3411,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3680,7 +3680,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

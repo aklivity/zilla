@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET4;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET6;
+import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyAddressFamily.UNIX;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType.AUTHORITY;
@@ -40,7 +40,6 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
@@ -58,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.ProxyInfoType;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class ProxyConditionMatcher
@@ -380,7 +380,7 @@ public final class ProxyConditionMatcher
 
         if (info.identity != null)
         {
-            DirectBuffer buffer = new UnsafeBufferEx(info.identity);
+            DirectBufferEx buffer = new UnsafeBufferEx(info.identity);
             OctetsFW identity = new OctetsFW().wrap(buffer, 0, buffer.capacity());
             matchers.put(IDENTITY.value(), i -> identity.equals(i.identity().value()));
         }

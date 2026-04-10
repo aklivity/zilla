@@ -25,12 +25,12 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
-import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy;
@@ -55,7 +55,7 @@ public final class EventsLayout implements AutoCloseable
 
     public boolean writeEvent(
         int msgTypeId,
-        DirectBuffer recordBuffer,
+        DirectBufferEx recordBuffer,
         int index,
         int length)
     {

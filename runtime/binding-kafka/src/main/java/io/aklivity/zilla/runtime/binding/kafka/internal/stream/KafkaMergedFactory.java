@@ -32,8 +32,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
@@ -96,6 +94,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicP
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -127,7 +127,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
     private static final int DYNAMIC_PARTITION = -1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final KafkaKeyFW EMPTY_KEY = new KafkaKeyFW();
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -168,8 +168,8 @@ public final class KafkaMergedFactory implements BindingHandler
     private final StringBuilder metadataRW = new StringBuilder();
 
     private final int kafkaTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongConsumer detachSender;
@@ -197,7 +197,7 @@ public final class KafkaMergedFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -326,7 +326,7 @@ public final class KafkaMergedFactory implements BindingHandler
     {
         final OctetsFW value = key.value();
 
-        DirectBuffer valueBuffer = null;
+        DirectBufferEx valueBuffer = null;
         if (value != null)
         {
             valueBuffer = copyBuffer(value);
@@ -341,13 +341,13 @@ public final class KafkaMergedFactory implements BindingHandler
         final OctetsFW name = header.name();
         final OctetsFW value = header.value();
 
-        DirectBuffer nameBuffer = null;
+        DirectBufferEx nameBuffer = null;
         if (name != null)
         {
             nameBuffer = copyBuffer(name);
         }
 
-        DirectBuffer valueBuffer = null;
+        DirectBufferEx valueBuffer = null;
         if (value != null)
         {
             valueBuffer = copyBuffer(value);
@@ -362,13 +362,13 @@ public final class KafkaMergedFactory implements BindingHandler
         final OctetsFW name = headers.name();
         final Array32FW<KafkaValueMatchFW> values = headers.values();
 
-        DirectBuffer nameBuffer = null;
+        DirectBufferEx nameBuffer = null;
         if (name != null)
         {
             nameBuffer = copyBuffer(name);
         }
 
-        DirectBuffer valuesBuffer = null;
+        DirectBufferEx valuesBuffer = null;
         if (values != null)
         {
             valuesBuffer = copyBuffer(values);
@@ -383,13 +383,13 @@ public final class KafkaMergedFactory implements BindingHandler
         return new KafkaMergedCondition.Not(asMergedCondition(not.condition()));
     }
 
-    private static DirectBuffer copyBuffer(
+    private static DirectBufferEx copyBuffer(
         Flyweight value)
     {
-        final DirectBuffer buffer = value.buffer();
+        final DirectBufferEx buffer = value.buffer();
         final int index = value.offset();
         final int length = value.sizeof();
-        final MutableDirectBuffer copy = new UnsafeBufferEx(new byte[length]);
+        final MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
         copy.putBytes(0, buffer, index, length);
         return copy;
     }
@@ -398,7 +398,7 @@ public final class KafkaMergedFactory implements BindingHandler
         KafkaKeyFW key)
     {
         final OctetsFW value = key.value();
-        final DirectBuffer buffer = value.buffer();
+        final DirectBufferEx buffer = value.buffer();
         final int offset = value.offset();
         final int limit = value.limit();
 
@@ -484,10 +484,10 @@ public final class KafkaMergedFactory implements BindingHandler
     {
         private static final class Key extends KafkaMergedCondition
         {
-            private final DirectBuffer value;
+            private final DirectBufferEx value;
 
             private Key(
-                DirectBuffer value)
+                DirectBufferEx value)
             {
                 this.value = value;
             }
@@ -538,12 +538,12 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private static final class Header extends KafkaMergedCondition
         {
-            private final DirectBuffer name;
-            private final DirectBuffer value;
+            private final DirectBufferEx name;
+            private final DirectBufferEx value;
 
             private Header(
-                DirectBuffer name,
-                DirectBuffer value)
+                DirectBufferEx name,
+                DirectBufferEx value)
             {
                 this.name = name;
                 this.value = value;
@@ -606,14 +606,14 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private static final class Headers extends KafkaMergedCondition
         {
-            private final DirectBuffer name;
-            private final DirectBuffer values;
+            private final DirectBufferEx name;
+            private final DirectBufferEx values;
 
             private final Array32FW<KafkaValueMatchFW> valuesRO = new Array32FW<>(new KafkaValueMatchFW());
 
             private Headers(
-                DirectBuffer name,
-                DirectBuffer values)
+                DirectBufferEx name,
+                DirectBufferEx values)
             {
                 this.name = name;
                 this.values = values;
@@ -1115,7 +1115,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onMergedMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1171,7 +1171,7 @@ public final class KafkaMergedFactory implements BindingHandler
             state = KafkaState.openingInitial(state);
 
             final OctetsFW extension = begin.extension();
-            final DirectBuffer buffer = extension.buffer();
+            final DirectBufferEx buffer = extension.buffer();
             final int offset = extension.offset();
             final int limit = extension.limit();
 
@@ -2444,7 +2444,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onDescribeReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2700,7 +2700,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onMetaReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2994,7 +2994,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onConsumerReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3320,7 +3320,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onOffsetFetchReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3669,7 +3669,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onFetchReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -4147,7 +4147,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void onProduceReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

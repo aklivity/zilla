@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32C;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableLong;
@@ -54,6 +52,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class KafkaCacheCursorFactory
@@ -65,7 +65,7 @@ public final class KafkaCacheCursorFactory
     private final KafkaValueMatchFW valueMatchRO = new KafkaValueMatchFW();
     private final KafkaHeaderFW headerRO = new KafkaHeaderFW();
 
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final CRC32C checksum;
 
     public static final int POSITION_UNSET = -1;
@@ -266,7 +266,7 @@ public final class KafkaCacheCursorFactory
                     {
                         final KafkaCacheFile deltaFile = segment.deltaFile();
                         final KafkaCacheDeltaFW delta = deltaFile.readBytes(deltaPosition, deltaRO::wrap);
-                        final DirectBuffer entryBuffer = nextEntry.buffer();
+                        final DirectBufferEx entryBuffer = nextEntry.buffer();
                         final KafkaKeyFW key = nextEntry.paddedKey().key();
                         final int entryOffset = nextEntry.offset();
                         final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
@@ -315,7 +315,7 @@ public final class KafkaCacheCursorFactory
             final KafkaCacheFile convertedFile = segment.convertedFile();
             final KafkaCachePaddedValueFW converted = convertedFile.readBytes(convertedAt, convertedRO::wrap);
             final OctetsFW convertedValue = converted.value();
-            final DirectBuffer entryBuffer = nextEntry.buffer();
+            final DirectBufferEx entryBuffer = nextEntry.buffer();
             final KafkaKeyFW key = nextEntry.paddedKey().key();
             final int entryOffset = nextEntry.offset();
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
@@ -492,8 +492,8 @@ public final class KafkaCacheCursorFactory
         {
             private final long mask;
             private final int hash;
-            private final DirectBuffer value;
-            private final DirectBuffer comparable;
+            private final DirectBufferEx value;
+            private final DirectBufferEx comparable;
 
             private KafkaCacheIndexFile hashFile;
             private long cursor;
@@ -569,7 +569,7 @@ public final class KafkaCacheCursorFactory
             protected Equals(
                 long mask,
                 CRC32C checksum,
-                DirectBuffer shared)
+                DirectBufferEx shared)
             {
                 this.mask = mask;
                 this.value = shared;
@@ -580,7 +580,7 @@ public final class KafkaCacheCursorFactory
             protected Equals(
                 long mask,
                 CRC32C checksum,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -681,14 +681,14 @@ public final class KafkaCacheCursorFactory
                 KafkaHeaderFW headersItem,
                 KafkaHeadersFW headers)
             {
-                final DirectBuffer headersCopyBuf = copyBuffer(headers.buffer(), headers.offset(), headers.sizeof());
+                final DirectBufferEx headersCopyBuf = copyBuffer(headers.buffer(), headers.offset(), headers.sizeof());
                 final KafkaHeadersFW headersCopy = new KafkaHeadersFW().wrap(headersCopyBuf, 0, headersCopyBuf.capacity());
 
                 final OctetsFW name = headers.name();
                 final Array32FW<KafkaValueMatchFW> matches = headers.values();
                 final List<KafkaFilterCondition> conditions = new ArrayList<>();
 
-                DirectBuffer matchItems = matches.items();
+                DirectBufferEx matchItems = matches.items();
                 int matchItemOffset = 0;
                 int matchItemsCapacity = matchItems.capacity();
 
@@ -701,7 +701,7 @@ public final class KafkaCacheCursorFactory
                         final KafkaValueFW match = matchItem.value();
                         final OctetsFW value = match.value();
 
-                        final MutableDirectBuffer headerCopyBuf =
+                        final MutableDirectBufferEx headerCopyBuf =
                                 new UnsafeBufferEx(ByteBuffer.allocate(name.sizeof() + value.sizeof() + 8));
 
                         final KafkaHeaderFW headerCopy = new KafkaHeaderFW.Builder()
@@ -752,8 +752,8 @@ public final class KafkaCacheCursorFactory
                 KafkaCacheEntryFW cacheEntry)
             {
                 final Array32FW<KafkaHeaderFW> headers = cacheEntry.headers();
-                final DirectBuffer headersItems = headers.items();
-                final DirectBuffer matchItems = matches.items();
+                final DirectBufferEx headersItems = headers.items();
+                final DirectBufferEx matchItems = matches.items();
                 final int matchesLimit = matchItems.capacity();
 
                 int matchOffset = 0;
@@ -1119,8 +1119,8 @@ public final class KafkaCacheCursorFactory
             }
         }
 
-        private static DirectBuffer copyBuffer(
-            DirectBuffer buffer,
+        private static DirectBufferEx copyBuffer(
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1130,7 +1130,7 @@ public final class KafkaCacheCursorFactory
         }
 
         private static int computeHash(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length,
             CRC32C checksum)

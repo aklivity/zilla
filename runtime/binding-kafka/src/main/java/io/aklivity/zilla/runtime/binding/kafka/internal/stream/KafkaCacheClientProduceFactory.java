@@ -31,8 +31,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
@@ -41,14 +39,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaCacheClientBudget;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -78,7 +75,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -89,22 +88,21 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
     private static final KafkaKeyFW EMPTY_KEY =
-        new OctetsFW().wrap(new SafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
+        new OctetsFW().wrap(new UnsafeBufferEx(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
             .get(new KafkaKeyFW()::wrap);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-                .wrap(new SafeBuffer(new byte[8]), 0, 8)
+                .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
                 .build();
     private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
     private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
-    private static final int PRODUCE_API_KEY = 0;
-    private static final int PRODUCE_API_VERSION = 3;
-
+    private static final int ERROR_CORRUPT_MESSAGE = 2;
+    private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
@@ -112,7 +110,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-            .wrap(new SafeBuffer(new byte[64]), 0, 64).build();
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
 
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_INIT = 0x02;
@@ -155,13 +153,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
     private final int kafkaTypeId;
-    private final KafkaEventContext event;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -188,7 +185,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     {
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.event = new KafkaEventContext(context);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
@@ -215,7 +211,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -534,7 +530,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long groupCleanupId = NO_CANCEL_ID;
         private long partitionIndex = NO_CREDITOR_INDEX;
         private long reconnectAt = NO_CANCEL_ID;
-        private int reconnectAttempt;
 
         private KafkaCacheClientProduceFan(
             long originId,
@@ -772,7 +767,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (error != NO_ERROR)
             {
-                event.produceError(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, error, topicName);
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
@@ -817,7 +811,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (error != NO_ERROR)
             {
-                event.produceError(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, error, topicName);
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
@@ -897,7 +890,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : UNKNOWN_ERROR;
             doClientFanReplyResetIfNecessary(traceId);
 
-            if (reconnectDelay != 0 && !members.isEmpty() && KafkaError.of(error).isRetriable())
+            if (reconnectDelay != 0 && !members.isEmpty() && error == ERROR_NOT_LEADER_FOR_PARTITION)
             {
                 if (reconnectAt != NO_CANCEL_ID)
                 {
@@ -905,7 +898,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
                         SIGNAL_RECONNECT,
                         this::onClientFanInitialSignalReconnect);
             }
@@ -997,7 +990,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             assert !KafkaState.initialOpened(state);
             state = KafkaState.openedInitial(state);
-            this.reconnectAttempt = 0;
         }
 
         private void onClientFanInitialClosed()
@@ -1018,7 +1010,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onClientFanMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1269,7 +1261,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

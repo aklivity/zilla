@@ -23,8 +23,6 @@ import static java.time.Instant.now;
 import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaConfiguration;
@@ -58,6 +56,8 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -136,10 +136,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final GrpcKafkaIdHelper messageFieldHelper = new GrpcKafkaIdHelper();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer progressBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer metaBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx progressBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx metaBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -196,7 +196,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer grpc)
@@ -319,7 +319,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             OctetsFW extension)
@@ -379,7 +379,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onGrpcMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -591,7 +591,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             OctetsFW extension)
@@ -683,7 +683,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             headers.forEach(h ->
             {
                 final OctetsFW name = h.name();
-                final DirectBuffer buffer = name.buffer();
+                final DirectBufferEx buffer = name.buffer();
                 final int offset = name.offset();
                 final int limit = name.limit();
                 buffer.getBytes(offset, headerPrefix);
@@ -719,7 +719,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -894,7 +894,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -994,7 +994,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
 
-                final MutableDirectBuffer encodeBuffer = progressBuffer;
+                final MutableDirectBufferEx encodeBuffer = progressBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int payloadSize = payload.sizeof();
 
@@ -1182,7 +1182,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onGrpcMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1551,7 +1551,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             headers.forEach(h ->
             {
                 final OctetsFW name = h.name();
-                final DirectBuffer buffer = name.buffer();
+                final DirectBufferEx buffer = name.buffer();
                 final int offset = name.offset();
                 final int limit = name.limit();
                 buffer.getBytes(offset, headerPrefix);
@@ -1699,7 +1699,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onGrpcMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2175,7 +2175,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2482,7 +2482,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2778,7 +2778,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Flyweight extension)

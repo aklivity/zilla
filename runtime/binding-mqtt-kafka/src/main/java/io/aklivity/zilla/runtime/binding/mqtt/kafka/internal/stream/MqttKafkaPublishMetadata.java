@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
@@ -26,6 +25,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class MqttKafkaPublishMetadata
@@ -134,10 +134,10 @@ public class MqttKafkaPublishMetadata
 
         private final MqttPublishOffsetMetadataFW mqttOffsetMetadataRO = new MqttPublishOffsetMetadataFW();
         private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
-        private final MutableDirectBuffer offsetBuffer;
+        private final MutableDirectBufferEx offsetBuffer;
 
         KafkaOffsetMetadataHelper(
-            MutableDirectBuffer offsetBuffer)
+            MutableDirectBufferEx offsetBuffer)
         {
             this.offsetBuffer = offsetBuffer;
         }

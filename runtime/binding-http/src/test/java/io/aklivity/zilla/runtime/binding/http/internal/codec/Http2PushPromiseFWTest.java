@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFWTest;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2PushPromiseFWTest
@@ -37,7 +37,7 @@ public class Http2PushPromiseFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         Http2PushPromiseFW push = new Http2PushPromiseFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

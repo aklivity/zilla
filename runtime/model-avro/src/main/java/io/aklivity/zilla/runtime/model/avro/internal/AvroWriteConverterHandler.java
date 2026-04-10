@@ -14,19 +14,16 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.collections.Int2ObjectCache;
+import java.io.IOException;
 
-import io.aklivity.zilla.runtime.common.avro.Avro;
-import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
-import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
-import io.aklivity.zilla.runtime.common.avro.AvroSchema;
-import io.aklivity.zilla.runtime.common.avro.AvroSink;
-import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import org.apache.avro.AvroRuntimeException;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.CanonicalJsonDecoder;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -35,22 +32,17 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroWriteConverterHandler extends AvroModelHandler implements ConverterHandler
 {
-    private final Int2ObjectCache<JsonToAvro> pipelines;
-
-    private String reason;
-
     public AvroWriteConverterHandler(
         AvroModelConfiguration config,
         AvroModelConfig options,
         EngineContext context)
     {
         super(config, options, context);
-        this.pipelines = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -61,7 +53,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -87,75 +79,54 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx buffer,
         int index,
         int length,
         ValueConsumer next)
     {
         int valLength = -1;
-
-        JsonToAvro pipeline = supplyPipeline(schemaId);
-        if (pipeline != null)
+        try
         {
-            // Avro binary is never more than OUT_SCALE times the JSON it encodes (a double is 8 bytes from a
-            // one-character number), so the bounded window admits the whole datum and the feed completes once
-            pipeline.generator.wrap(out, 0, outLimit(length));
-            pipeline.pipeline.reset();
-            Status status = pipeline.pipeline.feed(data, index, index + length, true);
-            if (status == Status.COMPLETED)
+            Schema schema = supplySchema(schemaId);
+
+            if (schema != null)
             {
-                int chunk = pipeline.generator.length();
-                next.accept(out, 0, chunk);
-                valLength = chunk;
+                switch (schema.getType())
+                {
+                case STRING:
+                    next.accept(buffer, index, length);
+                    valLength = length;
+                    break;
+                case RECORD:
+                    GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                    GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
+                    if (reader != null)
+                    {
+                        GenericRecord record = supplyRecord(schemaId);
+                        in.wrap(buffer, index, length);
+                        expandable.wrap(expandable.buffer());
+                        CanonicalJsonDecoder decoder = new CanonicalJsonDecoder(schema, in);
+                        record = reader.read(record, decoder);
+                        encoderFactory.binaryEncoder(expandable, encoder);
+                        writer.write(record, encoder);
+                        encoder.flush();
+                        int position = expandable.position();
+                        if (position > 0)
+                        {
+                            next.accept(expandable.buffer(), 0, position);
+                            valLength = position;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
             }
-            else
-            {
-                event.validationFailure(traceId, bindingId, reason);
-            }
+        }
+        catch (IOException | AvroRuntimeException ex)
+        {
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return valLength;
-    }
-
-    private void onRejected(
-        AvroDiagnostic diagnostic)
-    {
-        reason = diagnostic.message();
-    }
-
-    private JsonToAvro supplyPipeline(
-        int schemaId)
-    {
-        return pipelines.computeIfAbsent(schemaId, this::newPipeline);
-    }
-
-    private JsonToAvro newPipeline(
-        int schemaId)
-    {
-        JsonToAvro pipeline = null;
-        AvroSchema schema = supplySchema(schemaId);
-        if (schema != null)
-        {
-            JsonParserEx parser = JsonEx.createParser();
-            AvroGenerator generator = Avro.generator(schema, out, 0);
-            AvroPipeline avro = AvroJson.stream(schema, parser, true)
-                .reporting(this::onRejected)
-                .into(AvroSink.of(generator));
-            pipeline = new JsonToAvro(avro, generator);
-        }
-        return pipeline;
-    }
-
-    private static final class JsonToAvro
-    {
-        private final AvroPipeline pipeline;
-        private final AvroGenerator generator;
-
-        private JsonToAvro(
-            AvroPipeline pipeline,
-            AvroGenerator generator)
-        {
-            this.pipeline = pipeline;
-            this.generator = generator;
-        }
     }
 }

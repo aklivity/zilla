@@ -22,10 +22,9 @@ import static java.lang.System.currentTimeMillis;
 import java.nio.file.Path;
 import java.util.function.IntFunction;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
 {
@@ -57,7 +56,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     public KafkaCacheSegment(
         KafkaCacheSegment segment,
         KafkaCacheTopicConfig config,
-        MutableDirectBuffer appendBuf,
+        MutableDirectBufferEx appendBuf,
         IntFunction<long[]> sortSpaceRef)
     {
         this(segment.location,
@@ -75,7 +74,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         String name,
         int id,
         long baseOffset,
-        MutableDirectBuffer appendBuf,
+        MutableDirectBufferEx appendBuf,
         IntFunction<long[]> sortSpaceRef)
     {
         this.location = location;

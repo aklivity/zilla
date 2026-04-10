@@ -19,10 +19,10 @@ import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameTy
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2PingFWTest
@@ -32,9 +32,9 @@ public class Http2PingFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
-        DirectBuffer payload = new UnsafeBufferEx(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
+        DirectBufferEx payload = new UnsafeBufferEx(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
         Http2PingFW ping = new Http2PingFW.Builder()
                 .wrap(buf, 1, buf.capacity())       // non-zero offset
                 .ack()

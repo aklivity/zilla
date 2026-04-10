@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.specs.binding.proxy.internal;
 
-import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET4;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET6;
+import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.NONE;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.UNIX;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressProtocol.STREAM;
@@ -44,11 +44,11 @@ import java.nio.ByteBuffer;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.stream.ProxyBeginExFW;
@@ -87,14 +87,14 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
         assertEquals(NONE, beginEx.address().kind());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -172,7 +172,7 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -184,7 +184,7 @@ public class ProxyFunctionsTest
         assertEquals(443, beginEx.address().inet().destinationPort());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -262,7 +262,7 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -274,7 +274,7 @@ public class ProxyFunctionsTest
         assertEquals(443, beginEx.address().inet4().destinationPort());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -1397,7 +1397,7 @@ public class ProxyFunctionsTest
                                          .destinationPort(443)
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -1662,7 +1662,7 @@ public class ProxyFunctionsTest
                                          .destination("destination-5678")
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -1911,7 +1911,7 @@ public class ProxyFunctionsTest
         matcher.match(byteBuf);
     }
 
-    private static DirectBuffer paddedUtf8(
+    private static DirectBufferEx paddedUtf8(
         String utf8,
         int length)
     {

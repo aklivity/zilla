@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.internal.stream;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemConfiguration;
@@ -45,6 +43,8 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.H
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -147,8 +147,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
 
     private final FileSystemBeginExFW.Builder fsBeginExRW = new FileSystemBeginExFW.Builder();
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -195,7 +195,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer http)
@@ -277,7 +277,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -674,7 +674,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         private void onFileSystemMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

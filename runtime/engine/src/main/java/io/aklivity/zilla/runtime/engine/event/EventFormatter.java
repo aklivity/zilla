@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.event;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.factory.Factory;
 
 public final class EventFormatter extends Factory
@@ -32,7 +32,7 @@ public final class EventFormatter extends Factory
 
     public String format(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

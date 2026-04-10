@@ -19,10 +19,10 @@ import static org.junit.Assert.assertEquals;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.IntArrayList;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
@@ -85,7 +85,7 @@ public class MqttKafkaFunctionsTest
             .packetId(1)
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
+        DirectBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
         MqttPublishOffsetMetadataFW offsetMetadata = new MqttPublishOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, offsetMetadata.version());

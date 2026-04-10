@@ -29,8 +29,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.stream.Collectors;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -78,6 +76,8 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlF
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -105,7 +105,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     private static final String POSTGRES_USER = "postgres\u0000";
     private static final String DEFAULT_USER = "default\u0000";
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -144,9 +144,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
     private final BufferPool bufferPool;
     private final RisingwaveConfiguration config;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer statementBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx statementBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<CatalogHandler> supplyCatalog;
@@ -216,7 +216,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer app)
@@ -327,7 +327,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         private void onAppMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {
@@ -396,7 +396,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final int flags = data.flags();
 
             final OctetsFW payload = data.payload();
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
             int limit = payload.limit();
 
@@ -433,7 +433,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     }
                 }
 
-                final MutableDirectBuffer slotBuffer = bufferPool.buffer(parserSlot);
+                final MutableDirectBufferEx slotBuffer = bufferPool.buffer(parserSlot);
                 slotBuffer.putBytes(parserSlotOffset, buffer, offset, limit - offset);
                 parserSlotOffset += limit - offset;
 
@@ -545,7 +545,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             int progress)
         {
-            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+            final MutableDirectBufferEx parserBuffer = bufferPool.buffer(parserSlot);
 
             parserSlotOffset -= progress;
             parserBuffer.putBytes(0, parserBuffer, progress, parserSlotOffset);
@@ -588,7 +588,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             Flyweight extension)
@@ -753,7 +753,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             if (parserSlot != NO_SLOT)
             {
-                final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+                final MutableDirectBufferEx parserBuffer = bufferPool.buffer(parserSlot);
 
                 String sql = parserBuffer.getStringWithoutLengthAscii(0, parserSlotOffset);
                 splitStatements(sql)
@@ -854,7 +854,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 long traceId,
                 long authorization,
                 int flags,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int limit)
             {
@@ -953,7 +953,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 long traceId,
                 long authorization,
                 int flags,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int length,
                 OctetsFW extension)
@@ -1004,7 +1004,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
         private void onAppMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {
@@ -1288,7 +1288,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             Consumer<OctetsFW.Builder> extension)
@@ -1368,7 +1368,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         private void doPgsqlQuery(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1452,7 +1452,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final int flags,
         final long budgetId,
         final int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -1489,7 +1489,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final int flags,
         final long budgetId,
         final int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Flyweight extension)

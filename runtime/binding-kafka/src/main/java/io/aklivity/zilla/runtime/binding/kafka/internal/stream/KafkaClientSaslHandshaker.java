@@ -32,9 +32,7 @@ import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -53,6 +51,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -111,7 +111,7 @@ public abstract class KafkaClientSaslHandshaker
 
     private final SecureRandom random = new SecureRandom();
 
-    private final MutableDirectBuffer scramBuffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBufferEx scramBuffer = new UnsafeBufferEx(new byte[1024]);
 
     private MessageDigest messageDigest;
     private Mac mac;
@@ -125,7 +125,7 @@ public abstract class KafkaClientSaslHandshaker
     protected final KafkaClientIdSupplier clientIdSupplier;
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
-    protected final MutableDirectBuffer writeBuffer;
+    protected final MutableDirectBufferEx writeBuffer;
 
     public KafkaClientSaslHandshaker(
         KafkaConfiguration config,
@@ -195,7 +195,7 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -250,7 +250,7 @@ public abstract class KafkaClientSaslHandshaker
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -308,7 +308,7 @@ public abstract class KafkaClientSaslHandshaker
                 long traceId,
                 long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -397,7 +397,7 @@ public abstract class KafkaClientSaslHandshaker
             scramBytes += SASL_SCRAM_SALT_PASSWORD.length;
             scramBytes += scramBuffer.putStringWithoutLengthUtf8(scramBytes, clientProof(saltedPassword, authMessage));
 
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -475,7 +475,7 @@ public abstract class KafkaClientSaslHandshaker
         protected abstract void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
 
@@ -530,7 +530,7 @@ public abstract class KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -542,7 +542,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -569,7 +569,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -620,7 +620,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -644,7 +644,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -680,7 +680,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -707,7 +707,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -724,7 +724,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -763,7 +763,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -788,7 +788,7 @@ public abstract class KafkaClientSaslHandshaker
                 client.decodableResponseBytes -= authenticateResponse.sizeof();
                 assert client.decodableResponseBytes >= 0;
 
-                DirectBuffer serverFirstResponse = authenticateResponse.authBytes().value();
+                DirectBufferEx serverFirstResponse = authenticateResponse.authBytes().value();
                 String serverFirstMessage = serverFirstResponse.getStringWithoutLengthUtf8(0,
                         serverFirstResponse.capacity());
 
@@ -825,7 +825,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -847,7 +847,7 @@ public abstract class KafkaClientSaslHandshaker
 
                 byte[] serverKey = serverKey(client.saltedPassword);
                 byte[] serverSignature = hmac(serverKey, client.authMessage);
-                DirectBuffer serverFinalResponse = authenticateResponse.authBytes().value();
+                DirectBufferEx serverFinalResponse = authenticateResponse.authBytes().value();
                 String serverFinalMessage = serverFinalResponse.getStringWithoutLengthUtf8(0,
                         serverFinalResponse.capacity());
                 serverResponseMatcher.reset();

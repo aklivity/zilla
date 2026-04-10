@@ -25,12 +25,11 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
@@ -332,7 +331,7 @@ public final class KafkaFunctions
 
         private KafkaTransactionBuilder()
         {
-            MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+            MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
             transactionRW.wrap(buffer, 0, buffer.capacity());
         }
 
@@ -379,13 +378,13 @@ public final class KafkaFunctions
     public abstract static class KafkaHeadersBuilder<T>
     {
         private final KafkaHeadersFW.Builder headersRW = new KafkaHeadersFW.Builder();
-        private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
         private KafkaHeadersBuilder(
             String name)
         {
-            MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+            MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
             headersRW.wrap(buffer, 0, buffer.capacity());
             nameRO.wrap(name.getBytes(UTF_8));
 
@@ -473,13 +472,13 @@ public final class KafkaFunctions
     public abstract static class KafkaFilterBuilder<T>
     {
         private final KafkaFilterFW.Builder filterRW = new KafkaFilterFW.Builder();
-        private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
         private KafkaFilterBuilder()
         {
-            MutableDirectBuffer filterBuffer = new UnsafeBufferEx(new byte[1024]);
+            MutableDirectBufferEx filterBuffer = new UnsafeBufferEx(new byte[1024]);
             filterRW.wrap(filterBuffer, 0, filterBuffer.capacity());
         }
 
@@ -656,7 +655,7 @@ public final class KafkaFunctions
 
     public static final class KafkaGroupMemberMetadataBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
         private final KafkaGroupMemberMetadataFW.Builder groupMemberMetadataRW =
             new KafkaGroupMemberMetadataFW.Builder();
 
@@ -689,7 +688,7 @@ public final class KafkaFunctions
 
         class KafkaTopicsBuilder
         {
-            private final MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final KafkaGroupTopicMetadataFW.Builder topicsRW = new KafkaGroupTopicMetadataFW.Builder();
 
             KafkaTopicsBuilder(
@@ -718,7 +717,7 @@ public final class KafkaFunctions
 
     public static final class KafkaMemberAssignmentsBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final Array32FW.Builder<MemberAssignmentFW.Builder, MemberAssignmentFW> memberAssignmentsRW =
             new Array32FW.Builder<>(new MemberAssignmentFW.Builder(), new MemberAssignmentFW());
@@ -745,9 +744,9 @@ public final class KafkaFunctions
 
         class KafkaMemberBuilder
         {
-            private final MutableDirectBuffer memberBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx memberBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final MemberAssignmentFW.Builder assignmentRW = new MemberAssignmentFW.Builder();
-            private final MutableDirectBuffer topicAssignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx topicAssignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentsRW =
                 new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
 
@@ -777,7 +776,7 @@ public final class KafkaFunctions
 
             class KafkaTopicAssignmentBuilder
             {
-                private final MutableDirectBuffer assignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                private final MutableDirectBufferEx assignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                 TopicAssignmentFW.Builder assignmentRW = new TopicAssignmentFW.Builder();
 
                 KafkaTopicAssignmentBuilder()
@@ -817,7 +816,7 @@ public final class KafkaFunctions
 
                 class KafkaConsumerBuilder
                 {
-                    private final MutableDirectBuffer consumerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx consumerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
                     KafkaConsumerBuilder()
                     {
@@ -854,7 +853,7 @@ public final class KafkaFunctions
 
     public static final class KafkaTopicAssignmentsBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignments =
             new Array32FW.Builder<>(new TopicAssignmentFW.Builder(), new TopicAssignmentFW());
@@ -880,7 +879,7 @@ public final class KafkaFunctions
 
         class KafkaTopicBuilder
         {
-            private final MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final TopicAssignmentFW.Builder topicAssignmentRW = new TopicAssignmentFW.Builder();
             KafkaTopicBuilder()
             {
@@ -919,7 +918,7 @@ public final class KafkaFunctions
 
             class KafkaConsumerBuilder
             {
-                private final MutableDirectBuffer consumerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                private final MutableDirectBufferEx consumerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                 private final ConsumerAssignmentFW.Builder consumerRW = new ConsumerAssignmentFW.Builder();
                 KafkaConsumerBuilder()
                 {
@@ -955,7 +954,7 @@ public final class KafkaFunctions
 
     public static final class KafkaBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
 
@@ -1164,7 +1163,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaCreateTopicFW.Builder topicRW = new KafkaCreateTopicFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1293,7 +1292,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
 
                     KafkaResourceBuilder()
@@ -1443,7 +1442,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaCreateTopicStatusFW.Builder topicRW = new KafkaCreateTopicStatusFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1519,7 +1518,7 @@ public final class KafkaFunctions
 
                 public final class KafkaTopicBuilder
                 {
-                    private final MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaDeleteTopicStatusFW.Builder topicRW = new KafkaDeleteTopicStatusFW.Builder();
 
                     KafkaTopicBuilder()
@@ -1587,7 +1586,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaResourceStatusFW.Builder resourceRW = new KafkaResourceStatusFW.Builder();
 
                     KafkaResourceBuilder()
@@ -1710,7 +1709,7 @@ public final class KafkaFunctions
 
                     KafkaBrokerBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         brokerRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -2230,7 +2229,7 @@ public final class KafkaFunctions
         public final class KafkaConsumerBeginExBuilder
         {
             private final KafkaConsumerBeginExFW.Builder consumerBeginExRW = new KafkaConsumerBeginExFW.Builder();
-            private final MutableDirectBuffer partitionBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx partitionBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final Array32FW.Builder<KafkaTopicPartitionFW.Builder, KafkaTopicPartitionFW> partitionsRW =
                 new Array32FW.Builder<>(new KafkaTopicPartitionFW.Builder(), new  KafkaTopicPartitionFW());
 
@@ -2437,7 +2436,7 @@ public final class KafkaFunctions
 
     public static final class KafkaDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final KafkaDataExFW dataExRO = new KafkaDataExFW();
 
@@ -2520,9 +2519,9 @@ public final class KafkaFunctions
         }
         public final class KafkaFetchDataExBuilder
         {
-            private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-            private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-            private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
             private final KafkaFetchDataExFW.Builder fetchDataExRW = new KafkaFetchDataExFW.Builder();
 
@@ -2681,9 +2680,9 @@ public final class KafkaFunctions
 
             public final class KafkaMergedFetchDataExBuilder
             {
-                private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-                private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-                private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
                 private final KafkaMergedFetchDataExFW.Builder mergedFetchDataExRW = new KafkaMergedFetchDataExFW.Builder();
 
@@ -2903,10 +2902,10 @@ public final class KafkaFunctions
 
             public final class KafkaMergedProduceDataExBuilder
             {
-                private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-                private final DirectBuffer hashKeyRO = new UnsafeBufferEx(0, 0);
-                private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-                private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx hashKeyRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+                private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
                 private final KafkaMergedProduceDataExFW.Builder mergedProduceDataExRW =
                     new KafkaMergedProduceDataExFW.Builder();
@@ -3173,9 +3172,9 @@ public final class KafkaFunctions
 
         public final class KafkaProduceDataExBuilder
         {
-            private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-            private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-            private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
             private final KafkaProduceDataExFW.Builder produceDataExRW = new KafkaProduceDataExFW.Builder();
 
@@ -3313,7 +3312,7 @@ public final class KafkaFunctions
 
             public final class KafkaConsumerAssignmentBuilder
             {
-                private final MutableDirectBuffer assignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                private final MutableDirectBufferEx assignmentBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                 private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
 
                 KafkaConsumerAssignmentBuilder()
@@ -3443,9 +3442,9 @@ public final class KafkaFunctions
 
     public static final class KafkaFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
-        private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
         private final KafkaFlushExFW flushExRO = new KafkaFlushExFW();
 
         private final KafkaFlushExFW.Builder flushExRW = new KafkaFlushExFW.Builder();
@@ -3892,7 +3891,7 @@ public final class KafkaFunctions
 
         public final class KafkaGroupFlushExBuilder
         {
-            private final MutableDirectBuffer memberBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            private final MutableDirectBufferEx memberBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             private final KafkaGroupFlushExFW.Builder flushGroupExRW = new KafkaGroupFlushExFW.Builder();
             private final Array32FW.Builder<KafkaGroupMemberFW.Builder, KafkaGroupMemberFW> memberRW =
                 new Array32FW.Builder<>(new KafkaGroupMemberFW.Builder(), new  KafkaGroupMemberFW());
@@ -4006,7 +4005,7 @@ public final class KafkaFunctions
 
     public static final class KafkaResetExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final KafkaResetExFW resetExRO = new KafkaResetExFW();
 
@@ -4049,12 +4048,12 @@ public final class KafkaFunctions
 
     public static final class KafkaDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
-        private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer hashKeyRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer nameRO = new UnsafeBufferEx(0, 0);
-        private final DirectBuffer valueRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx hashKeyRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
 
         private final KafkaDataExFW dataExRO = new KafkaDataExFW();
 
@@ -5278,10 +5277,10 @@ public final class KafkaFunctions
 
     public static final class KafkaFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final KafkaFlushExFW flushExRO = new KafkaFlushExFW();
-        private final DirectBuffer keyRO = new UnsafeBufferEx(0, 0);
+        private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
 
         private Integer typeId;
         private Integer kind;
@@ -6032,7 +6031,7 @@ public final class KafkaFunctions
 
     public static final class KafkaBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
 
@@ -6925,7 +6924,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7099,7 +7098,7 @@ public final class KafkaFunctions
 
                 public final class KafkaResourceBuilder
                 {
-                    private final MutableDirectBuffer resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                    private final MutableDirectBufferEx resourceBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                     private final KafkaResourceFW.Builder resourceRW = new KafkaResourceFW.Builder();
 
                     KafkaResourceBuilder()
@@ -7276,7 +7275,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7372,7 +7371,7 @@ public final class KafkaFunctions
 
                     KafkaTopicBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         topicRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7460,7 +7459,7 @@ public final class KafkaFunctions
 
                     KafkaResourceBuilder()
                     {
-                        MutableDirectBuffer topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx topicBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         resourceRW.wrap(topicBuffer, 0, topicBuffer.capacity());
                     }
 
@@ -7596,7 +7595,7 @@ public final class KafkaFunctions
 
                     KafkaBrokerBuilder()
                     {
-                        MutableDirectBuffer brokerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                        MutableDirectBufferEx brokerBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                         brokerRW.wrap(brokerBuffer, 0, brokerBuffer.capacity());
                     }
 

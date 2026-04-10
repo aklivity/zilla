@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.binding.function;
 
 import java.util.Objects;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Tests a frame from a {@link DirectBuffer} slice, returning {@code true} or {@code false}.
@@ -46,7 +46,7 @@ public interface MessagePredicate
      */
     boolean test(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 

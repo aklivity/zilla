@@ -31,9 +31,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.agrona.BufferUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * An {@link AtomicBufferEx} implementation backed by Java's {@link MemorySegment}
@@ -129,13 +130,13 @@ public class SafeBuffer implements AtomicBufferEx
     }
 
     public SafeBuffer(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         wrap(buffer);
     }
 
     public SafeBuffer(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -285,7 +286,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         if (buffer instanceof DirectBufferEx ex)
         {
@@ -299,7 +300,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -353,7 +354,7 @@ public class SafeBuffer implements AtomicBufferEx
     }
 
     private void wrapFromUnsafe(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -378,7 +379,7 @@ public class SafeBuffer implements AtomicBufferEx
     }
 
     // -----------------------------------------------------------------------
-    // DirectBuffer accessors
+    // DirectBufferEx accessors
     // -----------------------------------------------------------------------
 
     @Override
@@ -701,7 +702,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public void getBytes(
         int index,
-        MutableDirectBuffer dstBuffer,
+        MutableDirectBufferEx dstBuffer,
         int dstIndex,
         int length)
     {
@@ -829,7 +830,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public void putBytes(
         int index,
-        DirectBuffer srcBuffer,
+        DirectBufferEx srcBuffer,
         int srcIndex,
         int length)
     {
@@ -1637,7 +1638,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public int compareTo(
-        DirectBuffer that)
+        DirectBufferEx that)
     {
         final int thisCapacity = this.capacity;
         final int thatCapacity = that.capacity();
@@ -1673,7 +1674,7 @@ public class SafeBuffer implements AtomicBufferEx
         {
             return true;
         }
-        if (!(obj instanceof DirectBuffer that))
+        if (!(obj instanceof DirectBufferEx that))
         {
             return false;
         }

@@ -20,10 +20,10 @@ import static java.lang.Integer.highestOneBit;
 import java.nio.ByteOrder;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.ws.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class WsHeaderFW extends Flyweight
 {
@@ -103,7 +103,7 @@ public final class WsHeaderFW extends Flyweight
         return payloadOffset;
     }
 
-    public boolean canWrap(DirectBuffer buffer, int offset, int maxLimit)
+    public boolean canWrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         int maxLength = maxLimit - offset;
         int wsFrameLength = 2;
@@ -124,7 +124,7 @@ public final class WsHeaderFW extends Flyweight
     }
 
     @Override
-    public WsHeaderFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public WsHeaderFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -152,7 +152,7 @@ public final class WsHeaderFW extends Flyweight
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;
@@ -231,7 +231,7 @@ public final class WsHeaderFW extends Flyweight
         }
     }
 
-    private static long length(DirectBuffer buffer, int offset)
+    private static long length(DirectBufferEx buffer, int offset)
     {
         int length = buffer.getByte(offset + FIELD_OFFSET_MASK_AND_LENGTH) & 0x7f;
 

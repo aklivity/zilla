@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.function.IntPredicate;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
@@ -48,6 +46,8 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -79,9 +79,9 @@ public class SseClientFactory implements SseStreamFactory
     private static final int LINE_COLON_BYTE = 0x3a;
     private static final int LINE_SPACE_BYTE = 0x20;
 
-    private static final DirectBuffer FIELD_NAME_TYPE_BYTES = new UnsafeBufferEx("event".getBytes(UTF_8));
-    private static final DirectBuffer FIELD_NAME_ID_BYTES = new UnsafeBufferEx("id".getBytes(UTF_8));
-    private static final DirectBuffer FIELD_NAME_DATA_BYTES = new UnsafeBufferEx("data".getBytes(UTF_8));
+    private static final DirectBufferEx FIELD_NAME_TYPE_BYTES = new UnsafeBufferEx("event".getBytes(UTF_8));
+    private static final DirectBufferEx FIELD_NAME_ID_BYTES = new UnsafeBufferEx("id".getBytes(UTF_8));
+    private static final DirectBufferEx FIELD_NAME_DATA_BYTES = new UnsafeBufferEx("data".getBytes(UTF_8));
 
     private static final IntPredicate EOL_MATCHER = v -> v == LINE_CR_BYTE || v == LINE_LF_BYTE;
     private static final IntPredicate COLON_MATCHER = v -> v == LINE_COLON_BYTE;
@@ -115,8 +115,8 @@ public class SseClientFactory implements SseStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final SseDataExFW.Builder sseDataExRW = new SseDataExFW.Builder();
 
-    private final DirectBuffer nameRO = new UnsafeBufferEx(0L, 0);
-    private final DirectBuffer valueRO = new UnsafeBufferEx(0L, 0);
+    private final DirectBufferEx nameRO = new UnsafeBufferEx(0L, 0);
+    private final DirectBufferEx valueRO = new UnsafeBufferEx(0L, 0);
 
     private final OctetsFW lineDataRO = new OctetsFW();
     private final OctetsFW valueDataRO = new OctetsFW();
@@ -147,9 +147,9 @@ public class SseClientFactory implements SseStreamFactory
     private final SseClientDecoder decodeFieldDataValue = this::decodeFieldDataValue;
     private final SseClientDecoder decodeEventEnding = this::decodeEventEnding;
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer lineBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx lineBuffer;
     private final BufferPool decodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -201,7 +201,7 @@ public class SseClientFactory implements SseStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer application)
@@ -272,7 +272,7 @@ public class SseClientFactory implements SseStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -621,7 +621,7 @@ public class SseClientFactory implements SseStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -742,7 +742,7 @@ public class SseClientFactory implements SseStreamFactory
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -875,7 +875,7 @@ public class SseClientFactory implements SseStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
                 final int reserved = decodeSlotReserved;
@@ -893,7 +893,7 @@ public class SseClientFactory implements SseStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -918,7 +918,7 @@ public class SseClientFactory implements SseStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) (limit - progress) * reserved / (limit - offset));
@@ -1081,7 +1081,7 @@ public class SseClientFactory implements SseStreamFactory
                         .name(HTTP_HEADER_ACCEPT)
                         .value(HTTP_HEADER_ACCEPT_TEXT_EVENT_STREAM));
 
-                    final DirectBuffer lastIdBuf = lastId.value();
+                    final DirectBufferEx lastIdBuf = lastId.value();
                     if (lastIdBuf != null)
                     {
                         hs.item(h -> h
@@ -1316,7 +1316,7 @@ public class SseClientFactory implements SseStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -1328,7 +1328,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1354,7 +1354,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1376,7 +1376,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1414,7 +1414,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1459,7 +1459,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1490,7 +1490,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1518,7 +1518,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1536,7 +1536,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1549,7 +1549,7 @@ public class SseClientFactory implements SseStreamFactory
 
             if (limitOfFieldName != -1)
             {
-                DirectBuffer name = nameRO;
+                DirectBufferEx name = nameRO;
                 name.wrap(buffer, progress, limitOfFieldName - progress);
 
                 final SseFieldName fieldName = decodeableFieldNames.getOrDefault(name, SseFieldName.IGNORE);
@@ -1586,7 +1586,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1616,7 +1616,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1654,7 +1654,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1667,7 +1667,7 @@ public class SseClientFactory implements SseStreamFactory
 
             if (limitOfField != -1)
             {
-                DirectBuffer value = valueRO;
+                DirectBufferEx value = valueRO;
                 value.wrap(buffer, progress, limitOfField - progress);
 
                 switch (client.decodedFieldName)
@@ -1701,7 +1701,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1744,7 +1744,7 @@ public class SseClientFactory implements SseStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1763,7 +1763,7 @@ public class SseClientFactory implements SseStreamFactory
     }
 
     private static int indexOfEndOfLine(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1771,7 +1771,7 @@ public class SseClientFactory implements SseStreamFactory
     }
 
     private static int limitOfFieldName(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1779,7 +1779,7 @@ public class SseClientFactory implements SseStreamFactory
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         IntPredicate matcher)
@@ -1798,7 +1798,7 @@ public class SseClientFactory implements SseStreamFactory
     }
 
     private static boolean matchAllBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte[] bytes)

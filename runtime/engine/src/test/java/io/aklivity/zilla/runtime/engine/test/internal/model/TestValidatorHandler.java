@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
@@ -37,7 +36,7 @@ public class TestValidatorHandler implements ValidatorHandler
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

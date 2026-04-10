@@ -19,8 +19,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public class DefaultBufferPoolTest
 {
@@ -97,7 +98,7 @@ public class DefaultBufferPoolTest
     {
         DefaultBufferPool slab = new DefaultBufferPool(256, 16);
         int slot = slab.acquire(124123490L);
-        MutableDirectBuffer buffer = slab.buffer(slot);
+        MutableDirectBufferEx buffer = slab.buffer(slot);
         buffer.putInt(0, 123);
         assertEquals(123, buffer.getInt(0));
         assertEquals(16, buffer.capacity());

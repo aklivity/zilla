@@ -28,8 +28,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
@@ -56,6 +54,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -118,8 +118,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer encodeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx encodeBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final KafkaClientSignaler signaler;
@@ -161,7 +161,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
     private MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -213,7 +213,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -229,7 +229,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -324,7 +324,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -395,7 +395,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Flyweight extension)
@@ -570,7 +570,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -628,7 +628,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -745,7 +745,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
         private void onStreamMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -817,7 +817,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 initialSeqOffsets.add(connection.initialSeq);
                 nextRequestId++;
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
 
@@ -957,7 +957,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length,
             Flyweight extension)
@@ -1110,7 +1110,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamSignalNow(
             long traceId,
             int signalId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1321,7 +1321,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 responses.add(streamId);
                 responseAcks.add(streamId);
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
 
@@ -1402,7 +1402,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long streamId,
             long traceId,
             int signalId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1500,7 +1500,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
         private void onConnectionMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1585,7 +1585,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -1599,7 +1599,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
             else
             {
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 int progress = payload.offset();
 
                 while (progress < limit)
@@ -1874,7 +1874,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         @Override
         public MessageConsumer newStream(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length,
             MessageConsumer sender)
@@ -1928,7 +1928,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1962,7 +1962,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -1978,7 +1978,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2003,7 +2003,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -2023,13 +2023,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         protected void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotLimit, buffer, offset, limit - offset);
                 encodeSlotLimit += limit - offset;
 

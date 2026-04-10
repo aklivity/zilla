@@ -30,11 +30,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongConsumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -52,11 +52,11 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.StoreAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
@@ -234,7 +234,7 @@ final class TestBindingFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer source)
@@ -444,7 +444,7 @@ final class TestBindingFactory implements BindingHandler
 
         private void onMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1030,7 +1030,7 @@ final class TestBindingFactory implements BindingHandler
 
             private void onMessage(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -1227,7 +1227,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
         BindingHandler streamFactory = context.streamFactory();
 
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -1259,7 +1259,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1289,7 +1289,7 @@ final class TestBindingFactory implements BindingHandler
         int reserved,
         OctetsFW payload)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1318,7 +1318,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1343,7 +1343,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1370,7 +1370,7 @@ final class TestBindingFactory implements BindingHandler
         long budgetId,
         int reserved)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1397,7 +1397,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1425,7 +1425,7 @@ final class TestBindingFactory implements BindingHandler
         int padding,
         int capabilities)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1453,7 +1453,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
         ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)

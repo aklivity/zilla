@@ -98,8 +98,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
@@ -184,6 +182,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionD
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -444,16 +444,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodersByPacketTypeV5 = decodersByPacketType;
     }
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer dataExtBuffer;
-    private final MutableDirectBuffer payloadBuffer;
-    private final MutableDirectBuffer propertyBuffer;
-    private final MutableDirectBuffer sessionExtBuffer;
-    private final MutableDirectBuffer sessionStateBuffer;
-    private final MutableDirectBuffer userPropertiesBuffer;
-    private final MutableDirectBuffer willMessageBuffer;
-    private final MutableDirectBuffer willUserPropertiesBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx dataExtBuffer;
+    private final MutableDirectBufferEx payloadBuffer;
+    private final MutableDirectBufferEx propertyBuffer;
+    private final MutableDirectBufferEx sessionExtBuffer;
+    private final MutableDirectBufferEx sessionStateBuffer;
+    private final MutableDirectBufferEx userPropertiesBuffer;
+    private final MutableDirectBufferEx willMessageBuffer;
+    private final MutableDirectBufferEx willUserPropertiesBuffer;
 
     private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
@@ -553,7 +553,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -668,7 +668,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -704,7 +704,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long budgetId,
         int reserved,
         int flags,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -874,7 +874,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -922,7 +922,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -957,7 +957,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -992,7 +992,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1082,7 +1082,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1174,7 +1174,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1195,7 +1195,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1215,7 +1215,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1237,7 +1237,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1347,7 +1347,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1439,7 +1439,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (mqttPublishHelper.correlationData != null)
                 {
                     final int correlationDataSize = mqttPublishHelper.correlationData.sizeof();
-                    MutableDirectBuffer correlationDataBuffer = new UnsafeBufferEx(new byte[correlationDataSize]);
+                    MutableDirectBufferEx correlationDataBuffer = new UnsafeBufferEx(new byte[correlationDataSize]);
                     server.correlationDataRW.wrap(correlationDataBuffer, 0, correlationDataSize)
                         .set(mqttPublishHelper.correlationData);
                     server.decodedCorrelationData = server.correlationDataRW.build();
@@ -1448,7 +1448,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (mqttPublishHelper.userProperties != null)
                 {
                     final int userPropertiesSize = mqttPublishHelper.userProperties.sizeof();
-                    MutableDirectBuffer userPropertiesBuffer = new UnsafeBufferEx(new byte[userPropertiesSize]);
+                    MutableDirectBufferEx userPropertiesBuffer = new UnsafeBufferEx(new byte[userPropertiesSize]);
                     server.userPropertiesRW.wrap(userPropertiesBuffer, 0, userPropertiesSize);
                     mqttPublishHelper.userProperties
                         .forEach(u -> server.userPropertiesRW.item(c -> c.key(u.key()).value(u.value())));
@@ -1483,7 +1483,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1568,7 +1568,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1614,7 +1614,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1683,7 +1683,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1729,7 +1729,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1798,7 +1798,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1844,7 +1844,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1913,7 +1913,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1959,7 +1959,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2048,7 +2048,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2098,7 +2098,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2148,7 +2148,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2192,7 +2192,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2237,7 +2237,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2269,7 +2269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2312,7 +2312,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2364,7 +2364,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -2376,7 +2376,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -2393,7 +2393,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -2532,7 +2532,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2611,14 +2611,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long budgetId = data.budgetId();
                 final OctetsFW payload = data.payload();
 
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -2690,7 +2690,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
                 final int offset = 0;
                 final int limit = encodeSlotOffset;
 
@@ -2792,7 +2792,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             byte reasonCode = SUCCESS;
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -2860,7 +2860,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnect(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int keepAlive,
@@ -2896,7 +2896,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectPayload(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit)
         {
@@ -3003,7 +3003,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectWillMessage(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit)
         {
@@ -3075,7 +3075,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectWillPayload(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3320,7 +3320,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePuback(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3333,7 +3333,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubrec(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3346,7 +3346,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubrel(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3358,7 +3358,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubcomp(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3377,7 +3377,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int packetId = subscribe.packetId();
             final OctetsFW decodePayload = subscribe.payload();
 
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeOffset = decodePayload.offset();
             final int decodeLimit = decodePayload.limit();
 
@@ -3478,7 +3478,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int packetId = subscribe.packetId();
             final OctetsFW decodePayload = subscribe.payload();
 
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeOffset = decodePayload.offset();
             final int decodeLimit = decodePayload.limit();
 
@@ -3487,7 +3487,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             MqttPropertiesFW properties = subscribe.properties();
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer propertiesBuffer = decodePayload.buffer();
+            final DirectBufferEx propertiesBuffer = decodePayload.buffer();
             final int propertiesOffset = propertiesValue.offset();
             final int propertiesLimit = propertiesValue.limit();
 
@@ -3716,7 +3716,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             OctetsFW decodePayload)
         {
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeLimit = decodePayload.limit();
             final int offset = decodePayload.offset();
 
@@ -3813,7 +3813,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             List<Subscription> newState,
             boolean adminUnsubscribe)
         {
-            final MutableDirectBuffer encodeBuffer = payloadBuffer;
+            final MutableDirectBufferEx encodeBuffer = payloadBuffer;
             final int encodeOffset = 0;
             final int encodeLimit = payloadBuffer.capacity();
 
@@ -3914,7 +3914,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             byte reasonCode = SUCCESS;
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -4013,13 +4013,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -4742,7 +4742,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4778,7 +4778,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -4802,7 +4802,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long authorization = 0L; // TODO;
                 final long budgetId = 0L; // TODO
 
-                final DirectBuffer buffer = bufferPool.buffer(decodeSlot);
+                final DirectBufferEx buffer = bufferPool.buffer(decodeSlot);
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
                 final int reserved = decodeSlotReserved;
@@ -4816,7 +4816,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4841,7 +4841,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -5103,7 +5103,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onSession(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -5320,7 +5320,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final DirectBuffer buffer = payload.buffer();
+                    final DirectBufferEx buffer = payload.buffer();
                     final int offset = payload.offset();
                     final int limit = payload.limit();
 
@@ -5497,7 +5497,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert MqttState.initialOpening(state);
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
                 final int length = limit - offset;
@@ -5518,7 +5518,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int doSessionData(
                 long traceId,
                 int flags,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int limit,
                 int minimum,
@@ -5737,7 +5737,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert MqttState.initialOpening(state);
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int length = limit - offset;
                 assert reserved >= length + initialPad;
 
@@ -5774,7 +5774,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onPublish(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -6349,7 +6349,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onSubscribe(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -6863,7 +6863,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private int decode(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             int flags,
@@ -6942,7 +6942,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             willUserPropertiesRW.wrap(willUserPropertiesBuffer, 0, willUserPropertiesBuffer.capacity());
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -7044,7 +7044,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             userPropertiesRW.wrap(userPropertiesBuffer, 0, userPropertiesBuffer.capacity());
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 

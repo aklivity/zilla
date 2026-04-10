@@ -26,11 +26,10 @@ import static io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags.
 
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
 import io.aklivity.zilla.runtime.binding.http.internal.util.function.ObjectIntBiConsumer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
     Flyweight for HTTP2 SETTINGS frame
@@ -122,7 +121,7 @@ public class Http2SettingsFW extends Http2FrameFW
     }
 
     public Http2SettingsFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -143,7 +142,7 @@ public class Http2SettingsFW extends Http2FrameFW
 
     @Override
     public Http2SettingsFW wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -190,7 +189,7 @@ public class Http2SettingsFW extends Http2FrameFW
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             settingsRW.wrap(buffer, offset + PAYLOAD_OFFSET, maxLimit);

@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.IntPredicate;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -56,7 +56,7 @@ public class StringValidatorHandler implements ValidatorHandler
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

@@ -27,11 +27,11 @@ import java.nio.ByteBuffer;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
@@ -65,7 +65,7 @@ public class FileSystemFunctionsTest
             .timeout(60)
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         FileSystemBeginExFW beginEx = new FileSystemBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, beginEx.typeId());
@@ -400,7 +400,7 @@ public class FileSystemFunctionsTest
             .error("FILE_MODIFIED")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         FileSystemResetExFW resetEx = new FileSystemResetExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, resetEx.typeId());

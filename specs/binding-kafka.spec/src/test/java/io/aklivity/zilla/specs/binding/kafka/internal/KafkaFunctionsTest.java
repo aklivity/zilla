@@ -36,13 +36,13 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
@@ -122,7 +122,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaGroupMemberMetadataFW memberMetadata =
             new KafkaGroupMemberMetadataFW().wrap(buffer, 0, buffer.capacity());
 
@@ -158,7 +158,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         Array32FW<MemberAssignmentFW> assignments =
             new Array32FW<>(new MemberAssignmentFW()).wrap(buffer, 0, buffer.capacity());
 
@@ -182,7 +182,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         Array32FW<TopicAssignmentFW> topics =
             new Array32FW<>(new TopicAssignmentFW()).wrap(buffer, 0, buffer.capacity());
 
@@ -205,7 +205,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.BOOTSTRAP.value(), beginEx.kind());
@@ -252,7 +252,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.META.value(), beginEx.kind());
@@ -271,7 +271,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.META.value(), dataEx.kind());
@@ -296,7 +296,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.DESCRIBE.value(), beginEx.kind());
@@ -322,7 +322,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.DESCRIBE.value(), dataEx.kind());
@@ -363,7 +363,7 @@ public class KafkaFunctionsTest
                                            .build()
                                         .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -385,7 +385,7 @@ public class KafkaFunctionsTest
                                  .build()
                                .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -415,7 +415,7 @@ public class KafkaFunctionsTest
                                    .build()
                                 .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -435,7 +435,7 @@ public class KafkaFunctionsTest
                                  .build()
                                .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -463,7 +463,7 @@ public class KafkaFunctionsTest
                                    .build()
                                 .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -491,7 +491,7 @@ public class KafkaFunctionsTest
                                            .build()
                                         .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -521,7 +521,7 @@ public class KafkaFunctionsTest
                                    .build()
                                 .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -550,7 +550,7 @@ public class KafkaFunctionsTest
                                            .build()
                                         .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, beginEx.typeId());
 
@@ -583,7 +583,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -632,7 +632,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -678,7 +678,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -724,7 +724,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -767,7 +767,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -821,7 +821,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -868,7 +868,7 @@ public class KafkaFunctionsTest
                                              .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -917,7 +917,7 @@ public class KafkaFunctionsTest
                                              .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -966,7 +966,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1014,7 +1014,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1063,7 +1063,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1113,7 +1113,7 @@ public class KafkaFunctionsTest
                     .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1161,7 +1161,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1207,7 +1207,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), dataEx.kind());
@@ -1258,7 +1258,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -1312,7 +1312,7 @@ public class KafkaFunctionsTest
                                          .build()
                                     .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -1361,7 +1361,7 @@ public class KafkaFunctionsTest
                     .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -1381,7 +1381,7 @@ public class KafkaFunctionsTest
                     .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x1, flushEx.typeId());
 
@@ -2195,7 +2195,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), beginEx.kind());
@@ -2242,7 +2242,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), beginEx.kind());
@@ -2289,7 +2289,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), beginEx.kind());
@@ -2332,7 +2332,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), dataEx.kind());
@@ -2379,7 +2379,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), dataEx.kind());
@@ -2421,7 +2421,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), dataEx.kind());
@@ -2459,7 +2459,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -2492,7 +2492,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -2512,7 +2512,7 @@ public class KafkaFunctionsTest
                 {
                     boolean matches;
                     final Array32FW<KafkaValueMatchFW> values = c.headers().values();
-                    final DirectBuffer items = values.items();
+                    final DirectBufferEx items = values.items();
 
                     int progress = 0;
 
@@ -2557,7 +2557,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -2582,7 +2582,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -2606,7 +2606,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -2633,7 +2633,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -4048,7 +4048,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.PRODUCE.value(), beginEx.kind());
@@ -4077,7 +4077,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.PRODUCE.value(), dataEx.kind());
@@ -4111,7 +4111,7 @@ public class KafkaFunctionsTest
                 .error(87)
                 .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, resetEx.typeId());
@@ -4126,7 +4126,7 @@ public class KafkaFunctionsTest
             .consumerId("consumer-1")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, resetEx.typeId());
@@ -4432,7 +4432,7 @@ public class KafkaFunctionsTest
                                          .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.PRODUCE.value(), dataEx.kind());
@@ -4464,7 +4464,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -4486,7 +4486,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
 
@@ -4517,7 +4517,7 @@ public class KafkaFunctionsTest
                                         .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.FETCH.value(), beginEx.kind());
@@ -4539,7 +4539,7 @@ public class KafkaFunctionsTest
                 {
                     boolean matches;
                     final Array32FW<KafkaValueMatchFW> values = c.headers().values();
-                    final DirectBuffer items = values.items();
+                    final DirectBufferEx items = values.items();
 
                     int progress = 0;
 
@@ -4593,7 +4593,7 @@ public class KafkaFunctionsTest
                                         .build()
                                      .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.MERGED.value(), beginEx.kind());
@@ -4618,7 +4618,7 @@ public class KafkaFunctionsTest
                 {
                     boolean matches;
                     final Array32FW<KafkaValueMatchFW> values = c.headers().values();
-                    final DirectBuffer items = values.items();
+                    final DirectBufferEx items = values.items();
 
                     int progress = 0;
 
@@ -4668,7 +4668,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.GROUP.value(), beginEx.kind());
@@ -4696,7 +4696,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.GROUP.value(), beginEx.kind());
@@ -4724,7 +4724,7 @@ public class KafkaFunctionsTest
                     .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.CONSUMER.value(), beginEx.kind());
@@ -4750,7 +4750,7 @@ public class KafkaFunctionsTest
             .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.OFFSET_FETCH.value(), beginEx.kind());
@@ -4776,7 +4776,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.OFFSET_COMMIT.value(), beginEx.kind());
@@ -4834,7 +4834,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x03, dataEx.typeId());
         assertEquals(KafkaApi.CONSUMER.value(), dataEx.kind());
@@ -4854,7 +4854,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.OFFSET_FETCH.value(), dataEx.kind());
@@ -4874,7 +4874,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.INIT_PRODUCER_ID.value(), beginEx.kind());
@@ -4897,7 +4897,7 @@ public class KafkaFunctionsTest
                 .build()
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
         assertEquals(KafkaApi.OFFSET_COMMIT.value(), dataEx.kind());

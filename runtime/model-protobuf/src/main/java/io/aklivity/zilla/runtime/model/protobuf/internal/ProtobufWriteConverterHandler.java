@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import org.agrona.DirectBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufWriteConverterHandler extends ProtobufModelHandler implements ConverterHandler
 {
-    private final DirectBuffer indexesRO;
+    private final DirectBufferEx indexesRO;
     private final InputStreamReader input;
     private final DirectBufferInputStream in;
     private final JsonFormat.Parser parser;
@@ -50,7 +50,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -65,7 +65,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -91,7 +91,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -130,7 +130,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         ValueConsumer next)
@@ -156,7 +156,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         ValueConsumer next)

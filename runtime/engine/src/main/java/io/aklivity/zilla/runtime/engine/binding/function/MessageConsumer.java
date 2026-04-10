@@ -17,9 +17,10 @@ package io.aklivity.zilla.runtime.engine.binding.function;
 
 import static java.util.Objects.requireNonNull;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.MessageHandler;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * Receives typed frames from a {@link DirectBuffer} slice on the I/O hot path.
@@ -55,7 +56,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         @Override
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -91,7 +92,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
      */
     void accept(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 
@@ -101,7 +102,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
     @Override
     default void onMessage(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -127,7 +128,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         MessageConsumer after)
     {
         requireNonNull(after);
-        return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
+        return (int msgTypeId, DirectBufferEx buffer, int index, int length) ->
         {
             accept(msgTypeId, buffer, index, length);
             after.accept(msgTypeId, buffer, index, length);
@@ -145,7 +146,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         MessagePredicate condition)
     {
         requireNonNull(condition);
-        return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
+        return (int msgTypeId, DirectBufferEx buffer, int index, int length) ->
         {
             if (condition.test(msgTypeId, buffer, index, length))
             {

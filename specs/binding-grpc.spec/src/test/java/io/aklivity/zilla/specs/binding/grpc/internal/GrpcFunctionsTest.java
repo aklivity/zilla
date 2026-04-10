@@ -28,11 +28,11 @@ import java.nio.ByteBuffer;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
@@ -78,7 +78,7 @@ public class GrpcFunctionsTest
             .method("EchoUnary")
             .metadata("custom", "test")
             .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         GrpcBeginExFW beginEx = new GrpcBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals("http", beginEx.scheme().asString());
         assertEquals("localhost:8080", beginEx.authority().asString());
@@ -99,7 +99,7 @@ public class GrpcFunctionsTest
             .typeId(0x01)
             .metadata("custom", "test")
             .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         GrpcBeginExFW beginEx = new GrpcBeginExFW().wrap(buffer, 0, buffer.capacity());
         beginEx.metadata().forEach(h ->
         {
@@ -169,7 +169,7 @@ public class GrpcFunctionsTest
             .status("10")
             .message("Custom Error Message")
             .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         GrpcResetExFW resetEx = new GrpcResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, resetEx.typeId());
 
@@ -185,7 +185,7 @@ public class GrpcFunctionsTest
             .status("10")
             .message("Custom Error Message")
             .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         GrpcAbortExFW abortEx = new GrpcAbortExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, abortEx.typeId());
 
@@ -200,7 +200,7 @@ public class GrpcFunctionsTest
             .typeId(0x01)
             .deferred(10)
             .build();
-        DirectBuffer buffer = new UnsafeBufferEx(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         GrpcDataExFW dataEx = new GrpcDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, dataEx.typeId());
 
