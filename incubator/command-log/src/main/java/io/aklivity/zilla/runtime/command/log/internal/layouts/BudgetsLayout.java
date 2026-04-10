@@ -51,10 +51,10 @@ public final class BudgetsLayout extends Layout
 
     public static final int SIZEOF_BUDGET_ENTRY_SHIFT = numberOfTrailingZeros(SIZEOF_BUDGET_ENTRY);
 
-    private final AtomicBuffer buffer;
+    private final AtomicBufferEx buffer;
 
     private BudgetsLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         if (!isPowerOfTwo(buffer.capacity()))
         {
@@ -69,7 +69,7 @@ public final class BudgetsLayout extends Layout
         unmap(buffer().byteBuffer());
     }
 
-    public AtomicBuffer buffer()
+    public AtomicBufferEx buffer()
     {
         return buffer;
     }
