@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String16FW;
@@ -40,7 +39,9 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfInt32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantWithoutOfFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class ListWithConstrainedMapFWTest
 {
