@@ -19,8 +19,6 @@ import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithCon
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaConfiguration;
@@ -48,6 +46,8 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.ResetFW
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -96,8 +96,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private final SseKafkaIdHelper sseEventId = new SseKafkaIdHelper();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -142,7 +142,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sse)
@@ -224,7 +224,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
         private void onSseMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -562,7 +562,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

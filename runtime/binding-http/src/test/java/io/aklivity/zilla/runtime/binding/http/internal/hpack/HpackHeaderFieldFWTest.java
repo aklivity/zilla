@@ -25,11 +25,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HpackHeaderFieldFWTest
@@ -45,7 +45,7 @@ public class HpackHeaderFieldFWTest
                         "400a637573746f6d2d6b65790d637573746f6d2d686561646572" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBufferEx(bytes);
+        DirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(27, fw.limit());
@@ -57,11 +57,11 @@ public class HpackHeaderFieldFWTest
         assertEquals(NEW, literalRO.nameType());
 
         HpackStringFW nameRO = literalRO.nameLiteral();
-        DirectBuffer name = nameRO.payload();
+        DirectBufferEx name = nameRO.payload();
         assertEquals("custom-key", name.getStringWithoutLengthUtf8(0, name.capacity()));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("custom-header", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -70,7 +70,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC21()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -86,11 +86,11 @@ public class HpackHeaderFieldFWTest
         assertEquals(NEW, literalRO.nameType());
 
         HpackStringFW nameRO = literalRO.nameLiteral();
-        DirectBuffer name = nameRO.payload();
+        DirectBufferEx name = nameRO.payload();
         assertEquals("custom-key", name.getStringWithoutLengthUtf8(0, name.capacity()));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("custom-header", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -104,7 +104,7 @@ public class HpackHeaderFieldFWTest
                         "040c2f73616d706c652f70617468" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBufferEx(bytes);
+        DirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(15, fw.limit());
@@ -119,7 +119,7 @@ public class HpackHeaderFieldFWTest
         assertEquals(":path", new HpackContext().name(index));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("/sample/path", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -128,7 +128,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC22()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -147,7 +147,7 @@ public class HpackHeaderFieldFWTest
         assertEquals(":path", new HpackContext().name(index));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("/sample/path", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -161,7 +161,7 @@ public class HpackHeaderFieldFWTest
                         "100870617373776f726406736563726574" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBufferEx(bytes);
+        DirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(18, fw.limit());
@@ -173,11 +173,11 @@ public class HpackHeaderFieldFWTest
         assertEquals(NEW, literalRO.nameType());
 
         HpackStringFW nameRO = literalRO.nameLiteral();
-        DirectBuffer name = nameRO.payload();
+        DirectBufferEx name = nameRO.payload();
         assertEquals("password", name.getStringWithoutLengthUtf8(0, name.capacity()));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("secret", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -185,11 +185,11 @@ public class HpackHeaderFieldFWTest
     @Test
     public void encodeC23()
     {
-        DirectBuffer password = new UnsafeBufferEx("password".getBytes(UTF_8));
-        DirectBuffer secret = new UnsafeBufferEx("secret".getBytes(UTF_8));
+        DirectBufferEx password = new UnsafeBufferEx("password".getBytes(UTF_8));
+        DirectBufferEx secret = new UnsafeBufferEx("secret".getBytes(UTF_8));
 
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -207,11 +207,11 @@ public class HpackHeaderFieldFWTest
         assertEquals(NEW, literalRO.nameType());
 
         HpackStringFW nameRO = literalRO.nameLiteral();
-        DirectBuffer name = nameRO.payload();
+        DirectBufferEx name = nameRO.payload();
         assertEquals("password", name.getStringWithoutLengthUtf8(0, name.capacity()));
 
         HpackStringFW valueRO = literalRO.valueLiteral();
-        DirectBuffer value = valueRO.payload();
+        DirectBufferEx value = valueRO.payload();
         assertEquals("secret", value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
@@ -225,7 +225,7 @@ public class HpackHeaderFieldFWTest
                         "82" +
                         // Header field  end
                         "00");
-        DirectBuffer buf = new UnsafeBufferEx(bytes);
+        DirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW().wrap(buf, 1, buf.capacity() - 1);
         assertEquals(2, fw.limit());
@@ -242,7 +242,7 @@ public class HpackHeaderFieldFWTest
     public void encodeC24()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderFieldFW fw = new HpackHeaderFieldFW.Builder()
                 .wrap(buf, 1, buf.capacity())

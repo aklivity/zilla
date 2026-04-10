@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZview;
@@ -28,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCo
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class RisingwaveCreateZviewMacro extends RisingwaveMacroBase
 {
@@ -192,7 +192,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveMacroBase
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             OctetsFW extension)

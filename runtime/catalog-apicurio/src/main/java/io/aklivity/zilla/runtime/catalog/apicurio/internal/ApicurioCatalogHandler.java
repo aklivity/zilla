@@ -38,12 +38,12 @@ import jakarta.json.JsonReader;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioDefaultIdFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioLegacyIdFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -326,7 +326,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
 
     @Override
     public int resolve(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -342,7 +342,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     public int decode(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -370,7 +370,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -438,14 +438,14 @@ public class ApicurioCatalogHandler implements CatalogHandler
     }
 
     private int decodeDefaultId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index)
     {
         return (int) data.getLong(index, ByteOrder.BIG_ENDIAN);
     }
 
     private int decodeLegacyId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index)
     {
         return data.getInt(index, ByteOrder.BIG_ENDIAN);
@@ -460,6 +460,6 @@ public class ApicurioCatalogHandler implements CatalogHandler
     @FunctionalInterface
     private interface IdDecoder
     {
-        int decode(DirectBuffer data, int index);
+        int decode(DirectBufferEx data, int index);
     }
 }

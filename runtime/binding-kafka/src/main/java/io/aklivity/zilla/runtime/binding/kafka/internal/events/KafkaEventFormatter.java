@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.events;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
@@ -25,6 +23,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaCluster
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaSaslAuthenticationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTopicAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -39,7 +38,7 @@ public final class KafkaEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

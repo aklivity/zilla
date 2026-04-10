@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.OctetsFW;
 
 public class ProtobufField
 {
     public final OctetsFW value;
-    public final MutableDirectBuffer buffer;
+    public final MutableDirectBufferEx buffer;
 
     public ProtobufField()
     {

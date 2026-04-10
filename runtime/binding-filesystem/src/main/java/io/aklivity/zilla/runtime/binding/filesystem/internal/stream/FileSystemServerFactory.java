@@ -54,8 +54,6 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
@@ -78,6 +76,8 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -132,11 +132,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
     private final BufferPool bufferPool;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer errorBuffer;
-    private final MutableDirectBuffer readBuffer;
-    private final MutableDirectBuffer directoryBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx errorBuffer;
+    private final MutableDirectBufferEx readBuffer;
+    private final MutableDirectBufferEx directoryBuffer;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
@@ -190,7 +190,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer app)
@@ -355,7 +355,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -868,7 +868,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

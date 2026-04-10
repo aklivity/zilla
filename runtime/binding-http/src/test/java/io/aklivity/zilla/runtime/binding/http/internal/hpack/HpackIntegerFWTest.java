@@ -17,10 +17,10 @@ package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HpackIntegerFWTest
@@ -34,7 +34,7 @@ public class HpackIntegerFWTest
         int n = 5;
         byte[] bytes = new byte[100];
         bytes[1] = (byte) 0xe0;
-        MutableDirectBuffer buffer = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW.Builder builder = new HpackIntegerFW.Builder(n);
         HpackIntegerFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())
@@ -56,7 +56,7 @@ public class HpackIntegerFWTest
         int n = 5;
         byte[] bytes = new byte[100];
         bytes[1] = (byte) 0xea;
-        DirectBuffer buffer = new UnsafeBufferEx(bytes);
+        DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW fw = new HpackIntegerFW(n);
         int got = fw
                 .wrap(buffer, 1, buffer.capacity())
@@ -75,7 +75,7 @@ public class HpackIntegerFWTest
         int n = 5;
         byte[]bytes = new byte[100];
         bytes[1] = (byte) 0x00;
-        MutableDirectBuffer buffer = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW.Builder builder = new HpackIntegerFW.Builder(n);
         HpackIntegerFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())
@@ -100,7 +100,7 @@ public class HpackIntegerFWTest
         bytes[1] = (byte) 0x1f;
         bytes[2] = (byte) 0x9a;
         bytes[3] = (byte) 0x0a;
-        DirectBuffer buffer = new UnsafeBufferEx(bytes);
+        DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW fw = new HpackIntegerFW(n);
         int got = fw
                 .wrap(buffer, 1, buffer.capacity())
@@ -119,7 +119,7 @@ public class HpackIntegerFWTest
         int n = 5;
         byte[] bytes = new byte[100];
         bytes[1] = (byte) 0xe0;
-        MutableDirectBuffer buffer = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW.Builder builder = new HpackIntegerFW.Builder(n);
         HpackIntegerFW fw = builder
                 .wrap(buffer, 1, buffer.capacity())
@@ -144,7 +144,7 @@ public class HpackIntegerFWTest
         bytes[1] = (byte) 0xff;
         bytes[2] = (byte) 0x9a;
         bytes[3] = (byte) 0x0a;
-        DirectBuffer buffer = new UnsafeBufferEx(bytes);
+        DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW fw = new HpackIntegerFW(n);
         int got = fw
                 .wrap(buffer, 1, buffer.capacity())
@@ -163,7 +163,7 @@ public class HpackIntegerFWTest
         int value = 42;
         int n = 8;
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buffer = new UnsafeBufferEx(bytes);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW.Builder builder = new HpackIntegerFW.Builder(n);
         HpackIntegerFW fw = builder
                 .wrap(buffer, 2, buffer.capacity())
@@ -185,7 +185,7 @@ public class HpackIntegerFWTest
         int n = 8;
         byte[] bytes = new byte[100];
         bytes[2] = 0x2a;
-        DirectBuffer buffer = new UnsafeBufferEx(bytes);
+        DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         HpackIntegerFW fw = new HpackIntegerFW(n);
         int got = fw
                 .wrap(buffer, 2, buffer.capacity())

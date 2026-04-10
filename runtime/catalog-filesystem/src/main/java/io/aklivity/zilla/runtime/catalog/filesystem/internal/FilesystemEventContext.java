@@ -17,11 +17,10 @@ package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventExFW;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventType;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -30,8 +29,8 @@ public class FilesystemEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final MutableDirectBuffer eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final MutableDirectBuffer extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBufferEx eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBufferEx extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final FilesystemEventExFW.Builder schemaRegistryEventExRW = new FilesystemEventExFW.Builder();
     private final int filesystemTypeId;

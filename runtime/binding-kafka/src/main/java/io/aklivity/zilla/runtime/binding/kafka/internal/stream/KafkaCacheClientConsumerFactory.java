@@ -23,8 +23,6 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -50,6 +48,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -61,7 +61,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     private static final int FLAGS_INIT_FIN = 3;
 
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -87,8 +87,8 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
 
     private final int kafkaTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -122,7 +122,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -678,7 +678,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
         private void onConsumerFanMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -913,7 +913,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
         private void onConsumerMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

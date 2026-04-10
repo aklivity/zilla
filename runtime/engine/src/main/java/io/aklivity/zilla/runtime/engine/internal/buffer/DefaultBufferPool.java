@@ -21,12 +21,12 @@ import static org.agrona.BitUtil.isPowerOfTwo;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Hashing;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
  */
 public class DefaultBufferPool implements BufferPool
 {
-    private final MutableDirectBuffer slotBuffer = new UnsafeBufferEx(new byte[0]);
+    private final MutableDirectBufferEx slotBuffer = new UnsafeBufferEx(new byte[0]);
 
     private final int slotCapacity;
     private final int slotCount;
@@ -128,7 +128,7 @@ public class DefaultBufferPool implements BufferPool
     }
 
     @Override
-    public MutableDirectBuffer buffer(
+    public MutableDirectBufferEx buffer(
         int slot)
     {
         assert used.get(slot);
@@ -149,7 +149,7 @@ public class DefaultBufferPool implements BufferPool
     }
 
     @Override
-    public MutableDirectBuffer buffer(
+    public MutableDirectBufferEx buffer(
         int slot,
         int offset)
     {
@@ -178,7 +178,7 @@ public class DefaultBufferPool implements BufferPool
         return new DefaultBufferPool(this);
     }
 
-    public DirectBuffer poolBuffer()
+    public DirectBufferEx poolBuffer()
     {
         return poolBuffer;
     }

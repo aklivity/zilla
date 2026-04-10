@@ -24,18 +24,18 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.IntFunction;
 
-import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaCacheFile implements AutoCloseable
@@ -68,9 +68,9 @@ public class KafkaCacheFile implements AutoCloseable
 
     private final Path location;
     private final MappedByteBuffer mappedByteBuf;
-    private final MutableDirectBuffer mappedBuf;
+    private final MutableDirectBufferEx mappedBuf;
     private final FileChannel appender;
-    private final MutableDirectBuffer appendBuf;
+    private final MutableDirectBufferEx appendBuf;
     private final ByteBuffer appendByteBuf;
 
     private volatile int maxCapacity;
@@ -80,7 +80,7 @@ public class KafkaCacheFile implements AutoCloseable
     public KafkaCacheFile(
         Path location,
         int capacity,
-        MutableDirectBuffer appendBuf)
+        MutableDirectBufferEx appendBuf)
     {
         this.location = location;
         this.mappedByteBuf = mapCreateAppend(location, capacity);
@@ -105,7 +105,7 @@ public class KafkaCacheFile implements AutoCloseable
         this.maxCapacity = mappedBuf.capacity();
     }
 
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return mappedBuf;
     }
@@ -173,7 +173,7 @@ public class KafkaCacheFile implements AutoCloseable
 
     public void writeBytes(
         int position,
-        DirectBuffer srcBuffer,
+        DirectBufferEx srcBuffer,
         int srcIndex,
         int length)
     {
@@ -218,13 +218,13 @@ public class KafkaCacheFile implements AutoCloseable
     }
 
     public boolean appendBytes(
-        DirectBuffer srcBuffer)
+        DirectBufferEx srcBuffer)
     {
         return appendBytes(srcBuffer, 0, srcBuffer.capacity());
     }
 
     public boolean appendBytes(
-        DirectBuffer srcBuffer,
+        DirectBufferEx srcBuffer,
         int srcIndex,
         int length)
     {
@@ -436,7 +436,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf)
+            MutableDirectBufferEx appendBuf)
         {
             super(location.resolve(String.format(FORMAT_LOG_FILE, baseOffset)), capacity, appendBuf);
         }
@@ -455,7 +455,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf)
+            MutableDirectBufferEx appendBuf)
         {
             super(location.resolve(String.format(FORMAT_INDEX_FILE, baseOffset)), capacity, appendBuf);
         }
@@ -474,7 +474,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf,
+            MutableDirectBufferEx appendBuf,
             IntFunction<long[]> sortSpaceRef)
         {
             super(location.resolve(String.format(FORMAT_HSCAN_FILE, baseOffset)), capacity, appendBuf, sortSpaceRef);
@@ -510,7 +510,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf,
+            MutableDirectBufferEx appendBuf,
             IntFunction<long[]> sortSpaceRef)
         {
             super(location.resolve(String.format(FORMAT_KSCAN_FILE, baseOffset)), capacity, appendBuf, sortSpaceRef);
@@ -546,7 +546,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf,
+            MutableDirectBufferEx appendBuf,
             IntFunction<long[]> sortSpaceRef)
         {
             super(location.resolve(String.format(FORMAT_NSCAN_FILE, baseOffset)), capacity, appendBuf, sortSpaceRef);
@@ -582,7 +582,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf)
+            MutableDirectBufferEx appendBuf)
         {
             super(location.resolve(String.format(FORMAT_DELTA_FILE, baseOffset)), capacity, appendBuf);
         }
@@ -601,7 +601,7 @@ public class KafkaCacheFile implements AutoCloseable
             Path location,
             long baseOffset,
             int capacity,
-            MutableDirectBuffer appendBuf)
+            MutableDirectBufferEx appendBuf)
         {
             super(location.resolve(String.format(FORMAT_CONVERTED_FILE, baseOffset)), capacity, appendBuf);
         }

@@ -24,13 +24,13 @@ import static org.mockito.Mockito.mock;
 import java.net.URL;
 import java.nio.file.Path;
 
-import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -81,7 +81,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload =
             "{" +
@@ -101,7 +101,7 @@ public class FilesystemIT
     {
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};

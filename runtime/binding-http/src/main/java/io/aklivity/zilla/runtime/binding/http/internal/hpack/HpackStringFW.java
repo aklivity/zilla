@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 /*
@@ -46,7 +46,7 @@ public class HpackStringFW extends Flyweight
         return (buffer().getByte(offset()) & 0x80) != 0;
     }
 
-    public DirectBuffer payload()
+    public DirectBufferEx payload()
     {
         return payloadRO;
     }
@@ -63,7 +63,7 @@ public class HpackStringFW extends Flyweight
     }
 
     @Override
-    public HpackStringFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public HpackStringFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -86,7 +86,7 @@ public class HpackStringFW extends Flyweight
         }
 
         @Override
-        public HpackStringFW.Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public HpackStringFW.Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             buffer().putByte(offset(), (byte) 0x00);
@@ -99,7 +99,7 @@ public class HpackStringFW extends Flyweight
             throw new UnsupportedOperationException("TODO");
         }
 
-        public HpackStringFW.Builder string(DirectBuffer value, int offset, int length)
+        public HpackStringFW.Builder string(DirectBufferEx value, int offset, int length)
         {
             integerRW.integer(length);
             buffer().putBytes(integerRW.limit(), value, offset, length);

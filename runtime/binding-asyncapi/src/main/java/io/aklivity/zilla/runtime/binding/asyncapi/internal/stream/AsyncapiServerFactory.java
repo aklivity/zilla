@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -41,6 +39,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -77,8 +77,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
 
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
@@ -146,7 +146,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -259,7 +259,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
         private void onCompositeMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -588,7 +588,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
         private void onAsyncapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

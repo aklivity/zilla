@@ -20,11 +20,11 @@ import static org.junit.Assert.assertNotNull;
 
 import java.nio.ByteBuffer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
@@ -48,9 +48,9 @@ public class AsyncapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
-        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1]);
 
         assertEquals(1, asyncapiBeginEx.apiId());
         assertEquals("operationId", asyncapiBeginEx.operationId().asString());
@@ -68,7 +68,7 @@ public class AsyncapiFunctionsTest
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(23);
-        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
@@ -90,7 +90,7 @@ public class AsyncapiFunctionsTest
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(34);
-        MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)

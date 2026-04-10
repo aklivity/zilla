@@ -22,8 +22,6 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
@@ -35,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
@@ -92,7 +91,7 @@ public final class GrpcKafkaWithResolver
         String16FW topic = new String16FW(fetch.topic);
 
         final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
-        final DirectBuffer metadataName = options.reliability.metadata.value();
+        final DirectBufferEx metadataName = options.reliability.metadata.value();
         GrpcMetadataFW lastMessageIdMetadata = metadata
             .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
         Array32FW<KafkaOffsetFW> partitions = null;
@@ -111,7 +110,7 @@ public final class GrpcKafkaWithResolver
             filters = new ArrayList<>();
             for (GrpcKafkaWithFetchFilterConfig filter : fetch.filters.get())
             {
-                DirectBuffer key = null;
+                DirectBufferEx key = null;
                 if (filter.key.isPresent())
                 {
                     String key0 = filter.key.get();
@@ -134,7 +133,7 @@ public final class GrpcKafkaWithResolver
                     for (GrpcKafkaWithFetchFilterHeaderConfig header0 : filter.headers.get())
                     {
                         String name0 = header0.name;
-                        DirectBuffer name = new String16FW(name0).value();
+                        DirectBufferEx name = new String16FW(name0).value();
 
                         String value0 = header0.value;
                         identityMatcher.reset(value0);
@@ -145,7 +144,7 @@ public final class GrpcKafkaWithResolver
 
                         value0 = resolveAttribute(authorization, value0);
 
-                        DirectBuffer value = new String16FW(value0).value();
+                        DirectBufferEx value = new String16FW(value0).value();
 
                         headers.add(new GrpcKafkaWithFetchFilterHeaderResult(name, value));
                     }
@@ -245,7 +244,7 @@ public final class GrpcKafkaWithResolver
             for (GrpcKafkaWithProduceOverrideConfig override : produce.overrides.get())
             {
                 String name0 = override.name;
-                DirectBuffer name = new String16FW(name0).value();
+                DirectBufferEx name = new String16FW(name0).value();
 
                 String value0 = override.value;
                 Matcher valueMatcher = identityMatcher.reset(value0);

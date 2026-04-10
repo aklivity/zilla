@@ -27,9 +27,7 @@ import java.nio.file.Path;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.jboss.netty.channel.ChannelFactory;
@@ -38,6 +36,8 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 
 import io.aklivity.k3po.runtime.driver.internal.behavior.handler.RejectedHandler;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
@@ -140,7 +140,7 @@ final class ZillaPartition implements AutoCloseable
 
     private void handleStream(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -173,7 +173,7 @@ final class ZillaPartition implements AutoCloseable
 
     private void handleUnrecognized(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -257,7 +257,7 @@ final class ZillaPartition implements AutoCloseable
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {
-                final DirectBuffer buffer = beginExt.buffer();
+                final DirectBufferEx buffer = beginExt.buffer();
                 final int offset = beginExt.offset();
 
                 // TODO: avoid allocation

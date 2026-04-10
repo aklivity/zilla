@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
@@ -26,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HttpKafkaWithFetchResult
@@ -140,7 +139,7 @@ public class HttpKafkaWithFetchResult
     public void headers(
         Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
     {
-        final DirectBuffer contentType = merge.contentType.value();
+        final DirectBufferEx contentType = merge.contentType.value();
 
         builder.item(i -> i
                 .name(HTTP_HEADER_NAME_STATUS)

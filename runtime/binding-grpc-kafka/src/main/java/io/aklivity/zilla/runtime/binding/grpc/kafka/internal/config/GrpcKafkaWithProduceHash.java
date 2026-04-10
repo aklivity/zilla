@@ -19,11 +19,10 @@ import static org.agrona.BitUtil.toHex;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class GrpcKafkaWithProduceHash
 {
@@ -49,7 +48,7 @@ public class GrpcKafkaWithProduceHash
     }
 
     public void updateHash(
-        DirectBuffer value)
+        DirectBufferEx value)
     {
         value.getBytes(0, hashBytesRW, 0, value.capacity());
         md5.update(hashBytesRW, 0, value.capacity());
