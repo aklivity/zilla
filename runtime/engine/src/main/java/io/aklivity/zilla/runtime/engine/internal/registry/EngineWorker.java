@@ -87,13 +87,13 @@ import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -205,7 +205,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<Target> targetsByIndex;
     private BufferPool bufferPool;
     private final long mask;
-    private final MessageHandler readHandler;
+    private final MessageHandlerEx readHandler;
     private final TimerHandler expireHandler;
     private final int readLimit;
     private final int expireLimit;
@@ -809,7 +809,7 @@ public class EngineWorker implements EngineContext, Agent
                 }
             }
 
-            workDone += streamsBuffer.read(readHandler, readLimit);
+            workDone += streamsBuffer.readEx(readHandler, readLimit);
 
             if (workDone == 0 &&
                 maxSelectMillis != 0 &&
