@@ -43,6 +43,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
 @Fork(3)
