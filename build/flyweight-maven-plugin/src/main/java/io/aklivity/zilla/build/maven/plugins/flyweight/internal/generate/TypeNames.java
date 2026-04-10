@@ -35,6 +35,8 @@ public final class TypeNames
     private static final String ZILLA_COMMON_AGRONA_BUFFER_PACKAGE =
         "io.aklivity.zilla.runtime.common.agrona.buffer";
     public static final ClassName SAFE_BUFFER_TYPE = ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "SafeBuffer");
+    public static final ClassName UNSAFE_BUFFER_EX_TYPE =
+        ClassName.get(ZILLA_COMMON_AGRONA_BUFFER_PACKAGE, "UnsafeBufferEx");
     public static final ClassName LONG_2_OBJECT_HASH_MAP_TYPE =
         ClassName.get(AGRONA_COLLECTIONS_PACKAGE, "Long2ObjectHashMap");
 

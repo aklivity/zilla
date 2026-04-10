@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ProxyMatcherTest
 {
@@ -41,7 +41,7 @@ public class ProxyMatcherTest
     @Before
     public void initBuilder()
     {
-        MutableDirectBuffer buffer = new SafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         builder = new ProxyBeginExFW.Builder().wrap(buffer, 0, buffer.capacity())
             .typeId(0);
     }

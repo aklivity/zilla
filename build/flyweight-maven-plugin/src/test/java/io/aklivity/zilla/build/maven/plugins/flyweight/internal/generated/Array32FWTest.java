@@ -34,11 +34,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Strin
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Array32FWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(150000))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(150000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -221,7 +221,7 @@ public class Array32FWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
         return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

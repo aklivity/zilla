@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -62,9 +62,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyServerFactory implements ProxyStreamFactory
 {
-    private static final DirectBuffer HEADER_V2 = new SafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBuffer HEADER_V2 = new UnsafeBufferEx("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
     private static final int HEADER_V2_SIZE = HEADER_V2.capacity();
-    private static final DirectBuffer EMPTY_BUFFER = new SafeBuffer(0, 0);
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(0, 0);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private static final int PROXY_ADDRESS_LENGTH_INET4 = 12;

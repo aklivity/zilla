@@ -32,11 +32,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfUint32FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class List32FWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -146,7 +146,7 @@ public class List32FWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithDirectBuffer() throws Exception
     {
-        final MutableDirectBuffer listBuffer = new SafeBuffer(allocateDirect(100))
+        final MutableDirectBuffer listBuffer = new UnsafeBufferEx(allocateDirect(100))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -175,7 +175,7 @@ public class List32FWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithVisitor() throws Exception
     {
-        final MutableDirectBuffer listBuffer = new SafeBuffer(allocateDirect(100))
+        final MutableDirectBuffer listBuffer = new UnsafeBufferEx(allocateDirect(100))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -227,7 +227,7 @@ public class List32FWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

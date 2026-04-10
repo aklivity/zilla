@@ -28,7 +28,7 @@ import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class MetricsLayout extends Layout
 {
@@ -47,8 +47,8 @@ public final class MetricsLayout extends Layout
     private static final int END_OF_META_DATA_OFFSET = align(
             FIELD_OFFSET_VALUES_BUFFER_LENGTH + FIELD_SIZE_COUNTER_VALUES_BUFFER_LENGTH, BitUtil.CACHE_LINE_LENGTH);
 
-    private final AtomicBuffer labelsBuffer = new SafeBuffer(new byte[0]);
-    private final AtomicBuffer valuesBuffer = new SafeBuffer(new byte[0]);
+    private final AtomicBuffer labelsBuffer = new UnsafeBufferEx(new byte[0]);
+    private final AtomicBuffer valuesBuffer = new UnsafeBufferEx(new byte[0]);
 
     public AtomicBuffer labelsBuffer()
     {

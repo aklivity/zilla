@@ -36,11 +36,11 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Strin
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Array16FWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(150000))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(150000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -229,14 +229,14 @@ public class Array16FWTest
         switch (highestByteIndex)
         {
         case 0:
-            buffer = new SafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES + value.length()));
             return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 1:
-            buffer = new SafeBuffer(allocateDirect(Short.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Short.BYTES + value.length()));
             return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 2:
         case 3:
-            buffer = new SafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
             return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);

@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class SseKafkaIdHelperTest
 {
@@ -37,7 +37,7 @@ public class SseKafkaIdHelperTest
         DirectBuffer base64 = new String8FW("AQQABAIC").value();
         Array32FW<KafkaOffsetFW> expected =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new SafeBuffer(new byte[1024]), 0, 1024)
+                .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024)
                 .item(o -> o.partitionId(0).partitionOffset(2))
                 .item(o -> o.partitionId(1).partitionOffset(1))
                 .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))

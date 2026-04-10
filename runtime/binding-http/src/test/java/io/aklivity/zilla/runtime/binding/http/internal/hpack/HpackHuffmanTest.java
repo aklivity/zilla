@@ -24,7 +24,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HpackHuffmanTest
 {
@@ -52,8 +52,8 @@ public class HpackHuffmanTest
     public void decodeReject()
     {
         byte[] bytes = BitUtil.fromHex("006402");
-        DirectBuffer buf = new SafeBuffer(bytes, 1, bytes.length - 1);
-        MutableDirectBuffer dst = new SafeBuffer(new byte[0]);
+        DirectBuffer buf = new UnsafeBufferEx(bytes, 1, bytes.length - 1);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[0]);
         int length = HpackHuffman.decode(buf, dst);
         assertEquals(-1, length);
     }
@@ -61,8 +61,8 @@ public class HpackHuffmanTest
     private void decode(String encoded, String expected)
     {
         byte[] bytes = BitUtil.fromHex("00" + encoded);    // +00 to test offset
-        DirectBuffer buf = new SafeBuffer(bytes, 1, bytes.length - 1);
-        MutableDirectBuffer dst = new SafeBuffer(new byte[4096]);
+        DirectBuffer buf = new UnsafeBufferEx(bytes, 1, bytes.length - 1);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]);
         int length = HpackHuffman.decode(buf, dst);
         assertNotEquals(-1, length);
         String got = dst.getStringWithoutLengthUtf8(0, length);
@@ -91,13 +91,13 @@ public class HpackHuffmanTest
     private void encode(String str, String expected)
     {
         byte[] expectedBytes = BitUtil.fromHex(expected);
-        DirectBuffer expectedBuf = new SafeBuffer(expectedBytes);
+        DirectBuffer expectedBuf = new UnsafeBufferEx(expectedBytes);
 
         byte[] bytes = str.getBytes(UTF_8);
-        DirectBuffer buf = new SafeBuffer(bytes, 0, bytes.length);
+        DirectBuffer buf = new UnsafeBufferEx(bytes, 0, bytes.length);
 
         int size = HpackHuffman.encodedSize(buf, 0, buf.capacity());
-        MutableDirectBuffer encodedBuf = new SafeBuffer(new byte[size]);
+        MutableDirectBuffer encodedBuf = new UnsafeBufferEx(new byte[size]);
         HpackHuffman.encode(buf, encodedBuf);
         assertEquals(expectedBuf, encodedBuf);
     }

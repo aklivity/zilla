@@ -61,7 +61,7 @@ import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.channel.MessageEvent;
 
 import io.aklivity.k3po.runtime.driver.internal.netty.channel.CompositeChannelFuture;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.Layout;
@@ -91,7 +91,7 @@ final class ZillaTarget implements AutoCloseable
 
     private final OctetsFW octetsRO = new OctetsFW();
 
-    private final MutableDirectBuffer resetBuffer = new SafeBuffer(new byte[ResetFW.FIELD_OFFSET_EXTENSION]);
+    private final MutableDirectBuffer resetBuffer = new UnsafeBufferEx(new byte[ResetFW.FIELD_OFFSET_EXTENSION]);
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
@@ -725,7 +725,7 @@ final class ZillaTarget implements AutoCloseable
                 // TODO: avoid allocation
                 byte[] writeCopyBytes = new byte[writableBytes];
                 writeBuf.getBytes(writeReaderIndex, writeCopyBytes);
-                writeCopy = octetsRO.wrap(new SafeBuffer(writeCopyBytes), 0, writableBytes);
+                writeCopy = octetsRO.wrap(new UnsafeBufferEx(writeCopyBytes), 0, writableBytes);
             }
 
             int optionFlags = channel.writeFlags();

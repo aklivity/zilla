@@ -41,7 +41,7 @@ import org.agrona.IoUtil;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public abstract class KafkaCacheIndexFile extends KafkaCacheFile
 {
@@ -632,7 +632,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
                 try (FileChannel channel = FileChannel.open(workingFile, READ, WRITE))
                 {
                     final ByteBuffer mapped = channel.map(MapMode.READ_WRITE, 0, channel.size());
-                    final MutableDirectBuffer buffer = new SafeBuffer(mapped);
+                    final MutableDirectBuffer buffer = new UnsafeBufferEx(mapped);
 
                     sortByKey(buffer);
 
@@ -664,7 +664,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
                 try (FileChannel channel = FileChannel.open(workingFile, READ, WRITE))
                 {
                     final ByteBuffer mapped = channel.map(MapMode.READ_WRITE, 0, channel.size());
-                    final MutableDirectBuffer buffer = new SafeBuffer(mapped);
+                    final MutableDirectBuffer buffer = new UnsafeBufferEx(mapped);
 
                     sortByKey(buffer);
                     final int newCapacity = unique(buffer);

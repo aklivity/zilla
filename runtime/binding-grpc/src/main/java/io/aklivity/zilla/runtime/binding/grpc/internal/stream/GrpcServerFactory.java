@@ -61,7 +61,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpResetExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -83,7 +83,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
     private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_NAME_GRPC_ENCODING = new String8FW("grpc-encoding");
     private static final String8FW HEADER_NAME_GRPC_STATUS = new String8FW("grpc-status");
@@ -248,8 +248,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.metadataBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

@@ -28,7 +28,7 @@ import java.util.function.LongConsumer;
 import org.agrona.concurrent.AtomicBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -112,7 +112,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.opens.received");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -172,7 +172,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.opens.sent");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -232,8 +232,8 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.data.received");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
-        AtomicBuffer payload = new SafeBuffer(new byte[8], 0, 8);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
+        AtomicBuffer payload = new UnsafeBufferEx(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -294,8 +294,8 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.data.sent");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
-        AtomicBuffer payload = new SafeBuffer(new byte[8], 0, 8);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
+        AtomicBuffer payload = new UnsafeBufferEx(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -356,7 +356,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.errors.received");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -421,7 +421,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.errors.sent");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -486,7 +486,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.closes.received");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -546,7 +546,7 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.closes.sent");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer buffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer buffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -606,13 +606,13 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.active.received");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer beginBuffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer beginBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-        AtomicBuffer endBuffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer endBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -673,13 +673,13 @@ public class StreamMetricGroupTest
         Metric metric = metricGroup.supply("stream.active.sent");
         MetricContext context = metric.supply(mocked);
         MessageConsumer handler = context.supply(recorder);
-        AtomicBuffer beginBuffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer beginBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-        AtomicBuffer endBuffer = new SafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer endBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)

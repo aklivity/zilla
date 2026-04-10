@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdV1FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class SseKafkaIdHelper
 {
@@ -39,15 +39,15 @@ public final class SseKafkaIdHelper
 
     private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new SafeBuffer(new byte[2048]), 0, 2048);
+                .wrap(new UnsafeBufferEx(new byte[2048]), 0, 2048);
 
     private final SseKafkaEventIdFW.Builder eventIdRW =
-            new SseKafkaEventIdFW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
+            new SseKafkaEventIdFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
 
-    private final MutableDirectBuffer progressOnlyRW = new SafeBuffer(new byte[1024], 0, 1024);
-    private final MutableDirectBuffer keyAndProgressRW = new SafeBuffer(new byte[1024], 0, 1024);
+    private final MutableDirectBuffer progressOnlyRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
+    private final MutableDirectBuffer keyAndProgressRW = new UnsafeBufferEx(new byte[1024], 0, 1024);
 
-    private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new SafeBuffer(new byte[1024]), 0, 1024);
+    private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
     private final OctetsFW octetsRO = new OctetsFW();
 
     private final SseKafkaEventIdFW eventIdRO = new SseKafkaEventIdFW();
@@ -57,15 +57,15 @@ public final class SseKafkaIdHelper
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
-    private final MutableDirectBuffer bufferRW = new SafeBuffer(0L, 0);
-    private final DirectBuffer bufferRO = new SafeBuffer(0L, 0);
+    private final MutableDirectBuffer bufferRW = new UnsafeBufferEx(0L, 0);
+    private final DirectBuffer bufferRO = new UnsafeBufferEx(0L, 0);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
 
     private final Array32FW<KafkaOffsetFW> historical =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new SafeBuffer(new byte[38]), 0, 38)
+                .wrap(new UnsafeBufferEx(new byte[38]), 0, 38)
                 .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))
                 .build();
 

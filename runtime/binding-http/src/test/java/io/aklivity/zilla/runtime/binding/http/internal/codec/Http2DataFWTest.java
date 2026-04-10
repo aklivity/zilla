@@ -23,16 +23,16 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2DataFWTest
 {
     @Test
     public void encode()
     {
-        DirectBuffer payload = new SafeBuffer(new byte[] {0, 1, 2, 3, 4, 5});
+        DirectBuffer payload = new UnsafeBufferEx(new byte[] {0, 1, 2, 3, 4, 5});
         byte[] bytes = new byte[1 + 9 + payload.capacity()];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         Http2DataFW fw = new Http2DataFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset
@@ -52,9 +52,9 @@ public class Http2DataFWTest
     @Test
     public void encodeLarge()
     {
-        DirectBuffer payload = new SafeBuffer(new byte[0x010203]);
+        DirectBuffer payload = new UnsafeBufferEx(new byte[0x010203]);
         byte[] bytes = new byte[1 + 9 + payload.capacity()];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         Http2DataFW fw = new Http2DataFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset
@@ -74,9 +74,9 @@ public class Http2DataFWTest
     @Test
     public void encodeEmpty()
     {
-        DirectBuffer payload = new SafeBuffer(new byte[0]);
+        DirectBuffer payload = new UnsafeBufferEx(new byte[0]);
         byte[] bytes = new byte[1 + 9 + payload.capacity()];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         Http2DataFW fw = new Http2DataFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

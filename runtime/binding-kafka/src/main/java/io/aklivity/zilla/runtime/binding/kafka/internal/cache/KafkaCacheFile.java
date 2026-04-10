@@ -36,7 +36,7 @@ import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaCacheFile implements AutoCloseable
 {
@@ -84,7 +84,7 @@ public class KafkaCacheFile implements AutoCloseable
     {
         this.location = location;
         this.mappedByteBuf = mapCreateAppend(location, capacity);
-        this.mappedBuf = new SafeBuffer(mappedByteBuf);
+        this.mappedBuf = new UnsafeBufferEx(mappedByteBuf);
         this.appender = openAppender(location);
         this.appendBuf = requireNonNull(appendBuf);
         this.appendByteBuf = requireNonNull(appendBuf.byteBuffer());
@@ -97,7 +97,7 @@ public class KafkaCacheFile implements AutoCloseable
     {
         this.location = location;
         this.mappedByteBuf = mapReadWrite(location);
-        this.mappedBuf = new SafeBuffer(mappedByteBuf);
+        this.mappedBuf = new UnsafeBufferEx(mappedByteBuf);
         this.appender = null;
         this.appendBuf = null;
         this.appendByteBuf = null;

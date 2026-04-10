@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaD
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -95,7 +95,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -162,8 +162,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.metaBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.metaBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -442,7 +442,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     {
                         final int correlationLength = helper.correlationId.sizeof();
                         OctetsFW newCorrelationId = new OctetsFW.Builder()
-                            .wrap(new SafeBuffer(new byte[correlationLength]), 0, correlationLength)
+                            .wrap(new UnsafeBufferEx(new byte[correlationLength]), 0, correlationLength)
                             .set(helper.correlationId)
                             .build();
                         lastCorrelationId = newCorrelationId;
@@ -1273,7 +1273,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW correlationId)
         {
             correlationIds.add(new OctetsFW.Builder()
-                .wrap(new SafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
+                .wrap(new UnsafeBufferEx(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
                 .set(correlationId)
                 .build());
 

@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -79,15 +79,15 @@ public class SseClientFactory implements SseStreamFactory
     private static final int LINE_COLON_BYTE = 0x3a;
     private static final int LINE_SPACE_BYTE = 0x20;
 
-    private static final DirectBuffer FIELD_NAME_TYPE_BYTES = new SafeBuffer("event".getBytes(UTF_8));
-    private static final DirectBuffer FIELD_NAME_ID_BYTES = new SafeBuffer("id".getBytes(UTF_8));
-    private static final DirectBuffer FIELD_NAME_DATA_BYTES = new SafeBuffer("data".getBytes(UTF_8));
+    private static final DirectBuffer FIELD_NAME_TYPE_BYTES = new UnsafeBufferEx("event".getBytes(UTF_8));
+    private static final DirectBuffer FIELD_NAME_ID_BYTES = new UnsafeBufferEx("id".getBytes(UTF_8));
+    private static final DirectBuffer FIELD_NAME_DATA_BYTES = new UnsafeBufferEx("data".getBytes(UTF_8));
 
     private static final IntPredicate EOL_MATCHER = v -> v == LINE_CR_BYTE || v == LINE_LF_BYTE;
     private static final IntPredicate COLON_MATCHER = v -> v == LINE_COLON_BYTE;
     private static final IntPredicate EOF_MATCHER = COLON_MATCHER.or(EOL_MATCHER);
 
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private static final String8FW FIELD_VALUE_NULL = new String8FW(null);
     private static final String8FW FIELD_VALUE_EMPTY = new String8FW("");
@@ -115,14 +115,14 @@ public class SseClientFactory implements SseStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final SseDataExFW.Builder sseDataExRW = new SseDataExFW.Builder();
 
-    private final DirectBuffer nameRO = new SafeBuffer(0L, 0);
-    private final DirectBuffer valueRO = new SafeBuffer(0L, 0);
+    private final DirectBuffer nameRO = new UnsafeBufferEx(0L, 0);
+    private final DirectBuffer valueRO = new UnsafeBufferEx(0L, 0);
 
     private final OctetsFW lineDataRO = new OctetsFW();
     private final OctetsFW valueDataRO = new OctetsFW();
 
-    private final String8FW.Builder valueIdRW = new String8FW.Builder().wrap(new SafeBuffer(new byte[256]), 0, 256);
-    private final String8FW.Builder valueTypeRW = new String8FW.Builder().wrap(new SafeBuffer(new byte[256]), 0, 256);
+    private final String8FW.Builder valueIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
+    private final String8FW.Builder valueTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
     private final Map<DirectBuffer, SseFieldName> decodeableFieldNames;
     {
@@ -165,8 +165,8 @@ public class SseClientFactory implements SseStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.lineBuffer = new SafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.lineBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

@@ -24,7 +24,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -103,7 +103,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -137,7 +137,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
             0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -173,7 +173,7 @@ public class AvroModelTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
@@ -207,7 +207,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x02, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -219,7 +219,7 @@ public class AvroModelTest
                     "\"status\":\"positive\"" +
                 "}";
 
-        DirectBuffer expected = new SafeBuffer();
+        DirectBuffer expected = new UnsafeBufferEx();
         expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
         int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
@@ -255,7 +255,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, model, context);
 
-        DirectBuffer expected = new SafeBuffer();
+        DirectBuffer expected = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -267,7 +267,7 @@ public class AvroModelTest
                     "\"status\":\"positive\"" +
                 "}";
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
         int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
@@ -310,7 +310,7 @@ public class AvroModelTest
                 "\"status\":\"positive\"" +
             "}";
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
         int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(-1, progress);
@@ -343,7 +343,7 @@ public class AvroModelTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         AvroReadConverterHandler converter = new AvroReadConverterHandler(config, model, context);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -393,7 +393,7 @@ public class AvroModelTest
         String doublePath = "$.doubleField";
         converter.extract(doublePath);
 
-        DirectBuffer data = new SafeBuffer();
+        DirectBuffer data = new UnsafeBufferEx();
 
         byte[] bytes = {0, 16, 112, 111, 115, 105, 116, 105, 118, 101, 2, -51, -52, 12, 64, 2, 51, 51, 51, 51, 51, 51, -13, 63};
         data.wrap(bytes, 0, bytes.length);

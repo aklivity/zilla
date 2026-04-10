@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
 
 public class AvroField
@@ -27,6 +27,6 @@ public class AvroField
     public AvroField()
     {
         this.value = new OctetsFW();
-        this.buffer = new SafeBuffer(new byte[24]);
+        this.buffer = new UnsafeBufferEx(new byte[24]);
     }
 }

@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaCacheSegmentTest
 {
@@ -39,7 +39,7 @@ public class KafkaCacheSegmentTest
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         Path location = tempFolder.getRoot().toPath();
-        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(0));
+        MutableDirectBuffer appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(0));
 
         try (KafkaCacheSegment head = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new);
                 KafkaCacheSegment tail = head.freeze())
@@ -66,7 +66,7 @@ public class KafkaCacheSegmentTest
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         Path location = tempFolder.getRoot().toPath();
-        MutableDirectBuffer appendBuf = new SafeBuffer(ByteBuffer.allocate(0));
+        MutableDirectBuffer appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(0));
 
         try (KafkaCacheSegment segment = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new))
         {

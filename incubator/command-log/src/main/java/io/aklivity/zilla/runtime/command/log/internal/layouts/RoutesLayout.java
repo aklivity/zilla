@@ -24,7 +24,7 @@ import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class RoutesLayout extends Layout
 {
@@ -65,7 +65,7 @@ public final class RoutesLayout extends Layout
 
             final MappedByteBuffer mappedRoutes = mapExistingFile(routes, "routes");
 
-            final DirectBuffer routesBuffer = new SafeBuffer(mappedRoutes);
+            final DirectBuffer routesBuffer = new UnsafeBufferEx(mappedRoutes);
 
             return new RoutesLayout(routesBuffer);
         }

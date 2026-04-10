@@ -150,7 +150,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscrib
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -163,7 +163,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class MqttClientFactory implements MqttStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new SafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
@@ -365,17 +365,17 @@ public final class MqttClientFactory implements MqttStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.dataExtBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionStateBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.propertyBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.userPropertiesBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.subscriptionIdsBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.payloadBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
-        this.connectPayloadBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.passwordBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
-        this.willPropertyBuffer = new SafeBuffer(new byte[writeBuffer.capacity()]);
+        this.connectPayloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.passwordBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.willPropertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();

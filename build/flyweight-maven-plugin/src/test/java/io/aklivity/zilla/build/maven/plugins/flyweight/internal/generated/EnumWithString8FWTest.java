@@ -28,20 +28,20 @@ import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithStringFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class EnumWithString8FWTest
 {
     private static final int LENGTH_SIZE = BitUtil.SIZE_OF_BYTE;
 
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -186,7 +186,7 @@ public class EnumWithString8FWTest
 
     private static EnumWithStringFW asEnumWithStringFW(EnumWithString value)
     {
-        MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(LENGTH_SIZE + value.value().length()));
+        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(LENGTH_SIZE + value.value().length()));
         return new EnumWithStringFW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

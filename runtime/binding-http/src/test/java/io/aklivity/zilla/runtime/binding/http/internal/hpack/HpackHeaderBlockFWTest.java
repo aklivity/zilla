@@ -29,7 +29,7 @@ import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HpackHeaderBlockFWTest
 {
@@ -59,7 +59,7 @@ public class HpackHeaderBlockFWTest
                         "828684410f7777772e6578616d706c652e636f6d" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(21, fw.limit());
 
@@ -82,7 +82,7 @@ public class HpackHeaderBlockFWTest
                         "828684be58086e6f2d6361636865" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(15, fw.limit());
 
@@ -106,7 +106,7 @@ public class HpackHeaderBlockFWTest
                         "828785bf400a637573746f6d2d6b65790c637573746f6d2d76616c7565" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(30, fw.limit());
 
@@ -141,7 +141,7 @@ public class HpackHeaderBlockFWTest
     private void encodeC31(HpackContext context)
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -167,7 +167,7 @@ public class HpackHeaderBlockFWTest
     private void encodeC32(HpackContext context)
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -194,7 +194,7 @@ public class HpackHeaderBlockFWTest
     private void encodeC33(HpackContext context)
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new SafeBuffer(bytes);
+        MutableDirectBuffer buf = new UnsafeBufferEx(bytes);
 
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW.Builder()
                 .wrap(buf, 1, buf.capacity())
@@ -242,7 +242,7 @@ public class HpackHeaderBlockFWTest
                         "828684418cf1e3c2e5f23a6ba0ab90f4ff" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(18, fw.limit());
 
@@ -265,7 +265,7 @@ public class HpackHeaderBlockFWTest
                         "828684be5886a8eb10649cbf" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(13, fw.limit());
 
@@ -289,7 +289,7 @@ public class HpackHeaderBlockFWTest
                         "828785bf408825a849e95ba97d7f8925a849e95bb8e8b4bf" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(25, fw.limit());
 
@@ -333,7 +333,7 @@ public class HpackHeaderBlockFWTest
                         "6c652e636f6d" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(71, fw.limit());
 
@@ -367,7 +367,7 @@ public class HpackHeaderBlockFWTest
                         "4803333037c1c0bf" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(9, fw.limit());
 
@@ -407,7 +407,7 @@ public class HpackHeaderBlockFWTest
                         "3d31" +
                         // Header list end
                         "00");
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 1, buffer.capacity() - 1);
         assertEquals(99, fw.limit());
 
@@ -441,7 +441,7 @@ public class HpackHeaderBlockFWTest
                         "0085f2b24a87fffffffd25427f"
                         // Header list end
                         );
-        DirectBuffer buffer = new SafeBuffer(bytes);
+        DirectBuffer buffer = new UnsafeBufferEx(bytes);
         HpackHeaderBlockFW fw = new HpackHeaderBlockFW().wrap(buffer, 0, buffer.capacity() - 1);
         assertTrue(fw.error());
         assertEquals(27, fw.limit());
@@ -498,7 +498,7 @@ public class HpackHeaderBlockFWTest
         DirectBuffer valuePayload = value.payload();
         if (value.huffman())
         {
-            MutableDirectBuffer dst = new SafeBuffer(new byte[4096]);
+            MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]);
             int length = HpackHuffman.decode(valuePayload, dst);
             assert length != -1;
             return dst.getStringWithoutLengthUtf8(0, length);

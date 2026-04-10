@@ -32,18 +32,18 @@ import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithArrayFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class FlatWithArrayFWTest
 {
-    private final MutableDirectBuffer buffer = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new SafeBuffer(allocateDirect(100))
+    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -53,7 +53,7 @@ public class FlatWithArrayFWTest
     private final FlatWithArrayFW.Builder flatRW = new FlatWithArrayFW.Builder();
     private final FlatWithArrayFW flyweightRO = new FlatWithArrayFW();
     private final String8FW.Builder stringRW = new String8FW.Builder();
-    private final MutableDirectBuffer valueBuffer = new SafeBuffer(allocateDirect(100));
+    private final MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(100));
 
     static int setAllTestValues(
         MutableDirectBuffer buffer,
