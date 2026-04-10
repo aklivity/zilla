@@ -49,7 +49,6 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
@@ -62,6 +61,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.Layout;
@@ -99,7 +99,7 @@ final class ZillaTarget implements AutoCloseable
     private final int scopeIndex;
     private final Path streamsPath;
     private final Layout layout;
-    private final RingBuffer streamsBuffer;
+    private final RingBufferEx streamsBuffer;
     private final LongObjectBiConsumer<MessageHandlerEx> registerThrottle;
     private final LongConsumer unregisterThrottle;
     private final MutableDirectBufferEx writeBuffer;
@@ -140,7 +140,7 @@ final class ZillaTarget implements AutoCloseable
         return String.format("%s [%s]", getClass().getSimpleName(), streamsPath);
     }
 
-    public RingBuffer streamsBuffer()
+    public RingBufferEx streamsBuffer()
     {
         return streamsBuffer;
     }
@@ -968,7 +968,7 @@ final class ZillaTarget implements AutoCloseable
 
         private void handleThrottle(
             int msgTypeId,
-            DirectBufferEx buffer,
+            MutableDirectBufferEx buffer,
             int index,
             int length)
         {
