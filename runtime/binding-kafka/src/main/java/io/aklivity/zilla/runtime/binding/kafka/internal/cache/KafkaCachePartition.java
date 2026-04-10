@@ -55,7 +55,7 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonWriter;
 import jakarta.json.spi.JsonProvider;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.agrona.LangUtil;
 import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
@@ -137,7 +137,7 @@ public final class KafkaCachePartition
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-            .wrap(new ExpandableDirectByteBuffer(512), 0, 8192);
+            .wrap(new ExpandableArrayBufferEx(512), 0, 8192);
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
