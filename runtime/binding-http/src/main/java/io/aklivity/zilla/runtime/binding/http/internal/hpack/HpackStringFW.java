@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -39,7 +40,7 @@ public class HpackStringFW extends Flyweight
 {
 
     private final HpackIntegerFW integerRO = new HpackIntegerFW(7);
-    private final AtomicBuffer payloadRO = new UnsafeBufferEx(new byte[0]);
+    private final AtomicBufferEx payloadRO = new UnsafeBufferEx(new byte[0]);
 
     public boolean huffman()
     {

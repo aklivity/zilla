@@ -102,7 +102,7 @@ public final class EventsLayout implements AutoCloseable
             final File layoutFile = path.toFile();
             CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-            final AtomicBuffer atomicBuffer = new UnsafeBufferEx(mappedBuffer);
+            final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
             final RingBuffer ringBuffer = new OneToOneRingBuffer(atomicBuffer);
             return new EventsLayout(path, ringBuffer);
         }
