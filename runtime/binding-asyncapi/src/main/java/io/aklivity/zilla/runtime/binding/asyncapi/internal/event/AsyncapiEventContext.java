@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.As
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
