@@ -2272,8 +2272,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodableChunkSize;
         private int decodableContentLength;
 
-        private final org.agrona.MutableDirectBuffer encodeHeadersBuffer;
-        private final org.agrona.MutableDirectBuffer encodeReservedBuffer;
+        private final MutableDirectBufferEx encodeHeadersBuffer;
+        private final MutableDirectBufferEx encodeReservedBuffer;
         private int encodeSlot;
         private int encodeSlotOffset;
         private int encodeSlotMarkOffset;
