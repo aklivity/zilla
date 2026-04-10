@@ -19,7 +19,7 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
@@ -62,7 +62,7 @@ public class GrpcKafkaWithProduceResult
     private final String16FW service;
     private final String16FW method;
     private final Array32FW<GrpcMetadataFW> metadata;
-    private final ExpandableDirectByteBuffer nameBuffer;
+    private final ExpandableDirectByteBufferEx nameBuffer;
 
     GrpcKafkaWithProduceResult(
         String16FW service,
@@ -86,7 +86,7 @@ public class GrpcKafkaWithProduceResult
         this.acks = acks;
         this.keyRef = keyRef;
         this.hash = hash;
-        this.nameBuffer = new ExpandableDirectByteBuffer();
+        this.nameBuffer = new ExpandableDirectByteBufferEx();
         this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
 
         if (hasReplyTo())

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroValidatorHandler extends AvroModelHandler implements ValidatorHandler
 {
-    private final ExpandableDirectByteBuffer buffer;
+    private final ExpandableDirectByteBufferEx buffer;
 
     public AvroValidatorHandler(
         AvroModelConfiguration config,
@@ -39,7 +39,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         EngineContext context)
     {
         super(config, options, context);
-        this.buffer = new ExpandableDirectByteBuffer();
+        this.buffer = new ExpandableDirectByteBufferEx();
     }
 
     @Override

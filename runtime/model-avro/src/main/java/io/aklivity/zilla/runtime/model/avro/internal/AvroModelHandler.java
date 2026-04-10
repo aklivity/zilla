@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
@@ -115,7 +115,7 @@ public abstract class AvroModelHandler
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
-        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBufferEx());
         this.in = new DirectBufferInputStream();
         this.event = new AvroModelEventContext(context);
         this.extracted = new HashMap<>();

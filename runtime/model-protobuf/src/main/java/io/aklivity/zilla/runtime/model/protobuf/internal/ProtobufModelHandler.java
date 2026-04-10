@@ -19,7 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.agrona.BitUtil;
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
@@ -80,7 +80,7 @@ public class ProtobufModelHandler
         this.dependencies = new FileDescriptor[0];
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBufferEx());
         this.event = new ProtobufModelEventContext(context);
         this.parser = new ProtobufParser(dependencies);
     }

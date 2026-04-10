@@ -118,7 +118,7 @@ public abstract class JsonModelHandler
                                 int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
                                 offset += index;
                                 int valLength = calculateValueLength();
-                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes.wrap((DirectBufferEx) in.buffer(), offset - valLength, offset);
                                 valueBytes = null;
                             }
                             break;
@@ -128,7 +128,7 @@ public abstract class JsonModelHandler
                                 int offset = (int) parser.getLocation().getStreamOffset();
                                 offset += index;
                                 int valLength = calculateValueLength();
-                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes.wrap((DirectBufferEx) in.buffer(), offset - valLength, offset);
                                 valueBytes = null;
                             }
                             break;

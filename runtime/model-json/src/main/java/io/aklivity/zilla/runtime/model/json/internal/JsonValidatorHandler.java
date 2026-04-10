@@ -20,7 +20,7 @@ import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public class JsonValidatorHandler extends JsonModelHandler implements ValidatorHandler
 {
     private final DirectBufferInputStream in;
-    private final ExpandableDirectByteBuffer buffer;
+    private final ExpandableDirectByteBufferEx buffer;
 
     private int progress;
     private JsonParser parser;
@@ -42,7 +42,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         EngineContext context)
     {
         super(config, context);
-        this.buffer = new ExpandableDirectByteBuffer();
+        this.buffer = new ExpandableDirectByteBufferEx();
         this.in = new DirectBufferInputStream(buffer);
     }
 
