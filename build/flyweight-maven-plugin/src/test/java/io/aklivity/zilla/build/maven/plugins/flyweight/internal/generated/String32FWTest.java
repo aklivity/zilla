@@ -28,9 +28,9 @@ import java.util.Collection;
 import org.agrona.BitUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.Parameterized;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String32FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
