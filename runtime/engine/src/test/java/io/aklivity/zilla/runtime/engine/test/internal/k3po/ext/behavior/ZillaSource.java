@@ -27,11 +27,11 @@ import java.util.function.LongSupplier;
 
 import org.agrona.CloseHelper;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.MessageHandler;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
@@ -55,8 +55,8 @@ public final class ZillaSource implements AutoCloseable
         LongFunction<ZillaTarget> supplySender,
         IntFunction<ZillaTarget> supplyTarget,
         BudgetFlusher flushWatchers,
-        Long2ObjectHashMap<MessageHandler> streamsById,
-        Long2ObjectHashMap<MessageHandler> throttlesById)
+        Long2ObjectHashMap<MessageHandlerEx> streamsById,
+        Long2ObjectHashMap<MessageHandlerEx> throttlesById)
     {
         this.streamsPath = config.directory().resolve(String.format("data%d", scopeIndex));
         this.streamFactory = new ZillaStreamFactory(supplySender, streamsById::remove);
