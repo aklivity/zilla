@@ -340,6 +340,138 @@ private void cleanupDecodeSlot()
 - Call the cleanup helper from the stream's `cleanup()` method so slots are
   always returned on both orderly and abortive close paths
 
+### Network decode strategy
+
+Server and client bindings that parse a byte-stream protocol implement their
+decode logic as a **strategy pattern** using a `@FunctionalInterface` inner
+interface, a `decoder` field on the inner server/client class, and a set of
+private decode methods — one per protocol parse state.
+
+**The decoder interface** is declared as a private inner interface of the
+factory (e.g., `HttpServerDecoder` inside `HttpServerFactory`). Its single
+method takes the server/client instance as its first parameter, followed by
+the standard tracing and buffer navigation parameters, and returns the new
+buffer offset (progress):
+
+```java
+@FunctionalInterface
+private interface HttpServerDecoder
+{
+    int decode(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit);
+}
+```
+
+Passing the server/client instance into the interface method (rather than
+closing over it) is what makes method references work cleanly: each decode
+method is a plain private instance method on the factory that matches the
+interface signature exactly and is assigned as a method reference.
+
+**The `decoder` field** is held on the inner server/client class and
+initialised in its constructor to the first expected decode state:
+
+```java
+private final class HttpServer
+{
+    private HttpServerDecoder decoder;
+
+    HttpServer(...)
+    {
+        this.decoder = decodeEmptyLines;   // initial parse state
+    }
+}
+```
+
+**Decode methods** are named `decode<StateName>` and declared as private
+instance methods on the factory. Each method handles exactly one parse state,
+advances the buffer offset as far as it can, and transitions to the next
+state by assigning `server.decoder`:
+
+```java
+private int decodeHeaders(
+    HttpServer server,
+    long traceId,
+    long authorization,
+    long budgetId,
+    int reserved,
+    DirectBuffer buffer,
+    int offset,
+    int limit)
+{
+    // parse request line and headers from buffer[offset..limit]
+    // ...
+    server.decoder = decodeContent;   // transition to next state
+    return progress;
+}
+```
+
+Error states assign a terminal decoder (e.g., `decodeIgnore`) that silently
+discards all remaining bytes.
+
+**The `decodeNetwork` method** on the inner server/client class drives the
+loop. It tracks the previous decoder reference and keeps invoking the current
+decoder until either the buffer is exhausted or the decoder does not change
+(i.e., the current state could not make progress with the available bytes):
+
+```java
+private void decodeNetwork(
+    long traceId,
+    long authorization,
+    long budgetId,
+    int reserved,
+    DirectBuffer buffer,
+    int offset,
+    int limit)
+{
+    HttpServerDecoder previous = null;
+    int progress = offset;
+    while (progress <= limit && previous != decoder)
+    {
+        previous = decoder;
+        progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, progress, limit);
+    }
+
+    if (progress < limit)
+    {
+        // buffer remaining bytes in decodeSlot (see Buffer slot usage)
+    }
+    else
+    {
+        cleanupDecodeSlot();
+    }
+}
+```
+
+The `previous != decoder` guard is the key: if a decode method transitions to
+a new state, the loop continues immediately with the new decoder — allowing
+multiple logical states to be consumed in one `decodeNetwork` call (e.g.,
+request line → headers → body). If the decoder does not change (the state
+needs more bytes), the loop exits and any unconsumed bytes are saved to the
+decode slot. `onNetworkData` prepends any previously buffered bytes from the
+decode slot before calling `decodeNetwork`.
+
+**Rules:**
+
+- Declare the decoder interface as a `private` inner interface of the factory
+  class, not in a separate file
+- Name the interface `<Protocol><Role>Decoder` (e.g., `HttpServerDecoder`,
+  `Http2ServerDecoder`, `MqttClientDecoder`)
+- Initialise `decoder` in the server/client constructor to the first expected
+  state
+- Each `decode*` method must return the new buffer offset; returning the
+  incoming `offset` unchanged signals "not enough data yet" and stops the loop
+- Assign `server.decoder` (or `client.decoder`) directly inside decode methods
+  to transition state — never call the next decode method recursively
+- Terminal/error decoders must always advance progress (consume all remaining
+  bytes) so the loop terminates
+
 ### Proxy binding patterns
 
 Proxy bindings connect two protocol sides and are implemented in two variants:
