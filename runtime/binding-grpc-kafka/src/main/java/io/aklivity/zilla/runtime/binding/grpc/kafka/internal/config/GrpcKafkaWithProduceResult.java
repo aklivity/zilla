@@ -57,7 +57,7 @@ public class GrpcKafkaWithProduceResult
     private final String16FW topic;
     private final String16FW replyTo;
     private final KafkaAckMode acks;
-    private final Supplier<DirectBuffer> keyRef;
+    private final Supplier<DirectBufferEx> keyRef;
     private final GrpcKafkaWithProduceHash hash;
     private final String16FW service;
     private final String16FW method;
@@ -70,7 +70,7 @@ public class GrpcKafkaWithProduceResult
         Array32FW<GrpcMetadataFW> metadata,
         String16FW topic,
         KafkaAckMode acks,
-        Supplier<DirectBuffer> keyRef,
+        Supplier<DirectBufferEx> keyRef,
         List<GrpcKafkaWithProduceOverrideResult> overrides,
         String16FW replyTo,
         GrpcKafkaCorrelationConfig correlation,

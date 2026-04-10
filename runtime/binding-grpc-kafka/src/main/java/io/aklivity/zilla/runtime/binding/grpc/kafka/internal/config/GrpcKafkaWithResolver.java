@@ -172,7 +172,7 @@ public final class GrpcKafkaWithResolver
         final String16FW method = new String16FW(beginEx.method().asString());
 
         OctetsFW correlationId = resolveCorrelationId(metadata);
-        Supplier<DirectBuffer> keyRef = resolveKey(authorization, produce);
+        Supplier<DirectBufferEx> keyRef = resolveKey(authorization, produce);
 
         GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
 
@@ -208,11 +208,11 @@ public final class GrpcKafkaWithResolver
         return correlationId;
     }
 
-    private Supplier<DirectBuffer> resolveKey(
+    private Supplier<DirectBufferEx> resolveKey(
         long authorization,
         GrpcKafkaWithProduceConfig produce)
     {
-        Supplier<DirectBuffer> keyRef = () -> null;
+        Supplier<DirectBufferEx> keyRef = () -> null;
         if (produce.key.isPresent())
         {
             String key0 = produce.key.get();
@@ -256,7 +256,7 @@ public final class GrpcKafkaWithResolver
                 value0 = resolveAttribute(authorization, value0);
 
                 String value = value0;
-                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
+                Supplier<DirectBufferEx> valueRef = () -> new String16FW(value).value();
 
                 overrides.add(new GrpcKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
             }
