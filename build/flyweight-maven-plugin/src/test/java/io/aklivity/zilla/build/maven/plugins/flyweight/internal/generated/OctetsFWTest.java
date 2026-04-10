@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class OctetsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -340,16 +340,16 @@ public class OctetsFWTest
         assertEquals(6, octetsRO.sizeof());
         assertEquals("value1", asString(octetsRO));    }
 
-    private static MutableDirectBuffer asBuffer(String value)
+    private static MutableDirectBufferEx asBuffer(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(value.length()));
         buffer.putStringWithoutLengthUtf8(0, value);
         return buffer;
     }
 
     private static OctetsFW asOctetsFW(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new OctetsFW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
     }
 

@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.MapFW;
@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ListWithMapFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -62,7 +62,7 @@ public class ListWithMapFWTest
     private final int fieldCountSize = Byte.BYTES;
 
     private int setAlFields(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         byte listLength = 60;
@@ -273,7 +273,7 @@ public class ListWithMapFWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:
@@ -299,7 +299,7 @@ public class ListWithMapFWTest
             VariantEnumKindOfStringFW.Builder, TypedefStringFW.Builder> variantOfMapRW =
             new VariantOfMapFW.Builder<>(new VariantEnumKindOfStringFW(), new TypedefStringFW(),
                 new VariantEnumKindOfStringFW.Builder(), new TypedefStringFW.Builder());
-        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100));
         variantOfMapRW.wrap(buffer, 0, buffer.capacity());
         for (int i = 0; i < keys.size(); i++)
         {

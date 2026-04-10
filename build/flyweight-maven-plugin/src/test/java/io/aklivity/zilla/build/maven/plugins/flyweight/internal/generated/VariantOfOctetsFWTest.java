@@ -23,8 +23,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class VariantOfOctetsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(1000000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -53,7 +53,7 @@ public class VariantOfOctetsFWTest
     private final int kindSize = Byte.BYTES;
 
     private int setOctets8(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         int length = 6;
@@ -317,10 +317,10 @@ public class VariantOfOctetsFWTest
         assertEquals("", variantOfOctets.get().get((b, o, l) -> b.getStringWithoutLengthUtf8(o, l - o)));
     }
 
-    private static DirectBuffer asBuffer(
+    private static DirectBufferEx asBuffer(
         String value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBufferEx(allocateDirect(value.length()));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(value.length()));
         valueBuffer.putStringWithoutLengthUtf8(0, value);
         return valueBuffer;
     }
@@ -330,7 +330,7 @@ public class VariantOfOctetsFWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:

@@ -28,7 +28,7 @@ import java.util.PrimitiveIterator;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerFixedArraysFW;
@@ -36,14 +36,14 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class IntegerFixedArraysFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(199))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(199))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xFF);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBufferEx(allocateDirect(199))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(199))
     {
         {
             setMemory(0, capacity(), (byte) 0xFF);
@@ -52,7 +52,7 @@ public class IntegerFixedArraysFWTest
     private final IntegerFixedArraysFW.Builder flyweightRW = new IntegerFixedArraysFW.Builder();
     private final IntegerFixedArraysFW flyweightRO = new IntegerFixedArraysFW();
 
-    static int setAllTestValues(MutableDirectBuffer buffer, int offset)
+    static int setAllTestValues(MutableDirectBufferEx buffer, int offset)
     {
         buffer.putByte(offset + 0, (byte) 0xFF); // uint8Array[1]
         buffer.putShort(offset + 1, (short) 2); // uint16Array[2]
