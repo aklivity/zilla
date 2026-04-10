@@ -69,7 +69,7 @@ public class ManyToOneRingBufferTest
     private static final int HEAD_COUNTER_INDEX = CAPACITY + RingBufferDescriptor.HEAD_POSITION_OFFSET;
     private static final int HEAD_COUNTER_CACHE_INDEX = CAPACITY + RingBufferDescriptor.HEAD_CACHE_POSITION_OFFSET;
 
-    private final UnsafeBufferEx buffer = mock(SafeBuffer.class);
+    private final UnsafeBufferEx buffer = mock(UnsafeBufferEx.class);
     private ManyToOneRingBuffer ringBuffer;
 
     @Before
