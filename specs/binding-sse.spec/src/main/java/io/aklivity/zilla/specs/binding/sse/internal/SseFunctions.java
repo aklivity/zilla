@@ -33,7 +33,7 @@ import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseEndExFW;
 
 public final class SseFunctions
 {
-    private static final ThreadLocal<DirectBuffer> DIRECT_BUFFER = withInitial(SafeBuffer::new);
+    private static final ThreadLocal<DirectBufferEx> DIRECT_BUFFER = withInitial(UnsafeBufferEx::new);
 
     @Function
     public static SseBeginExBuilder beginEx()
