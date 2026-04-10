@@ -145,7 +145,7 @@ public final class BudgetsLayout extends Layout
 
             final MappedByteBuffer mapped = mapExistingFile(budgets, "budgets");
 
-            final AtomicBuffer buffer = new UnsafeBufferEx(mapped);
+            final AtomicBufferEx buffer = new UnsafeBufferEx(mapped);
 
             return new BudgetsLayout(buffer);
         }

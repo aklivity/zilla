@@ -130,6 +130,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -421,7 +422,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
-    private final AtomicBuffer payloadRO = new UnsafeBufferEx(0, 0);
+    private final AtomicBufferEx payloadRO = new UnsafeBufferEx(0, 0);
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -3973,11 +3974,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int encodeHeadersSlotMarkOffset;
         private int encodeReservedSlotMarkOffset;
 
-        private MutableDirectBufferEx encodeHeadersBuffer;
+        private org.agrona.MutableDirectBuffer encodeHeadersBuffer;
         private int encodeHeadersSlotOffset;
         private long encodeHeadersSlotTraceId;
 
-        private MutableDirectBufferEx encodeReservedBuffer;
+        private org.agrona.MutableDirectBuffer encodeReservedBuffer;
         private int encodeReservedSlotOffset;
         private long encodeReservedSlotTraceId;
 
@@ -6544,8 +6545,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private Http2HeadersDecoder()
         {
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue =
-                    ((BiConsumer<DirectBuffer, DirectBuffer>) this::collectHeaders)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue =
+                    ((BiConsumer<DirectBufferEx, DirectBufferEx>) this::collectHeaders)
                             .andThen(this::validatePseudoHeaders)
                             .andThen(this::uppercaseHeaders)
                             .andThen(this::connectionHeaders)
@@ -6784,7 +6785,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void decodeHeaderField(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             if (!error())
             {
@@ -6794,7 +6795,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void decodeHF(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             int index;
             DirectBufferEx name = null;

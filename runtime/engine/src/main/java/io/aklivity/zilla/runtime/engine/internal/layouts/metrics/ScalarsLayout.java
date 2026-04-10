@@ -143,7 +143,7 @@ public abstract class ScalarsLayout extends MetricsLayout
             }
             FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
             MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, this.label);
-            final AtomicBuffer atomicBuffer = new UnsafeBufferEx(mappedBuffer);
+            final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
             return constructor.apply(atomicBuffer);
         }
     }

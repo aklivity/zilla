@@ -141,7 +141,7 @@ public final class KafkaCachePartition
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
-    private final MutableDirectBufferEx diffBuffer = new ExpandableArrayBuffer();
+    private final org.agrona.MutableDirectBuffer diffBuffer = new org.agrona.ExpandableArrayBuffer();
     private final ExpandableDirectBufferOutputStream diffOut = new ExpandableDirectBufferOutputStream();
 
     private final Path location;

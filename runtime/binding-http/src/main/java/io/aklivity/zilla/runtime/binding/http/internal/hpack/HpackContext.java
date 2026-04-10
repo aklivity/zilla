@@ -118,7 +118,7 @@ public class HpackContext
 
     // name --> uniquie id (stable across evictions) for dynamic entries.
     // Used during encoding
-    private final Map<DirectBuffer, Long> name2Index = new HashMap<>();
+    private final Map<DirectBufferEx, Long> name2Index = new HashMap<>();
 
     // (name, value) --> uniquie id (stable across evictions) for dynamic entries.
     // Used during encoding
