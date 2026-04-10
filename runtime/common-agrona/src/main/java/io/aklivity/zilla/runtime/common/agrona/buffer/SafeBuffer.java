@@ -31,10 +31,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.agrona.BufferUtil;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * An {@link AtomicBufferEx} implementation backed by Java's {@link MemorySegment}
@@ -286,7 +285,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBufferEx buffer)
+        DirectBuffer buffer)
     {
         if (buffer instanceof DirectBufferEx ex)
         {
@@ -300,7 +299,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int offset,
         int length)
     {
@@ -354,7 +353,7 @@ public class SafeBuffer implements AtomicBufferEx
     }
 
     private void wrapFromUnsafe(
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int offset,
         int length)
     {
@@ -702,7 +701,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public void getBytes(
         int index,
-        MutableDirectBufferEx dstBuffer,
+        MutableDirectBuffer dstBuffer,
         int dstIndex,
         int length)
     {
@@ -830,7 +829,7 @@ public class SafeBuffer implements AtomicBufferEx
     @Override
     public void putBytes(
         int index,
-        DirectBufferEx srcBuffer,
+        DirectBuffer srcBuffer,
         int srcIndex,
         int length)
     {
@@ -1638,7 +1637,7 @@ public class SafeBuffer implements AtomicBufferEx
 
     @Override
     public int compareTo(
-        DirectBufferEx that)
+        DirectBuffer that)
     {
         final int thisCapacity = this.capacity;
         final int thatCapacity = that.capacity();
@@ -1674,7 +1673,7 @@ public class SafeBuffer implements AtomicBufferEx
         {
             return true;
         }
-        if (!(obj instanceof DirectBufferEx that))
+        if (!(obj instanceof DirectBuffer that))
         {
             return false;
         }
