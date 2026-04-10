@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import java.util.Collection;
 import java.util.function.LongConsumer;
 
-import org.agrona.concurrent.AtomicBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

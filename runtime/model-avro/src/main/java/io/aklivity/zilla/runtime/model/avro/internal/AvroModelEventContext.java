@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroMode
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
