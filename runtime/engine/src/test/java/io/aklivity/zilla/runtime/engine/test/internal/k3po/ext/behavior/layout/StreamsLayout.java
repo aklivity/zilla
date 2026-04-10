@@ -23,24 +23,24 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 
 public final class StreamsLayout extends Layout
 {
-    private final RingBuffer streamsBuffer;
+    private final RingBufferEx streamsBuffer;
 
     private StreamsLayout(
-        RingBuffer streamsBuffer)
+        RingBufferEx streamsBuffer)
     {
         this.streamsBuffer = streamsBuffer;
     }
 
-    public RingBuffer streamsBuffer()
+    public RingBufferEx streamsBuffer()
     {
         return streamsBuffer;
     }
@@ -90,7 +90,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new SafeBuffer(mappedStreams);
+            final AtomicBufferEx atomicStreams = new SafeBuffer(mappedStreams);
 
             return new StreamsLayout(new ManyToOneRingBuffer(atomicStreams));
         }

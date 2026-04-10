@@ -157,6 +157,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         segment = segmentOf(buffer).asSlice(offset, length);
     }
 
+    @Override
     public void wrap(
         DirectBufferEx buffer)
     {
@@ -164,6 +165,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         segment = buffer.segment();
     }
 
+    @Override
     public void wrap(
         DirectBufferEx buffer,
         int offset,
@@ -228,6 +230,17 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
     {
         MemorySegment.copy(segment, JAVA_BYTE, index,
             dstSegment, JAVA_BYTE, dstIndex, length);
+    }
+
+    @Override
+    public void putBytes(
+        int index,
+        DirectBufferEx srcBuffer,
+        int srcIndex,
+        int length)
+    {
+        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcIndex,
+            segment, JAVA_BYTE, index, length);
     }
 
     @Override

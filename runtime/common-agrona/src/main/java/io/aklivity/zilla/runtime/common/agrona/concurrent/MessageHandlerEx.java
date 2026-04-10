@@ -13,23 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.common.agrona.buffer;
+package io.aklivity.zilla.runtime.common.agrona.concurrent;
 
-import java.lang.foreign.MemorySegment;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
-import org.agrona.MutableDirectBuffer;
-
-public interface MutableDirectBufferEx extends MutableDirectBuffer, DirectBufferEx
+public interface MessageHandlerEx
 {
-    void putBytes(
+    void onMessage(
+        int msgTypeId,
+        MutableDirectBufferEx buffer,
         int index,
-        DirectBufferEx srcBuffer,
-        int srcIndex,
-        int length);
-
-    void putBytes(
-        int index,
-        MemorySegment srcSegment,
-        int srcIndex,
         int length);
 }
