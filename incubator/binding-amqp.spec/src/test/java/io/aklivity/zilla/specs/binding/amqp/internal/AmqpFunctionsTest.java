@@ -44,10 +44,10 @@ import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.symbol
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.timestamp;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.trueValue;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ubyte;
-import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint0;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint;
-import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong0;
+import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint0;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong;
+import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong0;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ushort;
 import static io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpBodyKind.VALUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
