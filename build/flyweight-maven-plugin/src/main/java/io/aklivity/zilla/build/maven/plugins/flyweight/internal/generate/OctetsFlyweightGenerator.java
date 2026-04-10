@@ -83,7 +83,7 @@ public final class OctetsFlyweightGenerator extends ClassSpecGenerator
                 .addTypeVariable(typeVarT)
                 .addParameter(visitorType, "visitor")
                 .returns(typeVarT)
-                .addStatement("DirectBuffer buffer = buffer()")
+                .addStatement("DirectBufferEx buffer = buffer()")
                 .addStatement("int offset = offset()")
                 .addStatement("int limit = limit()")
                 .addStatement("return visitor.visit(buffer, offset, limit)")

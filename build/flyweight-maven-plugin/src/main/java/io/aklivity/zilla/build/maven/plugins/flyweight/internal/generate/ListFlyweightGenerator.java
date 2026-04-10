@@ -1133,7 +1133,7 @@ public final class ListFlyweightGenerator extends ClassSpecGenerator
             }
             else
             {
-                builder.addStatement("DirectBuffer fieldsBuffer = fields()")
+                builder.addStatement("DirectBufferEx fieldsBuffer = fields()")
                     .addStatement("int fieldLimit = 0");
             }
 
@@ -1336,7 +1336,7 @@ public final class ListFlyweightGenerator extends ClassSpecGenerator
             }
             else
             {
-                builder.addStatement("DirectBuffer fieldsBuffer = fields()")
+                builder.addStatement("DirectBufferEx fieldsBuffer = fields()")
                     .addStatement("int fieldLimit = 0");
             }
             builder.beginControlFlow("for (int field = $L; field < fieldCount; field++)",
