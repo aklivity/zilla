@@ -18,11 +18,12 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegersFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class IntegerFWTest
 {

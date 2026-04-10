@@ -23,12 +23,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.agrona.BitUtil;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class EnumWithString8FWTest
 {

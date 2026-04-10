@@ -20,13 +20,14 @@ import java.text.MessageFormat;
 import java.util.function.Consumer;
 
 import org.agrona.BitUtil;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Flyweight;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varint32FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+
 
 public final class ListWithOctetsFW extends Flyweight
 {

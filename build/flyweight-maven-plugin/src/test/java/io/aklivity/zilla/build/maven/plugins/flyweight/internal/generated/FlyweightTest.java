@@ -25,11 +25,12 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class FlyweightTest
 {

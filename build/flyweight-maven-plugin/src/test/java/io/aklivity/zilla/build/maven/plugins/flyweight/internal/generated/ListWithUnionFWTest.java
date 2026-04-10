@@ -24,13 +24,14 @@ import static org.junit.Assert.fail;
 
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithUnionFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionOctetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class ListWithUnionFWTest
 {
