@@ -33,7 +33,7 @@ import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.ExpandableDirectByteBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -139,7 +139,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx metaBuffer;
-    private final ExpandableDirectByteBuffer nameBuffer;
+    private final ExpandableDirectByteBufferEx nameBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -178,7 +178,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.groupIdFormat = config.groupIdFormat();
-        this.nameBuffer = new ExpandableDirectByteBuffer();
+        this.nameBuffer = new ExpandableDirectByteBufferEx();
         this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
     }
 
