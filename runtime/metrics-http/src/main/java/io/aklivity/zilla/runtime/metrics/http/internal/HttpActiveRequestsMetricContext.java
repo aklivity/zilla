@@ -23,11 +23,11 @@ import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.ToIntFunction;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2LongCounterMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -115,7 +115,7 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
         @Override
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -184,7 +184,7 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
         @Override
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.specs.binding.proxy.internal;
 
-import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET4;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET6;
+import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.INET;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.NONE;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyAddressFamily.UNIX;
 import static io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyInfoType.ALPN;
@@ -38,13 +38,13 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.OctetsFW;
@@ -83,7 +83,7 @@ public final class ProxyFunctions
 
         private ProxyBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new ProxyBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -140,7 +140,7 @@ public final class ProxyFunctions
 
             private ProxyAddressInetBuilder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[128]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[128]);
                 addressRW.wrap(buffer, 0, buffer.capacity());
                 addressInetRW.wrap(buffer, 1, buffer.capacity());
             }
@@ -195,7 +195,7 @@ public final class ProxyFunctions
 
             private ProxyAddressInet4Builder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[14]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[14]);
                 addressRW.wrap(buffer, 0, buffer.capacity());
                 addressInet4RW.wrap(buffer, 1, buffer.capacity());
             }
@@ -254,7 +254,7 @@ public final class ProxyFunctions
 
             private ProxyAddressInet6Builder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[38]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[38]);
                 addressRW.wrap(buffer, 0, buffer.capacity());
                 addressInet6RW.wrap(buffer, 1, buffer.capacity());
             }
@@ -313,7 +313,7 @@ public final class ProxyFunctions
 
             private ProxyAddressUnixBuilder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[218]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[218]);
                 addressRW.wrap(buffer, 0, buffer.capacity());
                 addressUnixRW.wrap(buffer, 1, buffer.capacity());
             }
@@ -328,7 +328,7 @@ public final class ProxyFunctions
             public ProxyAddressUnixBuilder source(
                 String source) throws UnknownHostException
             {
-                MutableDirectBuffer sourceBuf = new UnsafeBufferEx(new byte[108]);
+                MutableDirectBufferEx sourceBuf = new UnsafeBufferEx(new byte[108]);
                 sourceBuf.putStringWithoutLengthUtf8(0, source);
                 addressUnixRW.source(sourceBuf, 0, sourceBuf.capacity());
                 return this;
@@ -337,7 +337,7 @@ public final class ProxyFunctions
             public ProxyAddressUnixBuilder destination(
                 String destination) throws UnknownHostException
             {
-                MutableDirectBuffer destinationBuf = new UnsafeBufferEx(new byte[108]);
+                MutableDirectBufferEx destinationBuf = new UnsafeBufferEx(new byte[108]);
                 destinationBuf.putStringWithoutLengthUtf8(0, destination);
                 addressUnixRW.destination(destinationBuf, 0, destinationBuf.capacity());
                 return this;
@@ -358,7 +358,7 @@ public final class ProxyFunctions
 
             private ProxyAddressNoneBuilder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1]);
                 addressRW.wrap(buffer, 0, buffer.capacity());
                 addressNoneRW.wrap(buffer, 1, buffer.capacity());
             }
@@ -377,7 +377,7 @@ public final class ProxyFunctions
 
             private ProxyInfoBuilder()
             {
-                final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+                final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
                 infosRW.wrap(buffer, 0, buffer.capacity());
             }
 
@@ -471,7 +471,7 @@ public final class ProxyFunctions
 
     public static final class ProxyBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
 
@@ -888,8 +888,8 @@ public final class ProxyFunctions
         public final class ProxyAddressUnixMatcherBuilder
         {
             private ProxyAddressProtocol protocol;
-            private DirectBuffer source;
-            private DirectBuffer destination;
+            private DirectBufferEx source;
+            private DirectBufferEx destination;
 
             private ProxyAddressUnixMatcherBuilder()
             {
@@ -905,7 +905,7 @@ public final class ProxyFunctions
             public ProxyAddressUnixMatcherBuilder source(
                 String source)
             {
-                final MutableDirectBuffer sourceBuf = new UnsafeBufferEx(new byte[108]);
+                final MutableDirectBufferEx sourceBuf = new UnsafeBufferEx(new byte[108]);
                 sourceBuf.putStringWithoutLengthUtf8(0, source);
                 this.source = sourceBuf;
                 return this;
@@ -914,7 +914,7 @@ public final class ProxyFunctions
             public ProxyAddressUnixMatcherBuilder destination(
                 String destination)
             {
-                final MutableDirectBuffer destinationBuf = new UnsafeBufferEx(new byte[108]);
+                final MutableDirectBufferEx destinationBuf = new UnsafeBufferEx(new byte[108]);
                 destinationBuf.putStringWithoutLengthUtf8(0, destination);
                 this.destination = destinationBuf;
                 return this;
@@ -1005,7 +1005,7 @@ public final class ProxyFunctions
             public ProxyInfoMatcherBuilder identity(
                 byte[] identity)
             {
-                final DirectBuffer identityBuf = new UnsafeBufferEx(identity);
+                final DirectBufferEx identityBuf = new UnsafeBufferEx(identity);
                 matchers.put(IDENTITY, info -> identityBuf.equals(info.identity().value().value()));
                 return this;
             }

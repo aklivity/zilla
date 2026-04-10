@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.util;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class BufferUtil
 {
     public static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte value)
@@ -37,7 +37,7 @@ public final class BufferUtil
     }
 
     public static int limitOfBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte[] value)
@@ -62,10 +62,10 @@ public final class BufferUtil
     }
 
     public static int limitOfBytes(
-            DirectBuffer fragment,
+            DirectBufferEx fragment,
             int offset1,
             int limit1,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset2,
             int limit2,
             byte[] value)

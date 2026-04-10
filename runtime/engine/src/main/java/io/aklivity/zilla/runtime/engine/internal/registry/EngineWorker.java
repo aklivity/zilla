@@ -74,12 +74,10 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
-import org.agrona.DirectBuffer;
+import org.agrona.DeadlineTimerWheel;
 import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -93,6 +91,8 @@ import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -197,7 +197,7 @@ public class EngineWorker implements EngineContext, Agent
     private StreamsLayout streamsLayout;
     private BufferPoolLayout bufferPoolLayout;
     private RingBuffer streamsBuffer;
-    private MutableDirectBuffer writeBuffer;
+    private MutableDirectBufferEx writeBuffer;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
@@ -546,7 +546,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public MutableDirectBuffer writeBuffer()
+    public MutableDirectBufferEx writeBuffer()
     {
         return writeBuffer;
     }
@@ -1248,7 +1248,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void onSystemMessage(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1398,7 +1398,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleRead(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1434,7 +1434,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1524,7 +1524,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadInitial(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1560,7 +1560,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadFrame(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1577,7 +1577,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadData(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1593,7 +1593,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadEnd(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1626,7 +1626,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1716,7 +1716,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadReply(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1771,7 +1771,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginInitial(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1813,7 +1813,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isInitialId(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1822,7 +1822,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isReplyId(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1831,7 +1831,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginReply(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1851,7 +1851,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleFlushReply(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1930,7 +1930,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -2126,7 +2126,7 @@ public class EngineWorker implements EngineContext, Agent
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[capacity]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
@@ -2255,7 +2255,7 @@ public class EngineWorker implements EngineContext, Agent
             long traceId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -2348,7 +2348,7 @@ public class EngineWorker implements EngineContext, Agent
             long cancelId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {

@@ -19,12 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class RisingwaveShowCommandMacro extends RisingwaveMacroBase
 {
@@ -84,7 +84,7 @@ public class RisingwaveShowCommandMacro extends RisingwaveMacroBase
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             OctetsFW extension)
@@ -161,7 +161,7 @@ public class RisingwaveShowCommandMacro extends RisingwaveMacroBase
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             OctetsFW extension)

@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
@@ -47,6 +45,8 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -115,9 +115,9 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private final GrpcAbortExFW grpcAbortedStatusRO;
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer metadataBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx metadataBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
@@ -180,7 +180,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer application)
@@ -267,7 +267,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -467,7 +467,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             Flyweight extension)
@@ -647,7 +647,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             int flags,
             OctetsFW payload)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
             final int payloadSize = payload.sizeof();
@@ -735,7 +735,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -836,7 +836,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert replyAck <= replySeq;
 
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
             final int size = payload.sizeof();
@@ -1088,7 +1088,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Flyweight extension)

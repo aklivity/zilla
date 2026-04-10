@@ -55,11 +55,9 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonWriter;
 import jakarta.json.spi.JsonProvider;
 
-import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
@@ -82,6 +80,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDe
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFlags;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -125,8 +125,8 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBufferEx(new byte[FIELD_OFFSET_PADDED_KEY]);
-    private final MutableDirectBuffer valueInfo = new UnsafeBufferEx(new byte[Integer.BYTES]);
+    private final MutableDirectBufferEx entryInfo = new UnsafeBufferEx(new byte[FIELD_OFFSET_PADDED_KEY]);
+    private final MutableDirectBufferEx valueInfo = new UnsafeBufferEx(new byte[Integer.BYTES]);
 
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
@@ -141,7 +141,7 @@ public final class KafkaCachePartition
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
-    private final MutableDirectBuffer diffBuffer = new ExpandableArrayBuffer();
+    private final MutableDirectBufferEx diffBuffer = new ExpandableArrayBuffer();
     private final ExpandableDirectBufferOutputStream diffOut = new ExpandableDirectBufferOutputStream();
 
     private final Path location;
@@ -149,7 +149,7 @@ public final class KafkaCachePartition
     private final String cache;
     private final String topic;
     private final int id;
-    private final MutableDirectBuffer appendBuf;
+    private final MutableDirectBufferEx appendBuf;
     private final IntFunction<long[]> sortSpaceRef;
     private final Node sentinel;
     private final CRC32C checksum;
@@ -668,7 +668,7 @@ public final class KafkaCachePartition
 
         if (!headers.isEmpty())
         {
-            final DirectBuffer buffer = headers.buffer();
+            final DirectBufferEx buffer = headers.buffer();
             final ByteBuffer byteBuffer = buffer.byteBuffer();
             assert byteBuffer != null;
             byteBuffer.clear();
@@ -682,7 +682,7 @@ public final class KafkaCachePartition
 
         if (!trailers.isEmpty())
         {
-            final DirectBuffer buffer = trailers.buffer();
+            final DirectBufferEx buffer = trailers.buffer();
             final ByteBuffer byteBuffer = buffer.byteBuffer();
             assert byteBuffer != null;
             byteBuffer.clear();
@@ -1011,7 +1011,7 @@ public final class KafkaCachePartition
         Flyweight keyOrHeader)
     {
         // TODO: compute null key hash in advance
-        final DirectBuffer buffer = keyOrHeader.buffer();
+        final DirectBufferEx buffer = keyOrHeader.buffer();
         final ByteBuffer byteBuffer = buffer.byteBuffer();
         byteBuffer.clear();
         assert byteBuffer != null;

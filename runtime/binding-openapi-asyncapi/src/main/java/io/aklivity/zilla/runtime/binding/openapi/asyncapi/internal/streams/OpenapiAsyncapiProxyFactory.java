@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -42,6 +40,8 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -81,8 +81,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
 
     private final Long2ObjectHashMap<OpenapiAsyncapiBindingConfig> bindings;
     private final OpenapiAsyncapiCompositeGenerator generator;
@@ -144,7 +144,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -276,7 +276,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         private void onOpenapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -604,7 +604,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         private void onCompositeServerMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -937,7 +937,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         private void onCompositeClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1264,7 +1264,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         private void onAsyncapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

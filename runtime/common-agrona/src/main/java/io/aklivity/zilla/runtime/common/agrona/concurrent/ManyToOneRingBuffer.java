@@ -50,7 +50,6 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacit
 
 import java.lang.invoke.VarHandle;
 
-import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.ControlledMessageHandler;
 import org.agrona.concurrent.MessageHandler;
@@ -58,6 +57,7 @@ import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
@@ -115,7 +115,7 @@ public class ManyToOneRingBuffer implements RingBufferEx
     /**
      * {@inheritDoc}
      */
-    public boolean write(final int msgTypeId, final DirectBuffer srcBuffer, final int srcIndex, final int length)
+    public boolean write(final int msgTypeId, final DirectBufferEx srcBuffer, final int srcIndex, final int length)
     {
         checkTypeId(msgTypeId);
         checkMsgLength(length);

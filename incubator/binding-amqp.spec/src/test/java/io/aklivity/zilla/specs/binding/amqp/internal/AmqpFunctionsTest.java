@@ -44,10 +44,10 @@ import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.symbol
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.timestamp;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.trueValue;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ubyte;
-import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint0;
-import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong;
+import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.uint;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong0;
+import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ulong;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.ushort;
 import static io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpBodyKind.VALUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -63,12 +63,12 @@ import javax.el.ELContext;
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
-import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.AmqpBeginExBuilder;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpPropertiesFW;
@@ -108,7 +108,7 @@ public class AmqpFunctionsTest
             .receiverSettleMode("FIRST")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpBeginExFW amqpBeginEx = new AmqpBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(amqpBeginEx.address().asString(), "clients");
@@ -128,7 +128,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(amqpDataEx.deliveryTag().toString(), "AMQP_BINARY [length=2, bytes=octets[2]]");
         assertEquals(amqpDataEx.messageFormat(), 0);
@@ -148,7 +148,7 @@ public class AmqpFunctionsTest
             .deferred(100)
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(amqpDataEx.deliveryTag().toString(), "AMQP_BINARY [length=2, bytes=octets[2]]");
         assertEquals(amqpDataEx.messageFormat(), 0);
@@ -170,7 +170,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         amqpDataEx.annotations().forEach(a ->
             assertEquals(a.value().toString(), "AMQP_BINARY [length=1, bytes=octets[1]]"));
@@ -200,7 +200,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         AmqpPropertiesFW properties = amqpDataEx.properties();
         assertTrue(properties.hasMessageId());
@@ -248,7 +248,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         AmqpPropertiesFW properties = amqpDataEx.properties();
         assertTrue(properties.hasMessageId());
@@ -282,7 +282,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         AmqpPropertiesFW properties = amqpDataEx.properties();
         assertTrue(properties.hasMessageId());
@@ -311,7 +311,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         amqpDataEx.applicationProperties().forEach(a ->
         {
@@ -331,7 +331,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x0F, amqpDataEx.flags());
     }
@@ -350,7 +350,7 @@ public class AmqpFunctionsTest
             .bodyKind("VALUE")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpDataExFW amqpDataEx = new AmqpDataExFW().wrap(buffer, 0, buffer.capacity());
         AmqpPropertiesFW properties = amqpDataEx.properties();
         assertTrue(properties.hasMessageId());
@@ -903,7 +903,7 @@ public class AmqpFunctionsTest
             .condition("amqp:link:transfer-limit-exceeded")
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(array);
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
         AmqpAbortExFW amqpAbortEx = new AmqpAbortExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(amqpAbortEx.condition().asString(), "amqp:link:transfer-limit-exceeded");

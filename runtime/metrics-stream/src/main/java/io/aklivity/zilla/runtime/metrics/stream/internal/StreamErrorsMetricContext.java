@@ -16,8 +16,7 @@ package io.aklivity.zilla.runtime.metrics.stream.internal;
 
 import java.util.function.LongConsumer;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -77,7 +76,7 @@ public final class StreamErrorsMetricContext implements MetricContext
         @Override
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

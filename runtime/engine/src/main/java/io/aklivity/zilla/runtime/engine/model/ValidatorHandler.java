@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 /**
@@ -74,7 +73,7 @@ public interface ValidatorHandler
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next);
@@ -94,7 +93,7 @@ public interface ValidatorHandler
     default boolean validate(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

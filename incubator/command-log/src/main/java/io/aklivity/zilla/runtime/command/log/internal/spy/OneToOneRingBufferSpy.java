@@ -28,9 +28,9 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacit
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
@@ -70,7 +70,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     }
 
     @Override
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return buffer;
     }

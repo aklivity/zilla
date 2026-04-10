@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
@@ -58,6 +56,8 @@ import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlQueryD
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.PgsqlStatus;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.pgsql.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -87,7 +87,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -130,9 +130,9 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     private final PgsqlMessageFW.Builder messageRW = new PgsqlMessageFW.Builder();
 
     private final BufferPool bufferPool;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer messageBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx messageBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -210,7 +210,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer network)
@@ -302,7 +302,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         private void onNetworkMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {
@@ -386,13 +386,13 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             else
             {
                 final OctetsFW payload = data.payload();
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -524,7 +524,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long authorization,
             int flags,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -581,7 +581,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -606,7 +606,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int)((long) reserved * (limit - progress) / (limit - offset));
@@ -686,7 +686,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long authorization,
             int flags,
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -701,7 +701,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         private void onDecodeMessageCompletion(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -716,7 +716,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         private void onDecodeMessageError(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -749,7 +749,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         private void onDecodeMessageNotice(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -883,7 +883,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
         private void onApplicationMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {
@@ -1052,7 +1052,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             Consumer<OctetsFW.Builder> extension)
@@ -1146,7 +1146,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             int deferred,
             OctetsFW query)
         {
-            final DirectBuffer queryBuffer = query.value();
+            final DirectBufferEx queryBuffer = query.value();
             final int rowSize = queryBuffer.capacity();
 
             int queryOffset = 0;
@@ -1218,7 +1218,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         final int flags,
         final long budgetId,
         final int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -1388,7 +1388,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1412,7 +1412,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1436,7 +1436,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1458,7 +1458,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1480,7 +1480,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1547,7 +1547,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1589,7 +1589,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1618,7 +1618,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1647,7 +1647,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1676,7 +1676,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1703,7 +1703,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1727,7 +1727,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1755,7 +1755,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1771,7 +1771,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1786,13 +1786,13 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
 
     private int getLengthOfString(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset)
     {
         int length = -1;

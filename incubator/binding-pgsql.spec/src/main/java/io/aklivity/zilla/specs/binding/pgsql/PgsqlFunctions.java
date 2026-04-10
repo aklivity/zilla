@@ -14,10 +14,9 @@
  */
 package io.aklivity.zilla.specs.binding.pgsql;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlBeginExFW;
 import io.aklivity.zilla.specs.binding.pgsql.internal.types.stream.PgsqlCancelRequestFlushExFW;
@@ -57,7 +56,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final PgsqlBeginExFW.Builder beginExRW = new PgsqlBeginExFW.Builder();
 
@@ -95,7 +94,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final PgsqlDataExFW dataExRO = new PgsqlDataExFW();
 
@@ -186,7 +185,7 @@ public final class PgsqlFunctions
 
     public static final class PgsqlFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final PgsqlFlushExFW flushExRO = new PgsqlFlushExFW();
 
@@ -270,7 +269,7 @@ public final class PgsqlFunctions
 
             public final class PgsqlColumnInfoBuilder
             {
-                private final MutableDirectBuffer columnInfoBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+                private final MutableDirectBufferEx columnInfoBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
                 private final PgsqlColumnInfoFW.Builder columnInfoRW = new PgsqlColumnInfoFW.Builder();
 
                 PgsqlColumnInfoBuilder()

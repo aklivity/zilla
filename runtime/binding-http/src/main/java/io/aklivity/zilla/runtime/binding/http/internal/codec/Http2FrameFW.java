@@ -17,12 +17,12 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 /*
@@ -50,7 +50,7 @@ public class Http2FrameFW extends Flyweight
 
     public int length()
     {
-        final DirectBuffer buffer = buffer();
+        final DirectBufferEx buffer = buffer();
         final int offset = offset();
 
         return ((buffer.getByte(offset + LENGTH_OFFSET) & 0xFF) << Short.SIZE) |
@@ -82,7 +82,7 @@ public class Http2FrameFW extends Flyweight
         return offset() + PAYLOAD_OFFSET;
     }
 
-    public final DirectBuffer payload()
+    public final DirectBufferEx payload()
     {
         return payloadRO;
     }
@@ -94,7 +94,7 @@ public class Http2FrameFW extends Flyweight
     }
 
     public Http2FrameFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -109,7 +109,7 @@ public class Http2FrameFW extends Flyweight
 
     @Override
     public Http2FrameFW wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -159,7 +159,7 @@ public class Http2FrameFW extends Flyweight
 
         @Override
         @SuppressWarnings("unchecked")
-        public B wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public B wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
 
@@ -187,13 +187,13 @@ public class Http2FrameFW extends Flyweight
             return (B) this;
         }
 
-        public final B payload(DirectBuffer buffer)
+        public final B payload(DirectBufferEx buffer)
         {
             return payload(buffer, 0, buffer.capacity());
         }
 
         @SuppressWarnings("unchecked")
-        public B payload(DirectBuffer payload, int offset, int length)
+        public B payload(DirectBufferEx payload, int offset, int length)
         {
             buffer().putBytes(offset() + PAYLOAD_OFFSET, payload, offset, length);
             payloadLength(length);
@@ -204,7 +204,7 @@ public class Http2FrameFW extends Flyweight
         protected final B payloadLength(
             int length)
         {
-            final MutableDirectBuffer buffer = buffer();
+            final MutableDirectBufferEx buffer = buffer();
             final int offset = offset();
 
             buffer.putByte(offset + LENGTH_OFFSET, (byte) ((length & 0x00_FF_00_00) >>> Short.SIZE));

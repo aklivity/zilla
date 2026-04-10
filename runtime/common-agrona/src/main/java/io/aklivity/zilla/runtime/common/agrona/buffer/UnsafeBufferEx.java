@@ -21,8 +21,9 @@ import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
 import org.agrona.BufferUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * An {@link UnsafeBuffer} subclass that implements {@link AtomicBufferEx},
@@ -76,14 +77,14 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
     }
 
     public UnsafeBufferEx(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         super(buffer);
         this.segment = segmentOf(buffer);
     }
 
     public UnsafeBufferEx(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -177,7 +178,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         super.wrap(buffer);
         segment = segmentOf(buffer);
@@ -185,7 +186,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -262,7 +263,7 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
     }
 
     private static MemorySegment segmentOf(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         if (buffer instanceof DirectBufferEx ex)
         {

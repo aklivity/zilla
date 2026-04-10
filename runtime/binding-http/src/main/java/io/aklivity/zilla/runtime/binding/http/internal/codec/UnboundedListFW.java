@@ -20,10 +20,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class UnboundedListFW<T extends Flyweight> extends Flyweight
 {
@@ -43,7 +42,7 @@ public final class UnboundedListFW<T extends Flyweight> extends Flyweight
     }
 
     @Override
-    public UnboundedListFW<T> wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public UnboundedListFW<T> wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
         for (limit = offset; limit < maxLimit; limit = itemRO.limit())
@@ -94,7 +93,7 @@ public final class UnboundedListFW<T extends Flyweight> extends Flyweight
             this.itemRW = itemRW;
         }
 
-        public Builder<B, T> wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder<B, T> wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             super.limit(offset);

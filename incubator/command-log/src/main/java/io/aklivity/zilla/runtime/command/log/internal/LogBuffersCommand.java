@@ -23,10 +23,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.command.log.internal.layouts.BufferPoolLayout;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.buffer.DefaultBufferPool;
 
@@ -89,7 +89,7 @@ public final class LogBuffersCommand implements Runnable
         String name,
         DefaultBufferPool bufferPool)
     {
-        final DirectBuffer poolBuffer = bufferPool.poolBuffer();
+        final DirectBufferEx poolBuffer = bufferPool.poolBuffer();
         final int slotCapacity = bufferPool.slotCapacity();
         final int slotCount = bufferPool.slotCount();
         final int slotOffsetsAt = slotCapacity * slotCount;

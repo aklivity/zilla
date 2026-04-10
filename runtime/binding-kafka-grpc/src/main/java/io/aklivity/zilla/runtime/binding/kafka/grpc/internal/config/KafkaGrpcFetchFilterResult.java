@@ -16,17 +16,16 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaFilterFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaGrpcFetchFilterResult
 {
-    public final DirectBuffer key;
+    public final DirectBufferEx key;
     public final List<KafkaGrpcFetchFilterHeaderResult> headers;
 
     KafkaGrpcFetchFilterResult(
-        DirectBuffer key,
+        DirectBufferEx key,
         List<KafkaGrpcFetchFilterHeaderResult> headers)
     {
         this.key = key;

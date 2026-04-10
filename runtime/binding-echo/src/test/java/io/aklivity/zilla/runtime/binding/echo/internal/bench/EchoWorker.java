@@ -22,8 +22,7 @@ import java.time.Clock;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -49,7 +48,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 public class EchoWorker implements EngineContext
 {
     private static final int BUFFER_SIZE = 1024 * 8;
-    private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
+    private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
 
     @Override
     public int index()
@@ -173,7 +172,7 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public MutableDirectBuffer writeBuffer()
+    public MutableDirectBufferEx writeBuffer()
     {
         return writeBuffer;
     }

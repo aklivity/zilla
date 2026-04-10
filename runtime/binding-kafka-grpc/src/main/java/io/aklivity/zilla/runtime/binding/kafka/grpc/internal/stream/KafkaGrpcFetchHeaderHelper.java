@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
@@ -34,6 +31,8 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcMe
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedFetchDataExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class KafkaGrpcFetchHeaderHelper
 {
@@ -49,7 +48,7 @@ public final class KafkaGrpcFetchHeaderHelper
     private final OctetsFW correlatedIdRO = new OctetsFW();
     private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
         new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
-    private final MutableDirectBuffer metaBuffer;
+    private final MutableDirectBufferEx metaBuffer;
     private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
@@ -66,7 +65,7 @@ public final class KafkaGrpcFetchHeaderHelper
 
     public KafkaGrpcFetchHeaderHelper(
         KafkaGrpcCorrelationConfig correlation,
-        MutableDirectBuffer metaBuffer)
+        MutableDirectBufferEx metaBuffer)
     {
         this.metaBuffer = metaBuffer;
         Map<OctetsFW, Consumer<OctetsFW>> visitors = new HashMap<>();
@@ -118,7 +117,7 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         final OctetsFW name = header.name();
         final OctetsFW value = header.value();
-        final DirectBuffer buffer = name.buffer();
+        final DirectBufferEx buffer = name.buffer();
         final int offset = name.offset();
         final int limit = name.limit();
         buffer.getBytes(offset, headerPrefix);

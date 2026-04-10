@@ -14,12 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.event;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiUnresolvedRefExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -34,7 +33,7 @@ public final class AsyncapiEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

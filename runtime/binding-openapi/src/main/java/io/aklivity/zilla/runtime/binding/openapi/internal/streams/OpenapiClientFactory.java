@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
@@ -39,6 +37,8 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -76,8 +76,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
 
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
     private final int openapiTypeId;
@@ -153,7 +153,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -238,7 +238,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
         private void onOpenapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -534,7 +534,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

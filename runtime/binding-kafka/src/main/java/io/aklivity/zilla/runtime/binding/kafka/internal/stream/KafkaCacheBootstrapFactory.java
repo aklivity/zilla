@@ -21,8 +21,6 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
@@ -59,6 +57,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -109,7 +109,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
     private final MutableInteger partitionCount = new MutableInteger();
 
     private final int kafkaTypeId;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -131,7 +131,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -424,7 +424,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onBootstrapInitial(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -464,7 +464,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
             state = KafkaState.openingInitial(state);
 
             final OctetsFW extension = begin.extension();
-            final DirectBuffer buffer = extension.buffer();
+            final DirectBufferEx buffer = extension.buffer();
             final int offset = extension.offset();
             final int limit = extension.limit();
 
@@ -940,7 +940,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onDescribeReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1197,7 +1197,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onMetaReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1503,7 +1503,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onFetchReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1743,7 +1743,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onConsumerReply(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

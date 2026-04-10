@@ -23,12 +23,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpAnnotationFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpApplicationPropertyFW;
@@ -121,7 +120,7 @@ public final class AmqpFunctions
 
         public AmqpBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.beginExRW = new AmqpBeginExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -178,7 +177,7 @@ public final class AmqpFunctions
 
         public AmqpDataExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.dataExRW = new AmqpDataExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -429,7 +428,7 @@ public final class AmqpFunctions
 
     public static final class AmqpDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final AmqpDataExFW dataExRO = new AmqpDataExFW();
 
@@ -767,7 +766,7 @@ public final class AmqpFunctions
 
         public AmqpAbortExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.abortExRW = new AmqpAbortExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }

@@ -26,12 +26,11 @@ import java.util.PrimitiveIterator;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
@@ -162,7 +161,7 @@ public final class MqttFunctions
 
     public static final class MqttBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
@@ -406,7 +405,7 @@ public final class MqttFunctions
 
     public static final class MqttDataExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final MqttDataExFW dataExRO = new MqttDataExFW();
 
@@ -691,7 +690,7 @@ public final class MqttFunctions
 
     public static final class MqttFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final MqttFlushExFW flushExRO = new MqttFlushExFW();
 
@@ -822,7 +821,7 @@ public final class MqttFunctions
 
         private MqttResetExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.resetExRW = new MqttResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -869,7 +868,7 @@ public final class MqttFunctions
 
         private MqttSessionStateBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -927,7 +926,7 @@ public final class MqttFunctions
 
         private MqttWillMessageBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             willMessageRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -1044,7 +1043,7 @@ public final class MqttFunctions
 
     public static final class MqttSessionSignalBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final MqttSessionSignalFW signalRO = new MqttSessionSignalFW();
 
@@ -1184,7 +1183,7 @@ public final class MqttFunctions
 
     public static final class MqttBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
@@ -1622,7 +1621,7 @@ public final class MqttFunctions
 
     public static final class MqttDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final MqttDataExFW dataExRo = new MqttDataExFW();
 
@@ -1704,7 +1703,7 @@ public final class MqttFunctions
         public final class MqttSubscribeDataExMatcherBuilder
         {
             private MqttBinaryFW.Builder correlationRW;
-            private final DirectBuffer correlationRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx correlationRO = new UnsafeBufferEx(0, 0);
             private String16FW topic;
             private Integer packetId;
             private Integer qos;
@@ -1924,7 +1923,7 @@ public final class MqttFunctions
         public final class MqttPublishDataExMatcherBuilder
         {
             private MqttBinaryFW.Builder correlationRW;
-            private final DirectBuffer correlationRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx correlationRO = new UnsafeBufferEx(0, 0);
             private Integer qos;
             private Integer flags;
             private Integer packetId;
@@ -2122,7 +2121,7 @@ public final class MqttFunctions
 
     public static final class MqttFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final MqttFlushExFW flushExRo = new MqttFlushExFW();
 
