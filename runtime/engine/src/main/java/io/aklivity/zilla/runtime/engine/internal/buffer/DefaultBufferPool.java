@@ -23,8 +23,8 @@ import java.util.BitSet;
 
 import org.agrona.collections.Hashing;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -42,7 +42,7 @@ public class DefaultBufferPool implements BufferPool
 
     private final int slotCapacity;
     private final int slotCount;
-    private final AtomicBuffer poolBuffer;
+    private final AtomicBufferEx poolBuffer;
     private final ByteBuffer slotByteBuffer;
 
     private final int bitsPerSlot;
