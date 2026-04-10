@@ -124,9 +124,9 @@ public class SseClientFactory implements SseStreamFactory
     private final String8FW.Builder valueIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final String8FW.Builder valueTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
-    private final Map<DirectBuffer, SseFieldName> decodeableFieldNames;
+    private final Map<DirectBufferEx, SseFieldName> decodeableFieldNames;
     {
-        final HashMap<DirectBuffer, SseFieldName> fieldNames = new HashMap<>();
+        final HashMap<DirectBufferEx, SseFieldName> fieldNames = new HashMap<>();
         fieldNames.put(FIELD_NAME_DATA_BYTES, SseFieldName.DATA);
         fieldNames.put(FIELD_NAME_ID_BYTES, SseFieldName.ID);
         fieldNames.put(FIELD_NAME_TYPE_BYTES, SseFieldName.TYPE);

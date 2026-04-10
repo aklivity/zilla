@@ -144,7 +144,7 @@ public final class BudgetsLayout implements AutoCloseable
 
             final MappedByteBuffer mapped = mapExistingFile(budgets, "budgets");
 
-            final AtomicBuffer buffer = new UnsafeBufferEx(mapped);
+            final AtomicBufferEx buffer = new UnsafeBufferEx(mapped);
 
             return new BudgetsLayout(buffer);
         }

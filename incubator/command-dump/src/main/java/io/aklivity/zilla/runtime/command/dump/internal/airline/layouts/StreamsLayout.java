@@ -93,7 +93,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new UnsafeBufferEx(mappedStreams);
+            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams);
 
             final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams, initial);
 

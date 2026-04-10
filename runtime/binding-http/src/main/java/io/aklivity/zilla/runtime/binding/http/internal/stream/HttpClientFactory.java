@@ -2272,8 +2272,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodableChunkSize;
         private int decodableContentLength;
 
-        private final MutableDirectBufferEx encodeHeadersBuffer;
-        private final MutableDirectBufferEx encodeReservedBuffer;
+        private final org.agrona.MutableDirectBuffer encodeHeadersBuffer;
+        private final org.agrona.MutableDirectBuffer encodeReservedBuffer;
         private int encodeSlot;
         private int encodeSlotOffset;
         private int encodeSlotMarkOffset;
@@ -5333,8 +5333,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private Http2HeadersDecoder()
         {
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue =
-                    ((BiConsumer<DirectBuffer, DirectBuffer>) this::collectHeaders)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue =
+                    ((BiConsumer<DirectBufferEx, DirectBufferEx>) this::collectHeaders)
                             .andThen(this::uppercaseHeaders)
                             .andThen(this::connectionHeaders)
                             .andThen(this::contentLengthHeader)
@@ -5513,7 +5513,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void decodeHeaderField(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             if (!error())
             {
@@ -5523,7 +5523,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void decodeHF(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             int index;
             DirectBufferEx name = null;
