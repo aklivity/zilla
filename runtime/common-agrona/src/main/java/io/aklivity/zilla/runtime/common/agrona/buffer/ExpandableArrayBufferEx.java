@@ -31,52 +31,28 @@ import org.agrona.ExpandableArrayBuffer;
  */
 public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements MutableDirectBufferEx
 {
-    private MemorySegment segment;
-
     public ExpandableArrayBufferEx()
     {
         super();
-        this.segment = MemorySegment.ofArray(byteArray());
     }
 
     public ExpandableArrayBufferEx(
         int initialCapacity)
     {
         super(initialCapacity);
-        this.segment = MemorySegment.ofArray(byteArray());
     }
 
     @Override
     public MemorySegment segment()
     {
-        return segment;
-    }
-
-    @Override
-    public void wrap(
-        byte[] buffer)
-    {
-        super.wrap(buffer);
-        segment = MemorySegment.ofArray(buffer);
-    }
-
-    @Override
-    public void wrap(
-        byte[] buffer,
-        int offset,
-        int length)
-    {
-        super.wrap(buffer, offset, length);
-        segment = MemorySegment.ofArray(buffer);
+        return MemorySegment.ofArray(byteArray());
     }
 
     @Override
     public void wrap(
         DirectBufferEx buffer)
     {
-        final byte[] array = buffer.byteArray();
-        super.wrap(array, buffer.wrapAdjustment(), buffer.capacity());
-        segment = MemorySegment.ofArray(array);
+        super.wrap(buffer.byteArray(), buffer.wrapAdjustment(), buffer.capacity());
     }
 
     @Override
@@ -85,9 +61,7 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
         int offset,
         int length)
     {
-        final byte[] array = buffer.byteArray();
-        super.wrap(array, buffer.wrapAdjustment() + offset, length);
-        segment = MemorySegment.ofArray(array);
+        super.wrap(buffer.byteArray(), buffer.wrapAdjustment() + offset, length);
     }
 
     @Override
@@ -107,24 +81,13 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
     }
 
     @Override
-    public void checkLimit(
-        int limit)
-    {
-        super.checkLimit(limit);
-        if (limit > segment.byteSize())
-        {
-            segment = MemorySegment.ofArray(byteArray());
-        }
-    }
-
-    @Override
     public void getBytes(
         int index,
         MemorySegment dstSegment,
         int dstIndex,
         int length)
     {
-        MemorySegment.copy(segment, JAVA_BYTE, wrapAdjustment() + index,
+        MemorySegment.copy(segment(), JAVA_BYTE, wrapAdjustment() + index,
             dstSegment, JAVA_BYTE, dstIndex, length);
     }
 
@@ -136,7 +99,7 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
         int length)
     {
         MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcBuffer.wrapAdjustment() + srcIndex,
-            segment, JAVA_BYTE, wrapAdjustment() + index, length);
+            segment(), JAVA_BYTE, wrapAdjustment() + index, length);
     }
 
     @Override
@@ -147,6 +110,6 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
         int length)
     {
         MemorySegment.copy(srcSegment, JAVA_BYTE, srcIndex,
-            segment, JAVA_BYTE, wrapAdjustment() + index, length);
+            segment(), JAVA_BYTE, wrapAdjustment() + index, length);
     }
 }
