@@ -27,8 +27,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
-import java.util.Base64.Encoder;
 import java.util.Base64;
+import java.util.Base64.Encoder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
