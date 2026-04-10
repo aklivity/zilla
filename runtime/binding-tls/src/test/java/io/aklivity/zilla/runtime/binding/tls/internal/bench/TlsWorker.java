@@ -514,14 +514,15 @@ public class TlsWorker implements EngineContext
         int index,
         int length)
     {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final DirectBufferEx bufferEx = (DirectBufferEx) buffer;
+        final FrameFW frame = frameRO.wrap(bufferEx, index, index + length);
         final long streamId = frame.streamId();
 
         final MessageConsumer stream = StreamId.isThrottle(msgTypeId)
             ? throtllesById.get(streamId)
             : streamsById.get(streamId);
 
-        stream.accept(msgTypeId, buffer, index, length);
+        stream.accept(msgTypeId, bufferEx, index, length);
     }
 
     private MessageConsumer newStream(
