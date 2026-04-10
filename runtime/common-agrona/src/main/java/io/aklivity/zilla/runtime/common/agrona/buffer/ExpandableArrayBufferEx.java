@@ -71,6 +71,42 @@ public class ExpandableArrayBufferEx extends ExpandableArrayBuffer implements Mu
     }
 
     @Override
+    public void wrap(
+        DirectBufferEx buffer)
+    {
+        final byte[] array = buffer.byteArray();
+        super.wrap(array, buffer.wrapAdjustment(), buffer.capacity());
+        segment = MemorySegment.ofArray(array);
+    }
+
+    @Override
+    public void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final byte[] array = buffer.byteArray();
+        super.wrap(array, buffer.wrapAdjustment() + offset, length);
+        segment = MemorySegment.ofArray(array);
+    }
+
+    @Override
+    public void wrap(
+        MemorySegment segment)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void wrap(
+        MemorySegment segment,
+        int offset,
+        int length)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void checkLimit(
         int limit)
     {
