@@ -391,7 +391,7 @@ public final class HttpKafkaWithResolver
 
         KafkaAckMode acks = produce.acks;
 
-        Supplier<DirectBuffer> keyRef = () -> null;
+        Supplier<DirectBufferEx> keyRef = () -> null;
         if (produce.key.isPresent())
         {
             String key0 = produce.key.get();
@@ -429,7 +429,7 @@ public final class HttpKafkaWithResolver
                 value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                 String value = value0;
-                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
+                Supplier<DirectBufferEx> valueRef = () -> new String16FW(value).value();
                 if (correlationId != null)
                 {
                     valueRef = () ->
