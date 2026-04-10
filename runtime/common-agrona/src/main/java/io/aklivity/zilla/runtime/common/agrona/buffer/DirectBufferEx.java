@@ -24,6 +24,14 @@ public interface DirectBufferEx extends DirectBuffer
     MemorySegment segment();
 
     void wrap(
+        DirectBufferEx buffer);
+
+    void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int length);
+
+    void wrap(
         MemorySegment segment);
 
     void wrap(
