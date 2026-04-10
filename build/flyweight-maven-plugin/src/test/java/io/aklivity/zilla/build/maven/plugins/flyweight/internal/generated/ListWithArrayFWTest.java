@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.ArrayFW;
@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ListWithArrayFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -70,7 +70,7 @@ public class ListWithArrayFWTest
     }
 
     private void setAllFields(
-        MutableDirectBuffer buffer)
+        MutableDirectBufferEx buffer)
     {
         byte listLength = 29;
         byte listFieldCount = 2;
@@ -264,7 +264,7 @@ public class ListWithArrayFWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:
@@ -287,7 +287,7 @@ public class ListWithArrayFWTest
     {
         VariantOfArrayFW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> variantOfArrayRW =
             new VariantOfArrayFW.Builder<>(new VariantEnumKindOfStringFW.Builder(), new VariantEnumKindOfStringFW());
-        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(100));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100));
         variantOfArrayRW.wrap(buffer, 0, buffer.capacity());
         for (StringFW value : values)
         {

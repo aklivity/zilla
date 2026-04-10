@@ -26,7 +26,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array32FW;
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Array32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(150000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(150000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -54,7 +54,7 @@ public class Array32FWTest
     private final int arrayItemKindSize = Byte.BYTES;
 
     private int setVariantItems(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         String item1 = String.format("%65535s", "0");
@@ -221,7 +221,7 @@ public class Array32FWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
         return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

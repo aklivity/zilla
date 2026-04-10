@@ -26,7 +26,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array16FW;
@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Array16FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(allocateDirect(150000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(150000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -56,7 +56,7 @@ public class Array16FWTest
     private final int arrayItemKindSize = Byte.BYTES;
 
     private int setVariantItems(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         String item1 = String.format("%1000s", "0");
@@ -225,7 +225,7 @@ public class Array16FWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:
