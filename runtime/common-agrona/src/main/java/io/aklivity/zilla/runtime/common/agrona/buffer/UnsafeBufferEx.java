@@ -157,6 +157,22 @@ public class UnsafeBufferEx extends UnsafeBuffer implements AtomicBufferEx
         segment = segmentOf(buffer).asSlice(offset, length);
     }
 
+    public void wrap(
+        DirectBufferEx buffer)
+    {
+        super.wrap(buffer);
+        segment = buffer.segment();
+    }
+
+    public void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        super.wrap(buffer, offset, length);
+        segment = buffer.segment().asSlice(offset, length);
+    }
+
     @Override
     public void wrap(
         DirectBuffer buffer)
