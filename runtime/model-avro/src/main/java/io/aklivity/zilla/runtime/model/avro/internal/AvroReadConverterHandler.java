@@ -162,7 +162,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
             int recordLength = expandable.position();
             if (recordLength > 0)
             {
-                next.accept(expandable.buffer(), 0, recordLength);
+                next.accept((DirectBufferEx) expandable.buffer(), 0, recordLength);
                 valLength = recordLength;
             }
         }

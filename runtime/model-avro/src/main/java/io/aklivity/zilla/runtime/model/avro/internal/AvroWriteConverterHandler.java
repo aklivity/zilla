@@ -113,7 +113,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
                         int position = expandable.position();
                         if (position > 0)
                         {
-                            next.accept(expandable.buffer(), 0, position);
+                            next.accept((DirectBufferEx) expandable.buffer(), 0, position);
                             valLength = position;
                         }
                     }
