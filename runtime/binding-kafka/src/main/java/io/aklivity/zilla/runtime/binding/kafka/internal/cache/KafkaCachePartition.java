@@ -55,7 +55,7 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonWriter;
 import jakarta.json.spi.JsonProvider;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.MutableInteger;
@@ -141,7 +141,7 @@ public final class KafkaCachePartition
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
-    private final org.agrona.MutableDirectBuffer diffBuffer = new org.agrona.ExpandableArrayBuffer();
+    private final MutableDirectBufferEx diffBuffer = new ExpandableArrayBufferEx();
     private final ExpandableDirectBufferOutputStream diffOut = new ExpandableDirectBufferOutputStream();
 
     private final Path location;
