@@ -37,21 +37,12 @@ public final class McpBindingConfig
             .collect(Collectors.toList());
     }
 
-    public long resolveRoute(
-        long authorization,
-        String kind)
+    public McpRouteConfig resolve(
+        long authorization)
     {
-        long resolvedId = -1L;
-
-        for (McpRouteConfig route : routes)
-        {
-            if (route.authorized(authorization) && route.matches(kind))
-            {
-                resolvedId = route.id;
-                break;
-            }
-        }
-
-        return resolvedId;
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(""))
+            .findFirst()
+            .orElse(null);
     }
 }
