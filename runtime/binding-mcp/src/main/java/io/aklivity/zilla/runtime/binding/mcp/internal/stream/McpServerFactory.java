@@ -1310,7 +1310,7 @@ public final class McpServerFactory implements McpStreamFactory
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
 
-            doReset(downstream, routedId, resolvedId, downstreamReplyId,
+            doReset(sender, originId, routedId, initialId,
                 sequence, acknowledge, maximum, traceId, authorization);
         }
     }
