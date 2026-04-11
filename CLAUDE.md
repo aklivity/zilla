@@ -290,6 +290,57 @@ navigating the class from the top encounter the stream logic first; the
 low-level frame-writing helpers at the bottom are only consulted when needed
 and do not need to be scrolled past to reach the interesting code.
 
+### Per-stream field naming
+
+Each inner stream class (in server, client, and proxy bindings) maintains a
+standard set of fields tracking stream identity, flow control, and state. These
+fields follow a strict `initialXxx` / `replyXxx` naming convention
+corresponding to the two directions of a bidirectional stream (initial =
+request direction, reply = response direction).
+
+**Stream identity fields:**
+
+| Field           | Type   | Purpose                                            |
+|-----------------|--------|----------------------------------------------------|
+| `initialId`     | `long` | Stream identifier for the initial direction        |
+| `replyId`       | `long` | Stream identifier for the reply direction          |
+| `originId`      | `long` | Origin binding identifier                          |
+| `routedId`      | `long` | Routed binding identifier                          |
+| `authorization` | `long` | Authorization context carried on the stream        |
+| `affinity`      | `long` | Affinity hint for stream routing                   |
+
+**Flow-control fields (declared per direction):**
+
+| Suffix | Full name   | Type   | Purpose                                          |
+|--------|-------------|--------|--------------------------------------------------|
+| `Seq`  | sequence    | `long` | Running byte-position counter                    |
+| `Ack`  | acknowledge | `long` | Acknowledged byte-position from peer             |
+| `Max`  | maximum     | `int`  | Maximum window size (bytes in flight)            |
+| `Bud`  | budget id   | `long` | Shared budget identifier for credit allocation   |
+| `Pad`  | padding     | `int`  | Reserved bytes per frame (protocol overhead)     |
+
+Every stream class declares both directions:
+
+```java
+private long initialSeq;
+private long initialAck;
+private int  initialMax;
+private long initialBud;
+private int  initialPad;
+
+private long replySeq;
+private long replyAck;
+private int  replyMax;
+private long replyBud;
+private int  replyPad;
+```
+
+**State field:**
+
+- `state` (`int`) — a bitfield tracking open/closing/closed for both
+  directions, managed by an `XxxState` utility class with static bitmask
+  methods (e.g., `openingInitial(state)`, `closedReply(state)`)
+
 ### Buffer slot usage
 
 When a binding needs to buffer data mid-decode or mid-encode (e.g., to
