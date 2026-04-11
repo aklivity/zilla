@@ -169,18 +169,981 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (resolvedId != -1L)
             {
-                newStream = new McpServerStream(
+                newStream = new McpServer(
                     sender,
                     originId,
                     routedId,
                     initialId,
                     resolvedId,
                     affinity,
-                    authorization)::onMessage;
+                    authorization)::onNetMessage;
             }
         }
 
         return newStream;
+    }
+
+    private final class McpServer
+    {
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+
+        private long appInitialId;
+        private long appReplyId;
+        private MessageConsumer app;
+
+        private int state;
+        private int appState;
+
+        private String sessionId;
+        private String toolName;
+        private String promptName;
+        private String resourceUri;
+        private String loggingLevel;
+        private String cancelReason;
+        private boolean httpDelete;
+        private boolean acceptSse;
+        private boolean notification;
+        private boolean sseResponse;
+        private String requestId;
+
+        private int decodeSlot = BufferPool.NO_SLOT;
+        private int decodeSlotOffset;
+        private int decodeSlotReserved;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private McpServer(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization)
+        {
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onNetFlush(flush);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final int maximum = begin.maximum();
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+            initialMax = maximum;
+
+            if (extension.sizeof() > 0)
+            {
+                final HttpBeginExFW httpBeginEx =
+                    httpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (httpBeginEx != null)
+                {
+                    final HttpHeaderFW methodHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_METHOD.equals(h.name().asString()));
+                    if (methodHeader != null && HTTP_DELETE.equals(methodHeader.value().asString()))
+                    {
+                        httpDelete = true;
+                    }
+
+                    final HttpHeaderFW sessionHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
+                    if (sessionHeader != null)
+                    {
+                        sessionId = sessionHeader.value().asString();
+                    }
+
+                    final HttpHeaderFW acceptHeader =
+                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_ACCEPT.equals(h.name().asString()));
+                    if (acceptHeader != null && acceptHeader.value().asString().contains(CONTENT_TYPE_SSE))
+                    {
+                        acceptSse = true;
+                    }
+                }
+            }
+
+            appInitialId = supplyInitialId.applyAsLong(resolvedId);
+            appReplyId = supplyReplyId.applyAsLong(appInitialId);
+
+            if (httpDelete)
+            {
+                openAppStream(traceId, null, sequence, acknowledge, maximum);
+            }
+            else
+            {
+                doNetWindow(sequence, acknowledge, writeBuffer.capacity(), traceId, 0, 0);
+            }
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final int maximum = data.maximum();
+            final long traceId = data.traceId();
+            final long budgetId = data.budgetId();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+
+            if (McpServerState.initialOpened(appState) || payload == null)
+            {
+                return;
+            }
+
+            if (decodeSlot == BufferPool.NO_SLOT)
+            {
+                decodeSlot = bufferPool.acquire(initialId);
+            }
+
+            if (decodeSlot == BufferPool.NO_SLOT)
+            {
+                doNetReset(sequence, acknowledge, maximum, traceId);
+                return;
+            }
+
+            final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
+            if (decodeSlotOffset + payload.sizeof() > slot.capacity())
+            {
+                cleanupDecodeSlot();
+                doNetReset(sequence, acknowledge, maximum, traceId);
+                return;
+            }
+
+            slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+            decodeSlotOffset += payload.sizeof();
+
+            final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
+            String parsedMethod = null;
+            boolean parsedHasId = false;
+            String parsedRequestId = null;
+            JsonObject parsedParams = null;
+            boolean parseIncomplete = false;
+
+            try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
+            {
+                String currentKey = null;
+                while (parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case KEY_NAME:
+                        currentKey = parser.getString();
+                        break;
+                    case VALUE_STRING:
+                        if ("method".equals(currentKey))
+                        {
+                            parsedMethod = parser.getString();
+                        }
+                        else if ("id".equals(currentKey))
+                        {
+                            parsedHasId = true;
+                            parsedRequestId = "\"" + parser.getString() + "\"";
+                        }
+                        currentKey = null;
+                        break;
+                    case VALUE_NUMBER:
+                    case VALUE_TRUE:
+                    case VALUE_FALSE:
+                        if ("id".equals(currentKey))
+                        {
+                            parsedHasId = true;
+                            parsedRequestId = String.valueOf(parser.getLong());
+                        }
+                        currentKey = null;
+                        break;
+                    case VALUE_NULL:
+                        currentKey = null;
+                        break;
+                    case START_OBJECT:
+                        if ("params".equals(currentKey))
+                        {
+                            parsedParams = parser.getObject();
+                        }
+                        else if (currentKey != null)
+                        {
+                            parser.skipObject();
+                        }
+                        currentKey = null;
+                        break;
+                    case START_ARRAY:
+                        parser.skipArray();
+                        currentKey = null;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            catch (JsonParsingException ex)
+            {
+                parseIncomplete = true;
+            }
+
+            final boolean needsParams = "initialize".equals(parsedMethod) ||
+                "tools/call".equals(parsedMethod) ||
+                "prompts/get".equals(parsedMethod) ||
+                "resources/read".equals(parsedMethod) ||
+                "logging/setLevel".equals(parsedMethod) ||
+                "notifications/cancelled".equals(parsedMethod);
+
+            if (parseIncomplete && (parsedMethod == null || needsParams && parsedParams == null))
+            {
+                if ((flags & FLAG_FIN) == 0)
+                {
+                    return;
+                }
+            }
+
+            if (parsedParams != null)
+            {
+                if ("tools/call".equals(parsedMethod))
+                {
+                    toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
+                }
+                else if ("prompts/get".equals(parsedMethod))
+                {
+                    promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
+                }
+                else if ("resources/read".equals(parsedMethod))
+                {
+                    resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
+                }
+                else if ("logging/setLevel".equals(parsedMethod))
+                {
+                    loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
+                }
+                else if ("notifications/cancelled".equals(parsedMethod))
+                {
+                    cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
+                }
+            }
+
+            notification = !parsedHasId;
+            requestId = parsedRequestId;
+            openAppStream(traceId, parsedMethod, initialSeq, initialAck, initialMax);
+
+            if (app != null && parsedParams != null)
+            {
+                final String paramsStr = parsedParams.toString();
+                final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
+                doData(app, routedId, resolvedId, appInitialId,
+                    sequence, acknowledge, maximum, traceId, authorization,
+                    budgetId, flags & ~FLAG_FIN, 0, extBuffer, 0, paramsLength);
+            }
+
+            cleanupDecodeSlot();
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final int maximum = end.maximum();
+            final long traceId = end.traceId();
+
+            if (!McpServerState.initialOpened(appState) && decodeSlot != BufferPool.NO_SLOT)
+            {
+                final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
+                final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
+                String parsedMethod = null;
+                boolean parsedHasId = false;
+                String parsedRequestId = null;
+                JsonObject parsedParams = null;
+
+                try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
+                {
+                    String currentKey = null;
+                    while (parser.hasNext())
+                    {
+                        final JsonParser.Event event = parser.next();
+                        switch (event)
+                        {
+                        case KEY_NAME:
+                            currentKey = parser.getString();
+                            break;
+                        case VALUE_STRING:
+                            if ("method".equals(currentKey))
+                            {
+                                parsedMethod = parser.getString();
+                            }
+                            else if ("id".equals(currentKey))
+                            {
+                                parsedHasId = true;
+                                parsedRequestId = "\"" + parser.getString() + "\"";
+                            }
+                            currentKey = null;
+                            break;
+                        case VALUE_NUMBER:
+                        case VALUE_TRUE:
+                        case VALUE_FALSE:
+                            if ("id".equals(currentKey))
+                            {
+                                parsedHasId = true;
+                                parsedRequestId = String.valueOf(parser.getLong());
+                            }
+                            currentKey = null;
+                            break;
+                        case VALUE_NULL:
+                            currentKey = null;
+                            break;
+                        case START_OBJECT:
+                            if ("params".equals(currentKey))
+                            {
+                                parsedParams = parser.getObject();
+                            }
+                            else if (currentKey != null)
+                            {
+                                parser.skipObject();
+                            }
+                            currentKey = null;
+                            break;
+                        case START_ARRAY:
+                            parser.skipArray();
+                            currentKey = null;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+                catch (JsonParsingException ex)
+                {
+                    // fall through with what we have (END has arrived)
+                }
+
+                if (parsedParams != null)
+                {
+                    if ("tools/call".equals(parsedMethod))
+                    {
+                        toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
+                    }
+                    else if ("prompts/get".equals(parsedMethod))
+                    {
+                        promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
+                    }
+                    else if ("resources/read".equals(parsedMethod))
+                    {
+                        resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
+                    }
+                    else if ("logging/setLevel".equals(parsedMethod))
+                    {
+                        loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
+                    }
+                    else if ("notifications/cancelled".equals(parsedMethod))
+                    {
+                        cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
+                    }
+                }
+
+                notification = !parsedHasId;
+                requestId = parsedRequestId;
+                openAppStream(traceId, parsedMethod, initialSeq, initialAck, initialMax);
+
+                if (app != null && parsedParams != null)
+                {
+                    final String paramsStr = parsedParams.toString();
+                    final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
+                    doData(app, routedId, resolvedId, appInitialId,
+                        sequence, acknowledge, maximum, traceId, authorization,
+                        0, 0, 0, extBuffer, 0, paramsLength);
+                }
+            }
+
+            cleanupDecodeSlot();
+
+            doAppEnd(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final int maximum = abort.maximum();
+            final long traceId = abort.traceId();
+
+            cleanupDecodeSlot();
+
+            doAppAbort(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void onNetFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final int maximum = flush.maximum();
+            final long traceId = flush.traceId();
+            final long budgetId = flush.budgetId();
+            final int reserved = flush.reserved();
+
+            if (McpServerState.initialOpened(appState))
+            {
+                doFlush(app, routedId, resolvedId, appInitialId,
+                    sequence, acknowledge, maximum, traceId, authorization,
+                    budgetId, reserved);
+            }
+        }
+
+        private void onNetWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            doAppWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
+        }
+
+        private void onNetReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final int maximum = reset.maximum();
+            final long traceId = reset.traceId();
+
+            doAppAbort(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void onAppMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onAppBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onAppData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onAppEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onAppAbort(abort);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onAppFlush(flush);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onAppWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onAppReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onAppBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final int maximum = begin.maximum();
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            String responseSessionId = sessionId;
+            if (extension.sizeof() > 0)
+            {
+                final McpBeginExFW mcpBeginEx =
+                    mcpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (mcpBeginEx != null)
+                {
+                    final String sid = extractMcpSessionId(mcpBeginEx);
+                    if (sid != null)
+                    {
+                        responseSessionId = sid;
+                    }
+                }
+            }
+
+            final String status = notification ? STATUS_202 : STATUS_200;
+            sseResponse = acceptSse && !notification;
+
+            final String finalResponseSessionId = responseSessionId;
+            final HttpBeginExFW httpBeginEx = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE)
+                    .value(sseResponse ? CONTENT_TYPE_SSE : CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(finalResponseSessionId != null ? finalResponseSessionId : ""))
+                .build();
+
+            doNetBegin(sequence, acknowledge, maximum, traceId,
+                httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof());
+
+            doAppWindow(sequence, acknowledge, writeBuffer.capacity(), traceId, 0, 0);
+        }
+
+        private void onAppData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final int maximum = data.maximum();
+            final long traceId = data.traceId();
+            final long budgetId = data.budgetId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
+            {
+                final String payloadStr = payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof());
+                final String resultStr;
+                if (isNotification(payloadStr))
+                {
+                    resultStr = payloadStr;
+                }
+                else
+                {
+                    resultStr = "{\"jsonrpc\":\"2.0\",\"id\":" + requestId + ",\"result\":" + payloadStr + "}";
+                }
+                final int resultLength = extBuffer.putStringWithoutLengthUtf8(0, resultStr);
+
+                if (sseResponse)
+                {
+                    final byte[] prefixBytes = SSE_DATA_PREFIX.getBytes();
+                    final byte[] suffixBytes = SSE_DATA_SUFFIX.getBytes();
+                    final int sseLength = prefixBytes.length + resultLength + suffixBytes.length;
+                    sseBuffer.putBytes(0, prefixBytes);
+                    sseBuffer.putBytes(prefixBytes.length, extBuffer, 0, resultLength);
+                    sseBuffer.putBytes(prefixBytes.length + resultLength, suffixBytes);
+
+                    doNetData(sequence, acknowledge, maximum, traceId, budgetId, flags, reserved,
+                        sseBuffer, 0, sseLength);
+                }
+                else
+                {
+                    doNetData(sequence, acknowledge, maximum, traceId, budgetId, flags, reserved,
+                        extBuffer, 0, resultLength);
+                }
+            }
+        }
+
+        private void onAppEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final int maximum = end.maximum();
+            final long traceId = end.traceId();
+
+            doNetEnd(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void onAppAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final int maximum = abort.maximum();
+            final long traceId = abort.traceId();
+
+            doNetAbort(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void onAppFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final int maximum = flush.maximum();
+            final long traceId = flush.traceId();
+            final long budgetId = flush.budgetId();
+            final int reserved = flush.reserved();
+
+            doFlush(sender, originId, routedId, replyId,
+                sequence, acknowledge, maximum, traceId, authorization,
+                budgetId, reserved);
+        }
+
+        private void onAppWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            doWindow(sender, originId, routedId, initialId,
+                sequence, acknowledge, maximum,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void onAppReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final int maximum = reset.maximum();
+            final long traceId = reset.traceId();
+
+            doNetReset(sequence, acknowledge, maximum, traceId);
+        }
+
+        private void openAppStream(
+            long traceId,
+            String method,
+            long sequence,
+            long acknowledge,
+            int maximum)
+        {
+            final McpBeginExFW.Builder mcpBeginExBuilder = mcpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId);
+
+            if ("initialize".equals(method))
+            {
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text((String) null)));
+            }
+            else if ("notifications/initialized".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("ping".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.ping(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("tools/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.tools(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("tools/call".equals(method))
+            {
+                final String sid = sessionId;
+                final String name = toolName;
+                mcpBeginExBuilder.tool(b -> b.sessionId(s -> s.text(sid)).name(name));
+            }
+            else if ("prompts/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.prompts(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("prompts/get".equals(method))
+            {
+                final String sid = sessionId;
+                final String name = promptName;
+                mcpBeginExBuilder.prompt(b -> b.sessionId(s -> s.text(sid)).name(name));
+            }
+            else if ("resources/list".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.resources(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("resources/read".equals(method))
+            {
+                final String sid = sessionId;
+                final String uri = resourceUri;
+                mcpBeginExBuilder.resource(b -> b.sessionId(s -> s.text(sid)).uri(uri));
+            }
+            else if ("completion/complete".equals(method))
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.completion(b -> b.sessionId(s -> s.text(sid)));
+            }
+            else if ("logging/setLevel".equals(method))
+            {
+                final String sid = sessionId;
+                final String level = loggingLevel;
+                mcpBeginExBuilder.logging(b -> b.sessionId(s -> s.text(sid)).level(level));
+            }
+            else if ("notifications/cancelled".equals(method))
+            {
+                final String sid = sessionId;
+                final String reason = cancelReason;
+                mcpBeginExBuilder.cancel(b -> b.sessionId(s -> s.text(sid)).reason(reason));
+            }
+            else
+            {
+                final String sid = sessionId;
+                mcpBeginExBuilder.disconnect(b -> b.sessionId(s -> s.text(sid)));
+            }
+
+            final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
+
+            final BeginFW appBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(routedId)
+                .routedId(resolvedId)
+                .streamId(appInitialId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(mcpBeginEx.buffer(), mcpBeginEx.offset(), mcpBeginEx.sizeof())
+                .build();
+
+            app = streamFactory.newStream(
+                appBegin.typeId(),
+                appBegin.buffer(),
+                appBegin.offset(),
+                appBegin.sizeof(),
+                this::onAppMessage);
+
+            if (app != null)
+            {
+                app.accept(
+                    appBegin.typeId(),
+                    appBegin.buffer(),
+                    appBegin.offset(),
+                    appBegin.sizeof());
+
+                appState = McpServerState.openedInitial(appState);
+
+                doNetWindow(sequence, acknowledge, writeBuffer.capacity(), traceId, 0, 0);
+            }
+            else
+            {
+                doNetReset(sequence, acknowledge, maximum, traceId);
+            }
+        }
+
+        private void doNetBegin(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            DirectBuffer extBuf,
+            int extOffset,
+            int extLength)
+        {
+            doBegin(sender, originId, routedId, replyId,
+                sequence, acknowledge, maximum, traceId, authorization, affinity,
+                extBuf, extOffset, extLength);
+
+            state = McpServerState.openingReply(state);
+        }
+
+        private void doNetData(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBuffer payload,
+            int offset,
+            int length)
+        {
+            doData(sender, originId, routedId, replyId,
+                sequence, acknowledge, maximum, traceId, authorization,
+                budgetId, flags, reserved, payload, offset, length);
+        }
+
+        private void doNetEnd(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (!McpServerState.replyClosed(state))
+            {
+                state = McpServerState.closedReply(state);
+                doEnd(sender, originId, routedId, replyId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void doNetAbort(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (!McpServerState.replyClosed(state))
+            {
+                state = McpServerState.closedReply(state);
+                doAbort(sender, originId, routedId, replyId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void doNetWindow(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            doWindow(sender, originId, routedId, initialId,
+                sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
+        }
+
+        private void doNetReset(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (!McpServerState.initialClosed(state))
+            {
+                state = McpServerState.closedInitial(state);
+                doReset(sender, originId, routedId, initialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void doAppEnd(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (McpServerState.initialOpened(appState) && !McpServerState.initialClosed(appState))
+            {
+                appState = McpServerState.closedInitial(appState);
+                doEnd(app, routedId, resolvedId, appInitialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void doAppAbort(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (McpServerState.initialOpened(appState) && !McpServerState.initialClosed(appState))
+            {
+                appState = McpServerState.closedInitial(appState);
+                doAbort(app, routedId, resolvedId, appInitialId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void doAppWindow(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            doWindow(app, routedId, resolvedId, appReplyId,
+                sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
+        }
+
+        private void doAppReset(
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId)
+        {
+            if (!McpServerState.replyClosed(appState))
+            {
+                appState = McpServerState.closedReply(appState);
+                doReset(app, routedId, resolvedId, appReplyId,
+                    sequence, acknowledge, maximum, traceId, authorization);
+            }
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            cleanupDecodeSlot();
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != BufferPool.NO_SLOT)
+            {
+                bufferPool.release(decodeSlot);
+                decodeSlot = BufferPool.NO_SLOT;
+                decodeSlotOffset = 0;
+                decodeSlotReserved = 0;
+            }
+        }
     }
 
     private void doBegin(
@@ -467,851 +1430,5 @@ public final class McpServerFactory implements McpStreamFactory
             // fall through
         }
         return false;
-    }
-
-    private final class McpServerStream
-    {
-        private final MessageConsumer sender;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long resolvedId;
-        private final long affinity;
-        private final long authorization;
-
-        private long downstreamInitialId;
-        private long downstreamReplyId;
-        private MessageConsumer downstream;
-
-        private String sessionId;
-        private String toolName;
-        private String promptName;
-        private String resourceUri;
-        private String loggingLevel;
-        private String cancelReason;
-        private boolean httpDelete;
-        private boolean acceptSse;
-        private boolean notification;
-        private boolean downstreamBeginSent;
-        private boolean sseResponse;
-        private String requestId;
-        private int decodeSlot = BufferPool.NO_SLOT;
-        private int decodeSlotOffset;
-
-        private long pendingSequence;
-        private long pendingAcknowledge;
-        private int pendingMaximum;
-        private long pendingTraceId;
-
-        private McpServerStream(
-            MessageConsumer sender,
-            long originId,
-            long routedId,
-            long initialId,
-            long resolvedId,
-            long affinity,
-            long authorization)
-        {
-            this.sender = sender;
-            this.originId = originId;
-            this.routedId = routedId;
-            this.initialId = initialId;
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.resolvedId = resolvedId;
-            this.affinity = affinity;
-            this.authorization = authorization;
-        }
-
-        private void onMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onFlush(flush);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onWindow(window);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onReset(reset);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onBegin(
-            BeginFW begin)
-        {
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
-            final int maximum = begin.maximum();
-            final long traceId = begin.traceId();
-            final OctetsFW extension = begin.extension();
-
-            pendingSequence = sequence;
-            pendingAcknowledge = acknowledge;
-            pendingMaximum = maximum;
-            pendingTraceId = traceId;
-
-            if (extension.sizeof() > 0)
-            {
-                final HttpBeginExFW httpBeginEx =
-                    httpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-                if (httpBeginEx != null)
-                {
-                    final HttpHeaderFW methodHeader =
-                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_METHOD.equals(h.name().asString()));
-                    if (methodHeader != null && HTTP_DELETE.equals(methodHeader.value().asString()))
-                    {
-                        httpDelete = true;
-                    }
-
-                    final HttpHeaderFW sessionHeader =
-                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
-                    if (sessionHeader != null)
-                    {
-                        sessionId = sessionHeader.value().asString();
-                    }
-
-                    final HttpHeaderFW acceptHeader =
-                        httpBeginEx.headers().matchFirst(h -> HTTP_HEADER_ACCEPT.equals(h.name().asString()));
-                    if (acceptHeader != null && acceptHeader.value().asString().contains(CONTENT_TYPE_SSE))
-                    {
-                        acceptSse = true;
-                    }
-                }
-            }
-
-            downstreamInitialId = supplyInitialId.applyAsLong(resolvedId);
-            downstreamReplyId = supplyReplyId.applyAsLong(downstreamInitialId);
-
-            if (httpDelete)
-            {
-                sendDownstreamBegin(traceId, null, sequence, acknowledge, maximum);
-            }
-            else
-            {
-                doWindow(sender, originId, routedId, initialId,
-                    sequence, acknowledge, writeBuffer.capacity(),
-                    traceId, authorization, 0, 0);
-            }
-        }
-
-        private void sendDownstreamBegin(
-            long traceId,
-            String method,
-            long sequence,
-            long acknowledge,
-            int maximum)
-        {
-            final McpBeginExFW.Builder mcpBeginExBuilder = mcpBeginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(mcpTypeId);
-
-            if ("initialize".equals(method))
-            {
-                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text((String) null)));
-            }
-            else if ("notifications/initialized".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.initialize(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("ping".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.ping(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("tools/list".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.tools(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("tools/call".equals(method))
-            {
-                final String sid = sessionId;
-                final String name = toolName;
-                mcpBeginExBuilder.tool(b -> b.sessionId(s -> s.text(sid)).name(name));
-            }
-            else if ("prompts/list".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.prompts(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("prompts/get".equals(method))
-            {
-                final String sid = sessionId;
-                final String name = promptName;
-                mcpBeginExBuilder.prompt(b -> b.sessionId(s -> s.text(sid)).name(name));
-            }
-            else if ("resources/list".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.resources(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("resources/read".equals(method))
-            {
-                final String sid = sessionId;
-                final String uri = resourceUri;
-                mcpBeginExBuilder.resource(b -> b.sessionId(s -> s.text(sid)).uri(uri));
-            }
-            else if ("completion/complete".equals(method))
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.completion(b -> b.sessionId(s -> s.text(sid)));
-            }
-            else if ("logging/setLevel".equals(method))
-            {
-                final String sid = sessionId;
-                final String level = loggingLevel;
-                mcpBeginExBuilder.logging(b -> b.sessionId(s -> s.text(sid)).level(level));
-            }
-            else if ("notifications/cancelled".equals(method))
-            {
-                final String sid = sessionId;
-                final String reason = cancelReason;
-                mcpBeginExBuilder.cancel(b -> b.sessionId(s -> s.text(sid)).reason(reason));
-            }
-            else
-            {
-                final String sid = sessionId;
-                mcpBeginExBuilder.disconnect(b -> b.sessionId(s -> s.text(sid)));
-            }
-
-            final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
-
-            final BeginFW downstreamBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(routedId)
-                .routedId(resolvedId)
-                .streamId(downstreamInitialId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(mcpBeginEx.buffer(), mcpBeginEx.offset(), mcpBeginEx.sizeof())
-                .build();
-
-            downstream = streamFactory.newStream(
-                downstreamBegin.typeId(),
-                downstreamBegin.buffer(),
-                downstreamBegin.offset(),
-                downstreamBegin.sizeof(),
-                this::onDownstreamMessage);
-
-            if (downstream != null)
-            {
-                downstream.accept(
-                    downstreamBegin.typeId(),
-                    downstreamBegin.buffer(),
-                    downstreamBegin.offset(),
-                    downstreamBegin.sizeof());
-
-                downstreamBeginSent = true;
-
-                doWindow(sender, originId, routedId, initialId,
-                    sequence, acknowledge, writeBuffer.capacity(),
-                    traceId, authorization, 0, 0);
-            }
-            else
-            {
-                doReset(sender, originId, routedId, initialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-            }
-        }
-
-        private void onData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final int maximum = data.maximum();
-            final long traceId = data.traceId();
-            final long budgetId = data.budgetId();
-            final int flags = data.flags();
-            final OctetsFW payload = data.payload();
-
-            if (downstreamBeginSent || payload == null)
-            {
-                return;
-            }
-
-            if (decodeSlot == BufferPool.NO_SLOT)
-            {
-                decodeSlot = bufferPool.acquire(initialId);
-            }
-
-            if (decodeSlot == BufferPool.NO_SLOT)
-            {
-                doReset(sender, originId, routedId, initialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-                return;
-            }
-
-            final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
-            if (decodeSlotOffset + payload.sizeof() > slot.capacity())
-            {
-                cleanupDecodeSlot();
-                doReset(sender, originId, routedId, initialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-                return;
-            }
-            slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-            decodeSlotOffset += payload.sizeof();
-
-            final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
-            String parsedMethod = null;
-            boolean parsedHasId = false;
-            String parsedRequestId = null;
-            JsonObject parsedParams = null;
-            boolean parseIncomplete = false;
-
-            try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
-            {
-                String currentKey = null;
-                while (parser.hasNext())
-                {
-                    final JsonParser.Event event = parser.next();
-                    switch (event)
-                    {
-                    case KEY_NAME:
-                        currentKey = parser.getString();
-                        break;
-                    case VALUE_STRING:
-                        if ("method".equals(currentKey))
-                        {
-                            parsedMethod = parser.getString();
-                        }
-                        else if ("id".equals(currentKey))
-                        {
-                            parsedHasId = true;
-                            parsedRequestId = "\"" + parser.getString() + "\"";
-                        }
-                        currentKey = null;
-                        break;
-                    case VALUE_NUMBER:
-                    case VALUE_TRUE:
-                    case VALUE_FALSE:
-                        if ("id".equals(currentKey))
-                        {
-                            parsedHasId = true;
-                            parsedRequestId = String.valueOf(parser.getLong());
-                        }
-                        currentKey = null;
-                        break;
-                    case VALUE_NULL:
-                        currentKey = null;
-                        break;
-                    case START_OBJECT:
-                        if ("params".equals(currentKey))
-                        {
-                            parsedParams = parser.getObject();
-                        }
-                        else if (currentKey != null)
-                        {
-                            parser.skipObject();
-                        }
-                        currentKey = null;
-                        break;
-                    case START_ARRAY:
-                        parser.skipArray();
-                        currentKey = null;
-                        break;
-                    default:
-                        break;
-                    }
-                }
-            }
-            catch (JsonParsingException ex)
-            {
-                parseIncomplete = true;
-            }
-
-            final boolean needsParams = "initialize".equals(parsedMethod) ||
-                "tools/call".equals(parsedMethod) ||
-                "prompts/get".equals(parsedMethod) ||
-                "resources/read".equals(parsedMethod) ||
-                "logging/setLevel".equals(parsedMethod) ||
-                "notifications/cancelled".equals(parsedMethod);
-
-            if (parseIncomplete && (parsedMethod == null || needsParams && parsedParams == null))
-            {
-                if ((flags & FLAG_FIN) == 0)
-                {
-                    return;
-                }
-            }
-
-            if (parsedParams != null)
-            {
-                if ("tools/call".equals(parsedMethod))
-                {
-                    toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
-                }
-                else if ("prompts/get".equals(parsedMethod))
-                {
-                    promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
-                }
-                else if ("resources/read".equals(parsedMethod))
-                {
-                    resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
-                }
-                else if ("logging/setLevel".equals(parsedMethod))
-                {
-                    loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
-                }
-                else if ("notifications/cancelled".equals(parsedMethod))
-                {
-                    cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
-                }
-            }
-
-            notification = !parsedHasId;
-            requestId = parsedRequestId;
-            sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
-
-            if (downstream != null && parsedParams != null)
-            {
-                final String paramsStr = parsedParams.toString();
-                final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
-                doData(downstream, routedId, resolvedId, downstreamInitialId,
-                    sequence, acknowledge, maximum, traceId, authorization,
-                    budgetId, flags & ~FLAG_FIN, 0, extBuffer, 0, paramsLength);
-            }
-
-            cleanupDecodeSlot();
-        }
-
-        private void cleanupDecodeSlot()
-        {
-            if (decodeSlot != BufferPool.NO_SLOT)
-            {
-                bufferPool.release(decodeSlot);
-                decodeSlot = BufferPool.NO_SLOT;
-                decodeSlotOffset = 0;
-            }
-        }
-
-        private void onEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final int maximum = end.maximum();
-            final long traceId = end.traceId();
-
-            if (!downstreamBeginSent && decodeSlot != BufferPool.NO_SLOT)
-            {
-                final MutableDirectBuffer slot = bufferPool.buffer(decodeSlot);
-                final String fullJson = slot.getStringWithoutLengthUtf8(0, decodeSlotOffset);
-                String parsedMethod = null;
-                boolean parsedHasId = false;
-                String parsedRequestId = null;
-                JsonObject parsedParams = null;
-
-                try (JsonParser parser = Json.createParser(new StringReader(fullJson)))
-                {
-                    String currentKey = null;
-                    while (parser.hasNext())
-                    {
-                        final JsonParser.Event event = parser.next();
-                        switch (event)
-                        {
-                        case KEY_NAME:
-                            currentKey = parser.getString();
-                            break;
-                        case VALUE_STRING:
-                            if ("method".equals(currentKey))
-                            {
-                                parsedMethod = parser.getString();
-                            }
-                            else if ("id".equals(currentKey))
-                            {
-                                parsedHasId = true;
-                                parsedRequestId = "\"" + parser.getString() + "\"";
-                            }
-                            currentKey = null;
-                            break;
-                        case VALUE_NUMBER:
-                        case VALUE_TRUE:
-                        case VALUE_FALSE:
-                            if ("id".equals(currentKey))
-                            {
-                                parsedHasId = true;
-                                parsedRequestId = String.valueOf(parser.getLong());
-                            }
-                            currentKey = null;
-                            break;
-                        case VALUE_NULL:
-                            currentKey = null;
-                            break;
-                        case START_OBJECT:
-                            if ("params".equals(currentKey))
-                            {
-                                parsedParams = parser.getObject();
-                            }
-                            else if (currentKey != null)
-                            {
-                                parser.skipObject();
-                            }
-                            currentKey = null;
-                            break;
-                        case START_ARRAY:
-                            parser.skipArray();
-                            currentKey = null;
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                }
-                catch (JsonParsingException ex)
-                {
-                    // fall through with what we have (END has arrived)
-                }
-
-                if (parsedParams != null)
-                {
-                    if ("tools/call".equals(parsedMethod))
-                    {
-                        toolName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
-                    }
-                    else if ("prompts/get".equals(parsedMethod))
-                    {
-                        promptName = parsedParams.containsKey("name") ? parsedParams.getString("name") : null;
-                    }
-                    else if ("resources/read".equals(parsedMethod))
-                    {
-                        resourceUri = parsedParams.containsKey("uri") ? parsedParams.getString("uri") : null;
-                    }
-                    else if ("logging/setLevel".equals(parsedMethod))
-                    {
-                        loggingLevel = parsedParams.containsKey("level") ? parsedParams.getString("level") : null;
-                    }
-                    else if ("notifications/cancelled".equals(parsedMethod))
-                    {
-                        cancelReason = parsedParams.containsKey("reason") ? parsedParams.getString("reason") : null;
-                    }
-                }
-
-                notification = !parsedHasId;
-                requestId = parsedRequestId;
-                sendDownstreamBegin(traceId, parsedMethod, pendingSequence, pendingAcknowledge, pendingMaximum);
-
-                if (downstream != null && parsedParams != null)
-                {
-                    final String paramsStr = parsedParams.toString();
-                    final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, paramsStr);
-                    doData(downstream, routedId, resolvedId, downstreamInitialId,
-                        sequence, acknowledge, maximum, traceId, authorization,
-                        0, 0, 0, extBuffer, 0, paramsLength);
-                }
-            }
-
-            cleanupDecodeSlot();
-
-            if (downstream != null)
-            {
-                doEnd(downstream, routedId, resolvedId, downstreamInitialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-            }
-        }
-
-        private void onAbort(
-            AbortFW abort)
-        {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final int maximum = abort.maximum();
-            final long traceId = abort.traceId();
-
-            cleanupDecodeSlot();
-
-            if (downstream != null)
-            {
-                doAbort(downstream, routedId, resolvedId, downstreamInitialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-            }
-        }
-
-        private void onFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final int maximum = flush.maximum();
-            final long traceId = flush.traceId();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-
-            if (downstream != null)
-            {
-                doFlush(downstream, routedId, resolvedId, downstreamInitialId,
-                    sequence, acknowledge, maximum, traceId, authorization,
-                    budgetId, reserved);
-            }
-        }
-
-        private void onWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-
-            if (downstream != null)
-            {
-                doWindow(downstream, routedId, resolvedId, downstreamReplyId,
-                    sequence, acknowledge, maximum,
-                    traceId, authorization, budgetId, padding);
-            }
-        }
-
-        private void onReset(
-            ResetFW reset)
-        {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final int maximum = reset.maximum();
-            final long traceId = reset.traceId();
-
-            if (downstream != null)
-            {
-                doAbort(downstream, routedId, resolvedId, downstreamInitialId,
-                    sequence, acknowledge, maximum, traceId, authorization);
-            }
-        }
-
-        private void onDownstreamMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onDownstreamBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onDownstreamData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onDownstreamEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onDownstreamAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onDownstreamFlush(flush);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onDownstreamWindow(window);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onDownstreamReset(reset);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onDownstreamBegin(
-            BeginFW begin)
-        {
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
-            final int maximum = begin.maximum();
-            final long traceId = begin.traceId();
-            final OctetsFW extension = begin.extension();
-
-            String responseSessionId = sessionId;
-            if (extension.sizeof() > 0)
-            {
-                final McpBeginExFW mcpBeginEx =
-                    mcpBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-                if (mcpBeginEx != null)
-                {
-                    final String sid = extractMcpSessionId(mcpBeginEx);
-                    if (sid != null)
-                    {
-                        responseSessionId = sid;
-                    }
-                }
-            }
-
-            final String status = notification ? STATUS_202 : STATUS_200;
-            sseResponse = acceptSse && !notification;
-
-            final String finalResponseSessionId = responseSessionId;
-            final HttpBeginExFW httpBeginEx = httpBeginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
-                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE)
-                    .value(sseResponse ? CONTENT_TYPE_SSE : CONTENT_TYPE_JSON))
-                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(finalResponseSessionId != null ? finalResponseSessionId : ""))
-                .build();
-
-            doBegin(sender, originId, routedId, replyId,
-                sequence, acknowledge, maximum, traceId, authorization, affinity,
-                httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof());
-
-            doWindow(downstream, routedId, resolvedId, downstreamReplyId,
-                sequence, acknowledge, writeBuffer.capacity(),
-                traceId, authorization, 0, 0);
-        }
-
-        private void onDownstreamData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final int maximum = data.maximum();
-            final long traceId = data.traceId();
-            final long budgetId = data.budgetId();
-            final int flags = data.flags();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload();
-
-            if (payload != null)
-            {
-                final String payloadStr = payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof());
-                final String resultStr;
-                if (isNotification(payloadStr))
-                {
-                    resultStr = payloadStr;
-                }
-                else
-                {
-                    resultStr = "{\"jsonrpc\":\"2.0\",\"id\":" + requestId + ",\"result\":" + payloadStr + "}";
-                }
-                final int resultLength = extBuffer.putStringWithoutLengthUtf8(0, resultStr);
-
-                if (sseResponse)
-                {
-                    final byte[] prefixBytes = SSE_DATA_PREFIX.getBytes();
-                    final byte[] suffixBytes = SSE_DATA_SUFFIX.getBytes();
-                    final int sseLength = prefixBytes.length + resultLength + suffixBytes.length;
-                    sseBuffer.putBytes(0, prefixBytes);
-                    sseBuffer.putBytes(prefixBytes.length, extBuffer, 0, resultLength);
-                    sseBuffer.putBytes(prefixBytes.length + resultLength, suffixBytes);
-
-                    doData(sender, originId, routedId, replyId,
-                        sequence, acknowledge, maximum, traceId, authorization,
-                        budgetId, flags, reserved,
-                        sseBuffer, 0, sseLength);
-                }
-                else
-                {
-                    doData(sender, originId, routedId, replyId,
-                        sequence, acknowledge, maximum, traceId, authorization,
-                        budgetId, flags, reserved,
-                        extBuffer, 0, resultLength);
-                }
-            }
-        }
-
-        private void onDownstreamEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final int maximum = end.maximum();
-            final long traceId = end.traceId();
-
-            doEnd(sender, originId, routedId, replyId,
-                sequence, acknowledge, maximum, traceId, authorization);
-        }
-
-        private void onDownstreamAbort(
-            AbortFW abort)
-        {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final int maximum = abort.maximum();
-            final long traceId = abort.traceId();
-
-            doAbort(sender, originId, routedId, replyId,
-                sequence, acknowledge, maximum, traceId, authorization);
-        }
-
-        private void onDownstreamFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final int maximum = flush.maximum();
-            final long traceId = flush.traceId();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-
-            doFlush(sender, originId, routedId, replyId,
-                sequence, acknowledge, maximum, traceId, authorization,
-                budgetId, reserved);
-        }
-
-        private void onDownstreamWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-
-            doWindow(sender, originId, routedId, initialId,
-                sequence, acknowledge, maximum,
-                traceId, authorization, budgetId, padding);
-        }
-
-        private void onDownstreamReset(
-            ResetFW reset)
-        {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final int maximum = reset.maximum();
-            final long traceId = reset.traceId();
-
-            doReset(sender, originId, routedId, initialId,
-                sequence, acknowledge, maximum, traceId, authorization);
-        }
     }
 }
