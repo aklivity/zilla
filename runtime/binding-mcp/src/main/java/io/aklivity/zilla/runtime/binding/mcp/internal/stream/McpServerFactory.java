@@ -1,16 +1,17 @@
 /*
- * Copyright 2021-2024 Aklivity Inc
+ * Copyright 2021-2024 Aklivity Inc.
  *
- * Licensed under the Aklivity Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
  *
- *   https://www.aklivity.io/aklivity-community-license/
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations under the License.
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
@@ -29,6 +30,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
@@ -214,6 +216,43 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         return newStream;
+    }
+
+    private MessageConsumer newStream(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        final MessageConsumer receiver =
+            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+
+        if (receiver != null)
+        {
+            receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+        }
+
+        return receiver;
     }
 
     @FunctionalInterface
@@ -713,7 +752,8 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final McpBeginExFW mcpBeginEx = mcpBeginExBuilder.build();
-            final McpStream newStream = new McpStream(this, traceId, mcpBeginEx);
+            final McpStream newStream = new McpStream(this);
+            newStream.doAppBegin(traceId, mcpBeginEx);
             if (newStream.app != null)
             {
                 stream = newStream;
@@ -807,53 +847,53 @@ public final class McpServerFactory implements McpStreamFactory
     private final class McpStream
     {
         private final McpServer server;
+        private final long originId;
+        private final long routedId;
         private final long appInitialId;
         private final long appReplyId;
-        private final MessageConsumer app;
+        private MessageConsumer app;
 
         private int state;
         private boolean sseResponse;
 
+        private long appInitialSeq;
+        private long appInitialAck;
+        private int appInitialMax;
+        private long appReplySeq;
+        private long appReplyAck;
+        private int appReplyMax;
+
         private McpStream(
-            McpServer server,
-            long traceId,
-            McpBeginExFW mcpBeginEx)
+            McpServer server)
         {
             this.server = server;
+            this.originId = server.routedId;
+            this.routedId = server.resolvedId;
             this.appInitialId = supplyInitialId.applyAsLong(server.resolvedId);
             this.appReplyId = supplyReplyId.applyAsLong(appInitialId);
+        }
 
-            final BeginFW appBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(server.routedId)
-                .routedId(server.resolvedId)
-                .streamId(appInitialId)
-                .sequence(server.initialSeq)
-                .acknowledge(server.initialAck)
-                .maximum(server.initialMax)
-                .traceId(traceId)
-                .authorization(server.authorization)
-                .affinity(server.affinity)
-                .extension(mcpBeginEx.buffer(), mcpBeginEx.offset(), mcpBeginEx.sizeof())
-                .build();
+        private void doAppBegin(
+            long traceId,
+            Flyweight extension)
+        {
+            appInitialSeq = server.initialSeq;
+            appInitialAck = server.initialAck;
+            appInitialMax = server.initialMax;
 
-            final MessageConsumer newApp = streamFactory.newStream(
-                appBegin.typeId(),
-                appBegin.buffer(),
-                appBegin.offset(),
-                appBegin.sizeof(),
-                this::onAppMessage);
+            app = newStream(this::onAppMessage, originId, routedId, appInitialId,
+                appInitialSeq, appInitialAck, appInitialMax, traceId, server.authorization, server.affinity,
+                extension);
 
-            if (newApp != null)
+            if (app != null)
             {
-                this.app = newApp;
-                app.accept(appBegin.typeId(), appBegin.buffer(), appBegin.offset(), appBegin.sizeof());
                 state = McpServerState.openedInitial(state);
 
                 if (server.paramsStr != null)
                 {
                     final int paramsLength = extBuffer.putStringWithoutLengthUtf8(0, server.paramsStr);
-                    doData(app, server.routedId, server.resolvedId, appInitialId,
-                        server.initialSeq, server.initialAck, server.initialMax,
+                    doData(app, originId, routedId, appInitialId,
+                        appInitialSeq, appInitialAck, appInitialMax,
                         traceId, server.authorization, 0, 0, 0, extBuffer, 0, paramsLength);
                 }
 
@@ -861,7 +901,6 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else
             {
-                this.app = null;
                 server.doNetReset(server.initialSeq, server.initialAck, server.initialMax, traceId);
             }
         }
@@ -1014,7 +1053,7 @@ public final class McpServerFactory implements McpStreamFactory
             final int reserved = flush.reserved();
 
             doFlush(server.sender, server.originId, server.routedId, server.replyId,
-                sequence, acknowledge, maximum, traceId, server.authorization,
+                appReplySeq, appReplyAck, appReplyMax, traceId, server.authorization,
                 budgetId, reserved);
         }
 
@@ -1028,8 +1067,12 @@ public final class McpServerFactory implements McpStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
+            appInitialSeq = sequence;
+            appInitialAck = acknowledge;
+            appInitialMax = maximum;
+
             doWindow(server.sender, server.originId, server.routedId, server.initialId,
-                sequence, acknowledge, maximum, traceId, server.authorization, budgetId, padding);
+                appInitialSeq, appInitialAck, appInitialMax, traceId, server.authorization, budgetId, padding);
         }
 
         private void onAppReset(
@@ -1045,8 +1088,8 @@ public final class McpServerFactory implements McpStreamFactory
             if (McpServerState.initialOpened(state) && !McpServerState.initialClosed(state))
             {
                 state = McpServerState.closedInitial(state);
-                doEnd(app, server.routedId, server.resolvedId, appInitialId,
-                    server.initialSeq, server.initialAck, server.initialMax,
+                doEnd(app, originId, routedId, appInitialId,
+                    appInitialSeq, appInitialAck, appInitialMax,
                     traceId, server.authorization);
             }
         }
@@ -1057,8 +1100,8 @@ public final class McpServerFactory implements McpStreamFactory
             if (McpServerState.initialOpened(state) && !McpServerState.initialClosed(state))
             {
                 state = McpServerState.closedInitial(state);
-                doAbort(app, server.routedId, server.resolvedId, appInitialId,
-                    server.initialSeq, server.initialAck, server.initialMax,
+                doAbort(app, originId, routedId, appInitialId,
+                    appInitialSeq, appInitialAck, appInitialMax,
                     traceId, server.authorization);
             }
         }
@@ -1066,8 +1109,11 @@ public final class McpServerFactory implements McpStreamFactory
         private void doAppWindow(
             long traceId)
         {
-            doWindow(app, server.routedId, server.resolvedId, appReplyId,
-                server.initialSeq, server.initialAck, writeBuffer.capacity(),
+            appReplySeq = 0;
+            appReplyAck = 0;
+            appReplyMax = writeBuffer.capacity();
+            doWindow(app, originId, routedId, appReplyId,
+                appReplySeq, appReplyAck, appReplyMax,
                 traceId, server.authorization, 0, 0);
         }
 
@@ -1077,8 +1123,8 @@ public final class McpServerFactory implements McpStreamFactory
             if (!McpServerState.replyClosed(state))
             {
                 state = McpServerState.closedReply(state);
-                doReset(app, server.routedId, server.resolvedId, appReplyId,
-                    server.initialSeq, server.initialAck, server.initialMax,
+                doReset(app, originId, routedId, appReplyId,
+                    appReplySeq, appReplyAck, appReplyMax,
                     traceId, server.authorization);
             }
         }
