@@ -479,6 +479,9 @@ public final class McpServerFactory implements McpStreamFactory
             case "notifications/cancelled":
                 server.onDecodeCancelledRequest(traceId, authorization);
                 break;
+            case "ping":
+                server.onDecodePingRequest(traceId, authorization);
+                break;
             case "tools/list":
                 server.onDecodeToolsListRequest(traceId, authorization);
                 break;
@@ -495,7 +498,6 @@ public final class McpServerFactory implements McpStreamFactory
             case "resources/read":
                 server.decodedMethodParam = "uri";
                 break;
-            case "ping":
             case "completion/complete":
             case "logging/setLevel":
                 server.decodedMethod = method;
@@ -1256,6 +1258,23 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpStream(this, McpBeginExFW.KIND_INITIALIZED);
+            stream.doAppBegin(traceId, authorization, beginEx);
+        }
+
+        private void onDecodePingRequest(
+            long traceId,
+            long authorization)
+        {
+            McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .ping(i -> i
+                    .sessionId(s -> s
+                        .text(sessionId != null ? sessionId : "")))
+                .build();
+
+            assert stream == null;
+            stream = new McpStream(this, McpBeginExFW.KIND_PING);
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
