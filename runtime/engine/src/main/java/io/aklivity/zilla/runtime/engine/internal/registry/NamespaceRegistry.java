@@ -199,7 +199,11 @@ public class NamespaceRegistry
                 MessageConsumer handler = bindingAttributes.isEmpty()
                     ? metric.supplyHandler(recorderByAttrs.apply(0))
                     : metric.supplyHandler(recorderByAttrs, bindingAttributes, supplyLabelId);
-                MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
+                int originTypeId = binding.originTypeId() != BindingHandler.STREAM_TYPE
+                    ? binding.originTypeId() : (int) config.originTypeId;
+                int routedTypeId = binding.routedTypeId() != BindingHandler.STREAM_TYPE
+                    ? binding.routedTypeId() : (int) config.routedTypeId;
+                MetricHandlerKind kind = resolveKind(originTypeId, routedTypeId, metric.group());
                 MetricContext.Direction direction = metric.direction();
                 if (kind == ROUTED)
                 {
