@@ -36,7 +36,7 @@ scope mcp
             case 8: mcp::stream::McpResourceBeginEx resource;
             case 9: mcp::stream::McpCompletionBeginEx completion;
             case 10: mcp::stream::McpLoggingBeginEx logging;
-            case 11: mcp::stream::McpCancelBeginEx cancel;
+            case 11: mcp::stream::McpCanceledBeginEx canceled;
             case 12: mcp::stream::McpDisconnectBeginEx disconnect;
         }
 
@@ -90,12 +90,10 @@ scope mcp
 
         struct McpLoggingBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            string16 level = null;
         }
 
-        struct McpCancelBeginEx extends mcp::stream::McpSessionBeginEx
+        struct McpCanceledBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            string16 reason = null;
         }
 
         struct McpDisconnectBeginEx extends mcp::stream::McpSessionBeginEx

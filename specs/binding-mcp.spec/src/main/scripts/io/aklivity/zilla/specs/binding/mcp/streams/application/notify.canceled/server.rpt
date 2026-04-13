@@ -22,9 +22,8 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .cancel()
+                          .canceled()
                               .sessionId("test-session-id")
-                              .reason("User cancelled")
                               .build()
                           .build()}
 
@@ -35,7 +34,7 @@ read closed
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .cancel()
+                           .canceled()
                                .sessionId("test-session-id")
                                .build()
                            .build()}

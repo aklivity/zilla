@@ -66,9 +66,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.cancel/client",
-        "${net}/lifecycle.cancel/server"})
-    public void shouldCancelLifecycle() throws Exception
+        "${net}/notify.canceled/client",
+        "${net}/notify.canceled/server"})
+    public void shouldNotifyCanceled() throws Exception
     {
         k3po.finish();
     }

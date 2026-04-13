@@ -66,9 +66,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.cancel/client",
-        "${app}/lifecycle.cancel/server"})
-    public void shouldCancelLifecycle() throws Exception
+        "${app}/notify.canceled/client",
+        "${app}/notify.canceled/server"})
+    public void shouldNotifyCanceled() throws Exception
     {
         k3po.finish();
     }

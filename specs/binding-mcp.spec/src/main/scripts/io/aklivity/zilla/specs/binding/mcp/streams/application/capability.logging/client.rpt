@@ -22,7 +22,6 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .logging()
                                .sessionId("test-session-id")
-                               .level("error")
                                .build()
                            .build()}
 

@@ -473,6 +473,12 @@ public final class McpServerFactory implements McpStreamFactory
             case "initialize":
                 server.onDecodeInitializeRequest(traceId, authorization);
                 break;
+            case "notifications/initialized":
+                server.onDecodeInitializedRequest(traceId, authorization);
+                break;
+            case "notifications/cancelled":
+                server.onDecodeCancelledRequest(traceId, authorization);
+                break;
             case "tools/list":
                 server.onDecodeToolsListRequest(traceId, authorization);
                 break;
@@ -489,13 +495,9 @@ public final class McpServerFactory implements McpStreamFactory
             case "resources/read":
                 server.decodedMethodParam = "uri";
                 break;
-            case "notifications/initialized":
-                server.onDecodeInitializedRequest(traceId, authorization);
-                break;
             case "ping":
             case "completion/complete":
             case "logging/setLevel":
-            case "notifications/cancelled":
                 server.decodedMethod = method;
                 break;
             default:
@@ -1240,6 +1242,23 @@ public final class McpServerFactory implements McpStreamFactory
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
+        private void onDecodeCancelledRequest(
+            long traceId,
+            long authorization)
+        {
+            McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .canceled(i -> i
+                    .sessionId(s -> s
+                        .text(sessionId != null ? sessionId : "")))
+                .build();
+
+            assert stream == null;
+            stream = new McpStream(this, McpBeginExFW.KIND_INITIALIZED);
+            stream.doAppBegin(traceId, authorization, beginEx);
+        }
+
         private void onDecodeToolsListRequest(
             long traceId,
             long authorization)
@@ -1749,6 +1768,7 @@ public final class McpServerFactory implements McpStreamFactory
                 switch (kind)
                 {
                 case McpBeginExFW.KIND_INITIALIZED:
+                case McpBeginExFW.KIND_CANCELED:
                     server.doNetBegin(traceId, authorization,
                         httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                             .typeId(httpTypeId)
