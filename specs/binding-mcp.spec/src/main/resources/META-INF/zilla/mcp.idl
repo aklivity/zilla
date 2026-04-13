@@ -26,82 +26,80 @@ scope mcp
         union McpBeginEx switch (uint8) extends core::stream::Extension
         {
             case 0: mcp::stream::McpInitializeBeginEx initialize;
-            case 1: mcp::stream::McpPingBeginEx ping;
-            case 2: mcp::stream::McpToolsBeginEx tools;
-            case 3: mcp::stream::McpToolBeginEx tool;
-            case 4: mcp::stream::McpPromptsBeginEx prompts;
-            case 5: mcp::stream::McpPromptBeginEx prompt;
-            case 6: mcp::stream::McpResourcesBeginEx resources;
-            case 7: mcp::stream::McpResourceBeginEx resource;
-            case 8: mcp::stream::McpCompletionBeginEx completion;
-            case 9: mcp::stream::McpLoggingBeginEx logging;
-            case 10: mcp::stream::McpCancelBeginEx cancel;
-            case 11: mcp::stream::McpDisconnectBeginEx disconnect;
+            case 1: mcp::stream::McpInitializedBeginEx initialized;
+            case 2: mcp::stream::McpPingBeginEx ping;
+            case 3: mcp::stream::McpToolsBeginEx tools;
+            case 4: mcp::stream::McpToolBeginEx tool;
+            case 5: mcp::stream::McpPromptsBeginEx prompts;
+            case 6: mcp::stream::McpPromptBeginEx prompt;
+            case 7: mcp::stream::McpResourcesBeginEx resources;
+            case 8: mcp::stream::McpResourceBeginEx resource;
+            case 9: mcp::stream::McpCompletionBeginEx completion;
+            case 10: mcp::stream::McpLoggingBeginEx logging;
+            case 11: mcp::stream::McpCancelBeginEx cancel;
+            case 12: mcp::stream::McpDisconnectBeginEx disconnect;
         }
 
-        struct McpInitializeBeginEx
+        struct McpSessionBeginEx
         {
             mcp::McpSessionId sessionId;
         }
 
-        struct McpPingBeginEx
+        struct McpInitializeBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
-        struct McpToolsBeginEx
+        struct McpInitializedBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
-        struct McpToolBeginEx
+        struct McpPingBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
+        }
+
+        struct McpToolsBeginEx extends mcp::stream::McpSessionBeginEx
+        {
+        }
+
+        struct McpToolBeginEx extends mcp::stream::McpSessionBeginEx
+        {
             string16 name = null;
         }
 
-        struct McpPromptsBeginEx
+        struct McpPromptsBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
-        struct McpPromptBeginEx
+        struct McpPromptBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
             string16 name = null;
         }
 
-        struct McpResourcesBeginEx
+        struct McpResourcesBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
-        struct McpResourceBeginEx
+        struct McpResourceBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
             string16 uri = null;
         }
 
-        struct McpCompletionBeginEx
+        struct McpCompletionBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
-        struct McpLoggingBeginEx
+        struct McpLoggingBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
             string16 level = null;
         }
 
-        struct McpCancelBeginEx
+        struct McpCancelBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
             string16 reason = null;
         }
 
-        struct McpDisconnectBeginEx
+        struct McpDisconnectBeginEx extends mcp::stream::McpSessionBeginEx
         {
-            mcp::McpSessionId sessionId;
         }
 
         struct McpAbortEx extends core::stream::Extension

@@ -35,6 +35,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpCancelBeginE
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpCompletionBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpDisconnectBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpInitializeBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpInitializedBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLoggingBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPingBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptBeginExFW;
@@ -78,6 +79,11 @@ public final class McpFunctions
         public McpInitializeBeginExBuilder initialize()
         {
             return new McpInitializeBeginExBuilder();
+        }
+
+        public McpInitializedBeginExBuilder initialized()
+        {
+            return new McpInitializedBeginExBuilder();
         }
 
         public McpPingBeginExBuilder ping()
@@ -153,7 +159,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpInitializeBeginExBuilder sessionIdLong(long sessionId)
+            public McpInitializeBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -163,6 +170,32 @@ public final class McpFunctions
             {
                 final Consumer<McpSessionIdFW.Builder> setter = sessionIdSetter;
                 beginExRW.initialize(b -> b.sessionId(setter));
+                return McpBeginExBuilder.this;
+            }
+        }
+
+        public final class McpInitializedBeginExBuilder
+        {
+            private Consumer<McpSessionIdFW.Builder> sessionIdSetter = sid -> sid.text((String) null);
+
+            public McpInitializedBeginExBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionIdSetter = sid -> sid.text(sessionId);
+                return this;
+            }
+
+            public McpInitializedBeginExBuilder sessionIdLong(
+                long sessionId)
+            {
+                this.sessionIdSetter = sid -> sid.id(sessionId);
+                return this;
+            }
+
+            public McpBeginExBuilder build()
+            {
+                final Consumer<McpSessionIdFW.Builder> setter = sessionIdSetter;
+                beginExRW.initialized(b -> b.sessionId(setter));
                 return McpBeginExBuilder.this;
             }
         }
@@ -203,7 +236,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpToolsBeginExBuilder sessionIdLong(long sessionId)
+            public McpToolsBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -229,7 +263,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpToolBeginExBuilder sessionIdLong(long sessionId)
+            public McpToolBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -261,7 +296,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpPromptsBeginExBuilder sessionIdLong(long sessionId)
+            public McpPromptsBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -287,7 +323,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpPromptBeginExBuilder sessionIdLong(long sessionId)
+            public McpPromptBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -319,7 +356,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpResourcesBeginExBuilder sessionIdLong(long sessionId)
+            public McpResourcesBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -345,7 +383,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpResourceBeginExBuilder sessionIdLong(long sessionId)
+            public McpResourceBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -377,7 +416,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpCompletionBeginExBuilder sessionIdLong(long sessionId)
+            public McpCompletionBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -403,7 +443,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpLoggingBeginExBuilder sessionIdLong(long sessionId)
+            public McpLoggingBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -436,7 +477,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpCancelBeginExBuilder sessionIdLong(long sessionId)
+            public McpCancelBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -468,7 +510,8 @@ public final class McpFunctions
                 return this;
             }
 
-            public McpDisconnectBeginExBuilder sessionIdLong(long sessionId)
+            public McpDisconnectBeginExBuilder sessionIdLong(
+                long sessionId)
             {
                 this.sessionIdSetter = sid -> sid.id(sessionId);
                 return this;
@@ -503,6 +546,14 @@ public final class McpFunctions
         {
             this.kind = McpBeginExFW.KIND_INITIALIZE;
             final McpInitializeBeginExMatcherBuilder matcher = new McpInitializeBeginExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpInitializedBeginExMatcherBuilder initialized()
+        {
+            this.kind = McpBeginExFW.KIND_INITIALIZED;
+            final McpInitializedBeginExMatcherBuilder matcher = new McpInitializedBeginExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -673,6 +724,43 @@ public final class McpFunctions
 
             private boolean matchSessionId(
                 McpInitializeBeginExFW initialize)
+            {
+                return sessionIdMatcher == null || sessionIdMatcher.test(initialize.sessionId());
+            }
+        }
+
+        public final class McpInitializedBeginExMatcherBuilder
+        {
+            private Predicate<McpSessionIdFW> sessionIdMatcher;
+
+            public McpInitializedBeginExMatcherBuilder sessionId(
+                String sessionId)
+            {
+                sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_TEXT &&
+                    Objects.equals(sessionId, sid.text().asString());
+                return this;
+            }
+
+            public McpInitializedBeginExMatcherBuilder sessionIdLong(long sessionId)
+            {
+                sessionIdMatcher = sid -> sid.kind() == McpSessionIdFW.KIND_ID && sessionId == sid.id();
+                return this;
+            }
+
+            public McpBeginExMatcherBuilder build()
+            {
+                return McpBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpBeginExFW beginEx)
+            {
+                final McpInitializedBeginExFW initialized = beginEx.initialized();
+                return matchSessionId(initialized);
+            }
+
+            private boolean matchSessionId(
+                McpInitializedBeginExFW initialize)
             {
                 return sessionIdMatcher == null || sessionIdMatcher.test(initialize.sessionId());
             }

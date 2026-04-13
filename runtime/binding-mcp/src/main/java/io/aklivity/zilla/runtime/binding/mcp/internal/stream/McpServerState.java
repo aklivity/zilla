@@ -56,6 +56,12 @@ public final class McpServerState
         return state | INITIAL_CLOSED;
     }
 
+    static boolean initialClosing(
+        int state)
+    {
+        return (state & INITIAL_CLOSING) != 0;
+    }
+
     static boolean initialClosed(
         int state)
     {
@@ -90,6 +96,12 @@ public final class McpServerState
         int state)
     {
         return state | REPLY_CLOSED;
+    }
+
+    static boolean replyClosing(
+        int state)
+    {
+        return (state & REPLY_CLOSING) != 0;
     }
 
     static boolean replyClosed(

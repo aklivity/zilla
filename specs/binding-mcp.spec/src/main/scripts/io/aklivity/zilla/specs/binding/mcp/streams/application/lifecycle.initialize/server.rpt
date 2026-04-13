@@ -48,7 +48,7 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .initialize()
+                          .initialized()
                               .sessionId("test-session-id")
                               .build()
                           .build()}
@@ -56,13 +56,5 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read closed
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .initialize()
-                               .sessionId("test-session-id")
-                               .build()
-                           .build()}
-write flush
 
 write close
