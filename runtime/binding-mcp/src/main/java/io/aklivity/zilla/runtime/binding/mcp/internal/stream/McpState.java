@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-public final class McpServerState
+public final class McpState
 {
     private static final int INITIAL_OPENING = 0x10;
     private static final int INITIAL_OPENED = 0x20;
@@ -110,7 +110,7 @@ public final class McpServerState
         return (state & REPLY_CLOSED) != 0;
     }
 
-    private McpServerState()
+    private McpState()
     {
         // utility
     }
