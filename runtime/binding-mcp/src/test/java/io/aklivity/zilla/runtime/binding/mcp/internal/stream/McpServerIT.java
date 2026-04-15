@@ -132,6 +132,26 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/prompts.get/client",
+        "${app}/prompts.get/server"})
+    public void shouldGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read/client",
+        "${app}/resources.read/server"})
+    public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";

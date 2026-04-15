@@ -99,4 +99,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/prompts.get/client",
+        "${app}/prompts.get/server"})
+    public void shouldGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read/client",
+        "${app}/resources.read/server"})
+    public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
 }

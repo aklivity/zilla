@@ -108,4 +108,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/prompts.get/client",
+        "${net}/prompts.get/server"})
+    public void shouldGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read/client",
+        "${net}/resources.read/server"})
+    public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
 }
