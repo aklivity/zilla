@@ -95,6 +95,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
     private final Supplier<String> supplySessionId;
+    private final String serverName;
+    private final String serverVersion;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
@@ -131,6 +133,8 @@ public final class McpServerFactory implements McpStreamFactory
         EngineContext context)
     {
         this.supplySessionId = config.sessionIdSupplier();
+        this.serverName = config.serverName();
+        this.serverVersion = config.serverVersion();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
@@ -1346,13 +1350,13 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                 .build());
-            String8FW payload = new String8FW("""
+            String8FW payload = new String8FW(("""
                 {
                 "protocolVersion":"2025-11-25",
                 "capabilities":{"prompts":{},"resources":{},"tools":{}},
-                "serverInfo":{"name":"zilla"}
+                "serverInfo":{"name":"%s","version":"%s"}
                 }
-                """.replaceAll("\n", ""));
+                """.replaceAll("\n", "")).formatted(serverName, serverVersion));
             doEncodeData(traceId, authorization, payload.value());
             doEncodeEndResponse(traceId, authorization);
         }

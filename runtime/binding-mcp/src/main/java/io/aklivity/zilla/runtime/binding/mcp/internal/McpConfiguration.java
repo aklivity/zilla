@@ -24,18 +24,25 @@ import java.util.function.Supplier;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class McpConfiguration extends Configuration
 {
     private static final ConfigurationDef MCP_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<String> MCP_SERVER_NAME;
+    public static final PropertyDef<String> MCP_SERVER_VERSION;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
         MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+        MCP_SERVER_NAME = config.property(String.class, "server.name", (c, v) -> v,
+            McpConfiguration::defaultServerName);
+        MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
+            McpConfiguration::defaultServerVersion);
         MCP_CONFIG = config;
     }
 
@@ -55,10 +62,32 @@ public class McpConfiguration extends Configuration
         return MCP_SESSION_ID.get(this)::get;
     }
 
+    public String serverName()
+    {
+        return MCP_SERVER_NAME.get(this);
+    }
+
+    public String serverVersion()
+    {
+        return MCP_SERVER_VERSION.get(this);
+    }
+
     @FunctionalInterface
     public interface SessionIdSupplier
     {
         String get();
+    }
+
+    private static String defaultServerName(
+        Configuration config)
+    {
+        return EngineConfiguration.ENGINE_NAME.get(config);
+    }
+
+    private static String defaultServerVersion(
+        Configuration config)
+    {
+        return EngineConfiguration.ENGINE_VERSION.get(config);
     }
 
     private static SessionIdSupplier decodeSessionIdSupplier(

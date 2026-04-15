@@ -40,7 +40,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("mcp-session-id", "session-1")
                            .build()}
 
-read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{},"resources":{},"tools":{}},"serverInfo":{"name":"zilla"}}}'
+read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{},"resources":{},"tools":{}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 read closed
 read notify LIFECYCLE_INITIALIZING
 
