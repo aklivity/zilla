@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -41,11 +42,12 @@ public class McpServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
+        .configure(MCP_SESSION_ID_NAME, "%s::sessionId".formatted(McpServerIT.class.getName()))
         .external("app0")
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(engine).around(k3po); // .around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po); //.around(timeout);
 
     @Test
     @Configuration("server.yaml")
@@ -60,18 +62,7 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.disconnect/client",
-        "${app}/lifecycle.disconnect/server"})
-    public void shouldDisconnectLifecycle() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/lifecycle.ping/client",
-        "${app}/lifecycle.ping/server"})
+        "${net}/lifecycle.ping/client"})
     public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();
@@ -80,9 +71,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/notify.canceled/client",
-        "${app}/notify.canceled/server"})
-    public void shouldNotifyCanceled() throws Exception
+        "${net}/lifecycle.shutdown/client",
+        "${app}/lifecycle.shutdown/server"})
+    public void shouldShutdownLifecycle() throws Exception
     {
         k3po.finish();
     }
@@ -90,8 +81,18 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/capability.tools/client",
-        "${app}/capability.tools/server"})
+        "${net}/tools.call/client",
+        "${app}/tools.call/server"})
+    public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.list/client",
+        "${app}/tools.list/server"})
     public void shouldListTools() throws Exception
     {
         k3po.finish();
@@ -100,9 +101,9 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/capability.progress/client",
-        "${app}/capability.progress/server"})
-    public void shouldReportProgress() throws Exception
+        "${net}/tools.list.canceled/client",
+        "${app}/tools.list.canceled/server"})
+    public void shouldListToolsThenCancel() throws Exception
     {
         k3po.finish();
     }
@@ -110,8 +111,8 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/capability.prompts/client",
-        "${app}/capability.prompts/server"})
+        "${net}/prompts.list/client",
+        "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
     {
         k3po.finish();
@@ -120,30 +121,15 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/capability.resources/client",
-        "${app}/capability.resources/server"})
+        "${net}/resources.list/client",
+        "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
     {
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/capability.completion/client",
-        "${app}/capability.completion/server"})
-    public void shouldComplete() throws Exception
+    public static String sessionId()
     {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/capability.logging/client",
-        "${app}/capability.logging/server"})
-    public void shouldSetLoggingLevel() throws Exception
-    {
-        k3po.finish();
+        return "session-1";
     }
 }

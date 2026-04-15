@@ -13,20 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal;
+package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
-public class McpConfigurationTest
+public class McpInitializeRequestParams
 {
-    public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
-
-    @Test
-    public void shouldVerifyConstants() throws Exception
-    {
-        assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
-    }
+    public String protocolVersion;
+    public McpClientCapabilities capabilities;
+    public McpImplementationInfo clientInfo;
 }

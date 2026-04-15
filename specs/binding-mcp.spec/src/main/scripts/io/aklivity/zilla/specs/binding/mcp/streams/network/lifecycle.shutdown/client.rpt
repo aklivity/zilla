@@ -66,3 +66,30 @@ write '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 write close
 
 read closed
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "DELETE")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/mcp")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .header("mcp-session-id", "session-1")
+                            .build()}
+
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .build()}
+
+read closed

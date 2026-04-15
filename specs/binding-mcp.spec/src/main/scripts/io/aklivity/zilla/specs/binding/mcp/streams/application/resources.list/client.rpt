@@ -33,3 +33,24 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .sessionId("session-1")
                               .build()
                           .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+
+connected
+
+write close
+
+read '{"resources":[]}'
+read closed

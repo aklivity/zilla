@@ -15,15 +15,27 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import org.agrona.LangUtil;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class McpConfiguration extends Configuration
 {
     private static final ConfigurationDef MCP_CONFIG;
 
+    public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
+        MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
+            McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
         MCP_CONFIG = config;
     }
 
@@ -36,5 +48,56 @@ public class McpConfiguration extends Configuration
         Configuration config)
     {
         super(MCP_CONFIG, config);
+    }
+
+    public Supplier<String> sessionIdSupplier()
+    {
+        return MCP_SESSION_ID.get(this)::get;
+    }
+
+    @FunctionalInterface
+    public interface SessionIdSupplier
+    {
+        String get();
+    }
+
+    private static SessionIdSupplier decodeSessionIdSupplier(
+        String value)
+    {
+        SessionIdSupplier supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                String sessionId = null;
+                try
+                {
+                    sessionId = (String) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return sessionId;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier;
+    }
+
+    private static String defaultSessionIdSupplier()
+    {
+        return UUID.randomUUID().toString();
     }
 }

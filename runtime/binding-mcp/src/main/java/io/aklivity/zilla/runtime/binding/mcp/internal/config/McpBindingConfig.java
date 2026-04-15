@@ -25,6 +25,7 @@ public final class McpBindingConfig
 {
     public final long id;
     public final McpOptionsConfig options;
+
     private final List<McpRouteConfig> routes;
 
     public McpBindingConfig(

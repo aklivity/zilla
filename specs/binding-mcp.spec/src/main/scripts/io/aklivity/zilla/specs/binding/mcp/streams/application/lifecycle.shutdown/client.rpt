@@ -33,3 +33,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .sessionId("session-1")
                               .build()
                           .build()}
+
+write close
+
+read closed

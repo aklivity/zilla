@@ -48,35 +48,26 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.disconnect/client",
-        "${app}/lifecycle.disconnect/server"})
-    public void shouldDisconnectLifecycle() throws Exception
+        "${app}/lifecycle.shutdown/client",
+        "${app}/lifecycle.shutdown/server"})
+    public void shouldShutdownLifecycle() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/lifecycle.ping/client",
-        "${app}/lifecycle.ping/server"})
-    public void shouldPingLifecycle() throws Exception
+        "${app}/tools.call/client",
+        "${app}/tools.call/server"})
+    public void shouldCallTool() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/notify.canceled/client",
-        "${app}/notify.canceled/server"})
-    public void shouldNotifyCanceled() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/capability.tools/client",
-        "${app}/capability.tools/server"})
+        "${app}/tools.list/client",
+        "${app}/tools.list/server"})
     public void shouldListTools() throws Exception
     {
         k3po.finish();
@@ -84,17 +75,17 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/capability.progress/client",
-        "${app}/capability.progress/server"})
-    public void shouldReportProgress() throws Exception
+        "${app}/tools.list.canceled/client",
+        "${app}/tools.list.canceled/server"})
+    public void shouldListToolsThenAbort() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/capability.prompts/client",
-        "${app}/capability.prompts/server"})
+        "${app}/prompts.list/client",
+        "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
     {
         k3po.finish();
@@ -102,27 +93,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/capability.resources/client",
-        "${app}/capability.resources/server"})
+        "${app}/resources.list/client",
+        "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/capability.completion/client",
-        "${app}/capability.completion/server"})
-    public void shouldComplete() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/capability.logging/client",
-        "${app}/capability.logging/server"})
-    public void shouldSetLoggingLevel() throws Exception
     {
         k3po.finish();
     }

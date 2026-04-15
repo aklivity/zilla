@@ -37,11 +37,11 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
-                            .header("mcp-session-id", "test-session-id")
+                            .header("mcp-session-id", "session-1")
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{},"serverInfo":{"name":"zilla","version":"1.0"}}}'
+write '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{},"resources":{},"tools":{}},"serverInfo":{"name":"zilla"}}}'
 write flush
 
 write close
@@ -54,7 +54,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":path", "/mcp")
                            .header("content-type", "application/json")
                            .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "test-session-id")
+                           .header("mcp-session-id", "session-1")
                            .build()}
 
 connected

@@ -83,18 +83,17 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":3,"method":"ping"}'
+read '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather","arguments":{"location": "New York"}}}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
-                            .header("content-length", "36")
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":3,"result":{}}'
+write '{"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "Current weather in New York:\nTemperature: 72°F\nConditions: Partly cloudy"}],"isError": false}}'
 write flush
 
 write close
