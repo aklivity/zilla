@@ -747,7 +747,10 @@ it. This means:
 
 Scripts are organised under `streams/network/` and `streams/application/`
 within the spec project. Each scenario is a subdirectory containing a
-`client.rpt` and a `server.rpt`. The `network/` and `application/` trees are
+`client.rpt` and a `server.rpt`. Never copy scripts from the spec project into
+the runtime project — the spec module is declared as a test-scoped dependency
+in the runtime module's `pom.xml`, so scripts are resolved automatically via
+the classpath at test time. The `network/` and `application/` trees are
 **shared between the server-kind and client-kind** ITs for the same binding
 type — there is no duplication. The IT class declares a `K3poRule` script root
 pointing at `streams/network/...` or `streams/application/...` and references
