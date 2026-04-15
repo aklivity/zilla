@@ -13,27 +13,27 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.internal.buffer;
 
-import static java.util.function.Function.identity;
+import java.lang.foreign.MemorySegment;
 
-import java.util.List;
+import org.agrona.DirectBuffer;
 
-public class TelemetryRefConfig
+public interface DirectBufferEx extends DirectBuffer
 {
-    public final List<MetricRefConfig> metricRefs;
-    public final List<AttributeConfig> attributes;
+    MemorySegment segment();
 
-    public static TelemetryRefConfigBuilder<TelemetryRefConfig> builder()
-    {
-        return new TelemetryRefConfigBuilder<>(identity());
-    }
+    void wrap(
+        MemorySegment segment);
 
-    TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs,
-        List<AttributeConfig> attributes)
-    {
-        this.metricRefs = metricRefs;
-        this.attributes = attributes;
-    }
+    void wrap(
+        MemorySegment segment,
+        int offset,
+        int length);
+
+    void getBytes(
+        int index,
+        MemorySegment dstSegment,
+        int dstIndex,
+        int length);
 }

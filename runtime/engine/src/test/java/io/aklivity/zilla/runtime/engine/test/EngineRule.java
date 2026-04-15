@@ -208,17 +208,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier counter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.counter(bindingId, metricId);
+        return engine.counter(bindingId, metricId, attributesId);
     }
 
     public LongConsumer counterWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.counterWriter(bindingId, metricId, core);
+        return engine.counterWriter(bindingId, metricId, attributesId, core);
     }
 
     public long[][] gaugeIds()
@@ -228,17 +230,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier gauge(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.gauge(bindingId, metricId);
+        return engine.gauge(bindingId, metricId, attributesId);
     }
 
     public LongConsumer gaugeWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.gaugeWriter(bindingId, metricId, core);
+        return engine.gaugeWriter(bindingId, metricId, attributesId, core);
     }
 
     public long[][] histogramIds()
@@ -248,17 +252,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier[] histogram(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.histogram(bindingId, metricId);
+        return engine.histogram(bindingId, metricId, attributesId);
     }
 
     public LongConsumer histogramWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.histogramWriter(bindingId, metricId, core);
+        return engine.histogramWriter(bindingId, metricId, attributesId, core);
     }
 
     public LongConsumer counterWriter(
@@ -272,7 +278,7 @@ public final class EngineRule implements TestRule
 
     public LongSupplier usage()
     {
-        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME));
+        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public int supplyLabelId(

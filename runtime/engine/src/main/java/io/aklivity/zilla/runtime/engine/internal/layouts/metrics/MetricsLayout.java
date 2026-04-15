@@ -29,10 +29,12 @@ import org.agrona.concurrent.AtomicBuffer;
 
 public abstract class MetricsLayout implements AutoCloseable
 {
-    protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
+    // Record key: long bindingId (8 bytes) + int metricId (4 bytes) + int attributesId (4 bytes)
     protected static final int BINDING_ID_OFFSET = 0;
-    protected static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
-    protected static final int VALUE_OFFSET = 2 * FIELD_SIZE;
+    protected static final int METRIC_ID_OFFSET = BitUtil.SIZE_OF_LONG;
+    protected static final int ATTRIBUTES_ID_OFFSET = BitUtil.SIZE_OF_LONG + BitUtil.SIZE_OF_INT;
+    protected static final int VALUE_OFFSET = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT;
+    protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     protected static final int NOT_FOUND = -1;
 
     protected final AtomicBuffer buffer;
@@ -56,24 +58,25 @@ public abstract class MetricsLayout implements AutoCloseable
     }
 
     protected int findPosition(
-         long bindingId,
-         long metricId)
+        long bindingId,
+        int metricId,
+        int attributesId)
     {
-        // find position or return -1 if not found
-        return findPosition(bindingId, metricId, false);
+        return findPosition(bindingId, metricId, attributesId, false);
     }
 
     protected int findOrSetPosition(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        // find position or create slot if not found
-        return findPosition(bindingId, metricId, true);
+        return findPosition(bindingId, metricId, attributesId, true);
     }
 
     private int findPosition(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         boolean createIfEmpty)
     {
         int pos = 0;
@@ -81,16 +84,17 @@ public abstract class MetricsLayout implements AutoCloseable
         while (!done)
         {
             long b = buffer.getLong(pos + BINDING_ID_OFFSET);
-            long m = buffer.getLong(pos + METRIC_ID_OFFSET);
-            if (b == bindingId && m == metricId)
+            int m = buffer.getInt(pos + METRIC_ID_OFFSET);
+            int a = buffer.getInt(pos + ATTRIBUTES_ID_OFFSET);
+            if (b == bindingId && m == metricId && a == attributesId)
             {
                 done = true;
             }
-            else if (isEmptySlot(b, m))
+            else if (isEmptySlot(m))
             {
                 if (createIfEmpty)
                 {
-                    createRecord(bindingId, metricId, pos);
+                    createRecord(bindingId, metricId, attributesId, pos);
                 }
                 else
                 {
@@ -107,27 +111,30 @@ public abstract class MetricsLayout implements AutoCloseable
     }
 
     private boolean isEmptySlot(
-        long bindingId,
-        long metricId)
+        int metricId)
     {
-        return bindingId == 0L && metricId == 0L;
+        return metricId == 0;
     }
 
     public abstract LongConsumer supplyWriter(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     public abstract LongSupplier supplyReader(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     public abstract LongSupplier[] supplyReaders(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     protected abstract void createRecord(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int index);
 
     protected abstract int recordSize();
@@ -149,16 +156,17 @@ public abstract class MetricsLayout implements AutoCloseable
 
         private boolean isRecordLeft()
         {
-            return buffer.getLong(index + BINDING_ID_OFFSET) != 0L;
+            return buffer.getInt(index + METRIC_ID_OFFSET) != 0;
         }
 
         @Override
         public long[] next()
         {
             long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
-            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
+            long metricId = buffer.getInt(index + METRIC_ID_OFFSET);
+            long attributesId = buffer.getInt(index + ATTRIBUTES_ID_OFFSET);
             index += recordSize();
-            return new long[]{bindingId, metricId};
+            return new long[]{bindingId, metricId, attributesId};
         }
     }
 }

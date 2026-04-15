@@ -255,7 +255,8 @@ public class TlsWorker implements EngineContext
     @Override
     public LongSupplier supplyCounter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         return null;
     }
@@ -263,7 +264,8 @@ public class TlsWorker implements EngineContext
     @Override
     public LongSupplier supplyGauge(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         return null;
     }
@@ -271,7 +273,8 @@ public class TlsWorker implements EngineContext
     @Override
     public LongSupplier[] supplyHistogram(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         return new LongSupplier[0];
     }
@@ -446,7 +449,8 @@ public class TlsWorker implements EngineContext
     public LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         return null;
     }

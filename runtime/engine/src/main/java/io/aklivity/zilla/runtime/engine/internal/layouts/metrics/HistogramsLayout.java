@@ -30,6 +30,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -39,10 +40,10 @@ public final class HistogramsLayout extends MetricsLayout
     public static final int BUCKETS = 63;
     public static final long[] BUCKET_LIMITS = generateBucketLimits();
 
-    // We use the buffer to store structs {long bindingId, long metricId, long[] values}
-    private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
+    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long[63] values (504) = 520 bytes
+    private static final int VALUES_OFFSET = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT;
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
-    private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
+    private static final int RECORD_SIZE = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
 
     private HistogramsLayout(
@@ -54,16 +55,18 @@ public final class HistogramsLayout extends MetricsLayout
     @Override
     public LongConsumer supplyWriter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        int index = findOrSetPosition(bindingId, metricId);
+        int index = findOrSetPosition(bindingId, metricId, attributesId);
         return value -> buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
     }
 
     @Override
     public LongSupplier supplyReader(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         throw new RuntimeException("not implemented");
     }
@@ -71,10 +74,11 @@ public final class HistogramsLayout extends MetricsLayout
     @Override
     public LongSupplier[] supplyReaders(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
         LongSupplier[] readers;
-        int index = findPosition(bindingId, metricId);
+        int index = findPosition(bindingId, metricId, attributesId);
         if (index == -1) // not found
         {
             readers = IntStream.range(0, BUCKETS)
@@ -108,11 +112,13 @@ public final class HistogramsLayout extends MetricsLayout
     @Override
     protected void createRecord(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int index)
     {
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
-        buffer.putLong(index + METRIC_ID_OFFSET, metricId);
+        buffer.putInt(index + METRIC_ID_OFFSET, metricId);
+        buffer.putInt(index + ATTRIBUTES_ID_OFFSET, attributesId);
         ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
         buffer.putBytes(index + VALUES_OFFSET, initialValues.array());
     }

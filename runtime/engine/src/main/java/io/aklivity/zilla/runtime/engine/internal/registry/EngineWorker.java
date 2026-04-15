@@ -159,7 +159,7 @@ import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -190,7 +190,7 @@ public class EngineWorker implements EngineContext, Agent
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
-    private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
+    private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
     private final Map<String, MetricGroup> metricGroupsByName;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
@@ -492,7 +492,7 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME));
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -675,25 +675,28 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongSupplier supplyCounter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return countersLayout.supplyReader(bindingId, metricId);
+        return countersLayout.supplyReader(bindingId, metricId, attributesId);
     }
 
     @Override
     public LongSupplier supplyGauge(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return gaugesLayout.supplyReader(bindingId, metricId);
+        return gaugesLayout.supplyReader(bindingId, metricId, attributesId);
     }
 
     @Override
     public LongSupplier[] supplyHistogram(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return histogramsLayout.supplyReaders(bindingId, metricId);
+        return histogramsLayout.supplyReaders(bindingId, metricId, attributesId);
     }
 
     public long[][] counterIds()
@@ -815,7 +818,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int metricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
 
-        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId);
+        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId, 0);
     }
 
     @Override
@@ -946,7 +949,7 @@ public class EngineWorker implements EngineContext, Agent
         if (!readonly)
         {
             int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
-            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId);
+            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId, 0);
 
             int capacityMetricId = labels.supplyLabelId(EngineWorkersCapacityMetric.NAME);
             LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
@@ -1114,33 +1117,36 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     public LongConsumer supplyGaugeWriter(
-        long metricId)
+        int metricId)
     {
-        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId);
+        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId, 0);
     }
 
     // required for testing
     public LongConsumer supplyCounterWriter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return countersLayout.supplyWriter(bindingId, metricId);
+        return countersLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     // required for testing
     public LongConsumer supplyGaugeWriter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return gaugesLayout.supplyWriter(bindingId, metricId);
+        return gaugesLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     // required for testing
     public LongConsumer supplyHistogramWriter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return histogramsLayout.supplyWriter(bindingId, metricId);
+        return histogramsLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     @Override
@@ -1908,9 +1914,10 @@ public class EngineWorker implements EngineContext, Agent
     public LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
+        return metricWriterSuppliers.get(kind).apply(bindingId, metricId, attributesId);
     }
 
     public EventWriter eventWriter()

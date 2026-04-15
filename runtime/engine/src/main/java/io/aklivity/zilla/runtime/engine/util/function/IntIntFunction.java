@@ -13,27 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.util.function;
 
-import static java.util.function.Function.identity;
-
-import java.util.List;
-
-public class TelemetryRefConfig
+/**
+ * A function that accepts two {@code int} arguments and produces a result,
+ * avoiding the boxing overhead of {@link java.util.function.BiFunction BiFunction&lt;Integer, Integer, R&gt;}.
+ *
+ * @param <R>  the result type
+ */
+@FunctionalInterface
+public interface IntIntFunction<R>
 {
-    public final List<MetricRefConfig> metricRefs;
-    public final List<AttributeConfig> attributes;
-
-    public static TelemetryRefConfigBuilder<TelemetryRefConfig> builder()
-    {
-        return new TelemetryRefConfigBuilder<>(identity());
-    }
-
-    TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs,
-        List<AttributeConfig> attributes)
-    {
-        this.metricRefs = metricRefs;
-        this.attributes = attributes;
-    }
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param value1  the first {@code int} argument
+     * @param value2  the second {@code int} argument
+     * @return the result
+     */
+    R apply(int value1, int value2);
 }

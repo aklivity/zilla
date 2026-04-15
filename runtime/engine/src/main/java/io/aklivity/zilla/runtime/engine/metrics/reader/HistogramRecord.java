@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.Histogra
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.namespaceId;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -30,7 +31,8 @@ public class HistogramRecord implements MetricRecord
     private static final Int2IntHashMap MS_BUCKET_MAP = generateMillisecondsBucketMap();
 
     private final long bindingId;
-    private final long metricId;
+    private final int metricId;
+    private final int attributesId;
     private final int namespaceId;
     private final LongSupplier[] readers;
     private final LongFunction<String> labelResolver;
@@ -40,12 +42,14 @@ public class HistogramRecord implements MetricRecord
 
     public HistogramRecord(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         LongSupplier[] readers,
         LongFunction<String> labelResolver)
     {
         this.bindingId = bindingId;
         this.metricId = metricId;
+        this.attributesId = attributesId;
         this.namespaceId = namespaceId(bindingId);
         this.readers = readers;
         this.labelResolver = labelResolver;
@@ -74,6 +78,18 @@ public class HistogramRecord implements MetricRecord
     public String metric()
     {
         return labelResolver.apply(metricId);
+    }
+
+    @Override
+    public int attributesId()
+    {
+        return attributesId;
+    }
+
+    @Override
+    public Map<String, String> attributes()
+    {
+        return MetricRecordHelper.parseAttributes(attributesId, labelResolver);
     }
 
     public int buckets()
@@ -175,13 +191,14 @@ public class HistogramRecord implements MetricRecord
             return false;
         }
         HistogramRecord that = (HistogramRecord) o;
-        return namespaceId == that.namespaceId && bindingId == that.bindingId && metricId == that.metricId;
+        return namespaceId == that.namespaceId && bindingId == that.bindingId &&
+            metricId == that.metricId && attributesId == that.attributesId;
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(namespaceId, bindingId, metricId);
+        return Objects.hash(namespaceId, bindingId, metricId, attributesId);
     }
 
     private static Int2IntHashMap generateMillisecondsBucketMap()

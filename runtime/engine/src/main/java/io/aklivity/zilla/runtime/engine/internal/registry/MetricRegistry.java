@@ -17,9 +17,13 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToIntFunction;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
@@ -37,6 +41,14 @@ public class MetricRegistry
         LongConsumer recorder)
     {
         return context.supply(recorder);
+    }
+
+    public MessageConsumer supplyHandler(
+        IntFunction<LongConsumer> recorder,
+        List<AttributeConfig> attributes,
+        ToIntFunction<String> supplyLabelId)
+    {
+        return context.supply(recorder, attributes, supplyLabelId);
     }
 
     public String group()

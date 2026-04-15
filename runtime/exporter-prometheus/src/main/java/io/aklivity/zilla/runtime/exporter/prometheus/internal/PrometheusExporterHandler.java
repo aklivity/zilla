@@ -50,7 +50,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final Map<Integer, HttpServer> servers;
     private final Collector collector;
 
-    private PrometheusMetricsPrinter printer;
+    private PrometheusMetricDescriptor descriptor;
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
@@ -67,11 +67,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
-        List<MetricRecord> records = metrics.records();
-        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
-        printer = new PrometheusMetricsPrinter(records, descriptor::kind, descriptor::name, descriptor::description,
-            descriptor::milliseconds);
+        this.descriptor = new PrometheusMetricDescriptor(context::resolveMetric);
 
         for (PrometheusEndpointConfig endpoint : endpoints)
         {
@@ -108,6 +104,10 @@ public class PrometheusExporterHandler implements ExporterHandler
 
     private String generateOutput()
     {
+        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
+        List<MetricRecord> records = metrics.records();
+        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(records, descriptor::kind,
+            descriptor::name, descriptor::description, descriptor::milliseconds);
         String output = "";
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);

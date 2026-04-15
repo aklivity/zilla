@@ -13,27 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.internal.buffer;
 
-import static java.util.function.Function.identity;
+import org.agrona.concurrent.AtomicBuffer;
 
-import java.util.List;
-
-public class TelemetryRefConfig
+public interface AtomicBufferEx extends AtomicBuffer, MutableDirectBufferEx
 {
-    public final List<MetricRefConfig> metricRefs;
-    public final List<AttributeConfig> attributes;
-
-    public static TelemetryRefConfigBuilder<TelemetryRefConfig> builder()
-    {
-        return new TelemetryRefConfigBuilder<>(identity());
-    }
-
-    TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs,
-        List<AttributeConfig> attributes)
-    {
-        this.metricRefs = metricRefs;
-        this.attributes = attributes;
-    }
 }

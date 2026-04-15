@@ -44,6 +44,10 @@ src/test/java/    # Unit tests
 
 Zilla uses Maven with Java 25.
 
+Every new Maven project directory must include `mvnw` and `mvnw.cmd` copied
+from an existing module — this applies to all new projects regardless of type
+(`runtime/`, `specs/`, `incubator/`, etc.).
+
 ```bash
 # Add license headers to new files — run this first after creating new source
 # files, otherwise the build will fail on the license check before compilation
@@ -286,6 +290,57 @@ navigating the class from the top encounter the stream logic first; the
 low-level frame-writing helpers at the bottom are only consulted when needed
 and do not need to be scrolled past to reach the interesting code.
 
+### Per-stream field naming
+
+Each inner stream class (in server, client, and proxy bindings) maintains a
+standard set of fields tracking stream identity, flow control, and state. These
+fields follow a strict `initialXxx` / `replyXxx` naming convention
+corresponding to the two directions of a bidirectional stream (initial =
+request direction, reply = response direction).
+
+**Stream identity fields:**
+
+| Field           | Type   | Purpose                                            |
+|-----------------|--------|----------------------------------------------------|
+| `initialId`     | `long` | Stream identifier for the initial direction        |
+| `replyId`       | `long` | Stream identifier for the reply direction          |
+| `originId`      | `long` | Origin binding identifier                          |
+| `routedId`      | `long` | Routed binding identifier                          |
+| `authorization` | `long` | Authorization context carried on the stream        |
+| `affinity`      | `long` | Affinity hint for stream routing                   |
+
+**Flow-control fields (declared per direction):**
+
+| Suffix | Full name   | Type   | Purpose                                          |
+|--------|-------------|--------|--------------------------------------------------|
+| `Seq`  | sequence    | `long` | Running byte-position counter                    |
+| `Ack`  | acknowledge | `long` | Acknowledged byte-position from peer             |
+| `Max`  | maximum     | `int`  | Maximum window size (bytes in flight)            |
+| `Bud`  | budget id   | `long` | Shared budget identifier for credit allocation   |
+| `Pad`  | padding     | `int`  | Reserved bytes per frame (protocol overhead)     |
+
+Every stream class declares both directions:
+
+```java
+private long initialSeq;
+private long initialAck;
+private int  initialMax;
+private long initialBud;
+private int  initialPad;
+
+private long replySeq;
+private long replyAck;
+private int  replyMax;
+private long replyBud;
+private int  replyPad;
+```
+
+**State field:**
+
+- `state` (`int`) — a bitfield tracking open/closing/closed for both
+  directions, managed by an `XxxState` utility class with static bitmask
+  methods (e.g., `openingInitial(state)`, `closedReply(state)`)
+
 ### Buffer slot usage
 
 When a binding needs to buffer data mid-decode or mid-encode (e.g., to
@@ -335,6 +390,138 @@ private void cleanupDecodeSlot()
 
 - Call the cleanup helper from the stream's `cleanup()` method so slots are
   always returned on both orderly and abortive close paths
+
+### Network decode strategy
+
+Server and client bindings that parse a byte-stream protocol implement their
+decode logic as a **strategy pattern** using a `@FunctionalInterface` inner
+interface, a `decoder` field on the inner server/client class, and a set of
+private decode methods — one per protocol parse state.
+
+**The decoder interface** is declared as a private inner interface of the
+factory (e.g., `HttpServerDecoder` inside `HttpServerFactory`). Its single
+method takes the server/client instance as its first parameter, followed by
+the standard tracing and buffer navigation parameters, and returns the new
+buffer offset (progress):
+
+```java
+@FunctionalInterface
+private interface HttpServerDecoder
+{
+    int decode(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit);
+}
+```
+
+Passing the server/client instance into the interface method (rather than
+closing over it) is what makes method references work cleanly: each decode
+method is a plain private instance method on the factory that matches the
+interface signature exactly and is assigned as a method reference.
+
+**The `decoder` field** is held on the inner server/client class and
+initialised in its constructor to the first expected decode state:
+
+```java
+private final class HttpServer
+{
+    private HttpServerDecoder decoder;
+
+    HttpServer(...)
+    {
+        this.decoder = decodeEmptyLines;   // initial parse state
+    }
+}
+```
+
+**Decode methods** are named `decode<StateName>` and declared as private
+instance methods on the factory. Each method handles exactly one parse state,
+advances the buffer offset as far as it can, and transitions to the next
+state by assigning `server.decoder`:
+
+```java
+private int decodeHeaders(
+    HttpServer server,
+    long traceId,
+    long authorization,
+    long budgetId,
+    int reserved,
+    DirectBuffer buffer,
+    int offset,
+    int limit)
+{
+    // parse request line and headers from buffer[offset..limit]
+    // ...
+    server.decoder = decodeContent;   // transition to next state
+    return progress;
+}
+```
+
+Error states assign a terminal decoder (e.g., `decodeIgnore`) that silently
+discards all remaining bytes.
+
+**The `decodeNetwork` method** on the inner server/client class drives the
+loop. It tracks the previous decoder reference and keeps invoking the current
+decoder until either the buffer is exhausted or the decoder does not change
+(i.e., the current state could not make progress with the available bytes):
+
+```java
+private void decodeNetwork(
+    long traceId,
+    long authorization,
+    long budgetId,
+    int reserved,
+    DirectBuffer buffer,
+    int offset,
+    int limit)
+{
+    HttpServerDecoder previous = null;
+    int progress = offset;
+    while (progress <= limit && previous != decoder)
+    {
+        previous = decoder;
+        progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, progress, limit);
+    }
+
+    if (progress < limit)
+    {
+        // buffer remaining bytes in decodeSlot (see Buffer slot usage)
+    }
+    else
+    {
+        cleanupDecodeSlot();
+    }
+}
+```
+
+The `previous != decoder` guard is the key: if a decode method transitions to
+a new state, the loop continues immediately with the new decoder — allowing
+multiple logical states to be consumed in one `decodeNetwork` call (e.g.,
+request line → headers → body). If the decoder does not change (the state
+needs more bytes), the loop exits and any unconsumed bytes are saved to the
+decode slot. `onNetworkData` prepends any previously buffered bytes from the
+decode slot before calling `decodeNetwork`.
+
+**Rules:**
+
+- Declare the decoder interface as a `private` inner interface of the factory
+  class, not in a separate file
+- Name the interface `<Protocol><Role>Decoder` (e.g., `HttpServerDecoder`,
+  `Http2ServerDecoder`, `MqttClientDecoder`)
+- Initialise `decoder` in the server/client constructor to the first expected
+  state
+- Each `decode*` method must return the new buffer offset; returning the
+  incoming `offset` unchanged signals "not enough data yet" and stops the loop
+- Assign `server.decoder` (or `client.decoder`) directly inside decode methods
+  to transition state — never call the next decode method recursively
+- Terminal/error decoders must always advance progress (consume all remaining
+  bytes) so the loop terminates
 
 ### Proxy binding patterns
 
@@ -466,9 +653,12 @@ Follow this order — tests before implementation:
    `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
    `NOTICE-AklivityCommunity` from the top-level repository directory, renaming
    them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
-   new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
-   the new module directory; do not copy `NOTICE` from another module as it
-   must reflect the new module's actual dependencies. Source file headers must carry the Aklivity
+   new module. Then generate `NOTICE` by running
+   `./mvnw notice:generate --projects <path/to/project>` from the repository
+   root; do not copy `NOTICE` from another module as it must reflect the new
+   module's actual dependencies. Never edit `NOTICE` files directly — always
+   regenerate via `./mvnw notice:generate --projects <path/to/project>`;
+   manual edits will be overwritten. Source file headers must carry the Aklivity
    Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
    run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
@@ -620,6 +810,14 @@ Add a builder and a matcher for every extension type declared in the binding's
 `.idl`. The matcher's `build()` method returns `null` (skip check) when no
 constraints have been set, allowing unconditional reads when the extension
 content is irrelevant.
+
+**Typed method variants for non-string values:** JUEL (the expression language
+used in `.rpt` scripts) cannot dispatch Java method overloads by argument type
+— it always coerces numeric literals to `long`. Where a field accepts values
+of different primitive types, provide explicitly typed method variants rather
+than overloading a single method name. For example, use `headerInt(name, int)`,
+`headerLong(name, long)`, `headerShort(name, short)` instead of overloading
+`header(name, value)`. See `KafkaFunctions` for examples of this pattern.
 
 **Alignment in `.rpt` scripts:** when a function call is chained across
 multiple lines inside `${ }`, align each `.` directly under the `.` of the
@@ -792,6 +990,19 @@ groups and no star imports.
 - Prefer non-block lambdas (expression lambdas) over block lambdas (`{ return
   ...; }`) — even when the expression spans multiple lines via a builder chain,
   keep it as a single expression without braces or an explicit `return`
+- Method parameters are each on their own line, indented 4 spaces relative to
+  the method declaration, with the closing `)` on the same line as the last
+  parameter:
+
+```java
+private void onNetworkData(
+    long traceId,
+    long authorization,
+    int reserved,
+    OctetsFW payload)
+{
+```
+
 - Methods should have a single `return` statement at the end where possible;
   avoid early returns except for guard clauses at the very top of a method
 - Avoid the `...IfNecessary` method naming suffix (e.g., `doEndIfNecessary`,
@@ -800,6 +1011,8 @@ groups and no star imports.
   value is an implementation detail that does not belong in the name
 - Java 21; no preview features
 - No Lombok
+- Use `jakarta.json` APIs (e.g., `JsonObject`, `JsonReader`, `JsonParser`)
+  for JSON processing — do not introduce Jackson (`com.fasterxml.jackson`)
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
   `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)

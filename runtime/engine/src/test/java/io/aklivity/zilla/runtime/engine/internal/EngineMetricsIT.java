@@ -53,9 +53,9 @@ public class EngineMetricsIT
     public void shouldFetchCounterIds()
     {
         // GIVEN
-        LongConsumer writer0 = engine.counterWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.counterWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.counterWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.counterWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.counterWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.counterWriter(3L, 7, 0, 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);
@@ -65,7 +65,7 @@ public class EngineMetricsIT
 
         // THEN
         // counterIds[0] is coming from test.counter in server.yaml
-        assertThat(counterIds[1], equalTo(new long[]{3L, 7L}));
+        assertThat(counterIds[1], equalTo(new long[]{3L, 7L, 0L}));
     }
 
     @Test
@@ -73,15 +73,15 @@ public class EngineMetricsIT
     public void shouldAggregateCounters()
     {
         // GIVEN
-        LongConsumer writer0 = engine.counterWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.counterWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.counterWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.counterWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.counterWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.counterWriter(3L, 7, 0, 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);
 
         // WHEN
-        LongSupplier counter = engine.counter(3L, 7L);
+        LongSupplier counter = engine.counter(3L, 7, 0);
 
         // THEN
         // the aggregated counter value across the 3 cores should be 42 + 21 + 14 = 77
@@ -93,9 +93,9 @@ public class EngineMetricsIT
     public void shouldFetchGaugeIds()
     {
         // GIVEN
-        LongConsumer writer0 = engine.gaugeWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.gaugeWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.gaugeWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.gaugeWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.gaugeWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.gaugeWriter(3L, 7, 0, 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);
@@ -104,7 +104,7 @@ public class EngineMetricsIT
         long[][] gaugeIds = engine.gaugeIds();
 
         // THEN
-        assertThat(gaugeIds[gaugeIds.length - 1], equalTo(new long[]{3L, 7L}));
+        assertThat(gaugeIds[gaugeIds.length - 1], equalTo(new long[]{3L, 7L, 0L}));
     }
 
     @Test
@@ -112,15 +112,15 @@ public class EngineMetricsIT
     public void shouldAggregateGauges()
     {
         // GIVEN
-        LongConsumer writer0 = engine.gaugeWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.gaugeWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.gaugeWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.gaugeWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.gaugeWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.gaugeWriter(3L, 7, 0, 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);
 
         // WHEN
-        LongSupplier gauge = engine.gauge(3L, 7L);
+        LongSupplier gauge = engine.gauge(3L, 7, 0);
 
         // THEN
         // the aggregated gauge value across the 3 cores should be 42 + 21 + 14 = 77
@@ -132,9 +132,9 @@ public class EngineMetricsIT
     public void shouldFetchHistogramIds()
     {
         // GIVEN
-        LongConsumer writer0 = engine.histogramWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.histogramWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.histogramWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.histogramWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.histogramWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.histogramWriter(3L, 7, 0, 2);
         writer0.accept(42L);
         writer1.accept(21L);
         writer2.accept(14L);
@@ -144,7 +144,7 @@ public class EngineMetricsIT
 
         // THEN
         // histogramIds[0] is coming from test.histogram in server.yaml
-        assertThat(histogramIds[1], equalTo(new long[]{3L, 7L}));
+        assertThat(histogramIds[1], equalTo(new long[]{3L, 7L, 0L}));
     }
 
     @Test
@@ -152,15 +152,15 @@ public class EngineMetricsIT
     public void shouldAggregateHistogramBuckets()
     {
         // GIVEN
-        LongConsumer writer0 = engine.histogramWriter(3L, 7L, 0);
-        LongConsumer writer1 = engine.histogramWriter(3L, 7L, 1);
-        LongConsumer writer2 = engine.histogramWriter(3L, 7L, 2);
+        LongConsumer writer0 = engine.histogramWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.histogramWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.histogramWriter(3L, 7, 0, 2);
         writer0.accept(16L);
         writer1.accept(17L);
         writer2.accept(18L);
 
         // WHEN
-        LongSupplier[] histogram = engine.histogram(3L, 7L);
+        LongSupplier[] histogram = engine.histogram(3L, 7, 0);
 
         // THEN
         // values 16..31 (2^4..2^5-1) go to bucket no #4; all 3 values should go to bucket #4
