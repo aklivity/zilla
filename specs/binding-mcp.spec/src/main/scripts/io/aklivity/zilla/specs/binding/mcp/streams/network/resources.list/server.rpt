@@ -83,7 +83,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":6,"method":"resources/list"}'
+read '{"jsonrpc":"2.0","id":2,"method":"resources/list"}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -93,7 +93,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":6,"result":{"resources":[]}}'
+write '{"jsonrpc":"2.0","id":2,"result":{"resources":[]}}'
 write flush
 
 write close

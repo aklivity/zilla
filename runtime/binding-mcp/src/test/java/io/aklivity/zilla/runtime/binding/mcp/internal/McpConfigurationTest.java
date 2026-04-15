@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
 import static org.junit.Assert.assertEquals;
 
@@ -23,10 +25,14 @@ import org.junit.Test;
 public class McpConfigurationTest
 {
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
+    public static final String MCP_CLIENT_NAME_NAME = "zilla.binding.mcp.client.name";
+    public static final String MCP_CLIENT_VERSION_NAME = "zilla.binding.mcp.client.version";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
+        assertEquals(MCP_CLIENT_NAME.name(), MCP_CLIENT_NAME_NAME);
+        assertEquals(MCP_CLIENT_VERSION.name(), MCP_CLIENT_VERSION_NAME);
     }
 }

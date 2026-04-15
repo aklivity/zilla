@@ -30,12 +30,16 @@ public class McpConfiguration extends Configuration
     private static final ConfigurationDef MCP_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<String> MCP_CLIENT_NAME;
+    public static final PropertyDef<String> MCP_CLIENT_VERSION;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
         MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+        MCP_CLIENT_NAME = config.property(String.class, "client.name", (c, v) -> v, "zilla");
+        MCP_CLIENT_VERSION = config.property(String.class, "client.version", (c, v) -> v, "1.0");
         MCP_CONFIG = config;
     }
 
@@ -53,6 +57,16 @@ public class McpConfiguration extends Configuration
     public Supplier<String> sessionIdSupplier()
     {
         return MCP_SESSION_ID.get(this)::get;
+    }
+
+    public String clientName()
+    {
+        return MCP_CLIENT_NAME.get(this);
+    }
+
+    public String clientVersion()
+    {
+        return MCP_CLIENT_VERSION.get(this);
     }
 
     @FunctionalInterface
