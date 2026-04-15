@@ -30,6 +30,7 @@
     <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
+    <module>binding-mcp</module>
     <module>binding-mqtt-kafka</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>

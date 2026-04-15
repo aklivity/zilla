@@ -1,0 +1,100 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "prompts":
+                            {
+                                "title": "Local Prompts",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "title": "Prompt Name",
+                                            "type": "string"
+                                        },
+                                        "description":
+                                        {
+                                            "title": "Prompt Description",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [ "name" ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "kind":
+                                            {
+                                                "title": "Stream Kind",
+                                                "type": "string",
+                                                "enum": [ "server", "proxy", "client", "callback" ]
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]
