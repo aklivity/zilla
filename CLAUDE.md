@@ -1016,6 +1016,10 @@ private void onNetworkData(
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
   `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
+- Never use fully qualified class names as field, parameter, or variable types —
+  add an `import` and use the simple type name. The only exception is a naming
+  collision where two different packages define the same class name; in that
+  case qualify the less-frequently-used type
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
