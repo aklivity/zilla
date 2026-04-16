@@ -2210,7 +2210,11 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
+            state = McpState.closedReply(state);
+
             doAppEnd(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
         private void onAppAbort(
@@ -2219,7 +2223,11 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
+            state = McpState.closedReply(state);
+
             doAppAbort(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
         private void onAppWindow(
@@ -2242,7 +2250,11 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
+            state = McpState.closedInitial(state);
+
             doAppReset(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
         private void cleanupApp(
@@ -2251,6 +2263,18 @@ public final class McpServerFactory implements McpStreamFactory
         {
             doAppReset(traceId, authorization);
             doAppAbort(traceId, authorization);
+        }
+
+        private void onAppClosed(
+            long traceId,
+            long authorization)
+        {
+            if (McpState.closed(state))
+            {
+                requests.values().stream()
+                    .forEach(r -> r.doAppCancel(traceId, authorization));
+                requests.clear();
+            }
         }
     }
 

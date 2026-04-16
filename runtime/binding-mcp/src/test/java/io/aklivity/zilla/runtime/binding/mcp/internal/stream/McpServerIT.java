@@ -85,6 +85,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.shutdown.requests/client",
+        "${app}/lifecycle.shutdown.requests/server"})
+    public void shouldShutdownLifecycleRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception

@@ -57,6 +57,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.shutdown.requests/client",
+        "${app}/lifecycle.shutdown.requests/server"})
+    public void shouldShutdownLifecycleRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception

@@ -57,6 +57,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.shutdown.requests/client",
+        "${net}/lifecycle.shutdown.requests/server"})
+    public void shouldShutdownLifecycleRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.ping/client",
         "${net}/lifecycle.ping/server"})
     public void shouldPingLifecycle() throws Exception
