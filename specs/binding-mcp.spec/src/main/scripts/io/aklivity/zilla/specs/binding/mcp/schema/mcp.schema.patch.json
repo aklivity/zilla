@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client" ]
+                        "enum": [ "server", "client", "proxy" ]
                     },
                     "options":
                     {
