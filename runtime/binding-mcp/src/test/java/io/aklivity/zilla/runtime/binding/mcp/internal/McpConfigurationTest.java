@@ -18,12 +18,16 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class McpConfigurationTest
 {
+    public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
+    public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
     public static final String MCP_SERVER_NAME_NAME = "zilla.binding.mcp.server.name";
     public static final String MCP_SERVER_VERSION_NAME = "zilla.binding.mcp.server.version";
@@ -31,6 +35,8 @@ public class McpConfigurationTest
     @Test
     public void shouldVerifyConstants() throws Exception
     {
+        assertEquals(ENGINE_DETACH_ON_CLOSE.name(), ENGINE_DETACH_ON_CLOSE_NAME);
+        assertEquals(ENGINE_SYNTHETIC_ABORT.name(), ENGINE_SYNTHETIC_ABORT_NAME);
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
         assertEquals(MCP_SERVER_NAME.name(), MCP_SERVER_NAME_NAME);
         assertEquals(MCP_SERVER_VERSION.name(), MCP_SERVER_VERSION_NAME);

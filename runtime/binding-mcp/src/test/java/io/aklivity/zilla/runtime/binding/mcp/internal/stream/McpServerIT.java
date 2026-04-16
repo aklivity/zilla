@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_DETACH_ON_CLOSE_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
@@ -31,6 +33,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class McpServerIT
 {
@@ -87,6 +90,8 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.shutdown.requests/client",
         "${app}/lifecycle.shutdown.requests/server"})
+    @Configure(name = ENGINE_SYNTHETIC_ABORT_NAME, value = "false")
+    @Configure(name = ENGINE_DETACH_ON_CLOSE_NAME, value = "false")
     public void shouldShutdownLifecycleRequests() throws Exception
     {
         k3po.finish();

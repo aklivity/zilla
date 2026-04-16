@@ -44,6 +44,7 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import com.sun.management.OperatingSystemMXBean;
 
+import io.aklivity.zilla.runtime.engine.Configuration.BooleanPropertyDef;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
@@ -86,6 +87,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT;
     public static final IntPropertyDef ENGINE_BACKOFF_MAX_SELECT_MILLIS;
     public static final BooleanPropertyDef ENGINE_DRAIN_ON_CLOSE;
+    public static final BooleanPropertyDef ENGINE_DETACH_ON_CLOSE;
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
@@ -149,6 +151,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_BACKOFF_MAX_PARK_NANOS = config.property("backoff.max.park.nanos", MILLISECONDS.toNanos(100L));
         ENGINE_BACKOFF_MAX_SELECT_MILLIS = config.property("backoff.max.select.millis", 5);
         ENGINE_DRAIN_ON_CLOSE = config.property("drain.on.close", false);
+        ENGINE_DETACH_ON_CLOSE = config.property("detach.on.close", true);
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
@@ -334,6 +337,11 @@ public class EngineConfiguration extends Configuration
     {
         int maxParks = (int)(Math.ceil(Math.log(maxParkNanosBeforeSelect() /  (double) minParkNanos()) / Math.log(2)));
         return maxSpins() + maxYields() + maxParks;
+    }
+
+    public boolean detachOnClose()
+    {
+        return ENGINE_DETACH_ON_CLOSE.getAsBoolean(this);
     }
 
     public boolean drainOnClose()
