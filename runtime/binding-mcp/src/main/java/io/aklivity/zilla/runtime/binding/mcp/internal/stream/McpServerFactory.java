@@ -625,7 +625,7 @@ public final class McpServerFactory implements McpStreamFactory
             else
             {
                 server.decodedSkipObjectDepth = 1;
-                server.decodeAfterSkipObject = decodeJsonRpcParamsEnd;
+                server.decodedSkipObjectThen = decodeJsonRpcParamsEnd;
                 server.decoder = decodeJsonRpcSkipObject;
             }
 
@@ -696,12 +696,12 @@ public final class McpServerFactory implements McpStreamFactory
             {
             case JsonParser.Event.START_OBJECT:
                 server.decodedSkipObjectDepth = 1;
-                server.decodeAfterSkipObject = decodeJsonRpcMethodWithParam;
+                server.decodedSkipObjectThen = decodeJsonRpcMethodWithParam;
                 server.decoder = decodeJsonRpcSkipObject;
                 break decode;
             case JsonParser.Event.START_ARRAY:
                 server.decodedSkipArrayDepth = 1;
-                server.decodeAfterSkipArray = decodeJsonRpcMethodWithParam;
+                server.decodedSkipArrayThen = decodeJsonRpcMethodWithParam;
                 server.decoder = decodeJsonRpcSkipArray;
                 break decode;
             default:
@@ -755,7 +755,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             server.decodedSkipObjectDepth = 1;
-            server.decodeAfterSkipObject = decodeJsonRpcParamsEnd;
+            server.decodedSkipObjectThen = decodeJsonRpcParamsEnd;
             server.decoder = decodeJsonRpcSkipObject;
 
             progress = offset + server.decodedParamsParsed - server.decodeParserProgress;
@@ -823,7 +823,7 @@ public final class McpServerFactory implements McpStreamFactory
                 server.decodedSkipObjectDepth--;
                 if (server.decodedSkipObjectDepth == 0)
                 {
-                    server.decoder = server.decodeAfterSkipObject;
+                    server.decoder = server.decodedSkipObjectThen;
                     break;
                 }
             }
@@ -859,7 +859,7 @@ public final class McpServerFactory implements McpStreamFactory
                 server.decodedSkipArrayDepth--;
                 if (server.decodedSkipArrayDepth == 0)
                 {
-                    server.decoder = server.decodeAfterSkipArray;
+                    server.decoder = server.decodedSkipArrayThen;
                     break;
                 }
             }
@@ -924,9 +924,9 @@ public final class McpServerFactory implements McpStreamFactory
         private String decodedId;
         private int decodedParamsParsed;
         private McpServerRequestParamsConsumer decodedRequest;
-        private McpServerDecoder decodeAfterSkipObject;
+        private McpServerDecoder decodedSkipObjectThen;
         private int decodedSkipObjectDepth;
-        private McpServerDecoder decodeAfterSkipArray;
+        private McpServerDecoder decodedSkipArrayThen;
         private int decodedSkipArrayDepth;
 
         private McpRequestStream stream;
