@@ -123,6 +123,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpServerDecoder decodeJsonRpcMethodWithParam = this::decodeJsonRpcMethodWithParam;
     private final McpServerDecoder decodeJsonRpcMethodParamValue = this::decodeJsonRpcMethodParamValue;
     private final McpServerDecoder decodeJsonRpcParamsSkipValue = this::decodeJsonRpcParamsSkipValue;
+    private final McpServerDecoder decodeJsonRpcSkipObject = this::decodeJsonRpcSkipObject;
     private final McpServerDecoder decodeIgnore = this::decodeIgnore;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
@@ -622,8 +623,9 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else
             {
-                parser.skipObject(); // TODO: non-blocking
-                server.decoder = decodeJsonRpcParamsEnd;
+                server.skipObjectDepth = 1;
+                server.decodeAfterSkipObject = decodeJsonRpcParamsEnd;
+                server.decoder = decodeJsonRpcSkipObject;
             }
 
             progress = offset + server.decodedParamsParsed - server.decodeParserProgress;
@@ -692,8 +694,10 @@ public final class McpServerFactory implements McpStreamFactory
             switch (event)
             {
             case JsonParser.Event.START_OBJECT:
-                parser.skipObject(); // TODO: non-blocking
-                break;
+                server.skipObjectDepth = 1;
+                server.decodeAfterSkipObject = decodeJsonRpcMethodWithParam;
+                server.decoder = decodeJsonRpcSkipObject;
+                break decode;
             case JsonParser.Event.START_ARRAY:
                 parser.skipArray(); // TODO: non-blocking
                 break;
@@ -749,8 +753,9 @@ public final class McpServerFactory implements McpStreamFactory
                 break;
             }
 
-            parser.skipObject(); // TODO: non-blocking
-            server.decoder = decodeJsonRpcParamsEnd;
+            server.skipObjectDepth = 1;
+            server.decodeAfterSkipObject = decodeJsonRpcParamsEnd;
+            server.decoder = decodeJsonRpcSkipObject;
 
             progress = offset + server.decodedParamsParsed - server.decodeParserProgress;
         }
@@ -788,6 +793,42 @@ public final class McpServerFactory implements McpStreamFactory
         {
             server.decoder = decodeJsonRpcNext;
         }
+
+        return progress;
+    }
+
+    private int decodeJsonRpcSkipObject(
+        McpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        JsonParser parser = server.decodableJson;
+
+        while (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            if (event == JsonParser.Event.START_OBJECT)
+            {
+                server.skipObjectDepth++;
+            }
+            else if (event == JsonParser.Event.END_OBJECT)
+            {
+                server.skipObjectDepth--;
+                if (server.skipObjectDepth == 0)
+                {
+                    server.decoder = server.decodeAfterSkipObject;
+                    break;
+                }
+            }
+        }
+
+        progress = offset + server.decodedParamsParsed - server.decodeParserProgress;
 
         return progress;
     }
@@ -839,6 +880,8 @@ public final class McpServerFactory implements McpStreamFactory
         private long encodeSlotTraceId;
 
         private McpServerDecoder decoder;
+        private McpServerDecoder decodeAfterSkipObject;
+        private int skipObjectDepth;
 
         private JsonParser decodableJson;
         private String decodedMethod;
