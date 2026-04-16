@@ -157,7 +157,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
-        ENGINE_VERBOSE_EXCEPTIONS = config.property("exception-traces", false);
+        ENGINE_VERBOSE_EXCEPTIONS = config.property("verbose.exceptions", false);
         ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
         ENGINE_CLOCK = config.property(Clock.class, "clock",
             EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);

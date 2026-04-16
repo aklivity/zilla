@@ -653,11 +653,12 @@ Follow this order — tests before implementation:
    `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
    `NOTICE-AklivityCommunity` from the top-level repository directory, renaming
    them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively in the
-   new module. Then generate `NOTICE` by running `./mvnw notice:generate` in
-   the new module directory; do not copy `NOTICE` from another module as it
-   must reflect the new module's actual dependencies. Never edit `NOTICE`
-   directly — it is always regenerated from `NOTICE.template` and the
-   module's dependency list by Maven; manual edits will be overwritten. Source file headers must carry the Aklivity
+   new module. Then generate `NOTICE` by running
+   `./mvnw notice:generate --projects <path/to/project>` from the repository
+   root; do not copy `NOTICE` from another module as it must reflect the new
+   module's actual dependencies. Never edit `NOTICE` files directly — always
+   regenerate via `./mvnw notice:generate --projects <path/to/project>`;
+   manual edits will be overwritten. Source file headers must carry the Aklivity
    Community License copyright notice (`Copyright 2021-2024 Aklivity Inc`);
    run `./mvnw license:format` to apply the correct header automatically
 4. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
@@ -746,7 +747,10 @@ it. This means:
 
 Scripts are organised under `streams/network/` and `streams/application/`
 within the spec project. Each scenario is a subdirectory containing a
-`client.rpt` and a `server.rpt`. The `network/` and `application/` trees are
+`client.rpt` and a `server.rpt`. Never copy scripts from the spec project into
+the runtime project — the spec module is declared as a test-scoped dependency
+in the runtime module's `pom.xml`, so scripts are resolved automatically via
+the classpath at test time. The `network/` and `application/` trees are
 **shared between the server-kind and client-kind** ITs for the same binding
 type — there is no duplication. The IT class declares a `K3poRule` script root
 pointing at `streams/network/...` or `streams/application/...` and references
@@ -1015,6 +1019,10 @@ private void onNetworkData(
 - Prefer interface types over implementation classes for field, parameter, and
   return types where a suitable interface exists (e.g., `List` over `ArrayList`,
   `Map` over `HashMap`, `ConcurrentMap` over `ConcurrentHashMap`)
+- Never use fully qualified class names as field, parameter, or variable types —
+  add an `import` and use the simple type name. The only exception is a naming
+  collision where two different packages define the same class name; in that
+  case qualify the less-frequently-used type
 - Package-private classes preferred over public where there is no SPI contract
 - `final` on all fields; immutable config objects
 - Flyweight field names use the `*RO` / `*RW` suffix convention consistently
