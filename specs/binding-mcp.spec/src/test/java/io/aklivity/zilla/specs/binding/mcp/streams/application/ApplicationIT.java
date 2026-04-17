@@ -65,6 +65,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.inactivity.timeout/client",
+        "${app}/lifecycle.inactivity.timeout/server"})
+    public void shouldTimeoutInactiveSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception

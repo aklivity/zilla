@@ -48,11 +48,13 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpServerFactory implements McpStreamFactory
@@ -60,6 +62,8 @@ public final class McpServerFactory implements McpStreamFactory
     private static final byte START_OBJECT_BYTE = (byte) '{';
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
+
+    private static final int INACTIVITY_SIGNAL_ID = 1;
 
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
@@ -79,6 +83,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -96,6 +101,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final Supplier<String> supplySessionId;
     private final String serverName;
     private final String serverVersion;
+    private final long inactivityTimeoutMillis;
+    private final Signaler signaler;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
@@ -136,6 +143,8 @@ public final class McpServerFactory implements McpStreamFactory
         this.supplySessionId = config.sessionIdSupplier();
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
+        this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
+        this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
@@ -1468,6 +1477,8 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            session.touch();
+
             doEncodeBeginResponse(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
@@ -2048,6 +2059,9 @@ public final class McpServerFactory implements McpStreamFactory
         private long replyAck;
         private int replyMax;
 
+        private long lastActiveAt;
+        private long inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+
         private McpLifecycleStream(
             McpServer server)
         {
@@ -2064,11 +2078,37 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             Flyweight extension)
         {
+            touch();
+
             app = newStream(this::onAppMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, 0,
                 extension);
 
             state = McpState.openingInitial(state);
+
+            scheduleInactivity(traceId);
+        }
+
+        private void touch()
+        {
+            lastActiveAt = System.currentTimeMillis();
+        }
+
+        private void scheduleInactivity(
+            long traceId)
+        {
+            final long at = lastActiveAt + inactivityTimeoutMillis;
+            inactivityTimeoutId = signaler.signalAt(at, originId, routedId, initialId,
+                traceId, INACTIVITY_SIGNAL_ID, 0);
+        }
+
+        private void cancelInactivity()
+        {
+            if (inactivityTimeoutId != Signaler.NO_CANCEL_ID)
+            {
+                signaler.cancel(inactivityTimeoutId);
+                inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+            }
         }
 
         private void doAppEnd(
@@ -2155,6 +2195,10 @@ public final class McpServerFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onAppSignal(signal);
+                break;
             default:
                 break;
             }
@@ -2177,7 +2221,38 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            touch();
+
             doAppWindow(traceId, authorization, 0L, 0);
+        }
+
+        private void onAppSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() != INACTIVITY_SIGNAL_ID)
+            {
+                return;
+            }
+
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+            final long now = System.currentTimeMillis();
+            final long shutdownAt = lastActiveAt + inactivityTimeoutMillis;
+
+            if (shutdownAt <= now)
+            {
+                inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+                requests.values().stream()
+                    .forEach(r -> r.doAppCancel(traceId, authorization));
+                requests.clear();
+                doAppEnd(traceId, authorization);
+                sessions.remove(sessionId);
+            }
+            else
+            {
+                inactivityTimeoutId = signaler.signalAt(shutdownAt, originId, routedId, initialId,
+                    traceId, INACTIVITY_SIGNAL_ID, 0);
+            }
         }
 
         private void onAppFlush(
@@ -2273,6 +2348,8 @@ public final class McpServerFactory implements McpStreamFactory
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
+                cancelInactivity();
+                sessions.remove(sessionId);
             }
         }
     }
@@ -2318,6 +2395,8 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             Flyweight extension)
         {
+            session.touch();
+
             app = newStream(this::onAppMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, 0,
                 extension);
@@ -2340,6 +2419,8 @@ public final class McpServerFactory implements McpStreamFactory
             if (length > 0)
             {
                 final int reserved = length + initialPad;
+
+                session.touch();
 
                 doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0x03, initialBud, reserved, buffer, offset, length);
@@ -2519,6 +2600,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            session.touch();
+
             server.doEncodeBeginResponse(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
@@ -2544,6 +2627,8 @@ public final class McpServerFactory implements McpStreamFactory
             replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
+
+            session.touch();
 
             if (replySeq > replyAck + decodeMax)
             {

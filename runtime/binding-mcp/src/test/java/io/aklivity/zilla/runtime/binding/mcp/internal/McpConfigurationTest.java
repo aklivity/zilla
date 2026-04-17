@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
@@ -30,6 +31,7 @@ public class McpConfigurationTest
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
     public static final String MCP_SERVER_NAME_NAME = "zilla.binding.mcp.server.name";
     public static final String MCP_SERVER_VERSION_NAME = "zilla.binding.mcp.server.version";
+    public static final String MCP_INACTIVITY_TIMEOUT_NAME = "zilla.binding.mcp.inactivity.timeout";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -39,5 +41,6 @@ public class McpConfigurationTest
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
         assertEquals(MCP_SERVER_NAME.name(), MCP_SERVER_NAME_NAME);
         assertEquals(MCP_SERVER_VERSION.name(), MCP_SERVER_VERSION_NAME);
+        assertEquals(MCP_INACTIVITY_TIMEOUT.name(), MCP_INACTIVITY_TIMEOUT_NAME);
     }
 }

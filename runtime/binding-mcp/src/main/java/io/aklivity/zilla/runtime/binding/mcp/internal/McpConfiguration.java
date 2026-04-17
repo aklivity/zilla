@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -32,6 +33,7 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
     public static final PropertyDef<String> MCP_SERVER_VERSION;
+    public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
 
     static
     {
@@ -42,6 +44,8 @@ public class McpConfiguration extends Configuration
             McpConfiguration::defaultServerName);
         MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
             McpConfiguration::defaultServerVersion);
+        MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
+            (c, v) -> Duration.parse(v), "PT60S");
         MCP_CONFIG = config;
     }
 
@@ -69,6 +73,11 @@ public class McpConfiguration extends Configuration
     public String serverVersion()
     {
         return MCP_SERVER_VERSION.get(this);
+    }
+
+    public Duration inactivityTimeout()
+    {
+        return MCP_INACTIVITY_TIMEOUT.get(this);
     }
 
     @FunctionalInterface

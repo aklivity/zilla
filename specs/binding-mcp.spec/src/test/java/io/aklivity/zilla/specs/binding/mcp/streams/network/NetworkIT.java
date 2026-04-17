@@ -65,6 +65,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.inactivity.timeout/client",
+        "${net}/lifecycle.inactivity.timeout/server"})
+    public void shouldTimeoutInactiveSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.ping/client",
         "${net}/lifecycle.ping/server"})
     public void shouldPingLifecycle() throws Exception

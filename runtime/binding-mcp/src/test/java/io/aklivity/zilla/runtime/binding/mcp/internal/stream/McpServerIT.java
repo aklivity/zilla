@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_DETACH_ON_CLOSE_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
@@ -92,6 +93,17 @@ public class McpServerIT
     @Configure(name = ENGINE_SYNTHETIC_ABORT_NAME, value = "false")
     @Configure(name = ENGINE_DETACH_ON_CLOSE_NAME, value = "false")
     public void shouldShutdownLifecycleRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.inactivity.timeout/client",
+        "${app}/lifecycle.inactivity.timeout/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT1S")
+    public void shouldTimeoutInactiveSession() throws Exception
     {
         k3po.finish();
     }
