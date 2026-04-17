@@ -26,6 +26,7 @@ import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.module.ModuleDescriptor;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -571,9 +572,9 @@ public class EngineConfiguration extends Configuration
     private static String defaultVersion(
         Configuration config)
     {
-        java.lang.module.ModuleDescriptor descriptor = EngineConfiguration.class.getModule().getDescriptor();
+        ModuleDescriptor descriptor = EngineConfiguration.class.getModule().getDescriptor();
         return descriptor != null
-            ? descriptor.version().map(java.lang.module.ModuleDescriptor.Version::toString).orElse("develop-SNAPSHOT")
+            ? descriptor.version().map(ModuleDescriptor.Version::toString).orElse("develop-SNAPSHOT")
             : "develop-SNAPSHOT";
     }
 
