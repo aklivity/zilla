@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class EngineRegistry
@@ -48,7 +48,7 @@ public class EngineRegistry
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
-    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
+    private final ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
     private final Collector collector;
@@ -65,7 +65,7 @@ public class EngineRegistry
         ToIntFunction<String> supplyLabelId,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
-        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector,
         Consumer<NamespaceConfig> process)

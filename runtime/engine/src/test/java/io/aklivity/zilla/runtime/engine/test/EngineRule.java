@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECT
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTED_DELAY_MILLIS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EXCEPTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
@@ -103,6 +104,7 @@ public final class EngineRule implements TestRule
         configure(ENGINE_ROUTED_DELAY_MILLIS, 500L);
         configure(ENGINE_WORKERS, 1);
         configure(ENGINE_WORKER_CAPACITY, 64);
+        configure(ENGINE_VERBOSE_EXCEPTIONS, true);
     }
 
     public EngineRule directory(
@@ -208,17 +210,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier counter(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.counter(bindingId, metricId);
+        return engine.counter(bindingId, metricId, attributesId);
     }
 
     public LongConsumer counterWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.counterWriter(bindingId, metricId, core);
+        return engine.counterWriter(bindingId, metricId, attributesId, core);
     }
 
     public long[][] gaugeIds()
@@ -228,17 +232,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier gauge(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.gauge(bindingId, metricId);
+        return engine.gauge(bindingId, metricId, attributesId);
     }
 
     public LongConsumer gaugeWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.gaugeWriter(bindingId, metricId, core);
+        return engine.gaugeWriter(bindingId, metricId, attributesId, core);
     }
 
     public long[][] histogramIds()
@@ -248,17 +254,19 @@ public final class EngineRule implements TestRule
 
     public LongSupplier[] histogram(
         long bindingId,
-        long metricId)
+        int metricId,
+        int attributesId)
     {
-        return engine.histogram(bindingId, metricId);
+        return engine.histogram(bindingId, metricId, attributesId);
     }
 
     public LongConsumer histogramWriter(
         long bindingId,
-        long metricId,
+        int metricId,
+        int attributesId,
         int core)
     {
-        return engine.histogramWriter(bindingId, metricId, core);
+        return engine.histogramWriter(bindingId, metricId, attributesId, core);
     }
 
     public LongConsumer counterWriter(
@@ -272,7 +280,7 @@ public final class EngineRule implements TestRule
 
     public LongSupplier usage()
     {
-        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME));
+        return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public int supplyLabelId(

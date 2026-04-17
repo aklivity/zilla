@@ -255,39 +255,45 @@ public interface EngineContext
 
     /**
      * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
-     * named counter metric for the given binding.
+     * counter metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return a supplier reading the counter value
      */
     LongSupplier supplyCounter(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns a {@link java.util.function.LongSupplier} that reads the current value of the
-     * named gauge metric for the given binding.
+     * gauge metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return a supplier reading the gauge value
      */
     LongSupplier supplyGauge(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns an array of {@link java.util.function.LongSupplier}s, one per histogram bucket,
-     * for the named histogram metric on the given binding.
+     * for the histogram metric identified by {@code (bindingId, metricId, attributesId)}.
      *
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id
      * @return an array of bucket value suppliers
      */
     LongSupplier[] supplyHistogram(
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns the {@link MessageConsumer} to which frames that cannot be routed should be
@@ -509,18 +515,20 @@ public interface EngineContext
         long exporterId);
 
     /**
-     * Returns a {@link LongConsumer} that writes a metric value for the given binding and
-     * metric id, using the appropriate recording mechanism for the metric's kind.
+     * Returns a {@link LongConsumer} that writes a metric value for the given binding, metric,
+     * and attributes, using the appropriate recording mechanism for the metric's kind.
      *
-     * @param kind       the metric kind (counter, gauge, or histogram)
-     * @param bindingId  the binding id
-     * @param metricId   the metric id
+     * @param kind          the metric kind (counter, gauge, or histogram)
+     * @param bindingId     the namespaced binding id
+     * @param metricId      the metric label id
+     * @param attributesId  the attributes label id encoding user-defined dimensions
      * @return a consumer that records metric values
      */
     LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
-        long metricId);
+        int metricId,
+        int attributesId);
 
     /**
      * Returns a {@link MessageConsumer} for writing structured event frames to the engine's

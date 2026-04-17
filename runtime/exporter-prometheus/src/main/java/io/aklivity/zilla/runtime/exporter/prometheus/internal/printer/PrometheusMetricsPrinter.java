@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.printer;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
@@ -77,19 +78,20 @@ public class PrometheusMetricsPrinter
         String extName = supplyName.apply(record.metric());
         String description = supplyDescription.apply(record.metric());
         boolean milliseconds = supplyMilliseconds.apply(record.metric());
+        String labels = formatLabels(record);
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
-            "%s{namespace=\"%s\",binding=\"%s\"} %d";
+            "%s{%s} %d";
         String msFormat =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
-            "%s{namespace=\"%s\",binding=\"%s\"} %s";
+            "%s{%s} %s";
         return milliseconds ?
             String.format(msFormat, extName, description, extName, kind, extName,
-                record.namespace(), record.binding(), record.millisecondsValueReader().getAsDouble()) :
+                labels, record.millisecondsValueReader().getAsDouble()) :
             String.format(format, extName, description, extName, kind, extName,
-                record.namespace(), record.binding(), record.valueReader().getAsLong());
+                labels, record.valueReader().getAsLong());
     }
 
     private String formatHistogram(
@@ -101,6 +103,7 @@ public class PrometheusMetricsPrinter
         String extName = supplyName.apply(record.metric());
         String description = supplyDescription.apply(record.metric());
         boolean milliseconds = supplyMilliseconds.apply(record.metric());
+        String labels = formatLabels(record);
         long sum = milliseconds ?  record.millisecondStats()[2] : record.stats()[2];
         long count = milliseconds ?  record.millisecondStats()[3] : record.stats()[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
@@ -109,13 +112,24 @@ public class PrometheusMetricsPrinter
         {
             String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
             cumulativeValue += milliseconds ? record.millisecondBucketValues()[i] : record.bucketValues()[i];
-            sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                extName, limit, record.namespace(), record.binding(), cumulativeValue));
+            sb.append(String.format("%s_bucket{le=\"%s\",%s} %d\n",
+                extName, limit, labels, cumulativeValue));
         }
-        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n",
-            extName, record.namespace(), record.binding(), sum));
-        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n",
-            extName, record.namespace(), record.binding(), count));
+        sb.append(String.format("%s_sum{%s} %d\n", extName, labels, sum));
+        sb.append(String.format("%s_count{%s} %d\n", extName, labels, count));
+        return sb.toString();
+    }
+
+    private String formatLabels(
+        MetricRecord record)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("namespace=\"%s\",binding=\"%s\"", record.namespace(), record.binding()));
+        Map<String, String> attrs = record.attributes();
+        for (Map.Entry<String, String> entry : attrs.entrySet())
+        {
+            sb.append(String.format(",%s=\"%s\"", entry.getKey(), entry.getValue()));
+        }
         return sb.toString();
     }
 }

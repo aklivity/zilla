@@ -2,7 +2,23 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.5...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.6...HEAD)
+
+**Closed issues:**
+
+- `SafeBuffer`: `AtomicBuffer` implementation backed by `MemorySegment` [\#1719](https://github.com/aklivity/zilla/issues/1719)
+- Design configuration syntax for metrics with arbitrary attributes [\#1636](https://github.com/aklivity/zilla/issues/1636)
+- Deliver support for metrics with arbitrary attributes [\#1577](https://github.com/aklivity/zilla/issues/1577)
+
+**Merged pull requests:**
+
+- Enhance metric resolution for raw protocol bindings [\#1725](https://github.com/aklivity/zilla/pull/1725) ([akrambek](https://github.com/akrambek))
+- feat\(engine\): add SafeBuffer backed by MemorySegment FFM API [\#1720](https://github.com/aklivity/zilla/pull/1720) ([jfallows](https://github.com/jfallows))
+- Support configuration syntax for metrics with arbitrary attributes [\#1696](https://github.com/aklivity/zilla/pull/1696) ([akrambek](https://github.com/akrambek))
+
+## [1.1.6](https://github.com/aklivity/zilla/tree/1.1.6) (2026-04-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.5...1.1.6)
 
 **Implemented enhancements:**
 

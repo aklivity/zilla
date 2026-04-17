@@ -15,24 +15,31 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import java.util.Map;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
+    private static final String ATTRIBUTES_NAME = "attributes";
 
     private final MetricRefAdapter metricRef;
+    private final AttributeAdapter attribute;
 
     public TelemetryRefAdapter()
     {
         this.metricRef = new MetricRefAdapter();
+        this.attribute = new AttributeAdapter();
     }
 
     @Override
@@ -40,9 +47,25 @@ public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, Jso
         TelemetryRefConfig telemetryRef)
     {
         JsonObjectBuilder item = Json.createObjectBuilder();
-        JsonArrayBuilder metricRefs = Json.createArrayBuilder();
-        telemetryRef.metricRefs.stream().forEach(m -> metricRefs.add(metricRef.adaptToJson(m)));
-        item.add(METRICS_NAME, metricRefs);
+
+        if (telemetryRef.metricRefs != null)
+        {
+            JsonArrayBuilder metricRefs = Json.createArrayBuilder();
+            telemetryRef.metricRefs.stream().forEach(m -> metricRefs.add(metricRef.adaptToJson(m)));
+            item.add(METRICS_NAME, metricRefs);
+        }
+
+        if (telemetryRef.attributes != null)
+        {
+            JsonObjectBuilder attributes = Json.createObjectBuilder();
+            for (AttributeConfig a : telemetryRef.attributes)
+            {
+                Map.Entry<String, JsonValue> entry = attribute.adaptToJson(a);
+                attributes.add(entry.getKey(), entry.getValue());
+            }
+            item.add(ATTRIBUTES_NAME, attributes);
+        }
+
         return item.build();
     }
 
@@ -57,6 +80,13 @@ public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, Jso
             object.getJsonArray(METRICS_NAME).stream()
                 .map(metricRef::adaptFromJson)
                 .forEach(telemetry::metric);
+        }
+
+        if (object.containsKey(ATTRIBUTES_NAME))
+        {
+            object.getJsonObject(ATTRIBUTES_NAME).entrySet().stream()
+                .map(attribute::adaptFromJson)
+                .forEach(telemetry::attribute);
         }
 
         return telemetry.build();

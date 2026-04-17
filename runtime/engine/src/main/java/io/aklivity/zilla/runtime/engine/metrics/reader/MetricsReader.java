@@ -47,37 +47,37 @@ public class MetricsReader
 
     private void collectCounters()
     {
-        for (long[] counterIds : collector.counterIds())
+        for (long[] ids : collector.counterIds())
         {
-            long bindingId = counterIds[0];
-            long metricId = counterIds[1];
-            LongSupplier counterReader = collector.counter(bindingId, metricId);
-            MetricRecord record = new ScalarRecord(bindingId, metricId, counterReader, labelResolver);
-            records.add(record);
+            long bindingId = ids[0];
+            int metricId = (int) ids[1];
+            int attributesId = (int) ids[2];
+            LongSupplier reader = collector.counter(bindingId, metricId, attributesId);
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
         }
     }
 
     private void collectGauges()
     {
-        for (long[] gaugeIds : collector.gaugeIds())
+        for (long[] ids : collector.gaugeIds())
         {
-            long bindingId = gaugeIds[0];
-            long metricId = gaugeIds[1];
-            LongSupplier gaugeReader = collector.gauge(bindingId, metricId);
-            MetricRecord record = new ScalarRecord(bindingId, metricId, gaugeReader, labelResolver);
-            records.add(record);
+            long bindingId = ids[0];
+            int metricId = (int) ids[1];
+            int attributesId = (int) ids[2];
+            LongSupplier reader = collector.gauge(bindingId, metricId, attributesId);
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
         }
     }
 
     private void collectHistograms()
     {
-        for (long[] histogramIds : collector.histogramIds())
+        for (long[] ids : collector.histogramIds())
         {
-            long bindingId = histogramIds[0];
-            long metricId = histogramIds[1];
-            LongSupplier[] histogramReaders = collector.histogram(bindingId, metricId);
-            MetricRecord record = new HistogramRecord(bindingId, metricId, histogramReaders, labelResolver);
-            records.add(record);
+            long bindingId = ids[0];
+            int metricId = (int) ids[1];
+            int attributesId = (int) ids[2];
+            LongSupplier[] readers = collector.histogram(bindingId, metricId, attributesId);
+            records.add(new HistogramRecord(bindingId, metricId, attributesId, readers, labelResolver));
         }
     }
 }
