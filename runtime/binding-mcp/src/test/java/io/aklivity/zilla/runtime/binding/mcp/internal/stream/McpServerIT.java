@@ -129,7 +129,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: fragmented JSON-RPC decode across multiple network data frames")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -141,7 +140,7 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: fragmented JSON-RPC decode across multiple network data frames")
+    @Ignore("TODO: flush params bytes incrementally inside skipObject for message sizes > decode slot")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -153,7 +152,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: fragmented JSON-RPC encode across multiple network data frames")
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -165,7 +163,7 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: fragmented JSON-RPC encode across multiple network data frames")
+    @Ignore("TODO: chunk response encoding for message sizes > encode slot")
     @Test
     @Configuration("server.yaml")
     @Specification({

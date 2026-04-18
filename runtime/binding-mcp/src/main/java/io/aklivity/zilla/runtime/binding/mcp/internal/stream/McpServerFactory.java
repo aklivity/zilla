@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import jakarta.json.Json;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 
@@ -29,7 +28,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.DirectBufferInputStream;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
@@ -50,6 +48,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -115,7 +115,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final int decodeMax;
     private final int encodeMax;
 
-    private final DirectBufferInputStream inputRO = new DirectBufferInputStream();
+    private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
     private final McpServerDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
@@ -298,13 +298,13 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         input.wrap(buffer, progress, limit - progress);
 
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
-        server.decodableJson = Json.createParser(input);
+        server.decodableJson = StreamingJson.createParser(input);
         server.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();
@@ -323,7 +323,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -356,7 +356,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -418,7 +418,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -450,7 +450,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -484,7 +484,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -520,7 +520,7 @@ public final class McpServerFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        DirectBufferInputStream input = inputRO;
+        DirectBufferInputStreamEx input = inputRO;
         JsonParser parser = server.decodableJson;
 
         decode:
@@ -622,8 +622,6 @@ public final class McpServerFactory implements McpStreamFactory
         decode:
         if (parser.hasNext())
         {
-            final int startObjectOffset = (int) parser.getLocation().getStreamOffset();
-
             final JsonParser.Event event = parser.next();
             if (event != JsonParser.Event.START_OBJECT)
             {
@@ -632,9 +630,8 @@ public final class McpServerFactory implements McpStreamFactory
                 break decode;
             }
 
-            final int startObjectLimit = (int) parser.getLocation().getStreamOffset();
-            server.decodedParamsParsed =
-                indexOfByte(buffer, offset + startObjectOffset, offset + startObjectLimit, START_OBJECT_BYTE) - offset;
+            // position of '{' in cumulative stream coordinates is just before the current offset
+            server.decodedParamsParsed = (int) parser.getLocation().getStreamOffset() - 1;
 
             if (server.decodedMethodParam != null)
             {
@@ -1070,9 +1067,8 @@ public final class McpServerFactory implements McpStreamFactory
 
                 if (decodableJson != null)
                 {
-                    // TODO: check fragmentation scenario
                     final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodeParserProgress);
-                    final DirectBufferInputStream input = inputRO;
+                    final DirectBufferInputStreamEx input = inputRO;
                     input.wrap(buffer, offset + delta, limit - offset - delta);
                 }
 
@@ -1431,7 +1427,7 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            // DirectBufferInputStream input = new DirectBufferInputStream(buffer, offset, limit - offset);
+            // DirectBufferInputStreamEx input = new DirectBufferInputStreamEx(buffer, offset, limit - offset);
             // McpInitializeRequestParams params = JsonbBuilder.create().fromJson(input, McpInitializeRequestParams.class);
 
             onLifecycleInitialize(traceId, authorization);
@@ -1620,7 +1616,8 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            DirectBufferInputStream input = new DirectBufferInputStream(buffer, offset, limit - offset);
+            DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
+            input.wrap(buffer, offset, limit - offset);
             McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(input, McpNotifyCanceledParams.class);
 
             assert session != null;

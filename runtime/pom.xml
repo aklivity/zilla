@@ -46,6 +46,7 @@
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
     <module>common</module>
+    <module>common-json</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
