@@ -100,10 +100,10 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.inactivity.timeout/client",
-        "${app}/lifecycle.inactivity.timeout/server"})
+        "${net}/lifecycle.timeout/client",
+        "${app}/lifecycle.timeout/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT1S")
-    public void shouldTimeoutInactiveSession() throws Exception
+    public void shouldTimeoutLifecycle() throws Exception
     {
         k3po.finish();
     }

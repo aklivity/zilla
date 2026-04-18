@@ -65,9 +65,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.inactivity.timeout/client",
-        "${net}/lifecycle.inactivity.timeout/server"})
-    public void shouldTimeoutInactiveSession() throws Exception
+        "${net}/lifecycle.timeout/client",
+        "${net}/lifecycle.timeout/server"})
+    public void shouldTimeoutLifecycle() throws Exception
     {
         k3po.finish();
     }
