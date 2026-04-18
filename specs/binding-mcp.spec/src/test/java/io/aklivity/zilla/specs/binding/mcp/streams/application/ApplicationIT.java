@@ -74,6 +74,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reject.request.method.before.id/client",
+        "${app}/reject.request.method.before.id/server"})
+    public void shouldRejectRequestMethodBeforeId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.request.params.before.method/client",
+        "${app}/reject.request.params.before.method/server"})
+    public void shouldRejectRequestParamsBeforeMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception

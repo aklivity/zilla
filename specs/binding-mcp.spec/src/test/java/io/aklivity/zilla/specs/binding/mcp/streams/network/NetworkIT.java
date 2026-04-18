@@ -74,6 +74,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.request.method.before.id/client",
+        "${net}/reject.request.method.before.id/server"})
+    public void shouldRejectRequestMethodBeforeId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.request.params.before.method/client",
+        "${net}/reject.request.params.before.method/server"})
+    public void shouldRejectRequestParamsBeforeMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.ping/client",
         "${net}/lifecycle.ping/server"})
     public void shouldPingLifecycle() throws Exception

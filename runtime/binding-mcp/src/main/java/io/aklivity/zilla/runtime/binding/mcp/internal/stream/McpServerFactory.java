@@ -301,6 +301,9 @@ public final class McpServerFactory implements McpStreamFactory
         DirectBufferInputStream input = inputRO;
         input.wrap(buffer, progress, limit - progress);
 
+        server.decodedId = null;
+        server.decodedMethod = null;
+        server.decodedMethodParam = null;
         server.decodableJson = Json.createParser(input);
         server.decoder = decodeJsonRpcStart;
 
@@ -532,6 +535,13 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final String method = parser.getString();
+            if (!method.startsWith("notifications/") && server.decodedId == null)
+            {
+                server.onDecodeParseError(traceId, authorization);
+                server.decoder = decodeIgnore;
+                break decode;
+            }
+
             if ("initialize".equals(method))
             {
                 server.decodedRequest = server::onDecodeInitialize;
