@@ -147,6 +147,6 @@ jobs:
           path: ./logs.tgz
 
       - name: Teardown
-        if: always() && ${{ hashFiles(format('examples/{0}/teardown.sh', matrix.dir)) != '' }}
+        if: ${{ always() && hashFiles(format('examples/{0}/teardown.sh', matrix.dir)) != '' }}
         working-directory: examples/${{ matrix.dir }}
         run: docker compose down --remove-orphans

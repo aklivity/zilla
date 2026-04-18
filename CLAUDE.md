@@ -1085,6 +1085,15 @@ do not append it at the end of the group.
    `fix(engine): release mmap'd segment on log rotation`
 6. Do not include generated sources (`target/`) or IDE files in commits
 
+### Diagnosing PR build failures
+
+When a PR build fails, always fetch the actual CI logs before attempting to
+diagnose or fix the failure. Do not guess at the cause based on the change
+diff alone — retrieve the logs first using GitHub MCP tools, or ask the user
+to provide them. Build failures often have non-obvious root causes (e.g., a
+checkstyle violation, a transitive module-info issue, or a flaky unrelated
+test) that are impossible to diagnose without the log output.
+
 For significant new bindings or behavior changes, open a GitHub Issue first
 to discuss the design before writing code.
 
