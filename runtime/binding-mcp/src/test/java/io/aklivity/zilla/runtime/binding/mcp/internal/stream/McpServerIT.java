@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -124,6 +125,54 @@ public class McpServerIT
         "${net}/reject.request.params.before.method/client",
         "${app}/reject.request.params.before.method/server"})
     public void shouldRejectRequestParamsBeforeMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO: fragmented JSON-RPC decode across multiple network data frames")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.10k/client",
+        "${app}/tools.call.10k/server"})
+    @Configure(name = "zilla.engine.drain.on.close", value = "false")
+    public void shouldCallToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO: fragmented JSON-RPC decode across multiple network data frames")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.100k/client",
+        "${app}/tools.call.100k/server"})
+    @Configure(name = "zilla.engine.drain.on.close", value = "false")
+    public void shouldCallToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO: fragmented JSON-RPC encode across multiple network data frames")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read.10k/client",
+        "${app}/resources.read.10k/server"})
+    @Configure(name = "zilla.engine.drain.on.close", value = "false")
+    public void shouldReadResourceWith10kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO: fragmented JSON-RPC encode across multiple network data frames")
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read.100k/client",
+        "${app}/resources.read.100k/server"})
+    @Configure(name = "zilla.engine.drain.on.close", value = "false")
+    public void shouldReadResourceWith100kContents() throws Exception
     {
         k3po.finish();
     }

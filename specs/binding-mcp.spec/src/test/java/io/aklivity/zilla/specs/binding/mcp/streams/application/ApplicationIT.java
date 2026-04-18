@@ -92,6 +92,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.10k/client",
+        "${app}/tools.call.10k/server"})
+    public void shouldCallToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.100k/client",
+        "${app}/tools.call.100k/server"})
+    public void shouldCallToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.10k/client",
+        "${app}/resources.read.10k/server"})
+    public void shouldReadResourceWith10kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.100k/client",
+        "${app}/resources.read.100k/server"})
+    public void shouldReadResourceWith100kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server"})
     public void shouldCallTool() throws Exception

@@ -39,6 +39,15 @@ public class CoreFunctionsTest
     }
 
     @Test
+    public void shouldGenerateDeterministicRandomBase64()
+    {
+        String base64a = CoreFunctions.randomBase64(10000);
+        String base64b = CoreFunctions.randomBase64(10000);
+        assertEquals(base64a, base64b);
+        assertEquals(13336, base64a.length());
+    }
+
+    @Test
     public void shouldEncodeString()
     {
         byte[] array = CoreFunctions.string("value");

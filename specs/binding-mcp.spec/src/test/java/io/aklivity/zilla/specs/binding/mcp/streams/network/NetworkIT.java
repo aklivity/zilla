@@ -92,6 +92,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.10k/client",
+        "${net}/tools.call.10k/server"})
+    public void shouldCallToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.100k/client",
+        "${net}/tools.call.100k/server"})
+    public void shouldCallToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.10k/client",
+        "${net}/resources.read.10k/server"})
+    public void shouldReadResourceWith10kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.100k/client",
+        "${net}/resources.read.100k/server"})
+    public void shouldReadResourceWith100kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.ping/client",
         "${net}/lifecycle.ping/server"})
     public void shouldPingLifecycle() throws Exception
