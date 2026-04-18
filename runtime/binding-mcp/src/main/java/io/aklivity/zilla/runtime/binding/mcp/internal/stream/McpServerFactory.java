@@ -63,7 +63,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
 
-    private static final int INACTIVITY_SIGNAL_ID = 1;
+    private static final int INACTIVE_SIGNAL_ID = 1;
 
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
@@ -2070,7 +2070,7 @@ public final class McpServerFactory implements McpStreamFactory
         private int replyMax;
 
         private long lastActiveAt;
-        private long inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+        private long inactiveId = Signaler.NO_CANCEL_ID;
 
         private McpLifecycleStream(
             McpServer server)
@@ -2108,16 +2108,16 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId)
         {
             final long at = lastActiveAt + inactivityTimeoutMillis;
-            inactivityTimeoutId = signaler.signalAt(at, originId, routedId, initialId,
-                traceId, INACTIVITY_SIGNAL_ID, 0);
+            inactiveId = signaler.signalAt(at, originId, routedId, initialId,
+                traceId, INACTIVE_SIGNAL_ID, 0);
         }
 
         private void cancelInactivity()
         {
-            if (inactivityTimeoutId != Signaler.NO_CANCEL_ID)
+            if (inactiveId != Signaler.NO_CANCEL_ID)
             {
-                signaler.cancel(inactivityTimeoutId);
-                inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+                signaler.cancel(inactiveId);
+                inactiveId = Signaler.NO_CANCEL_ID;
             }
         }
 
@@ -2239,7 +2239,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void onAppSignal(
             SignalFW signal)
         {
-            if (signal.signalId() != INACTIVITY_SIGNAL_ID)
+            if (signal.signalId() != INACTIVE_SIGNAL_ID)
             {
                 return;
             }
@@ -2251,7 +2251,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (shutdownAt <= now)
             {
-                inactivityTimeoutId = Signaler.NO_CANCEL_ID;
+                inactiveId = Signaler.NO_CANCEL_ID;
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
@@ -2260,8 +2260,8 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else
             {
-                inactivityTimeoutId = signaler.signalAt(shutdownAt, originId, routedId, initialId,
-                    traceId, INACTIVITY_SIGNAL_ID, 0);
+                inactiveId = signaler.signalAt(shutdownAt, originId, routedId, initialId,
+                    traceId, INACTIVE_SIGNAL_ID, 0);
             }
         }
 
