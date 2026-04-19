@@ -844,6 +844,17 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        final int decodedParamsParsed = (int) parser.getLocation().getStreamOffset();
+        if (decodedParamsParsed > server.decodedParamsParsed)
+        {
+            final int decodedOffset = offset + server.decodedParamsParsed - server.decodeParserProgress;
+            final int decodedLimit = offset + decodedParamsParsed - server.decodeParserProgress;
+            final int decodedProgress =
+                server.decodedRequest.accept(traceId, authorization, buffer, decodedOffset, decodedLimit);
+
+            server.decodedParamsParsed = decodedProgress - offset + server.decodeParserProgress;
+        }
+
         progress = offset + server.decodedParamsParsed - server.decodeParserProgress;
 
         return progress;
@@ -1360,6 +1371,8 @@ public final class McpServerFactory implements McpStreamFactory
                 progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
             }
 
+            decodeParserProgress += progress - offset;
+
             if (progress < limit)
             {
                 if (decodeSlot == NO_SLOT)
@@ -1376,8 +1389,7 @@ public final class McpServerFactory implements McpStreamFactory
                     final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = 0;
-                    decodeParserProgress += progress - offset;
+                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
                 }
             }
             else

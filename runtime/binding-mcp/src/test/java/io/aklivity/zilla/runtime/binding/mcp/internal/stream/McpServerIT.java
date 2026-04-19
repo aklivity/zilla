@@ -140,7 +140,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: flush params bytes incrementally inside skipObject for message sizes > decode slot")
     @Test
     @Configuration("server.yaml")
     @Specification({

@@ -33,20 +33,38 @@ public final class StreamingJsonTokenizer
         OBJ_AFTER_OPEN,
         OBJ_AFTER_COMMA,
         OBJ_AFTER_KEY,
+        OBJ_AFTER_COLON,
         OBJ_AFTER_VALUE,
         ARR_AFTER_OPEN,
         ARR_AFTER_COMMA,
         ARR_AFTER_VALUE
     }
 
-    private Deque<ParseState> stack = new ArrayDeque<>();
+    private enum ResumeOp
+    {
+        NONE,
+        KEY_STRING,
+        VALUE_STRING,
+        VALUE_NUMBER,
+        VALUE_TRUE,
+        VALUE_FALSE,
+        VALUE_NULL
+    }
+
+    private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
 
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
     private String pendingString;
     private long streamOffset;
-    private int attemptConsumed;
+
+    // scalar resume state (valid when resumeOp != NONE)
+    private ResumeOp resumeOp = ResumeOp.NONE;
+    private boolean resumeEscape;
+    private int resumeUnicodePending;   // hex digits remaining for backslash-u escape
+    private int resumeUnicodeValue;
+    private int resumeLiteralIndex;     // chars matched so far for true/false/null
 
     public boolean advance(
         InputStream in) throws IOException
@@ -56,28 +74,27 @@ public final class StreamingJsonTokenizer
             return false;
         }
 
-        in.mark(Integer.MAX_VALUE);
-        final ParseState savedState = state;
-        @SuppressWarnings("unchecked")
-        final Deque<ParseState> savedStack = (Deque<ParseState>) ((ArrayDeque<ParseState>) stack).clone();
-        attemptConsumed = 0;
         pendingEvent = null;
         pendingString = null;
 
         try
         {
-            advanceOne(in);
-            streamOffset += attemptConsumed;
+            while (pendingEvent == null && state != ParseState.DOC_DONE)
+            {
+                if (resumeOp != ResumeOp.NONE)
+                {
+                    resumeScan(in);
+                }
+                else
+                {
+                    advanceOne(in);
+                }
+            }
             return true;
         }
         catch (EOFException ex)
         {
-            in.reset();
-            state = savedState;
-            stack = savedStack;
-            pendingEvent = null;
-            pendingString = null;
-            return false;
+            return pendingEvent != null;
         }
     }
 
@@ -113,7 +130,10 @@ public final class StreamingJsonTokenizer
             consumeKeyOrEnd(in);
             break;
         case OBJ_AFTER_KEY:
-            consumeColonValue(in);
+            consumeColon(in);
+            break;
+        case OBJ_AFTER_COLON:
+            consumeValue(in);
             break;
         case OBJ_AFTER_VALUE:
             consumeSeparatorOrEnd(in, true);
@@ -133,6 +153,62 @@ public final class StreamingJsonTokenizer
         default:
             throw new JsonParsingException("Unexpected parse state: " + state, null);
         }
+    }
+
+    private void resumeScan(
+        InputStream in) throws IOException
+    {
+        switch (resumeOp)
+        {
+        case KEY_STRING:
+            continueStringContent(in);
+            pendingEvent = JsonParser.Event.KEY_NAME;
+            pendingString = takeScratch();
+            resumeOp = ResumeOp.NONE;
+            state = ParseState.OBJ_AFTER_KEY;
+            break;
+        case VALUE_STRING:
+            continueStringContent(in);
+            pendingEvent = JsonParser.Event.VALUE_STRING;
+            pendingString = takeScratch();
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+            break;
+        case VALUE_NUMBER:
+            continueNumberContent(in);
+            pendingEvent = JsonParser.Event.VALUE_NUMBER;
+            pendingString = takeScratch();
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+            break;
+        case VALUE_TRUE:
+            continueLiteral(in, "true");
+            pendingEvent = JsonParser.Event.VALUE_TRUE;
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+            break;
+        case VALUE_FALSE:
+            continueLiteral(in, "false");
+            pendingEvent = JsonParser.Event.VALUE_FALSE;
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+            break;
+        case VALUE_NULL:
+            continueLiteral(in, "null");
+            pendingEvent = JsonParser.Event.VALUE_NULL;
+            resumeOp = ResumeOp.NONE;
+            afterValueConsumed();
+            break;
+        default:
+            throw new IllegalStateException("Unexpected resumeOp: " + resumeOp);
+        }
+    }
+
+    private String takeScratch()
+    {
+        String s = scratch.toString();
+        scratch.setLength(0);
+        return s;
     }
 
     private void consumeValue(
@@ -177,7 +253,7 @@ public final class StreamingJsonTokenizer
         }
     }
 
-    private void consumeColonValue(
+    private void consumeColon(
         InputStream in) throws IOException
     {
         int c = skipWhitespace(in);
@@ -185,8 +261,7 @@ public final class StreamingJsonTokenizer
         {
             throw new JsonParsingException("Expected ':' but got: " + describe(c), null);
         }
-        c = skipWhitespace(in);
-        parseValue(in, c);
+        state = ParseState.OBJ_AFTER_COLON;
     }
 
     private void consumeSeparatorOrEnd(
@@ -197,16 +272,6 @@ public final class StreamingJsonTokenizer
         if (c == ',')
         {
             state = inObject ? ParseState.OBJ_AFTER_COMMA : ParseState.ARR_AFTER_COMMA;
-            // comma is a separator, not an event; consume next token recursively
-            int d = skipWhitespace(in);
-            if (inObject)
-            {
-                parseKey(in, d);
-            }
-            else
-            {
-                parseValue(in, d);
-            }
         }
         else if (inObject && c == '}' || !inObject && c == ']')
         {
@@ -233,30 +298,50 @@ public final class StreamingJsonTokenizer
             pushAndEnter(ParseState.ARR_AFTER_OPEN);
             break;
         case '"':
+            scratch.setLength(0);
+            resumeEscape = false;
+            resumeUnicodePending = 0;
+            resumeOp = ResumeOp.VALUE_STRING;
+            continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = parseStringContent(in);
+            pendingString = takeScratch();
+            resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case 't':
-            expectLiteral(in, "rue");
+            resumeLiteralIndex = 1;
+            resumeOp = ResumeOp.VALUE_TRUE;
+            continueLiteral(in, "true");
             pendingEvent = JsonParser.Event.VALUE_TRUE;
+            resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case 'f':
-            expectLiteral(in, "alse");
+            resumeLiteralIndex = 1;
+            resumeOp = ResumeOp.VALUE_FALSE;
+            continueLiteral(in, "false");
             pendingEvent = JsonParser.Event.VALUE_FALSE;
+            resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case 'n':
-            expectLiteral(in, "ull");
+            resumeLiteralIndex = 1;
+            resumeOp = ResumeOp.VALUE_NULL;
+            continueLiteral(in, "null");
             pendingEvent = JsonParser.Event.VALUE_NULL;
+            resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
+                scratch.setLength(0);
+                scratch.append((char) c);
+                resumeOp = ResumeOp.VALUE_NUMBER;
+                continueNumberContent(in);
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                pendingString = parseNumberContent(in, c);
+                pendingString = takeScratch();
+                resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
             else
@@ -274,8 +359,14 @@ public final class StreamingJsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
+        scratch.setLength(0);
+        resumeEscape = false;
+        resumeUnicodePending = 0;
+        resumeOp = ResumeOp.KEY_STRING;
+        continueStringContent(in);
         pendingEvent = JsonParser.Event.KEY_NAME;
-        pendingString = parseStringContent(in);
+        pendingString = takeScratch();
+        resumeOp = ResumeOp.NONE;
         state = ParseState.OBJ_AFTER_KEY;
     }
 
@@ -292,7 +383,7 @@ public final class StreamingJsonTokenizer
         {
         case DOC_START:
             return ParseState.DOC_DONE;
-        case OBJ_AFTER_KEY:
+        case OBJ_AFTER_COLON:
             return ParseState.OBJ_AFTER_VALUE;
         case ARR_AFTER_OPEN:
         case ARR_AFTER_COMMA:
@@ -304,13 +395,12 @@ public final class StreamingJsonTokenizer
 
     private void afterValueConsumed()
     {
-        // scalar value; transition based on current state
         switch (state)
         {
         case DOC_START:
             state = ParseState.DOC_DONE;
             break;
-        case OBJ_AFTER_KEY:
+        case OBJ_AFTER_COLON:
             state = ParseState.OBJ_AFTER_VALUE;
             break;
         case ARR_AFTER_OPEN:
@@ -348,40 +438,46 @@ public final class StreamingJsonTokenizer
         return c;
     }
 
-    private void expectLiteral(
+    private void continueLiteral(
         InputStream in,
         String expected) throws IOException
     {
-        for (int i = 0; i < expected.length(); i++)
+        while (resumeLiteralIndex < expected.length())
         {
             int c = readByte(in);
-            if (c != expected.charAt(i))
+            if (c != expected.charAt(resumeLiteralIndex))
             {
                 throw new JsonParsingException("Unexpected character in literal: " + describe(c), null);
             }
+            resumeLiteralIndex++;
         }
     }
 
-    private String parseStringContent(
+    private void continueStringContent(
         InputStream in) throws IOException
     {
-        scratch.setLength(0);
         while (true)
         {
             int c = readByte(in);
-            if (c == '"')
+            if (resumeUnicodePending > 0)
             {
-                return scratch.toString();
+                resumeUnicodeValue = (resumeUnicodeValue << 4) | hexDigit(c);
+                resumeUnicodePending--;
+                if (resumeUnicodePending == 0)
+                {
+                    scratch.append((char) resumeUnicodeValue);
+                }
+                continue;
             }
-            else if (c == '\\')
+            if (resumeEscape)
             {
-                int esc = readByte(in);
-                switch (esc)
+                resumeEscape = false;
+                switch (c)
                 {
                 case '"':
                 case '\\':
                 case '/':
-                    scratch.append((char) esc);
+                    scratch.append((char) c);
                     break;
                 case 'b':
                     scratch.append('\b');
@@ -399,17 +495,21 @@ public final class StreamingJsonTokenizer
                     scratch.append('\t');
                     break;
                 case 'u':
-                    int code = 0;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int h = readByte(in);
-                        code = (code << 4) | hexDigit(h);
-                    }
-                    scratch.append((char) code);
+                    resumeUnicodePending = 4;
+                    resumeUnicodeValue = 0;
                     break;
                 default:
-                    throw new JsonParsingException("Invalid escape: \\" + describe(esc), null);
+                    throw new JsonParsingException("Invalid escape: \\" + describe(c), null);
                 }
+                continue;
+            }
+            if (c == '"')
+            {
+                return;
+            }
+            else if (c == '\\')
+            {
+                resumeEscape = true;
             }
             else if (c < 0x20)
             {
@@ -421,7 +521,6 @@ public final class StreamingJsonTokenizer
             }
             else
             {
-                // UTF-8 multi-byte; preserve as code points
                 int codePoint = decodeUtf8(in, c);
                 scratch.appendCodePoint(codePoint);
             }
@@ -483,14 +582,12 @@ public final class StreamingJsonTokenizer
         throw new JsonParsingException("Invalid hex digit: " + describe(c), null);
     }
 
-    private String parseNumberContent(
-        InputStream in,
-        int first) throws IOException
+    private void continueNumberContent(
+        InputStream in) throws IOException
     {
-        scratch.setLength(0);
-        scratch.append((char) first);
         while (true)
         {
+            in.mark(1);
             int c = in.read();
             if (c == -1)
             {
@@ -498,24 +595,13 @@ public final class StreamingJsonTokenizer
             }
             if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
-                attemptConsumed++;
+                streamOffset++;
                 scratch.append((char) c);
             }
             else
             {
-                // rewind to just after the last digit using the advance-entry mark
                 in.reset();
-                long remaining = attemptConsumed;
-                while (remaining > 0)
-                {
-                    final long skipped = in.skip(remaining);
-                    if (skipped <= 0)
-                    {
-                        throw new IOException("Unable to skip " + remaining + " bytes after reset");
-                    }
-                    remaining -= skipped;
-                }
-                return scratch.toString();
+                return;
             }
         }
     }
@@ -528,7 +614,7 @@ public final class StreamingJsonTokenizer
         {
             throw new EOFException();
         }
-        attemptConsumed++;
+        streamOffset++;
         return c;
     }
 
