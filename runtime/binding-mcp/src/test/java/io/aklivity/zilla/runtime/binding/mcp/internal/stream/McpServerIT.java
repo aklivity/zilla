@@ -23,7 +23,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -162,7 +161,6 @@ public class McpServerIT
         k3po.finish();
     }
 
-    @Ignore("TODO: chunk response encoding for message sizes > encode slot")
     @Test
     @Configuration("server.yaml")
     @Specification({

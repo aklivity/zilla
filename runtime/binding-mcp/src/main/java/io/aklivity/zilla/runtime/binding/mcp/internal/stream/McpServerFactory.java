@@ -1178,7 +1178,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (stream != null)
             {
-                stream.flushAppWindow(traceId, authorization, 0L, 0, encodeMax - encodeSlotOffset, encodeMax);
+                stream.flushAppWindow(traceId, authorization, 0L, 0, encodeSlotOffset, encodeMax);
             }
         }
 
@@ -1260,6 +1260,8 @@ public final class McpServerFactory implements McpStreamFactory
                 doFlush(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, authorization,
                     budgetId, reserved);
+
+                replySeq += reserved;
             }
         }
 
@@ -1751,8 +1753,7 @@ public final class McpServerFactory implements McpStreamFactory
             int limit)
         {
             final int maxLength = limit - offset;
-            final int minReplyNoAck = (int)(replySeq - replyAck) + encodeSlotOffset;
-            final int replyWin = replyMax - minReplyNoAck;
+            final int replyWin = replyMax - (int)(replySeq - replyAck);
             final int length = Math.max(Math.min(replyWin - replyPad, maxLength), 0);
 
             if (length > 0)
@@ -1799,11 +1800,9 @@ public final class McpServerFactory implements McpStreamFactory
                 }
             }
 
-            // TODO: needed?
             if (stream != null)
             {
-                stream.flushAppWindow(traceId, authorization, 0L, 0,
-                    encodeMax - encodeSlotOffset, encodeMax);
+                stream.flushAppWindow(traceId, authorization, 0L, 0, encodeSlotOffset, encodeMax);
             }
         }
 
@@ -2549,7 +2548,7 @@ public final class McpServerFactory implements McpStreamFactory
             int minReplyNoAck,
             int minReplyMax)
         {
-            final long replyAckMax = Math.min(replyAck + minReplyNoAck, replySeq);
+            final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
             if (replyAckMax > replyAck || minReplyMax > replyMax)
             {
                 replyAck = replyAckMax;
@@ -2649,7 +2648,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             session.touch();
 
-            if (replySeq > replyAck + decodeMax)
+            if (replySeq > replyAck + encodeMax)
             {
                 cleanupApp(traceId, authorization);
             }
@@ -2716,9 +2715,12 @@ public final class McpServerFactory implements McpStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
+            assert acknowledge <= sequence;
+            assert sequence <= initialSeq;
+            assert acknowledge >= initialAck;
+            assert maximum + acknowledge >= initialMax + initialAck;
             assert budgetId == 0L;
 
-            initialSeq = sequence;
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
