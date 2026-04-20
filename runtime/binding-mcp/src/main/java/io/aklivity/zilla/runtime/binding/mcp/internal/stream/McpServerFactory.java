@@ -130,7 +130,6 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpServerDecoder decodeJsonRpcMethodParamValue = this::decodeJsonRpcMethodParamValue;
     private final McpServerDecoder decodeJsonRpcParamsSkipValue = this::decodeJsonRpcParamsSkipValue;
     private final McpServerDecoder decodeJsonRpcSkipObject = this::decodeJsonRpcSkipObject;
-    private final McpServerDecoder decodeJsonRpcSkipArray = this::decodeJsonRpcSkipArray;
     private final McpServerDecoder decodeIgnore = this::decodeIgnore;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
@@ -714,11 +713,6 @@ public final class McpServerFactory implements McpStreamFactory
                 server.decodedSkipObjectThen = decodeJsonRpcMethodWithParam;
                 server.decoder = decodeJsonRpcSkipObject;
                 break decode;
-            case JsonParser.Event.START_ARRAY:
-                server.decodedSkipArrayDepth = 1;
-                server.decodedSkipArrayThen = decodeJsonRpcMethodWithParam;
-                server.decoder = decodeJsonRpcSkipArray;
-                break decode;
             default:
                 server.onDecodeParseError(traceId, authorization);
                 server.decoder = decodeIgnore;
@@ -860,42 +854,6 @@ public final class McpServerFactory implements McpStreamFactory
         return progress;
     }
 
-    private int decodeJsonRpcSkipArray(
-        McpServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        JsonParser parser = server.decodableJson;
-
-        while (parser.hasNext())
-        {
-            final JsonParser.Event event = parser.next();
-            if (event == JsonParser.Event.START_ARRAY)
-            {
-                server.decodedSkipArrayDepth++;
-            }
-            else if (event == JsonParser.Event.END_ARRAY)
-            {
-                server.decodedSkipArrayDepth--;
-                if (server.decodedSkipArrayDepth == 0)
-                {
-                    server.decoder = server.decodedSkipArrayThen;
-                    break;
-                }
-            }
-        }
-
-        progress = offset + server.decodedParamsProgress - server.decodedParserProgress;
-
-        return progress;
-    }
-
     private int decodeIgnore(
         McpServer server,
         long traceId,
@@ -952,8 +910,6 @@ public final class McpServerFactory implements McpStreamFactory
         private McpServerRequestParamsConsumer decodedRequest;
         private McpServerDecoder decodedSkipObjectThen;
         private int decodedSkipObjectDepth;
-        private McpServerDecoder decodedSkipArrayThen;
-        private int decodedSkipArrayDepth;
 
         private McpRequestStream stream;
 
