@@ -51,5 +51,12 @@ connected
 
 write close
 
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
 read '{"prompts":[]}'
 read closed

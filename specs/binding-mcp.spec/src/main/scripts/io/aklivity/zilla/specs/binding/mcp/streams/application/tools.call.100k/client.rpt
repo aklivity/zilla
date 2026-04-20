@@ -55,5 +55,13 @@ write ${core:randomBase64(100000)}
 write '","location":"New York"}}'
 write close
 
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsCall()
+                              .sessionId("session-1")
+                              .name("get_weather")
+                              .build()
+                          .build()}
+
 read  '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 read closed
