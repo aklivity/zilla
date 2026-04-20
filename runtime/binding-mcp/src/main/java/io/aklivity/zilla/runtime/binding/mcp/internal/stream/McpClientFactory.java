@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.stream.JsonParser;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -39,6 +41,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -80,6 +84,8 @@ public final class McpClientFactory implements McpStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+
+    private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -1734,22 +1740,48 @@ public final class McpClientFactory implements McpStreamFactory
         DirectBuffer buffer,
         int length)
     {
-        for (int i = 0; i <= length - 9; i++)
+        inputRO.wrap(buffer, 0, length);
+        final JsonParser parser = StreamingJson.createParser(inputRO);
+        int depth = 0;
+        int resultStart = -1;
+        decode:
+        while (parser.hasNext())
         {
-            if (buffer.getByte(i) == '"' &&
-                buffer.getByte(i + 1) == 'r' &&
-                buffer.getByte(i + 2) == 'e' &&
-                buffer.getByte(i + 3) == 's' &&
-                buffer.getByte(i + 4) == 'u' &&
-                buffer.getByte(i + 5) == 'l' &&
-                buffer.getByte(i + 6) == 't' &&
-                buffer.getByte(i + 7) == '"' &&
-                buffer.getByte(i + 8) == ':')
+            final JsonParser.Event event = parser.next();
+            switch (event)
             {
-                return i + 9;
+            case START_OBJECT:
+                depth++;
+                break;
+            case END_OBJECT:
+                depth--;
+                break;
+            case KEY_NAME:
+                if (depth == 1 && "result".equals(parser.getString()))
+                {
+                    final JsonParser.Event valueEvent = parser.next();
+                    final int after = (int) parser.getLocation().getStreamOffset();
+                    switch (valueEvent)
+                    {
+                    case START_OBJECT:
+                    case START_ARRAY:
+                        resultStart = after - 1;
+                        break;
+                    case VALUE_STRING:
+                        resultStart = -1;
+                        break;
+                    default:
+                        resultStart = -1;
+                        break;
+                    }
+                    break decode;
+                }
+                break;
+            default:
+                break;
             }
         }
-        return -1;
+        return resultStart;
     }
 
     private MessageConsumer newStream(
