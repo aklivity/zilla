@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
-import java.util.function.ToIntFunction;
 
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -834,8 +833,7 @@ public class HttpMetricGroupTest
         LongConsumer valueRecorder = mock(LongConsumer.class);
         IntFunction<LongConsumer> recorder = mock(IntFunction.class);
         when(recorder.apply(anyInt())).thenReturn(valueRecorder);
-        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
-        when(supplyLabelId.applyAsInt("method=GET")).thenReturn(42);
+        when(engineContext.supplyTypeId("method=GET")).thenReturn(42);
         List<AttributeConfig> attributes = List.of(
             AttributeConfig.builder().name("method").value("${http.request.method}").build()
         );
@@ -843,7 +841,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+        MessageConsumer handler = context.supply(recorder, attributes);
 
         // begin frame with header Content-Length = 42 and :method = GET
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -884,8 +882,7 @@ public class HttpMetricGroupTest
         LongConsumer valueRecorder = mock(LongConsumer.class);
         IntFunction<LongConsumer> recorder = mock(IntFunction.class);
         when(recorder.apply(anyInt())).thenReturn(valueRecorder);
-        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
-        when(supplyLabelId.applyAsInt("method=POST")).thenReturn(7);
+        when(engineContext.supplyTypeId("method=POST")).thenReturn(7);
         List<AttributeConfig> attributes = List.of(
             AttributeConfig.builder().name("method").value("${http.request.method}").build()
         );
@@ -893,7 +890,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+        MessageConsumer handler = context.supply(recorder, attributes);
 
         // begin frame without Content-Length
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -953,8 +950,7 @@ public class HttpMetricGroupTest
         LongConsumer valueRecorder = mock(LongConsumer.class);
         IntFunction<LongConsumer> recorder = mock(IntFunction.class);
         when(recorder.apply(anyInt())).thenReturn(valueRecorder);
-        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
-        when(supplyLabelId.applyAsInt("method=GET,status=200")).thenReturn(99);
+        when(engineContext.supplyTypeId("method=GET,status=200")).thenReturn(99);
         List<AttributeConfig> attributes = List.of(
             AttributeConfig.builder().name("method").value("${http.request.method}").build(),
             AttributeConfig.builder().name("status").value("${http.response.status}").build()
@@ -963,7 +959,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.duration");
         MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+        MessageConsumer handler = context.supply(recorder, attributes);
 
         // request begin frame (received, streamId=1)
         HttpBeginExFW httpBeginExReq = new HttpBeginExFW.Builder()
@@ -1025,8 +1021,7 @@ public class HttpMetricGroupTest
         LongConsumer valueRecorder = mock(LongConsumer.class);
         IntFunction<LongConsumer> recorder = mock(IntFunction.class);
         when(recorder.apply(anyInt())).thenReturn(valueRecorder);
-        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
-        when(supplyLabelId.applyAsInt("method=GET")).thenReturn(42);
+        when(engineContext.supplyTypeId("method=GET")).thenReturn(42);
         List<AttributeConfig> attributes = List.of(
             AttributeConfig.builder().name("method").value("${http.request.method}").build()
         );
@@ -1034,7 +1029,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.active.requests");
         MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+        MessageConsumer handler = context.supply(recorder, attributes);
 
         // request begin frame (received, streamId=1)
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -1083,13 +1078,12 @@ public class HttpMetricGroupTest
         LongConsumer valueRecorder = mock(LongConsumer.class);
         IntFunction<LongConsumer> recorder = mock(IntFunction.class);
         when(recorder.apply(0)).thenReturn(valueRecorder);
-        ToIntFunction<String> supplyLabelId = mock(ToIntFunction.class);
         List<AttributeConfig> attributes = Collections.emptyList();
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder, attributes, supplyLabelId);
+        MessageConsumer handler = context.supply(recorder, attributes);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
