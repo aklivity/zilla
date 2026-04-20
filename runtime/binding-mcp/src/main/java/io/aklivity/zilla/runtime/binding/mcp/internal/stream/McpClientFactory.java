@@ -243,8 +243,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected HttpStream http;
         boolean appClosedEmpty;
-        protected int appDataSlot = NO_SLOT;
-        protected int appDataOffset;
+        boolean appHasData;
 
         private long initialSeq;
         private long initialAck;
@@ -359,21 +358,9 @@ public final class McpClientFactory implements McpStreamFactory
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
             {
-                if (appDataSlot == NO_SLOT)
-                {
-                    appDataSlot = bufferPool.acquire(initialId);
-                }
-                if (appDataSlot == NO_SLOT)
-                {
-                    http.doNetAbort(data.traceId(), authorization);
-                    doAppAbort(data.traceId());
-                }
-                else
-                {
-                    final MutableDirectBuffer slot = bufferPool.buffer(appDataSlot);
-                    slot.putBytes(appDataOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                    appDataOffset += payload.sizeof();
-                }
+                appHasData = true;
+                http.doNetData(data.traceId(), authorization,
+                    payload.buffer(), payload.offset(), payload.limit());
             }
 
             doAppWindow(data.traceId(), authorization, 0L, 0);
@@ -565,18 +552,11 @@ public final class McpClientFactory implements McpStreamFactory
         final void onAppEndImpl(
             long traceId)
         {
-            if (appDataSlot != NO_SLOT)
-            {
-                final DirectBuffer slot = bufferPool.buffer(appDataSlot);
-                http.doNetBodyAndEnd(traceId, authorization, slot, 0, appDataOffset);
-                bufferPool.release(appDataSlot);
-                appDataSlot = NO_SLOT;
-                appDataOffset = 0;
-            }
-            else
+            if (!appHasData)
             {
                 appClosedEmpty = true;
             }
+            http.doNetEnd(traceId, authorization);
         }
     }
 
@@ -701,6 +681,8 @@ public final class McpClientFactory implements McpStreamFactory
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
+        private long initialSeq;
+        private long initialAck;
         private int initialMax;
 
         private long replySeq;
@@ -861,6 +843,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= sequence;
 
             state = McpState.openedInitial(state);
+            initialAck = acknowledge;
             initialMax = maximum;
 
             if (encodeSlot != NO_SLOT)
@@ -869,10 +852,9 @@ public final class McpClientFactory implements McpStreamFactory
                 final int limit = encodeSlotOffset;
                 final long traceId = encodeSlotTraceId;
                 final long authorization = encodeSlotAuthorization;
-                cleanupEncodeSlot();
 
+                encodeSlotOffset = 0;
                 encodeNet(traceId, authorization, encodeBuffer, 0, limit);
-                doNetEnd(traceId, authorization);
             }
         }
 
@@ -893,20 +875,10 @@ public final class McpClientFactory implements McpStreamFactory
 
         abstract void doNetBegin(long traceId, long authorization);
 
-        void doNetBodyAndEnd(
-            long traceId,
-            long authorization,
-            DirectBuffer params,
-            int paramsOffset,
-            int paramsLength)
-        {
-        }
-
         protected void doNetBegin(
             long traceId,
             long authorization,
-            HttpBeginExFW httpBeginEx,
-            int bodyLength)
+            HttpBeginExFW httpBeginEx)
         {
             state = McpState.openingInitial(state);
 
@@ -920,39 +892,51 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 replyMax = decodeMax;
                 doNetWindow(traceId, authorization, 0L, 0);
-
-                if (bodyLength > 0)
-                {
-                    encodeAndEnd(traceId, authorization, bodyLength);
-                }
             }
         }
 
-        protected void encodeAndEnd(
+        void doNetData(
             long traceId,
             long authorization,
-            int bodyLength)
+            DirectBuffer buffer,
+            int offset,
+            int limit)
         {
-            if (initialMax > 0)
+            if (encodeSlot != NO_SLOT)
             {
-                encodeNet(traceId, authorization, codecBuffer, 0, bodyLength);
-                doNetEnd(traceId, authorization);
-            }
-            else
-            {
-                encodeSlot = bufferPool.acquire(initialId);
+                final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+                encodeSlotTraceId = traceId;
+                encodeSlotAuthorization = authorization;
 
-                if (encodeSlot == NO_SLOT)
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+            }
+
+            encodeNet(traceId, authorization, buffer, offset, limit);
+        }
+
+        void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state) && !McpState.initialClosing(state))
+            {
+                state = McpState.closingInitial(state);
+                encodeSlotTraceId = traceId;
+                encodeSlotAuthorization = authorization;
+
+                if (encodeSlot != NO_SLOT)
                 {
-                    cleanup(traceId, authorization);
+                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                    encodeNet(traceId, authorization, encodeBuffer, 0, encodeSlotOffset);
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
-                    encodeBuffer.putBytes(0, codecBuffer, 0, bodyLength);
-                    encodeSlotOffset = bodyLength;
-                    encodeSlotTraceId = traceId;
-                    encodeSlotAuthorization = authorization;
+                    doEnd(net, originId, routedId, initialId, traceId, authorization);
+                    state = McpState.closedInitial(state);
                 }
             }
         }
@@ -1021,23 +1005,53 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            final int length = limit - offset;
-            final int reserved = length;
+            final int maxLength = limit - offset;
+            final int initialWin = initialMax - (int)(initialSeq - initialAck);
+            final int length = Math.max(Math.min(initialWin, maxLength), 0);
 
-            doData(net, originId, routedId, initialId,
-                traceId, authorization,
-                DATA_FLAGS_COMPLETE, 0, reserved,
-                buffer, offset, length);
-        }
-
-        private void doNetEnd(
-            long traceId,
-            long authorization)
-        {
-            if (!McpState.initialClosed(state))
+            if (length > 0)
             {
-                state = McpState.closedInitial(state);
-                doEnd(net, originId, routedId, initialId, traceId, authorization);
+                final int reserved = length;
+
+                doData(net, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax,
+                    traceId, authorization,
+                    DATA_FLAGS_COMPLETE, 0L, reserved,
+                    buffer, offset, length);
+
+                initialSeq += reserved;
+            }
+
+            final int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = bufferPool.acquire(initialId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    cleanup(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                    encodeSlotTraceId = traceId;
+                    encodeSlotAuthorization = authorization;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlot();
+
+                if (McpState.initialClosing(state) && !McpState.initialClosed(state))
+                {
+                    state = McpState.closedInitial(state);
+                    doEnd(net, originId, routedId, initialId, traceId, authorization);
+                }
             }
         }
 
@@ -1111,7 +1125,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putStringWithoutLengthAscii(pos, clientVersion);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1197,7 +1213,9 @@ public final class McpClientFactory implements McpStreamFactory
             final int bodyLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, bodyLength);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, bodyLength);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1299,7 +1317,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1352,28 +1372,23 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            doNetBegin(traceId, authorization, httpBeginEx, 0);
+            doNetBegin(traceId, authorization, httpBeginEx);
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/call\",\"params\":");
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
         }
 
         @Override
-        void doNetBodyAndEnd(
+        void doNetEnd(
             long traceId,
-            long authorization,
-            DirectBuffer params,
-            int paramsOffset,
-            int paramsLength)
+            long authorization)
         {
-            if (net != null)
-            {
-                int pos = 0;
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-                pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/call\",\"params\":");
-                codecBuffer.putBytes(pos, params, paramsOffset, paramsLength);
-                pos += paramsLength;
-                codecBuffer.putByte(pos++, (byte) '}');
-                encodeAndEnd(traceId, authorization, pos);
-            }
+            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            super.doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1428,7 +1443,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1489,7 +1506,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putStringWithoutLengthAscii(pos, promptName);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1544,7 +1563,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1605,7 +1626,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putStringWithoutLengthAscii(pos, resourceUri);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
 
-            doNetBegin(traceId, authorization, httpBeginEx, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
