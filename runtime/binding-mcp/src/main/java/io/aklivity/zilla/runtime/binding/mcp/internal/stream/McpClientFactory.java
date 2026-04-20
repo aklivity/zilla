@@ -330,9 +330,7 @@ public final class McpClientFactory implements McpStreamFactory
             initialAck = begin.acknowledge();
             initialMax = writeBuffer.capacity();
 
-            doWindow(sender, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax,
-                traceId, authorization, 0L, 0);
+            doAppWindow(traceId, authorization, 0L, 0);
 
             onAppBeginImpl(traceId);
         }
@@ -376,9 +374,7 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            doWindow(sender, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax,
-                data.traceId(), authorization, 0L, 0);
+            doAppWindow(data.traceId(), authorization, 0L, 0);
         }
 
         private void onAppEnd(
@@ -490,6 +486,17 @@ public final class McpClientFactory implements McpStreamFactory
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
             }
+        }
+
+        private void doAppWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            doWindow(sender, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
         }
     }
 
@@ -771,7 +778,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            flushNetReplyWindow(begin.traceId(), begin.authorization());
+            doNetWindow(begin.traceId(), begin.authorization(), 0L, 0);
             onNetBeginImpl(begin);
         }
 
@@ -791,7 +798,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             onNetDataImpl(data);
-            flushNetReplyWindow(data.traceId(), data.authorization());
+            doNetWindow(data.traceId(), data.authorization(), 0L, 0);
         }
 
         private void onNetFlush(
@@ -808,18 +815,20 @@ public final class McpClientFactory implements McpStreamFactory
             replyAck = replySeq;
 
             assert replyAck <= replySeq;
-            flushNetReplyWindow(flush.traceId(), flush.authorization());
+            doNetWindow(flush.traceId(), flush.authorization(), 0L, 0);
         }
 
-        private void flushNetReplyWindow(
+        private void doNetWindow(
             long traceId,
-            long authorization)
+            long authorization,
+            long budgetId,
+            int padding)
         {
             if (net != null)
             {
                 doWindow(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
-                    traceId, authorization, 0L, 0);
+                    traceId, authorization, budgetId, padding);
             }
         }
 
@@ -909,9 +918,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null)
             {
                 replyMax = writeBuffer.capacity();
-                doWindow(net, originId, routedId, replyId,
-                    0L, 0L, replyMax,
-                    traceId, authorization, 0L, 0);
+                doNetWindow(traceId, authorization, 0L, 0);
 
                 if (bodyLength > 0)
                 {
