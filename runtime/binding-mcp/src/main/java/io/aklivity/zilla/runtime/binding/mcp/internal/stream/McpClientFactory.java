@@ -344,8 +344,17 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppData(
             DataFW data)
         {
-            initialSeq = data.sequence() + data.reserved();
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence + data.reserved();
             initialAck = initialSeq;
+
+            assert initialAck <= initialSeq;
 
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
@@ -395,10 +404,20 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppWindow(
             WindowFW window)
         {
-            replyAck = window.acknowledge();
-            replyMax = window.maximum();
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
             replyBud = window.budgetId();
             replyPad = window.padding();
+
+            assert replyAck <= replySeq;
         }
 
         private void onAppReset(
@@ -734,10 +753,18 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+
+            assert acknowledge <= sequence;
+
             state = McpState.openedReply(state);
-            replySeq = begin.sequence();
-            replyAck = begin.acknowledge();
+            replySeq = sequence;
+            replyAck = acknowledge;
             replyMax = writeBuffer.capacity();
+
+            assert replyAck <= replySeq;
+
             flushNetReplyWindow(begin.traceId());
             onNetBeginImpl(begin);
         }
@@ -745,8 +772,18 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetData(
             DataFW data)
         {
-            replySeq = data.sequence() + data.reserved();
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge <= replyAck;
+
+            replySeq = sequence + data.reserved();
             replyAck = replySeq;
+
+            assert replyAck <= replySeq;
+
             onNetDataImpl(data);
             flushNetReplyWindow(data.traceId());
         }
@@ -754,8 +791,17 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetFlush(
             FlushFW flush)
         {
-            replySeq = flush.sequence() + flush.reserved();
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge <= replyAck;
+
+            replySeq = sequence + flush.reserved();
             replyAck = replySeq;
+
+            assert replyAck <= replySeq;
             flushNetReplyWindow(flush.traceId());
         }
 
@@ -791,8 +837,14 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetWindow(
             WindowFW window)
         {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+
+            assert acknowledge <= sequence;
+
             state = McpState.openedInitial(state);
-            initialMax = window.maximum();
+            initialMax = maximum;
 
             if (encodeSlot != NO_SLOT)
             {
