@@ -92,6 +92,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reject.request.params.array/client",
+        "${app}/reject.request.params.array/server"})
+    public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
     public void shouldCallToolWith10kParams() throws Exception

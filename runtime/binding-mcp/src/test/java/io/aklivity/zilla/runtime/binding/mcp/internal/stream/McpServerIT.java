@@ -131,6 +131,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/reject.request.params.array/client",
+        "${app}/reject.request.params.array/server"})
+    public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
     public void shouldCallToolWith10kParams() throws Exception
