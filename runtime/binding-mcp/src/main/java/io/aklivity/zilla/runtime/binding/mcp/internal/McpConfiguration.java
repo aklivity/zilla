@@ -33,6 +33,8 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
     public static final PropertyDef<String> MCP_SERVER_VERSION;
+    public static final PropertyDef<String> MCP_CLIENT_NAME;
+    public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
 
     static
@@ -43,6 +45,10 @@ public class McpConfiguration extends Configuration
         MCP_SERVER_NAME = config.property(String.class, "server.name", (c, v) -> v,
             McpConfiguration::defaultServerName);
         MCP_SERVER_VERSION = config.property(String.class, "server.version", (c, v) -> v,
+            McpConfiguration::defaultServerVersion);
+        MCP_CLIENT_NAME = config.property(String.class, "client.name", (c, v) -> v,
+            McpConfiguration::defaultServerName);
+        MCP_CLIENT_VERSION = config.property(String.class, "client.version", (c, v) -> v,
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
@@ -73,6 +79,16 @@ public class McpConfiguration extends Configuration
     public String serverVersion()
     {
         return MCP_SERVER_VERSION.get(this);
+    }
+
+    public String clientName()
+    {
+        return MCP_CLIENT_NAME.get(this);
+    }
+
+    public String clientVersion()
+    {
+        return MCP_CLIENT_VERSION.get(this);
     }
 
     public Duration inactivityTimeout()

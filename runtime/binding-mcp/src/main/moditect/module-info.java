@@ -27,4 +27,7 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpWithConfigAdapter;
 }

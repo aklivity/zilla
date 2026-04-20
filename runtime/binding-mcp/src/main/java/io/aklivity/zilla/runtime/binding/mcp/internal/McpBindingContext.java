@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.Collections.singletonMap;
 
+import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpClientFactory;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpServerFactory;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -35,7 +37,10 @@ final class McpBindingContext implements BindingContext
         McpConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(SERVER, new McpServerFactory(config, context));
+        final Map<KindConfig, McpStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(SERVER, new McpServerFactory(config, context));
+        factories.put(CLIENT, new McpClientFactory(config, context));
+        this.factories = factories;
     }
 
     @Override
