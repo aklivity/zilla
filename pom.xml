@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>1.1.7</version>
+  <version>1.1.8</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -439,7 +439,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+StartAttachListener --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -452,7 +452,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M4</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+            <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+StartAttachListener --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
           <executions>
             <execution>

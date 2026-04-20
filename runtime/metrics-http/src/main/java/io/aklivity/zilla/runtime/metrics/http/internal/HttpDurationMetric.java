@@ -52,6 +52,6 @@ public class HttpDurationMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new HttpDurationMetricContext(GROUP, kind());
+        return new HttpDurationMetricContext(GROUP, kind(), context::supplyTypeId);
     }
 }

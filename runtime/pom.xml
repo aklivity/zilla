@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.1.7</version>
+    <version>1.1.8</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -30,6 +30,7 @@
     <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
+    <module>binding-mcp</module>
     <module>binding-mqtt-kafka</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
@@ -45,6 +46,7 @@
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
     <module>common</module>
+    <module>common-json</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
@@ -131,6 +133,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -207,6 +214,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-json</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -297,6 +309,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>resolver-env</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>store-memory</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

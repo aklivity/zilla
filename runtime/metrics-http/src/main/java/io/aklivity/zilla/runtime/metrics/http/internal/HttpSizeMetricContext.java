@@ -45,6 +45,7 @@ public final class HttpSizeMetricContext implements MetricContext
     private final String group;
     private final Metric.Kind kind;
     private final Direction direction;
+    private final ToIntFunction<String> supplyLabelId;
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -52,11 +53,13 @@ public final class HttpSizeMetricContext implements MetricContext
     public HttpSizeMetricContext(
         String group,
         Metric.Kind kind,
-        Direction direction)
+        Direction direction,
+        ToIntFunction<String> supplyLabelId)
     {
         this.group = group;
         this.kind = kind;
         this.direction = direction;
+        this.supplyLabelId = supplyLabelId;
     }
 
     @Override
@@ -87,8 +90,7 @@ public final class HttpSizeMetricContext implements MetricContext
     @Override
     public MessageConsumer supply(
         IntFunction<LongConsumer> recorder,
-        List<AttributeConfig> attributes,
-        ToIntFunction<String> supplyLabelId)
+        List<AttributeConfig> attributes)
     {
         HttpAttributeHelper helper = new HttpAttributeHelper(attributes, supplyLabelId);
         return new HttpSizeWithAttributesHandler(recorder, helper);
