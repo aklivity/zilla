@@ -543,6 +543,10 @@ public final class McpClientFactory implements McpStreamFactory
 
         private int initialMax;
 
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
         private int responseSlot = NO_SLOT;
         private int responseOffset;
 
@@ -565,11 +569,11 @@ public final class McpClientFactory implements McpStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onNetBeginImpl(begin);
+                onNetBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onNetDataImpl(data);
+                onNetData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
@@ -578,6 +582,10 @@ public final class McpClientFactory implements McpStreamFactory
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onNetAbort(abort);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onNetFlush(flush);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
@@ -589,6 +597,44 @@ public final class McpClientFactory implements McpStreamFactory
                 break;
             default:
                 break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            replySeq = begin.sequence();
+            replyAck = begin.acknowledge();
+            replyMax = writeBuffer.capacity();
+            flushNetReplyWindow(begin.traceId());
+            onNetBeginImpl(begin);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            replySeq = data.sequence() + data.reserved();
+            replyAck = replySeq;
+            onNetDataImpl(data);
+            flushNetReplyWindow(data.traceId());
+        }
+
+        private void onNetFlush(
+            FlushFW flush)
+        {
+            replySeq = flush.sequence() + flush.reserved();
+            replyAck = replySeq;
+            flushNetReplyWindow(flush.traceId());
+        }
+
+        private void flushNetReplyWindow(
+            long traceId)
+        {
+            if (net != null)
+            {
+                doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
+                    replySeq, replyAck, replyMax,
+                    traceId, mcp.authorization, 0L, 0);
             }
         }
 
@@ -884,8 +930,6 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                traceId, mcp.authorization, 0, writeBuffer.capacity(), 0);
         }
 
         @Override
@@ -954,8 +998,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
         }
 
         @Override
@@ -1060,8 +1102,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
@@ -1121,8 +1161,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final String name = toolName;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1162,8 +1200,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
@@ -1209,8 +1245,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final String name = promptName;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1250,8 +1284,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
@@ -1297,8 +1329,6 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
             final String sid = mcp.sessionId;
             final String uri = resourceUri;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1650,13 +1680,30 @@ public final class McpClientFactory implements McpStreamFactory
         int credit,
         int padding)
     {
+        doWindow(receiver, originId, routedId, streamId, 0L, 0L, credit,
+            traceId, authorization, budgetId, padding);
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding)
+    {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(credit)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
             .budgetId(budgetId)
