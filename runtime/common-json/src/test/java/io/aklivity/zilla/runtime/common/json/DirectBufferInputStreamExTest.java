@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.agrona.concurrent.UnsafeBuffer;
@@ -90,6 +91,18 @@ class DirectBufferInputStreamExTest
     }
 
     @Test
+    void shouldReportBulkReadEofWhenExhausted() throws Exception
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer("ab".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 0, buffer.capacity());
+
+        byte[] dst = new byte[8];
+        assertEquals(2, in.read(dst, 0, dst.length));
+        assertEquals(-1, in.read(dst, 0, dst.length));
+    }
+
+    @Test
     void shouldReportAvailable() throws Exception
     {
         UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
@@ -99,6 +112,55 @@ class DirectBufferInputStreamExTest
         assertEquals(6, in.available());
         in.read();
         assertEquals(5, in.available());
+    }
+
+    @Test
+    void shouldSkipBytes()
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(3, in.skip(3));
+        assertEquals('d', in.read());
+    }
+
+    @Test
+    void shouldSkipClampsToAvailable()
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer("abc".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(3, in.skip(10));
+        assertEquals(-1, in.read());
+    }
+
+    @Test
+    void shouldReadFromBufferOffset()
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer("xxhelloxx".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 2, 5);
+
+        assertEquals('h', in.read());
+        assertEquals('e', in.read());
+        assertEquals('l', in.read());
+        assertEquals('l', in.read());
+        assertEquals('o', in.read());
+        assertEquals(-1, in.read());
+    }
+
+    @Test
+    void shouldExposeBufferOffsetAndLength()
+    {
+        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 2, 3);
+
+        assertSame(buffer, in.buffer());
+        assertEquals(2, in.offset());
+        assertEquals(3, in.length());
     }
 
     @Test
@@ -115,5 +177,29 @@ class DirectBufferInputStreamExTest
         assertEquals('y', in.read());
         assertEquals('z', in.read());
         assertEquals(-1, in.read());
+    }
+
+    @Test
+    void shouldRewrapResetsMark()
+    {
+        UnsafeBuffer first = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBuffer second = new UnsafeBuffer("xyz".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(first, 0, first.capacity());
+        in.read();
+        in.read();
+        in.mark(10);
+
+        in.wrap(second, 0, second.capacity());
+        in.read();
+        in.reset();
+        assertEquals('x', in.read());
+    }
+
+    @Test
+    void shouldSupportClose() throws Exception
+    {
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.close();
     }
 }
