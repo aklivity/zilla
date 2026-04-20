@@ -870,9 +870,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         abstract void onNetEndImpl(EndFW end);
 
-        abstract int writeRequestBody(MutableDirectBuffer buffer, int offset);
-
-        abstract HttpBeginExFW buildHttpBeginEx();
+        abstract void doNetBegin(long traceId, long authorization);
 
         void doNetBodyAndEnd(
             long traceId,
@@ -883,12 +881,12 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        void doNetBegin(
+        protected void doNetBegin(
             long traceId,
-            long authorization)
+            long authorization,
+            HttpBeginExFW httpBeginEx,
+            int bodyLength)
         {
-            final HttpBeginExFW httpBeginEx = buildHttpBeginEx();
-
             state = McpState.openingInitial(state);
 
             net = newStream(this::onNetMessage,
@@ -904,7 +902,6 @@ public final class McpClientFactory implements McpStreamFactory
                     0L, 0L, replyMax,
                     traceId, authorization, 0L, 0);
 
-                final int bodyLength = writeRequestBody(codecBuffer, 0);
                 if (bodyLength > 0)
                 {
                     encodeAndEnd(traceId, authorization, bodyLength);
@@ -1073,9 +1070,11 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpBeginExFW buildHttpBeginEx()
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            return httpBeginExRW
+            final HttpBeginExFW httpBeginEx = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
@@ -1083,23 +1082,18 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .build();
-        }
 
-        @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
-        {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos,
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos,
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"," +
                 "\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{}," +
                 "\"clientInfo\":{\"name\":\"");
-            pos += buffer.putStringWithoutLengthAscii(pos, clientName);
-            pos += buffer.putStringWithoutLengthAscii(pos, "\",\"version\":\"");
-            pos += buffer.putStringWithoutLengthAscii(pos, clientVersion);
-            pos += buffer.putStringWithoutLengthAscii(pos, "\"}}}");
-            return pos - offset;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, clientName);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\",\"version\":\"");
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, clientVersion);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
@@ -1162,7 +1156,9 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpBeginExFW buildHttpBeginEx()
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1178,16 +1174,12 @@ public final class McpClientFactory implements McpStreamFactory
                 builder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
             }
 
-            return builder.build();
-        }
+            final HttpBeginExFW httpBeginEx = builder.build();
 
-        @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
-        {
-            return buffer.putStringWithoutLengthAscii(offset,
+            final int bodyLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, bodyLength);
         }
 
         @Override
@@ -1240,26 +1232,6 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpBeginExFW buildHttpBeginEx()
-        {
-            final HttpBeginExFW.Builder builder = httpBeginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
-                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
-
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                builder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
-
-            return builder.build();
-        }
-
-        @Override
         void onNetDataImpl(
             DataFW data)
         {
@@ -1286,15 +1258,32 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, request.assignedRequestId);
-            pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
-            return pos - offset;
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
@@ -1328,11 +1317,27 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            return 0;
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            doNetBegin(traceId, authorization, httpBeginEx, 0);
         }
 
         @Override
@@ -1384,15 +1389,32 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, request.assignedRequestId);
-            pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
-            return pos - offset;
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
@@ -1426,18 +1448,35 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, request.assignedRequestId);
-            pos += buffer.putStringWithoutLengthAscii(pos,
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"prompts/get\",\"params\":{\"name\":\"");
-            pos += buffer.putStringWithoutLengthAscii(pos, promptName);
-            pos += buffer.putStringWithoutLengthAscii(pos, "\"}}");
-            return pos - offset;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, promptName);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
@@ -1468,15 +1507,32 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, request.assignedRequestId);
-            pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
-            return pos - offset;
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
@@ -1510,18 +1566,35 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        int writeRequestBody(
-            MutableDirectBuffer buffer,
-            int offset)
+        void doNetBegin(
+            long traceId,
+            long authorization)
         {
-            int pos = offset;
-            pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, request.assignedRequestId);
-            pos += buffer.putStringWithoutLengthAscii(pos,
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+
+            if (mcp.sessionId != null)
+            {
+                final String sid = mcp.sessionId;
+                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+            }
+
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            int pos = 0;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
+            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"resources/read\",\"params\":{\"uri\":\"");
-            pos += buffer.putStringWithoutLengthAscii(pos, resourceUri);
-            pos += buffer.putStringWithoutLengthAscii(pos, "\"}}");
-            return pos - offset;
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, resourceUri);
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
+
+            doNetBegin(traceId, authorization, httpBeginEx, pos);
         }
 
         @Override
