@@ -285,7 +285,8 @@ public final class McpClientFactory implements McpStreamFactory
 
         private HttpStream http;
         boolean isLifecycle;
-        boolean appClosed;
+        int state;
+        boolean appClosedEmpty;
         private int appDataSlot = NO_SLOT;
         private int appDataOffset;
         int assignedRequestId;
@@ -357,6 +358,9 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = begin.traceId();
 
+            state = McpState.openingInitial(state);
+            state = McpState.openedInitial(state);
+
             doWindow(sender, originId, routedId, initialId, traceId, authorization, 0, writeBuffer.capacity(), 0);
 
             http.doNetBegin(traceId, authorization);
@@ -390,6 +394,7 @@ public final class McpClientFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
+            state = McpState.closedInitial(state);
             if (isLifecycle)
             {
                 sessions.remove(sessionId);
@@ -406,7 +411,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                appClosed = true;
+                appClosedEmpty = true;
             }
         }
 
@@ -436,6 +441,9 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             McpBeginExFW beginEx)
         {
+            state = McpState.openingReply(state);
+            state = McpState.openedReply(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -479,6 +487,12 @@ public final class McpClientFactory implements McpStreamFactory
         void doAppEnd(
             long traceId)
         {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+            state = McpState.closedReply(state);
+
             final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -496,6 +510,12 @@ public final class McpClientFactory implements McpStreamFactory
         void doAppAbort(
             long traceId)
         {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+            state = McpState.closedReply(state);
+
             final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -513,6 +533,12 @@ public final class McpClientFactory implements McpStreamFactory
         void doAppReset(
             long traceId)
         {
+            if (McpState.initialClosed(state))
+            {
+                return;
+            }
+            state = McpState.closedInitial(state);
+
             final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -541,6 +567,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
+        private int state;
         private int initialMax;
 
         private long replySeq;
@@ -603,6 +630,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
+            state = McpState.openedReply(state);
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
             replyMax = writeBuffer.capacity();
@@ -641,9 +669,10 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetAbort(
             AbortFW abort)
         {
+            state = McpState.closedReply(state);
             cleanupEncodeSlot();
             cleanupResponseSlot();
-            if (!mcp.appClosed)
+            if (!mcp.appClosedEmpty)
             {
                 doNotifyCancelled(abort.traceId());
             }
@@ -658,6 +687,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetWindow(
             WindowFW window)
         {
+            state = McpState.openedInitial(state);
             initialMax = window.maximum();
 
             if (encodeSlot != NO_SLOT)
@@ -676,6 +706,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetReset(
             ResetFW reset)
         {
+            state = McpState.closedInitial(state);
             cleanupEncodeSlot();
             cleanupResponseSlot();
             mcp.doAppReset(reset.traceId());
@@ -705,6 +736,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             final HttpBeginExFW httpBeginEx = buildHttpBeginEx();
+
+            state = McpState.openingInitial(state);
 
             net = newStream(this::onNetMessage,
                 mcp.originId, mcp.resolvedId, netInitialId,
@@ -760,8 +793,9 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null)
+            if (net != null && !McpState.initialClosed(state))
             {
+                state = McpState.closedInitial(state);
                 doAbort(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
             }
         }
@@ -770,8 +804,9 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null)
+            if (net != null && !McpState.replyClosed(state))
             {
+                state = McpState.closedReply(state);
                 doReset(net, mcp.originId, mcp.resolvedId, netReplyId, traceId, authorization);
             }
         }
@@ -831,7 +866,11 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doEnd(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doEnd(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+            }
         }
 
         private void cleanupEncodeSlot()
@@ -1113,7 +1152,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .toolsList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
@@ -1173,7 +1212,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .toolsCall(b -> b.sessionId(sid).name(name))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
@@ -1211,7 +1250,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .promptsList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
@@ -1257,7 +1296,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .promptsGet(b -> b.sessionId(sid).name(name))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
@@ -1295,7 +1334,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .resourcesList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
@@ -1341,7 +1380,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .resourcesRead(b -> b.sessionId(sid).uri(uri))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosed)
+            if (mcp.appClosedEmpty)
             {
                 doNotifyCancelled(begin.traceId());
             }
