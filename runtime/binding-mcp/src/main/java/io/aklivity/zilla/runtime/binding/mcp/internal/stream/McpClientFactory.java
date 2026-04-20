@@ -96,6 +96,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
     private final int mcpTypeId;
+    private final int decodeMax;
     private final String clientName;
     private final String clientVersion;
 
@@ -118,6 +119,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
+        this.decodeMax = bufferPool.slotCapacity();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
     }
@@ -773,7 +775,7 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openedReply(state);
             replySeq = sequence;
             replyAck = acknowledge;
-            replyMax = writeBuffer.capacity();
+            replyMax = decodeMax;
 
             assert replyAck <= replySeq;
 
@@ -916,7 +918,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (net != null)
             {
-                replyMax = writeBuffer.capacity();
+                replyMax = decodeMax;
                 doNetWindow(traceId, authorization, 0L, 0);
 
                 if (bodyLength > 0)
