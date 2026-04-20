@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECT
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTED_DELAY_MILLIS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_EXCEPTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
@@ -103,6 +104,7 @@ public final class EngineRule implements TestRule
         configure(ENGINE_ROUTED_DELAY_MILLIS, 500L);
         configure(ENGINE_WORKERS, 1);
         configure(ENGINE_WORKER_CAPACITY, 64);
+        configure(ENGINE_VERBOSE_EXCEPTIONS, true);
     }
 
     public EngineRule directory(
