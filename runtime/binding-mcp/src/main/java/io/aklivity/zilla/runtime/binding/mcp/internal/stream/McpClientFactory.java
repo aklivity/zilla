@@ -514,7 +514,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
             sessions.put(sessionId, this);
-            this.http = new HttpInitializeRequest(supplyInitialId.applyAsLong(resolvedId), this);
+            this.http = new HttpInitializeRequest(this);
         }
 
         @Override
@@ -529,8 +529,8 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId)
         {
             sessions.remove(sessionId);
-            final long netInitialId2 = supplyInitialId.applyAsLong(resolvedId);
-            new HttpTerminateSession(netInitialId2, this).doNetBegin(traceId, authorization);
+
+            new HttpTerminateSession(this).doNetBegin(traceId, authorization);
         }
     }
 
@@ -591,7 +591,7 @@ public final class McpClientFactory implements McpStreamFactory
             String sessionId)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpToolsListStream(supplyInitialId.applyAsLong(resolvedId), this);
+            this.http = new HttpToolsListStream(this);
         }
     }
 
@@ -609,7 +609,7 @@ public final class McpClientFactory implements McpStreamFactory
             String toolName)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpToolsCallStream(supplyInitialId.applyAsLong(resolvedId), this, toolName);
+            this.http = new HttpToolsCallStream(this, toolName);
         }
     }
 
@@ -626,7 +626,7 @@ public final class McpClientFactory implements McpStreamFactory
             String sessionId)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpPromptsListStream(supplyInitialId.applyAsLong(resolvedId), this);
+            this.http = new HttpPromptsListStream(this);
         }
     }
 
@@ -644,7 +644,7 @@ public final class McpClientFactory implements McpStreamFactory
             String promptName)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpPromptsGetStream(supplyInitialId.applyAsLong(resolvedId), this, promptName);
+            this.http = new HttpPromptsGetStream(this, promptName);
         }
     }
 
@@ -661,7 +661,7 @@ public final class McpClientFactory implements McpStreamFactory
             String sessionId)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpResourcesListStream(supplyInitialId.applyAsLong(resolvedId), this);
+            this.http = new HttpResourcesListStream(this);
         }
     }
 
@@ -679,7 +679,7 @@ public final class McpClientFactory implements McpStreamFactory
             String resourceUri)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
-            this.http = new HttpResourcesReadStream(supplyInitialId.applyAsLong(resolvedId), this, resourceUri);
+            this.http = new HttpResourcesReadStream(this, resourceUri);
         }
     }
 
@@ -711,12 +711,11 @@ public final class McpClientFactory implements McpStreamFactory
         private int state;
 
         HttpStream(
-            long initialId,
             McpStream mcp)
         {
             this.originId = mcp.originId;
             this.routedId = mcp.resolvedId;
-            this.initialId = initialId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = mcp.affinity;
             this.mcp = mcp;
@@ -1081,10 +1080,9 @@ public final class McpClientFactory implements McpStreamFactory
         private String responseSessionId;
 
         HttpInitializeRequest(
-            long initialId,
             McpStream mcp)
         {
-            super(initialId, mcp);
+            super(mcp);
         }
 
         @Override
@@ -1155,7 +1153,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             final long netInitialId2 = supplyInitialId.applyAsLong(routedId);
             final HttpNotifyInitialized notify = new HttpNotifyInitialized(
-                netInitialId2, mcp, responseSessionId);
+                mcp, responseSessionId);
             mcp.http = notify;
             notify.doNetBegin(traceId, authorization);
         }
@@ -1166,11 +1164,10 @@ public final class McpClientFactory implements McpStreamFactory
         private final String sessionId;
 
         HttpNotifyInitialized(
-            long initialId,
             McpStream mcp,
             String sessionId)
         {
-            super(initialId, mcp);
+            super(mcp);
             this.sessionId = sessionId;
         }
 
@@ -1232,10 +1229,9 @@ public final class McpClientFactory implements McpStreamFactory
         protected final McpRequestStream request;
 
         HttpRequestStream(
-            long initialId,
             McpRequestStream mcp)
         {
-            super(initialId, mcp);
+            super(mcp);
             this.request = mcp;
         }
 
@@ -1245,8 +1241,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (sessions.containsKey(mcp.sessionId))
             {
-                final long netInitialId2 = supplyInitialId.applyAsLong(routedId);
-                new HttpNotifyCancelled(netInitialId2, request).doNetBegin(traceId);
+
+                new HttpNotifyCancelled(request).doNetBegin(traceId);
             }
         }
 
@@ -1270,10 +1266,9 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpToolsListStream extends HttpRequestStream
     {
         HttpToolsListStream(
-            long initialId,
             McpRequestStream mcp)
         {
-            super(initialId, mcp);
+            super(mcp);
         }
 
         @Override
@@ -1327,11 +1322,10 @@ public final class McpClientFactory implements McpStreamFactory
         private final String toolName;
 
         HttpToolsCallStream(
-            long initialId,
             McpRequestStream mcp,
             String toolName)
         {
-            super(initialId, mcp);
+            super(mcp);
             this.toolName = toolName;
         }
 
@@ -1401,10 +1395,9 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpPromptsListStream extends HttpRequestStream
     {
         HttpPromptsListStream(
-            long initialId,
             McpRequestStream mcp)
         {
-            super(initialId, mcp);
+            super(mcp);
         }
 
         @Override
@@ -1458,11 +1451,10 @@ public final class McpClientFactory implements McpStreamFactory
         private final String promptName;
 
         HttpPromptsGetStream(
-            long initialId,
             McpRequestStream mcp,
             String promptName)
         {
-            super(initialId, mcp);
+            super(mcp);
             this.promptName = promptName;
         }
 
@@ -1519,10 +1511,9 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpResourcesListStream extends HttpRequestStream
     {
         HttpResourcesListStream(
-            long initialId,
             McpRequestStream mcp)
         {
-            super(initialId, mcp);
+            super(mcp);
         }
 
         @Override
@@ -1576,11 +1567,10 @@ public final class McpClientFactory implements McpStreamFactory
         private final String resourceUri;
 
         HttpResourcesReadStream(
-            long initialId,
             McpRequestStream mcp,
             String resourceUri)
         {
-            super(initialId, mcp);
+            super(mcp);
             this.resourceUri = resourceUri;
         }
 
@@ -1645,10 +1635,9 @@ public final class McpClientFactory implements McpStreamFactory
         private boolean endSent;
 
         HttpTerminateSession(
-            long initialId,
             McpStream mcp)
         {
-            this.initialId = initialId;
+            this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.mcp = mcp;
         }
@@ -1731,10 +1720,9 @@ public final class McpClientFactory implements McpStreamFactory
         private boolean bodySent;
 
         HttpNotifyCancelled(
-            long initialId,
             McpRequestStream mcp)
         {
-            this.initialId = initialId;
+            this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
             this.cancelledRequestId = mcp.assignedRequestId;
