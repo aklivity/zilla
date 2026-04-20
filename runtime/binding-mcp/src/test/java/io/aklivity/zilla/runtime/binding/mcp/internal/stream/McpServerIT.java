@@ -133,7 +133,6 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
-    @Configure(name = "zilla.engine.drain.on.close", value = "false")
     public void shouldCallToolWith10kParams() throws Exception
     {
         k3po.finish();
@@ -144,7 +143,6 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.100k/client",
         "${app}/tools.call.100k/server"})
-    @Configure(name = "zilla.engine.drain.on.close", value = "false")
     public void shouldCallToolWith100kParams() throws Exception
     {
         k3po.finish();
@@ -155,7 +153,6 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.10k/client",
         "${app}/resources.read.10k/server"})
-    @Configure(name = "zilla.engine.drain.on.close", value = "false")
     public void shouldReadResourceWith10kContents() throws Exception
     {
         k3po.finish();
@@ -166,7 +163,6 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.100k/client",
         "${app}/resources.read.100k/server"})
-    @Configure(name = "zilla.engine.drain.on.close", value = "false")
     public void shouldReadResourceWith100kContents() throws Exception
     {
         k3po.finish();
