@@ -45,7 +45,7 @@ public class McpClientIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
-        .configure(MCP_CLIENT_NAME_NAME, "zilla")
+        .configure(MCP_CLIENT_NAME_NAME, "test")
         .configure(MCP_CLIENT_VERSION_NAME, "1.0")
         .external("net0")
         .clean();
