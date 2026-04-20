@@ -23,6 +23,7 @@ import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -104,6 +105,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
+    private final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories;
 
     public McpClientFactory(
         McpConfiguration config,
@@ -122,6 +124,50 @@ public final class McpClientFactory implements McpStreamFactory
         this.decodeMax = bufferPool.slotCapacity();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
+
+        final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories = new Int2ObjectHashMap<>();
+        requestFactories.put(McpBeginExFW.KIND_TOOLS_LIST,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpToolsListStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.toolsList().sessionId().asString()));
+        requestFactories.put(McpBeginExFW.KIND_TOOLS_CALL,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpToolsCallStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.toolsCall().sessionId().asString(),
+                    mcpBeginEx.toolsCall().name().asString()));
+        requestFactories.put(McpBeginExFW.KIND_PROMPTS_LIST,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpPromptsListStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.promptsList().sessionId().asString()));
+        requestFactories.put(McpBeginExFW.KIND_PROMPTS_GET,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpPromptsGetStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.promptsGet().sessionId().asString(),
+                    mcpBeginEx.promptsGet().name().asString()));
+        requestFactories.put(McpBeginExFW.KIND_RESOURCES_LIST,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpResourcesListStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.resourcesList().sessionId().asString()));
+        requestFactories.put(McpBeginExFW.KIND_RESOURCES_READ,
+            (sender, originId, routedId, initialId, resolvedId, affinity, authorization, mcpBeginEx) ->
+                new McpResourcesReadStream(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                    mcpBeginEx.resourcesRead().sessionId().asString(),
+                    mcpBeginEx.resourcesRead().uri().asString()));
+        this.requestFactories = requestFactories;
+    }
+
+    @FunctionalInterface
+    private interface McpRequestStreamFactory
+    {
+        McpRequestStream newRequest(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            McpBeginExFW mcpBeginEx);
     }
 
     @Override
@@ -180,48 +226,21 @@ public final class McpClientFactory implements McpStreamFactory
                 final McpBeginExFW mcpBeginEx = mcpBeginExRO.wrap(
                     extension.buffer(), extension.offset(), extension.limit());
 
-                switch (mcpBeginEx.kind())
+                if (mcpBeginEx.kind() == McpBeginExFW.KIND_LIFECYCLE)
                 {
-                case McpBeginExFW.KIND_LIFECYCLE:
                     newStream = new McpLifecycleStream(
                         sender, originId, routedId, initialId, route.id, affinity, authorization,
                         mcpBeginEx.lifecycle().sessionId().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_TOOLS_LIST:
-                    newStream = new McpToolsListStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.toolsList().sessionId().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_TOOLS_CALL:
-                    newStream = new McpToolsCallStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.toolsCall().sessionId().asString(),
-                        mcpBeginEx.toolsCall().name().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_PROMPTS_LIST:
-                    newStream = new McpPromptsListStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.promptsList().sessionId().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_PROMPTS_GET:
-                    newStream = new McpPromptsGetStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.promptsGet().sessionId().asString(),
-                        mcpBeginEx.promptsGet().name().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_RESOURCES_LIST:
-                    newStream = new McpResourcesListStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.resourcesList().sessionId().asString())::onAppMessage;
-                    break;
-                case McpBeginExFW.KIND_RESOURCES_READ:
-                    newStream = new McpResourcesReadStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.resourcesRead().sessionId().asString(),
-                        mcpBeginEx.resourcesRead().uri().asString())::onAppMessage;
-                    break;
-                default:
-                    break;
+                }
+                else
+                {
+                    final McpRequestStreamFactory requestFactory = requestFactories.get(mcpBeginEx.kind());
+                    if (requestFactory != null)
+                    {
+                        newStream = requestFactory.newRequest(
+                            sender, originId, routedId, initialId, route.id,
+                            affinity, authorization, mcpBeginEx)::onAppMessage;
+                    }
                 }
             }
         }
