@@ -24,6 +24,7 @@ public final class StoreConfigBuilder<T> extends ConfigBuilder<T, StoreConfigBui
     private String namespace;
     private String name;
     private String type;
+    private String vault;
     private OptionsConfig options;
 
     StoreConfigBuilder(
@@ -60,6 +61,13 @@ public final class StoreConfigBuilder<T> extends ConfigBuilder<T, StoreConfigBui
         return this;
     }
 
+    public StoreConfigBuilder<T> vault(
+        String vault)
+    {
+        this.vault = vault;
+        return this;
+    }
+
     public <C extends ConfigBuilder<StoreConfigBuilder<T>, C>> C options(
         Function<Function<OptionsConfig, StoreConfigBuilder<T>>, C> options)
     {
@@ -76,6 +84,6 @@ public final class StoreConfigBuilder<T> extends ConfigBuilder<T, StoreConfigBui
     @Override
     public T build()
     {
-        return mapper.apply(new StoreConfig(namespace, name, type, options));
+        return mapper.apply(new StoreConfig(namespace, name, type, vault, options));
     }
 }

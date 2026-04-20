@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.StoreConfigBuilder;
 public class StoreAdapter
 {
     private static final String TYPE_NAME = "type";
+    private static final String VAULT_NAME = "vault";
     private static final String OPTIONS_NAME = "options";
 
     private final OptionsConfigAdapter options;
@@ -55,6 +56,11 @@ public class StoreAdapter
 
         object.add(TYPE_NAME, store.type);
 
+        if (store.vault != null)
+        {
+            object.add(VAULT_NAME, store.vault);
+        }
+
         if (store.options != null)
         {
             object.add(OPTIONS_NAME, options.adaptToJson(store.options));
@@ -75,6 +81,11 @@ public class StoreAdapter
             .namespace(namespace)
             .name(name)
             .type(type);
+
+        if (object.containsKey(VAULT_NAME))
+        {
+            store.vault(object.getString(VAULT_NAME));
+        }
 
         if (object.containsKey(OPTIONS_NAME))
         {

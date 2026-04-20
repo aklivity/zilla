@@ -378,6 +378,10 @@ public class EngineManager
         for (StoreConfig store : namespace.stores)
         {
             store.id = resolver.resolve(store.name);
+            if (store.vault != null)
+            {
+                store.vaultId = resolver.resolve(store.vault);
+            }
         }
 
         for (VaultConfig vault : namespace.vaults)
