@@ -175,93 +175,43 @@ public final class McpClientFactory implements McpStreamFactory
                 switch (mcpBeginEx.kind())
                 {
                 case McpBeginExFW.KIND_LIFECYCLE:
-                {
-                    final String sessionId = mcpBeginEx.lifecycle().sessionId().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.isLifecycle = true;
-                    mcp.http = new HttpInitializeRequest(
-                        supplyInitialId.applyAsLong(route.id), mcp);
-                    sessions.put(sessionId, mcp);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpLifecycleStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.lifecycle().sessionId().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_TOOLS_LIST:
-                {
-                    final String sessionId = mcpBeginEx.toolsList().sessionId().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpToolsListStream(
-                        supplyInitialId.applyAsLong(route.id), mcp);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpToolsListStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.toolsList().sessionId().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_TOOLS_CALL:
-                {
-                    final String sessionId = mcpBeginEx.toolsCall().sessionId().asString();
-                    final String toolName = mcpBeginEx.toolsCall().name().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpToolsCallStream(
-                        supplyInitialId.applyAsLong(route.id), mcp, toolName);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpToolsCallStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.toolsCall().sessionId().asString(),
+                        mcpBeginEx.toolsCall().name().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_PROMPTS_LIST:
-                {
-                    final String sessionId = mcpBeginEx.promptsList().sessionId().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpPromptsListStream(
-                        supplyInitialId.applyAsLong(route.id), mcp);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpPromptsListStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.promptsList().sessionId().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_PROMPTS_GET:
-                {
-                    final String sessionId = mcpBeginEx.promptsGet().sessionId().asString();
-                    final String promptName = mcpBeginEx.promptsGet().name().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpPromptsGetStream(
-                        supplyInitialId.applyAsLong(route.id), mcp, promptName);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpPromptsGetStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.promptsGet().sessionId().asString(),
+                        mcpBeginEx.promptsGet().name().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_RESOURCES_LIST:
-                {
-                    final String sessionId = mcpBeginEx.resourcesList().sessionId().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpResourcesListStream(
-                        supplyInitialId.applyAsLong(route.id), mcp);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpResourcesListStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.resourcesList().sessionId().asString())::onAppMessage;
                     break;
-                }
                 case McpBeginExFW.KIND_RESOURCES_READ:
-                {
-                    final String sessionId = mcpBeginEx.resourcesRead().sessionId().asString();
-                    final String resourceUri = mcpBeginEx.resourcesRead().uri().asString();
-                    final McpStream mcp = new McpStream(
-                        sender, originId, routedId, initialId,
-                        route.id, affinity, authorization, sessionId);
-                    mcp.assignedRequestId = requestId++;
-                    mcp.http = new HttpResourcesReadStream(
-                        supplyInitialId.applyAsLong(route.id), mcp, resourceUri);
-                    newStream = mcp::onAppMessage;
+                    newStream = new McpResourcesReadStream(
+                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        mcpBeginEx.resourcesRead().sessionId().asString(),
+                        mcpBeginEx.resourcesRead().uri().asString())::onAppMessage;
                     break;
-                }
                 default:
                     break;
                 }
@@ -271,24 +221,22 @@ public final class McpClientFactory implements McpStreamFactory
         return newStream;
     }
 
-    private final class McpStream
+    private abstract class McpStream
     {
-        private final MessageConsumer sender;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long resolvedId;
-        private final long affinity;
-        private final long authorization;
-        private final String sessionId;
+        protected final MessageConsumer sender;
+        protected final long originId;
+        protected final long routedId;
+        protected final long initialId;
+        protected final long replyId;
+        protected final long resolvedId;
+        protected final long affinity;
+        protected final long authorization;
+        protected final String sessionId;
 
-        private HttpStream http;
-        boolean isLifecycle;
+        protected HttpStream http;
         boolean appClosedEmpty;
-        private int appDataSlot = NO_SLOT;
-        private int appDataOffset;
-        int assignedRequestId;
+        protected int appDataSlot = NO_SLOT;
+        protected int appDataOffset;
 
         private long initialSeq;
         private long initialAck;
@@ -380,8 +328,12 @@ public final class McpClientFactory implements McpStreamFactory
                 initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L, 0);
 
-            http.doNetBegin(traceId, authorization);
+            onAppBeginImpl(traceId);
         }
+
+        abstract void onAppBeginImpl(long traceId);
+
+        abstract void onAppEndImpl(long traceId);
 
         private void onAppData(
             DataFW data)
@@ -420,24 +372,7 @@ public final class McpClientFactory implements McpStreamFactory
             final long traceId = end.traceId();
             initialSeq = end.sequence();
             state = McpState.closedInitial(state);
-            if (isLifecycle)
-            {
-                sessions.remove(sessionId);
-                final long netInitialId2 = supplyInitialId.applyAsLong(resolvedId);
-                new HttpTerminateSession(netInitialId2, this).doNetBegin(traceId, authorization);
-            }
-            else if (appDataSlot != NO_SLOT)
-            {
-                final DirectBuffer slot = bufferPool.buffer(appDataSlot);
-                http.doNetBodyAndEnd(traceId, authorization, slot, 0, appDataOffset);
-                bufferPool.release(appDataSlot);
-                appDataSlot = NO_SLOT;
-                appDataOffset = 0;
-            }
-            else
-            {
-                appClosedEmpty = true;
-            }
+            onAppEndImpl(traceId);
         }
 
         private void onAppAbort(
@@ -584,6 +519,189 @@ public final class McpClientFactory implements McpStreamFactory
                 .build();
 
             sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+        }
+    }
+
+    private final class McpLifecycleStream extends McpStream
+    {
+        McpLifecycleStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            sessions.put(sessionId, this);
+            this.http = new HttpInitializeRequest(supplyInitialId.applyAsLong(resolvedId), this);
+        }
+
+        @Override
+        void onAppBeginImpl(
+            long traceId)
+        {
+            http.doNetBegin(traceId, authorization);
+        }
+
+        @Override
+        void onAppEndImpl(
+            long traceId)
+        {
+            sessions.remove(sessionId);
+            final long netInitialId2 = supplyInitialId.applyAsLong(resolvedId);
+            new HttpTerminateSession(netInitialId2, this).doNetBegin(traceId, authorization);
+        }
+    }
+
+    private abstract class McpRequestStream extends McpStream
+    {
+        int assignedRequestId;
+
+        McpRequestStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.assignedRequestId = requestId++;
+        }
+
+        @Override
+        final void onAppBeginImpl(
+            long traceId)
+        {
+            http.doNetBegin(traceId, authorization);
+        }
+
+        @Override
+        final void onAppEndImpl(
+            long traceId)
+        {
+            if (appDataSlot != NO_SLOT)
+            {
+                final DirectBuffer slot = bufferPool.buffer(appDataSlot);
+                http.doNetBodyAndEnd(traceId, authorization, slot, 0, appDataOffset);
+                bufferPool.release(appDataSlot);
+                appDataSlot = NO_SLOT;
+                appDataOffset = 0;
+            }
+            else
+            {
+                appClosedEmpty = true;
+            }
+        }
+    }
+
+    private final class McpToolsListStream extends McpRequestStream
+    {
+        McpToolsListStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpToolsListStream(supplyInitialId.applyAsLong(resolvedId), this);
+        }
+    }
+
+    private final class McpToolsCallStream extends McpRequestStream
+    {
+        McpToolsCallStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId,
+            String toolName)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpToolsCallStream(supplyInitialId.applyAsLong(resolvedId), this, toolName);
+        }
+    }
+
+    private final class McpPromptsListStream extends McpRequestStream
+    {
+        McpPromptsListStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpPromptsListStream(supplyInitialId.applyAsLong(resolvedId), this);
+        }
+    }
+
+    private final class McpPromptsGetStream extends McpRequestStream
+    {
+        McpPromptsGetStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId,
+            String promptName)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpPromptsGetStream(supplyInitialId.applyAsLong(resolvedId), this, promptName);
+        }
+    }
+
+    private final class McpResourcesListStream extends McpRequestStream
+    {
+        McpResourcesListStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpResourcesListStream(supplyInitialId.applyAsLong(resolvedId), this);
+        }
+    }
+
+    private final class McpResourcesReadStream extends McpRequestStream
+    {
+        McpResourcesReadStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String sessionId,
+            String resourceUri)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            this.http = new HttpResourcesReadStream(supplyInitialId.applyAsLong(resolvedId), this, resourceUri);
         }
     }
 
@@ -1100,11 +1218,14 @@ public final class McpClientFactory implements McpStreamFactory
 
     private abstract class HttpRequestStream extends HttpStream
     {
+        protected final McpRequestStream request;
+
         HttpRequestStream(
             long initialId,
-            McpStream mcp)
+            McpRequestStream mcp)
         {
             super(initialId, mcp);
+            this.request = mcp;
         }
 
         @Override
@@ -1114,7 +1235,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (sessions.containsKey(mcp.sessionId))
             {
                 final long netInitialId2 = supplyInitialId.applyAsLong(mcp.resolvedId);
-                new HttpNotifyCancelled(netInitialId2, mcp).doNetBegin(traceId);
+                new HttpNotifyCancelled(netInitialId2, request).doNetBegin(traceId);
             }
         }
 
@@ -1159,7 +1280,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         HttpToolsListStream(
             long initialId,
-            McpStream mcp)
+            McpRequestStream mcp)
         {
             super(initialId, mcp);
         }
@@ -1171,7 +1292,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int pos = offset;
             pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, mcp.assignedRequestId);
+            pos += buffer.putIntAscii(pos, request.assignedRequestId);
             pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
             return pos - offset;
         }
@@ -1199,7 +1320,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         HttpToolsCallStream(
             long initialId,
-            McpStream mcp,
+            McpRequestStream mcp,
             String toolName)
         {
             super(initialId, mcp);
@@ -1226,7 +1347,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 int pos = 0;
                 pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-                pos += codecBuffer.putIntAscii(pos, mcp.assignedRequestId);
+                pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
                 pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/call\",\"params\":");
                 codecBuffer.putBytes(pos, params, paramsOffset, paramsLength);
                 pos += paramsLength;
@@ -1257,7 +1378,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         HttpPromptsListStream(
             long initialId,
-            McpStream mcp)
+            McpRequestStream mcp)
         {
             super(initialId, mcp);
         }
@@ -1269,7 +1390,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int pos = offset;
             pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, mcp.assignedRequestId);
+            pos += buffer.putIntAscii(pos, request.assignedRequestId);
             pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
             return pos - offset;
         }
@@ -1297,7 +1418,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         HttpPromptsGetStream(
             long initialId,
-            McpStream mcp,
+            McpRequestStream mcp,
             String promptName)
         {
             super(initialId, mcp);
@@ -1311,7 +1432,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int pos = offset;
             pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, mcp.assignedRequestId);
+            pos += buffer.putIntAscii(pos, request.assignedRequestId);
             pos += buffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"prompts/get\",\"params\":{\"name\":\"");
             pos += buffer.putStringWithoutLengthAscii(pos, promptName);
@@ -1341,7 +1462,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         HttpResourcesListStream(
             long initialId,
-            McpStream mcp)
+            McpRequestStream mcp)
         {
             super(initialId, mcp);
         }
@@ -1353,7 +1474,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int pos = offset;
             pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, mcp.assignedRequestId);
+            pos += buffer.putIntAscii(pos, request.assignedRequestId);
             pos += buffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
             return pos - offset;
         }
@@ -1381,7 +1502,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         HttpResourcesReadStream(
             long initialId,
-            McpStream mcp,
+            McpRequestStream mcp,
             String resourceUri)
         {
             super(initialId, mcp);
@@ -1395,7 +1516,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int pos = offset;
             pos += buffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += buffer.putIntAscii(pos, mcp.assignedRequestId);
+            pos += buffer.putIntAscii(pos, request.assignedRequestId);
             pos += buffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"resources/read\",\"params\":{\"uri\":\"");
             pos += buffer.putStringWithoutLengthAscii(pos, resourceUri);
@@ -1519,7 +1640,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         HttpNotifyCancelled(
             long initialId,
-            McpStream mcp)
+            McpRequestStream mcp)
         {
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
