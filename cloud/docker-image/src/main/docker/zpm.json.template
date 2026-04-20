@@ -25,6 +25,7 @@
     "io.aklivity.zilla:binding-grpc-kafka",
     "io.aklivity.zilla:binding-kafka-grpc",
     "io.aklivity.zilla:binding-kafka",
+    "io.aklivity.zilla:binding-mcp",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-mqtt-kafka",
     "io.aklivity.zilla:binding-openapi",
@@ -65,6 +66,7 @@
     "io.aklivity.zilla:model-json",
     "io.aklivity.zilla:model-protobuf",
     "io.aklivity.zilla:resolver-env",
+    "io.aklivity.zilla:store-memory",
     "io.aklivity.zilla:vault-filesystem",
     "org.slf4j:slf4j-simple",
     "org.antlr:antlr4-runtime"
