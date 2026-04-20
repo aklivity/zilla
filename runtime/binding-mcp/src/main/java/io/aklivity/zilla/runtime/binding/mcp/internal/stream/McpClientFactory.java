@@ -678,8 +678,11 @@ public final class McpClientFactory implements McpStreamFactory
 
     private abstract class HttpStream
     {
+        protected final long originId;
+        protected final long routedId;
         protected final long initialId;
         protected final long replyId;
+        protected final long affinity;
         protected final McpStream mcp;
 
         protected MessageConsumer net;
@@ -704,8 +707,11 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             McpStream mcp)
         {
+            this.originId = mcp.originId;
+            this.routedId = mcp.resolvedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = mcp.affinity;
             this.mcp = mcp;
         }
 
@@ -765,7 +771,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            flushNetReplyWindow(begin.traceId());
+            flushNetReplyWindow(begin.traceId(), begin.authorization());
             onNetBeginImpl(begin);
         }
 
@@ -785,7 +791,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             onNetDataImpl(data);
-            flushNetReplyWindow(data.traceId());
+            flushNetReplyWindow(data.traceId(), data.authorization());
         }
 
         private void onNetFlush(
@@ -802,17 +808,18 @@ public final class McpClientFactory implements McpStreamFactory
             replyAck = replySeq;
 
             assert replyAck <= replySeq;
-            flushNetReplyWindow(flush.traceId());
+            flushNetReplyWindow(flush.traceId(), flush.authorization());
         }
 
         private void flushNetReplyWindow(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (net != null)
             {
-                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
+                doWindow(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
-                    traceId, mcp.authorization, 0L, 0);
+                    traceId, authorization, 0L, 0);
             }
         }
 
@@ -894,15 +901,15 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openingInitial(state);
 
             net = newStream(this::onNetMessage,
-                mcp.originId, mcp.resolvedId, initialId,
+                originId, routedId, initialId,
                 0, 0, 0,
-                traceId, authorization, mcp.affinity,
+                traceId, authorization, affinity,
                 httpBeginEx);
 
             if (net != null)
             {
                 replyMax = writeBuffer.capacity();
-                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
+                doWindow(net, originId, routedId, replyId,
                     0L, 0L, replyMax,
                     traceId, authorization, 0L, 0);
 
@@ -949,7 +956,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null && !McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
-                doAbort(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
+                doAbort(net, originId, routedId, initialId, traceId, authorization);
             }
         }
 
@@ -960,7 +967,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null && !McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
-                doReset(net, mcp.originId, mcp.resolvedId, replyId, traceId, authorization);
+                doReset(net, originId, routedId, replyId, traceId, authorization);
             }
         }
 
@@ -1009,7 +1016,7 @@ public final class McpClientFactory implements McpStreamFactory
             final int length = limit - offset;
             final int reserved = length;
 
-            doData(net, mcp.originId, mcp.resolvedId, initialId,
+            doData(net, originId, routedId, initialId,
                 traceId, authorization,
                 DATA_FLAGS_COMPLETE, 0, reserved,
                 buffer, offset, length);
@@ -1022,7 +1029,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (!McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
-                doEnd(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
+                doEnd(net, originId, routedId, initialId, traceId, authorization);
             }
         }
 
@@ -1056,7 +1063,7 @@ public final class McpClientFactory implements McpStreamFactory
             cleanupResponseSlot();
             if (net != null)
             {
-                doAbort(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
+                doAbort(net, originId, routedId, initialId, traceId, authorization);
             }
             mcp.doAppAbort(traceId);
         }
@@ -1137,12 +1144,13 @@ public final class McpClientFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
+            final long authorization = end.authorization();
 
-            final long netInitialId2 = supplyInitialId.applyAsLong(mcp.resolvedId);
+            final long netInitialId2 = supplyInitialId.applyAsLong(routedId);
             final HttpNotifyInitialized notify = new HttpNotifyInitialized(
                 netInitialId2, mcp, responseSessionId);
             mcp.http = notify;
-            notify.doNetBegin(traceId, mcp.authorization);
+            notify.doNetBegin(traceId, authorization);
         }
     }
 
@@ -1230,7 +1238,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (sessions.containsKey(mcp.sessionId))
             {
-                final long netInitialId2 = supplyInitialId.applyAsLong(mcp.resolvedId);
+                final long netInitialId2 = supplyInitialId.applyAsLong(routedId);
                 new HttpNotifyCancelled(netInitialId2, request).doNetBegin(traceId);
             }
         }
