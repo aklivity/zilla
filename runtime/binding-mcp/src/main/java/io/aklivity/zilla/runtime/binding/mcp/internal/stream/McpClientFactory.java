@@ -714,6 +714,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (net != null)
             {
+                replyMax = writeBuffer.capacity();
+                doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
+                    0L, 0L, replyMax,
+                    traceId, authorization, 0L, 0);
+
                 final int bodyLength = writeRequestBody(codecBuffer, 0);
                 if (bodyLength > 0)
                 {
