@@ -408,20 +408,10 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openingReply(state);
             state = McpState.openedReply(state);
 
-            final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(replyId)
-                .sequence(replySeq)
-                .acknowledge(replyAck)
-                .maximum(replyMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(beginEx.buffer(), beginEx.offset(), beginEx.sizeof())
-                .build();
-
-            sender.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+            doBegin(sender, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, affinity,
+                beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
         }
 
         void doAppData(
@@ -432,22 +422,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int reserved = length + replyPad;
 
-            final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(replyId)
-                .sequence(replySeq)
-                .acknowledge(replyAck)
-                .maximum(replyMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .flags(DATA_FLAGS_COMPLETE)
-                .budgetId(replyBud)
-                .reserved(reserved)
-                .payload(payload, offset, length)
-                .build();
-
-            sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+            doData(sender, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization,
+                DATA_FLAGS_COMPLETE, replyBud, reserved,
+                payload, offset, length);
 
             replySeq += reserved;
         }
@@ -455,70 +434,37 @@ public final class McpClientFactory implements McpStreamFactory
         void doAppEnd(
             long traceId)
         {
-            if (McpState.replyClosed(state))
+            if (!McpState.replyClosed(state))
             {
-                return;
+                state = McpState.closedReply(state);
+                doEnd(sender, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax,
+                    traceId, authorization);
             }
-            state = McpState.closedReply(state);
-
-            final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(replyId)
-                .sequence(replySeq)
-                .acknowledge(replyAck)
-                .maximum(replyMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .build();
-
-            sender.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
         }
 
         void doAppAbort(
             long traceId)
         {
-            if (McpState.replyClosed(state))
+            if (!McpState.replyClosed(state))
             {
-                return;
+                state = McpState.closedReply(state);
+                doAbort(sender, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax,
+                    traceId, authorization);
             }
-            state = McpState.closedReply(state);
-
-            final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(replyId)
-                .sequence(replySeq)
-                .acknowledge(replyAck)
-                .maximum(replyMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .build();
-
-            sender.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
         }
 
         void doAppReset(
             long traceId)
         {
-            if (McpState.initialClosed(state))
+            if (!McpState.initialClosed(state))
             {
-                return;
+                state = McpState.closedInitial(state);
+                doReset(sender, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax,
+                    traceId, authorization);
             }
-            state = McpState.closedInitial(state);
-
-            final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(initialId)
-                .sequence(initialSeq)
-                .acknowledge(initialAck)
-                .maximum(initialMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .build();
-
-            sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
         }
     }
 
@@ -1843,6 +1789,40 @@ public final class McpClientFactory implements McpStreamFactory
         return receiver;
     }
 
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        DirectBuffer extBuffer,
+        int extOffset,
+        int extLength)
+    {
+        final BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity);
+        if (extBuffer != null && extLength > 0)
+        {
+            builder.extension(extBuffer, extOffset, extLength);
+        }
+        final BeginFW begin = builder.build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
     private void doData(
         MessageConsumer receiver,
         long originId,
@@ -1857,13 +1837,34 @@ public final class McpClientFactory implements McpStreamFactory
         int offset,
         int length)
     {
+        doData(receiver, originId, routedId, streamId, 0L, 0L, 0,
+            traceId, authorization, flags, budgetId, reserved, payload, offset, length);
+    }
+
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        int flags,
+        long budgetId,
+        int reserved,
+        DirectBuffer payload,
+        int offset,
+        int length)
+    {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
             .flags(flags)
@@ -1883,13 +1884,27 @@ public final class McpClientFactory implements McpStreamFactory
         long traceId,
         long authorization)
     {
+        doEnd(receiver, originId, routedId, streamId, 0L, 0L, 0, traceId, authorization);
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
+    {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
             .build();
@@ -1905,13 +1920,27 @@ public final class McpClientFactory implements McpStreamFactory
         long traceId,
         long authorization)
     {
+        doAbort(receiver, originId, routedId, streamId, 0L, 0L, 0, traceId, authorization);
+    }
+
+    private void doAbort(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
+    {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
             .build();
@@ -1927,13 +1956,27 @@ public final class McpClientFactory implements McpStreamFactory
         long traceId,
         long authorization)
     {
+        doReset(receiver, originId, routedId, streamId, 0L, 0L, 0, traceId, authorization);
+    }
+
+    private void doReset(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
+    {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
             .build();
