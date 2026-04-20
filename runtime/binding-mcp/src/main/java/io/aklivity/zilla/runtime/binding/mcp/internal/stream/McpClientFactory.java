@@ -291,6 +291,16 @@ public final class McpClientFactory implements McpStreamFactory
         private int appDataOffset;
         int assignedRequestId;
 
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private long replyBud;
+        private int replyPad;
+
         McpStream(
             MessageConsumer sender,
             long originId,
@@ -361,7 +371,13 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openingInitial(state);
             state = McpState.openedInitial(state);
 
-            doWindow(sender, originId, routedId, initialId, traceId, authorization, 0, writeBuffer.capacity(), 0);
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            initialMax = writeBuffer.capacity();
+
+            doWindow(sender, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, 0L, 0);
 
             http.doNetBegin(traceId, authorization);
         }
@@ -369,6 +385,9 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppData(
             DataFW data)
         {
+            initialSeq = data.sequence() + data.reserved();
+            initialAck = initialSeq;
+
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
             {
@@ -388,12 +407,17 @@ public final class McpClientFactory implements McpStreamFactory
                     appDataOffset += payload.sizeof();
                 }
             }
+
+            doWindow(sender, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
+                data.traceId(), authorization, 0L, 0);
         }
 
         private void onAppEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
+            initialSeq = end.sequence();
             state = McpState.closedInitial(state);
             if (isLifecycle)
             {
@@ -429,6 +453,10 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppWindow(
             WindowFW window)
         {
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+            replyBud = window.budgetId();
+            replyPad = window.padding();
         }
 
         private void onAppReset(
@@ -448,9 +476,9 @@ public final class McpClientFactory implements McpStreamFactory
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
@@ -466,22 +494,26 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int length)
         {
+            final int reserved = length + replyPad;
+
             final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .flags(DATA_FLAGS_COMPLETE)
-                .budgetId(0)
-                .reserved(length)
+                .budgetId(replyBud)
+                .reserved(reserved)
                 .payload(payload, offset, length)
                 .build();
 
             sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+
+            replySeq += reserved;
         }
 
         void doAppEnd(
@@ -497,9 +529,9 @@ public final class McpClientFactory implements McpStreamFactory
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .build();
@@ -520,9 +552,9 @@ public final class McpClientFactory implements McpStreamFactory
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .build();
@@ -543,9 +575,9 @@ public final class McpClientFactory implements McpStreamFactory
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .build();
