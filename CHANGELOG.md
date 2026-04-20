@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.7...HEAD)
+
+**Implemented enhancements:**
+
+- binding-mcp: implement mcp · server binding [\#1668](https://github.com/aklivity/zilla/issues/1668)
+
+**Merged pull requests:**
+
+- Enhance metric resolution for raw protocol bindings [\#1730](https://github.com/aklivity/zilla/pull/1730) ([akrambek](https://github.com/akrambek))
+- fix\(ci\): wrap teardown if-expression entirely in ${{ }} [\#1729](https://github.com/aklivity/zilla/pull/1729) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): implement mcp · server binding [\#1705](https://github.com/aklivity/zilla/pull/1705) ([jfallows](https://github.com/jfallows))
+
 ## [1.1.7](https://github.com/aklivity/zilla/tree/1.1.7) (2026-04-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.1.6...1.1.7)
