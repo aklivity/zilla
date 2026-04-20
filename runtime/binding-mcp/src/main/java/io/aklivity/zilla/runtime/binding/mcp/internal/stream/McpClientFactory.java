@@ -401,6 +401,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppData(
             DataFW data)
         {
+            final long traceId = data.traceId();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
 
@@ -417,31 +418,64 @@ public final class McpClientFactory implements McpStreamFactory
             if (payload != null && payload.sizeof() > 0)
             {
                 appHasData = true;
-                http.doNetData(data.traceId(), authorization,
+                http.doNetData(traceId, authorization,
                     payload.buffer(), payload.offset(), payload.limit());
             }
 
-            doAppWindow(data.traceId(), authorization, 0L, 0);
+            doAppWindow(traceId, authorization, 0L, 0);
         }
 
         private void onAppEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
-            initialSeq = end.sequence();
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence;
             state = McpState.closedInitial(state);
+
+            assert initialAck <= initialSeq;
+
             onAppEndImpl(traceId);
         }
 
         private void onAppAbort(
             AbortFW abort)
         {
-            http.doNetAbort(abort.traceId(), authorization);
+            final long traceId = abort.traceId();
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence;
+            state = McpState.closedInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            http.doNetAbort(traceId, authorization);
         }
 
         private void onAppFlush(
             FlushFW flush)
         {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence + flush.reserved();
+
+            assert initialAck <= initialSeq;
         }
 
         private void onAppWindow(
@@ -466,7 +500,19 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppReset(
             ResetFW reset)
         {
-            http.doNetReset(reset.traceId(), authorization);
+            final long traceId = reset.traceId();
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+
+            state = McpState.closedReply(state);
+
+            assert replyAck <= replySeq;
+
+            http.doNetReset(traceId, authorization);
         }
 
         void doAppBegin(
@@ -568,7 +614,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.http = new HttpInitializeRequest(this);
         }
 
-        int registerRequest(
+        int register(
             McpRequestStream request)
         {
             final int id = nextRequestId++;
@@ -576,7 +622,7 @@ public final class McpClientFactory implements McpStreamFactory
             return id;
         }
 
-        void unregisterRequest(
+        void unregister(
             int id)
         {
             requests.remove(id);
@@ -609,7 +655,7 @@ public final class McpClientFactory implements McpStreamFactory
     private abstract class McpRequestStream extends McpStream
     {
         final McpLifecycleStream session;
-        final int assignedRequestId;
+        final int requestId;
 
         McpRequestStream(
             MessageConsumer sender,
@@ -623,7 +669,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session.sessionId);
             this.session = session;
-            this.assignedRequestId = session.registerRequest(this);
+            this.requestId = session.register(this);
         }
 
         @Override
@@ -642,7 +688,7 @@ public final class McpClientFactory implements McpStreamFactory
                 appClosedEmpty = true;
             }
             http.doNetEnd(traceId, authorization);
-            session.unregisterRequest(assignedRequestId);
+            session.unregister(requestId);
         }
     }
 
@@ -835,6 +881,8 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
 
@@ -847,13 +895,15 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            doNetWindow(begin.traceId(), begin.authorization(), 0L, 0);
             onNetBeginImpl(begin);
+            doNetWindow(traceId, authorization, 0L, 0);
         }
 
         private void onNetData(
             DataFW data)
         {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
 
@@ -867,12 +917,14 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             onNetDataImpl(data);
-            doNetWindow(data.traceId(), data.authorization(), 0L, 0);
+            doNetWindow(traceId, authorization, 0L, 0);
         }
 
         private void onNetFlush(
             FlushFW flush)
         {
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
 
@@ -884,7 +936,7 @@ public final class McpClientFactory implements McpStreamFactory
             replyAck = replySeq;
 
             assert replyAck <= replySeq;
-            doNetWindow(flush.traceId(), flush.authorization(), 0L, 0);
+            doNetWindow(traceId, authorization, 0L, 0);
         }
 
         private void doNetWindow(
@@ -904,14 +956,16 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetAbort(
             AbortFW abort)
         {
+            final long traceId = abort.traceId();
+
             state = McpState.closedReply(state);
             cleanupEncodeSlot();
-            cleanupResponseSlot();
+            cleanupDecodeSlot();
             if (!mcp.appClosedEmpty)
             {
-                doNotifyCancelled(abort.traceId());
+                doNotifyCancelled(traceId);
             }
-            mcp.doAppAbort(abort.traceId());
+            mcp.doAppAbort(traceId);
         }
 
         protected void doNotifyCancelled(
@@ -947,10 +1001,16 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetReset(
             ResetFW reset)
         {
+            final long traceId = reset.traceId();
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+
+            assert acknowledge <= sequence;
+
             state = McpState.closedInitial(state);
             cleanupEncodeSlot();
-            cleanupResponseSlot();
-            mcp.doAppReset(reset.traceId());
+            cleanupDecodeSlot();
+            mcp.doAppReset(traceId);
         }
 
         abstract void onNetBeginImpl(BeginFW begin);
@@ -1080,7 +1140,7 @@ public final class McpClientFactory implements McpStreamFactory
                     final int resultLength = decodeSlotOffset - resultStart - 1;
                     mcp.doAppData(traceId, buf, resultStart, resultLength);
                 }
-                cleanupResponseSlot();
+                cleanupDecodeSlot();
             }
         }
 
@@ -1153,7 +1213,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void cleanupResponseSlot()
+        private void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
             {
@@ -1168,7 +1228,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             cleanupEncodeSlot();
-            cleanupResponseSlot();
+            cleanupDecodeSlot();
             if (net != null)
             {
                 doAbort(net, originId, routedId, initialId, traceId, authorization);
@@ -1400,7 +1460,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
 
             doNetBegin(traceId, authorization, httpBeginEx);
@@ -1462,7 +1522,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/call\",\"params\":");
             doNetData(traceId, authorization, codecBuffer, 0, pos);
         }
@@ -1526,7 +1586,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
 
             doNetBegin(traceId, authorization, httpBeginEx);
@@ -1586,7 +1646,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"prompts/get\",\"params\":{\"name\":\"");
             pos += codecBuffer.putStringWithoutLengthAscii(pos, promptName);
@@ -1646,7 +1706,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
 
             doNetBegin(traceId, authorization, httpBeginEx);
@@ -1706,7 +1766,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.assignedRequestId);
+            pos += codecBuffer.putIntAscii(pos, request.requestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos,
                 ",\"method\":\"resources/read\",\"params\":{\"uri\":\"");
             pos += codecBuffer.putStringWithoutLengthAscii(pos, resourceUri);
@@ -1836,7 +1896,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
-            this.cancelledRequestId = mcp.assignedRequestId;
+            this.cancelledRequestId = mcp.requestId;
             this.authorization = mcp.authorization;
             this.originId = mcp.originId;
             this.resolvedId = mcp.resolvedId;
