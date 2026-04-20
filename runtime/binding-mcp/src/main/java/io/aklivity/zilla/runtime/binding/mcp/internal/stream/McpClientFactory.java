@@ -285,7 +285,6 @@ public final class McpClientFactory implements McpStreamFactory
 
         private HttpStream http;
         boolean isLifecycle;
-        int state;
         boolean appClosedEmpty;
         private int appDataSlot = NO_SLOT;
         private int appDataOffset;
@@ -300,6 +299,8 @@ public final class McpClientFactory implements McpStreamFactory
         private int replyMax;
         private long replyBud;
         private int replyPad;
+
+        private int state;
 
         McpStream(
             MessageConsumer sender,
@@ -588,8 +589,8 @@ public final class McpClientFactory implements McpStreamFactory
 
     private abstract class HttpStream
     {
-        protected final long netInitialId;
-        protected final long netReplyId;
+        protected final long initialId;
+        protected final long replyId;
         protected final McpStream mcp;
 
         protected MessageConsumer net;
@@ -599,22 +600,23 @@ public final class McpClientFactory implements McpStreamFactory
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
-        private int state;
         private int initialMax;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
 
-        private int responseSlot = NO_SLOT;
-        private int responseOffset;
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+
+        private int state;
 
         HttpStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            this.netInitialId = netInitialId;
-            this.netReplyId = supplyReplyId.applyAsLong(netInitialId);
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.mcp = mcp;
         }
 
@@ -692,7 +694,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (net != null)
             {
-                doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
+                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
                     replySeq, replyAck, replyMax,
                     traceId, mcp.authorization, 0L, 0);
             }
@@ -772,7 +774,7 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.openingInitial(state);
 
             net = newStream(this::onNetMessage,
-                mcp.originId, mcp.resolvedId, netInitialId,
+                mcp.originId, mcp.resolvedId, initialId,
                 0, 0, 0,
                 traceId, authorization, mcp.affinity,
                 httpBeginEx);
@@ -780,7 +782,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null)
             {
                 replyMax = writeBuffer.capacity();
-                doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
+                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
                     0L, 0L, replyMax,
                     traceId, authorization, 0L, 0);
 
@@ -804,7 +806,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                encodeSlot = bufferPool.acquire(netInitialId);
+                encodeSlot = bufferPool.acquire(initialId);
 
                 if (encodeSlot == NO_SLOT)
                 {
@@ -828,7 +830,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null && !McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
-                doAbort(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+                doAbort(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
             }
         }
 
@@ -839,7 +841,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null && !McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
-                doReset(net, mcp.originId, mcp.resolvedId, netReplyId, traceId, authorization);
+                doReset(net, mcp.originId, mcp.resolvedId, replyId, traceId, authorization);
             }
         }
 
@@ -848,16 +850,16 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (payload != null && payload.sizeof() > 0)
             {
-                if (responseSlot == NO_SLOT)
+                if (decodeSlot == NO_SLOT)
                 {
-                    responseSlot = bufferPool.acquire(netInitialId);
+                    decodeSlot = bufferPool.acquire(initialId);
                 }
 
-                if (responseSlot != NO_SLOT)
+                if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer buf = bufferPool.buffer(responseSlot);
-                    buf.putBytes(responseOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                    responseOffset += payload.sizeof();
+                    final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
+                    buf.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                    decodeSlotOffset += payload.sizeof();
                 }
             }
         }
@@ -865,13 +867,13 @@ public final class McpClientFactory implements McpStreamFactory
         protected void flushResponseToApp(
             long traceId)
         {
-            if (responseSlot != NO_SLOT)
+            if (decodeSlot != NO_SLOT)
             {
-                final DirectBuffer buf = bufferPool.buffer(responseSlot);
-                final int resultStart = findResultStart(buf, responseOffset);
+                final DirectBuffer buf = bufferPool.buffer(decodeSlot);
+                final int resultStart = findResultStart(buf, decodeSlotOffset);
                 if (resultStart >= 0)
                 {
-                    final int resultLength = responseOffset - resultStart - 1;
+                    final int resultLength = decodeSlotOffset - resultStart - 1;
                     mcp.doAppData(traceId, buf, resultStart, resultLength);
                 }
                 cleanupResponseSlot();
@@ -888,7 +890,7 @@ public final class McpClientFactory implements McpStreamFactory
             final int length = limit - offset;
             final int reserved = length;
 
-            doData(net, mcp.originId, mcp.resolvedId, netInitialId,
+            doData(net, mcp.originId, mcp.resolvedId, initialId,
                 traceId, authorization,
                 DATA_FLAGS_COMPLETE, 0, reserved,
                 buffer, offset, length);
@@ -901,7 +903,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (!McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
-                doEnd(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+                doEnd(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
             }
         }
 
@@ -919,11 +921,11 @@ public final class McpClientFactory implements McpStreamFactory
 
         private void cleanupResponseSlot()
         {
-            if (responseSlot != NO_SLOT)
+            if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(responseSlot);
-                responseSlot = NO_SLOT;
-                responseOffset = 0;
+                bufferPool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
             }
         }
 
@@ -935,7 +937,7 @@ public final class McpClientFactory implements McpStreamFactory
             cleanupResponseSlot();
             if (net != null)
             {
-                doAbort(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+                doAbort(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
             }
             mcp.doAppAbort(traceId);
         }
@@ -946,10 +948,10 @@ public final class McpClientFactory implements McpStreamFactory
         private String responseSessionId;
 
         HttpInitializeRequest(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
         }
 
         @Override
@@ -1033,11 +1035,11 @@ public final class McpClientFactory implements McpStreamFactory
         private final String sessionId;
 
         HttpNotifyInitialized(
-            long netInitialId,
+            long initialId,
             McpStream mcp,
             String sessionId)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
             this.sessionId = sessionId;
         }
 
@@ -1099,10 +1101,10 @@ public final class McpClientFactory implements McpStreamFactory
     private abstract class HttpRequestStream extends HttpStream
     {
         HttpRequestStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
         }
 
         @Override
@@ -1156,10 +1158,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpToolsListStream extends HttpRequestStream
     {
         HttpToolsListStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
         }
 
         @Override
@@ -1196,11 +1198,11 @@ public final class McpClientFactory implements McpStreamFactory
         private final String toolName;
 
         HttpToolsCallStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp,
             String toolName)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
             this.toolName = toolName;
         }
 
@@ -1254,10 +1256,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpPromptsListStream extends HttpRequestStream
     {
         HttpPromptsListStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
         }
 
         @Override
@@ -1294,11 +1296,11 @@ public final class McpClientFactory implements McpStreamFactory
         private final String promptName;
 
         HttpPromptsGetStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp,
             String promptName)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
             this.promptName = promptName;
         }
 
@@ -1338,10 +1340,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpResourcesListStream extends HttpRequestStream
     {
         HttpResourcesListStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
         }
 
         @Override
@@ -1378,11 +1380,11 @@ public final class McpClientFactory implements McpStreamFactory
         private final String resourceUri;
 
         HttpResourcesReadStream(
-            long netInitialId,
+            long initialId,
             McpStream mcp,
             String resourceUri)
         {
-            super(netInitialId, mcp);
+            super(initialId, mcp);
             this.resourceUri = resourceUri;
         }
 
@@ -1421,8 +1423,8 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpTerminateSession
     {
-        private final long netInitialId;
-        private final long netReplyId;
+        private final long initialId;
+        private final long replyId;
         private final McpStream mcp;
 
         private MessageConsumer net;
@@ -1430,11 +1432,11 @@ public final class McpClientFactory implements McpStreamFactory
         private boolean endSent;
 
         HttpTerminateSession(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            this.netInitialId = netInitialId;
-            this.netReplyId = supplyReplyId.applyAsLong(netInitialId);
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.mcp = mcp;
         }
 
@@ -1452,13 +1454,13 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            net = newStream(this::onNetMessage, mcp.originId, mcp.resolvedId, netInitialId,
+            net = newStream(this::onNetMessage, mcp.originId, mcp.resolvedId, initialId,
                 0, 0, 0, traceId, authorization, mcp.affinity, httpBeginEx);
 
             if (net != null && initialMax > 0)
             {
                 endSent = true;
-                doEnd(net, mcp.originId, mcp.resolvedId, netInitialId, traceId, authorization);
+                doEnd(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
             }
         }
 
@@ -1472,7 +1474,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                doWindow(net, mcp.originId, mcp.resolvedId, netReplyId,
+                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
                     begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
                 break;
             case WindowFW.TYPE_ID:
@@ -1481,7 +1483,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (!endSent && initialMax > 0)
                 {
                     endSent = true;
-                    doEnd(net, mcp.originId, mcp.resolvedId, netInitialId,
+                    doEnd(net, mcp.originId, mcp.resolvedId, initialId,
                         window.traceId(), mcp.authorization);
                 }
                 break;
@@ -1503,8 +1505,8 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpNotifyCancelled
     {
-        private final long netInitialId;
-        private final long netReplyId;
+        private final long initialId;
+        private final long replyId;
         private final String sessionId;
         private final int cancelledRequestId;
         private final long authorization;
@@ -1516,11 +1518,11 @@ public final class McpClientFactory implements McpStreamFactory
         private boolean bodySent;
 
         HttpNotifyCancelled(
-            long netInitialId,
+            long initialId,
             McpStream mcp)
         {
-            this.netInitialId = netInitialId;
-            this.netReplyId = supplyReplyId.applyAsLong(netInitialId);
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
             this.cancelledRequestId = mcp.assignedRequestId;
             this.authorization = mcp.authorization;
@@ -1543,7 +1545,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            net = newStream(this::onNetMessage, originId, resolvedId, netInitialId,
+            net = newStream(this::onNetMessage, originId, resolvedId, initialId,
                 0, 0, 0, traceId, authorization, affinity, httpBeginEx);
         }
 
@@ -1557,7 +1559,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                doWindow(net, originId, resolvedId, netReplyId,
+                doWindow(net, originId, resolvedId, replyId,
                     begin.traceId(), authorization, 0, writeBuffer.capacity(), 0);
                 break;
             case WindowFW.TYPE_ID:
@@ -1582,9 +1584,9 @@ public final class McpClientFactory implements McpStreamFactory
             pos += codecBuffer.putIntAscii(pos, cancelledRequestId);
             pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"reason\":\"User cancelled\"}}");
 
-            doData(net, originId, resolvedId, netInitialId,
+            doData(net, originId, resolvedId, initialId,
                 traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
-            doEnd(net, originId, resolvedId, netInitialId, traceId, authorization);
+            doEnd(net, originId, resolvedId, initialId, traceId, authorization);
         }
     }
 

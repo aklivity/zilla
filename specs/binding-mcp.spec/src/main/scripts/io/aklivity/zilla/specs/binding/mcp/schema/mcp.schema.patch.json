@@ -89,20 +89,6 @@
                                         },
                                         "additionalProperties": false
                                     }
-                                },
-                                "with":
-                                {
-                                    "properties":
-                                    {
-                                        "headers":
-                                        {
-                                            "type": "object",
-                                            "additionalProperties":
-                                            {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
