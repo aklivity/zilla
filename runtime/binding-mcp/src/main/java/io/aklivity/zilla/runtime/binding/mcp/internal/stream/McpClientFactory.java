@@ -300,8 +300,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected final String sessionId;
 
         protected HttpStream http;
-        boolean appClosedEmpty;
-        boolean appHasData;
 
         private long initialSeq;
         private long initialAck;
@@ -417,7 +415,6 @@ public final class McpClientFactory implements McpStreamFactory
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
             {
-                appHasData = true;
                 http.doNetData(traceId, authorization,
                     payload.buffer(), payload.offset(), payload.limit());
             }
@@ -460,6 +457,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
+            http.doNotifyCancelled(traceId);
             http.doNetAbort(traceId, authorization);
         }
 
@@ -512,6 +510,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            http.doNotifyCancelled(traceId);
             http.doNetReset(traceId, authorization);
         }
 
@@ -683,16 +682,44 @@ public final class McpClientFactory implements McpStreamFactory
         final void onAppEndImpl(
             long traceId)
         {
-            if (!appHasData)
-            {
-                appClosedEmpty = true;
-            }
             http.doNetEnd(traceId, authorization);
             session.unregister(requestId);
         }
     }
 
-    private final class McpToolsListStream extends McpRequestStream
+    private abstract class McpRequestManyStream extends McpRequestStream
+    {
+        McpRequestManyStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            McpLifecycleStream session)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+        }
+    }
+
+    private abstract class McpRequestOneStream extends McpRequestStream
+    {
+        McpRequestOneStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            McpLifecycleStream session)
+        {
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+        }
+    }
+
+    private final class McpToolsListStream extends McpRequestManyStream
     {
         McpToolsListStream(
             MessageConsumer sender,
@@ -709,7 +736,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpToolsCallStream extends McpRequestStream
+    private final class McpToolsCallStream extends McpRequestOneStream
     {
         McpToolsCallStream(
             MessageConsumer sender,
@@ -727,7 +754,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpPromptsListStream extends McpRequestStream
+    private final class McpPromptsListStream extends McpRequestManyStream
     {
         McpPromptsListStream(
             MessageConsumer sender,
@@ -744,7 +771,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpPromptsGetStream extends McpRequestStream
+    private final class McpPromptsGetStream extends McpRequestOneStream
     {
         McpPromptsGetStream(
             MessageConsumer sender,
@@ -762,7 +789,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpResourcesListStream extends McpRequestStream
+    private final class McpResourcesListStream extends McpRequestManyStream
     {
         McpResourcesListStream(
             MessageConsumer sender,
@@ -779,7 +806,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpResourcesReadStream extends McpRequestStream
+    private final class McpResourcesReadStream extends McpRequestOneStream
     {
         McpResourcesReadStream(
             MessageConsumer sender,
@@ -961,10 +988,6 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.closedReply(state);
             cleanupEncodeSlot();
             cleanupDecodeSlot();
-            if (!mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(traceId);
-            }
             mcp.doAppAbort(traceId);
         }
 
@@ -1478,10 +1501,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .toolsList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
@@ -1548,10 +1567,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .toolsCall(b -> b.sessionId(sid).name(name))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
@@ -1604,10 +1619,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .promptsList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
@@ -1668,10 +1679,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .promptsGet(b -> b.sessionId(sid).name(name))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
@@ -1724,10 +1731,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .resourcesList(b -> b.sessionId(sid))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
@@ -1788,10 +1791,6 @@ public final class McpClientFactory implements McpStreamFactory
                 .resourcesRead(b -> b.sessionId(sid).uri(uri))
                 .build();
             mcp.doAppBegin(begin.traceId(), beginEx);
-            if (mcp.appClosedEmpty)
-            {
-                doNotifyCancelled(begin.traceId());
-            }
         }
     }
 
