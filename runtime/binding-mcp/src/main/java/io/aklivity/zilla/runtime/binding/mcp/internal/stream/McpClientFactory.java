@@ -331,9 +331,9 @@ public final class McpClientFactory implements McpStreamFactory
             initialAck = begin.acknowledge();
             initialMax = writeBuffer.capacity();
 
-            doAppWindow(traceId, authorization, 0L, 0);
-
             onAppBeginImpl(traceId);
+
+            doAppWindow(traceId, authorization, 0L, 0);
         }
 
         abstract void onAppBeginImpl(long traceId);
