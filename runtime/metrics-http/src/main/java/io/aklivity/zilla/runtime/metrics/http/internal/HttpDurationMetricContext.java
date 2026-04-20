@@ -41,14 +41,17 @@ public final class HttpDurationMetricContext implements MetricContext
 {
     private final String group;
     private final Metric.Kind kind;
+    private final ToIntFunction<String> supplyLabelId;
     private final FrameFW frameRO = new FrameFW();
 
     public HttpDurationMetricContext(
         String group,
-        Metric.Kind kind)
+        Metric.Kind kind,
+        ToIntFunction<String> supplyLabelId)
     {
         this.group = group;
         this.kind = kind;
+        this.supplyLabelId = supplyLabelId;
     }
 
     @Override
@@ -79,8 +82,7 @@ public final class HttpDurationMetricContext implements MetricContext
     @Override
     public MessageConsumer supply(
         IntFunction<LongConsumer> recorder,
-        List<AttributeConfig> attributes,
-        ToIntFunction<String> supplyLabelId)
+        List<AttributeConfig> attributes)
     {
         HttpAttributeHelper helper = new HttpAttributeHelper(attributes, supplyLabelId);
         return new HttpDurationWithAttributesHandler(recorder, helper);

@@ -52,6 +52,6 @@ public class HttpActiveRequestsMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new HttpActiveRequestsMetricContext(GROUP, kind());
+        return new HttpActiveRequestsMetricContext(GROUP, kind(), context::supplyTypeId);
     }
 }
