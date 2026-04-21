@@ -1039,7 +1039,7 @@ public final class McpClientFactory implements McpStreamFactory
         HttpStream(
             McpStream mcp)
         {
-            this.originId = mcp.originId;
+            this.originId = mcp.routedId;
             this.routedId = mcp.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
