@@ -561,14 +561,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doCancel(traceId, authorization);
             http.doNetAbort(traceId, authorization);
-        }
-
-        void doCancel(
-            long traceId,
-            long authorization)
-        {
         }
 
         private void onAppFlush(
@@ -629,7 +622,6 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doCancel(traceId, authorization);
             http.doNetReset(traceId, authorization);
         }
 
@@ -830,7 +822,24 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        final void doCancel(
+        final void onAppAbortImpl(
+            long traceId,
+            long authorization)
+        {
+            doCancel(traceId, authorization);
+            super.onAppAbortImpl(traceId, authorization);
+        }
+
+        @Override
+        final void onAppResetImpl(
+            long traceId,
+            long authorization)
+        {
+            doCancel(traceId, authorization);
+            super.onAppResetImpl(traceId, authorization);
+        }
+
+        private void doCancel(
             long traceId,
             long authorization)
         {
