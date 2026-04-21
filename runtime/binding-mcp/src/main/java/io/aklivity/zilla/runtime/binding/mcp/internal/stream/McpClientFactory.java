@@ -816,7 +816,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             http.doEncodeRequestEnd(traceId, authorization);
-            ((HttpRequestStream) http).doUnregister();
         }
     }
 
@@ -1590,11 +1589,6 @@ public final class McpClientFactory implements McpStreamFactory
             this.decodedResultStart = -1;
         }
 
-        void doUnregister()
-        {
-            request.session.unregister(requestId);
-        }
-
         private void flushResponseToApp(
             long traceId,
             long authorization)
@@ -1652,6 +1646,7 @@ public final class McpClientFactory implements McpStreamFactory
             final long authorization = end.authorization();
             flushResponseToApp(traceId, authorization);
             mcp.doAppEnd(traceId, authorization);
+            request.session.unregister(requestId);
         }
     }
 
@@ -1759,7 +1754,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            super.doEncodeRequestEnd(traceId, authorization);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1864,10 +1859,8 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/get\",\"params\":");
+            final int pos = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"prompts/get\",\"params\":".formatted(requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
@@ -1880,7 +1873,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            super.doEncodeRequestEnd(traceId, authorization);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1985,10 +1978,8 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/read\",\"params\":");
+            final int pos = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"resources/read\",\"params\":".formatted(requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
@@ -2001,7 +1992,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            super.doEncodeRequestEnd(traceId, authorization);
+            doNetEnd(traceId, authorization);
         }
 
         @Override
