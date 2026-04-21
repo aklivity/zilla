@@ -1986,7 +1986,16 @@ public final class McpClientFactory implements McpStreamFactory
 
         private MessageConsumer net;
         private long authorization;
-        private boolean bodySent;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private int state;
 
         HttpNotifyCancelled(
             McpRequestStream mcp)
@@ -2006,6 +2015,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             this.authorization = authorization;
+            state = McpState.openingInitial(state);
+
             final String sid = sessionId;
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -2023,7 +2034,66 @@ public final class McpClientFactory implements McpStreamFactory
                 .build();
 
             net = newStream(this::onNetMessage, originId, routedId, initialId,
-                0, 0, 0, traceId, authorization, affinity, httpBeginEx);
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, httpBeginEx);
+        }
+
+        void doNetData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+            final int reserved = length;
+
+            doData(net, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization,
+                DATA_FLAGS_COMPLETE, 0L, reserved,
+                buffer, offset, length);
+
+            initialSeq += reserved;
+        }
+
+        void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doEnd(net, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax,
+                    traceId, authorization);
+            }
+        }
+
+        void doNetAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doAbort(net, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax,
+                    traceId, authorization);
+            }
+        }
+
+        void doNetReset(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doReset(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax,
+                    traceId, authorization);
+            }
         }
 
         private void onNetMessage(
@@ -2042,6 +2112,18 @@ public final class McpClientFactory implements McpStreamFactory
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onNetWindow(window);
                 break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
             default:
                 break;
             }
@@ -2050,29 +2132,70 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
+            final long traceId = begin.traceId();
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+
+            assert acknowledge <= sequence;
+
+            state = McpState.openedReply(state);
+            replySeq = sequence;
+            replyAck = acknowledge;
+            replyMax = writeBuffer.capacity();
+
+            assert replyAck <= replySeq;
+
             doWindow(net, originId, routedId, replyId,
-                begin.traceId(), authorization, 0, writeBuffer.capacity(), 0);
+                replySeq, replyAck, replyMax,
+                traceId, authorization, 0L, 0);
         }
 
         private void onNetWindow(
             WindowFW window)
         {
-            if (!bodySent)
-            {
-                bodySent = true;
-                final long traceId = window.traceId();
+            final long traceId = window.traceId();
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
 
+            assert acknowledge <= sequence;
+
+            state = McpState.openedInitial(state);
+            initialAck = acknowledge;
+            initialMax = maximum;
+
+            if (!McpState.initialClosed(state))
+            {
                 final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                     """
                     {"jsonrpc":"2.0","method":"notifications/cancelled","params":\
                     {"requestId":%d,"reason":"User cancelled"}}\
                     """.formatted(requestId));
 
-                doData(net, originId, routedId, initialId,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, codecLength,
-                    codecBuffer, 0, codecLength);
-                doEnd(net, originId, routedId, initialId, traceId, authorization);
+                doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+                doNetEnd(traceId, authorization);
             }
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            doNetEnd(traceId, authorization);
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+            doNetAbort(traceId, authorization);
+        }
+
+        private void onNetReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            doNetReset(traceId, authorization);
         }
     }
 
@@ -2158,24 +2281,6 @@ public final class McpClientFactory implements McpStreamFactory
         final BeginFW begin = builder.build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doData(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long traceId,
-        long authorization,
-        int flags,
-        long budgetId,
-        int reserved,
-        DirectBuffer payload,
-        int offset,
-        int length)
-    {
-        doData(receiver, originId, routedId, streamId, 0L, 0L, 0,
-            traceId, authorization, flags, budgetId, reserved, payload, offset, length);
     }
 
     private void doData(
