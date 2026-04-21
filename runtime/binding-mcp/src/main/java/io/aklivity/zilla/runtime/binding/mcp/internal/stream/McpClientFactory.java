@@ -141,31 +141,31 @@ public final class McpClientFactory implements McpStreamFactory
 
         final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories = new Int2ObjectHashMap<>();
         requestFactories.put(McpBeginExFW.KIND_TOOLS_LIST,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpToolsListStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session));
+                    affinity, session));
         requestFactories.put(McpBeginExFW.KIND_TOOLS_CALL,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpToolsCallStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session,
+                    affinity, session,
                     beginEx.toolsCall().name().asString()));
         requestFactories.put(McpBeginExFW.KIND_PROMPTS_LIST,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpPromptsListStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session));
+                    affinity, session));
         requestFactories.put(McpBeginExFW.KIND_PROMPTS_GET,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpPromptsGetStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session,
+                    affinity, session,
                     beginEx.promptsGet().name().asString()));
         requestFactories.put(McpBeginExFW.KIND_RESOURCES_LIST,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpResourcesListStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session));
+                    affinity, session));
         requestFactories.put(McpBeginExFW.KIND_RESOURCES_READ,
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) ->
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) ->
                 new McpResourcesReadStream(sender, originId, routedId, initialId, resolvedId,
-                    affinity, authorization, session,
+                    affinity, session,
                     beginEx.resourcesRead().uri().asString()));
         this.requestFactories = requestFactories;
     }
@@ -189,7 +189,7 @@ public final class McpClientFactory implements McpStreamFactory
     private interface McpRequestStreamFactory
     {
         McpRequestStreamFactory DEFAULT =
-            (session, sender, originId, routedId, initialId, resolvedId, affinity, authorization, beginEx) -> null;
+            (session, sender, originId, routedId, initialId, resolvedId, affinity, beginEx) -> null;
 
         McpRequestStream newRequest(
             McpLifecycleStream session,
@@ -199,7 +199,6 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpBeginExFW mcpBeginEx);
     }
 
@@ -262,7 +261,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (mcpBeginEx.kind() == McpBeginExFW.KIND_LIFECYCLE)
                 {
                     newStream = new McpLifecycleStream(
-                        sender, originId, routedId, initialId, route.id, affinity, authorization,
+                        sender, originId, routedId, initialId, route.id, affinity,
                         mcpBeginEx.lifecycle().sessionId().asString(), route.with)::onAppMessage;
                 }
                 else
@@ -276,7 +275,7 @@ public final class McpClientFactory implements McpStreamFactory
                             mcpBeginEx.kind(), McpRequestStreamFactory.DEFAULT);
                         final McpRequestStream request = requestFactory.newRequest(
                             session, sender, originId, routedId, initialId, route.id,
-                            affinity, authorization, mcpBeginEx);
+                            affinity, mcpBeginEx);
                         if (request != null)
                         {
                             newStream = request::onAppMessage;
@@ -298,7 +297,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected final long replyId;
         protected final long resolvedId;
         protected final long affinity;
-        protected final long authorization;
         protected final String sessionId;
         protected final McpWithConfig with;
 
@@ -323,7 +321,6 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             String sessionId,
             McpWithConfig with)
         {
@@ -334,7 +331,6 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.resolvedId = resolvedId;
             this.affinity = affinity;
-            this.authorization = authorization;
             this.sessionId = sessionId;
             this.with = with;
         }
@@ -384,6 +380,7 @@ public final class McpClientFactory implements McpStreamFactory
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
 
             state = McpState.openingInitial(state);
             state = McpState.openedInitial(state);
@@ -392,19 +389,20 @@ public final class McpClientFactory implements McpStreamFactory
             initialAck = begin.acknowledge();
             initialMax = writeBuffer.capacity();
 
-            onAppBeginImpl(traceId);
+            onAppBeginImpl(traceId, authorization);
 
             doAppWindow(traceId, authorization, 0L, 0);
         }
 
-        abstract void onAppBeginImpl(long traceId);
+        abstract void onAppBeginImpl(long traceId, long authorization);
 
-        abstract void onAppEndImpl(long traceId);
+        abstract void onAppEndImpl(long traceId, long authorization);
 
         private void onAppData(
             DataFW data)
         {
             final long traceId = data.traceId();
+            final long authorization = data.authorization();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
 
@@ -431,6 +429,7 @@ public final class McpClientFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
+            final long authorization = end.authorization();
             final long sequence = end.sequence();
             final long acknowledge = end.acknowledge();
 
@@ -443,13 +442,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            onAppEndImpl(traceId);
+            onAppEndImpl(traceId, authorization);
         }
 
         private void onAppAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
             final long sequence = abort.sequence();
             final long acknowledge = abort.acknowledge();
 
@@ -462,13 +462,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            onAppAbortImpl(traceId);
+            onAppAbortImpl(traceId, authorization);
         }
 
         void onAppAbortImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            http.doNotifyCancelled(traceId);
+            http.doNotifyCancelled(traceId, authorization);
             http.doNetAbort(traceId, authorization);
         }
 
@@ -511,6 +512,7 @@ public final class McpClientFactory implements McpStreamFactory
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
 
@@ -522,18 +524,20 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            onAppResetImpl(traceId);
+            onAppResetImpl(traceId, authorization);
         }
 
         void onAppResetImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            http.doNotifyCancelled(traceId);
+            http.doNotifyCancelled(traceId, authorization);
             http.doNetReset(traceId, authorization);
         }
 
         void doAppBegin(
             long traceId,
+            long authorization,
             McpBeginExFW beginEx)
         {
             state = McpState.openingReply(state);
@@ -546,6 +550,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         void doAppData(
             long traceId,
+            long authorization,
             DirectBuffer payload,
             int offset,
             int length)
@@ -562,7 +567,8 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void doAppEnd(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!McpState.replyClosed(state))
             {
@@ -574,7 +580,8 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void doAppAbort(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!McpState.replyClosed(state))
             {
@@ -586,7 +593,8 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void doAppReset(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!McpState.initialClosed(state))
             {
@@ -622,11 +630,10 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             String sessionId,
             McpWithConfig with)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId, with);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, sessionId, with);
             sessions.put(sessionId, this);
             this.http = new HttpInitializeRequest(this);
         }
@@ -647,40 +654,45 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onAppBeginImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             http.doNetBegin(traceId, authorization);
         }
 
         @Override
         void onAppEndImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            terminateSession(traceId);
+            terminateSession(traceId, authorization);
         }
 
         @Override
         void onAppAbortImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            terminateSession(traceId);
+            terminateSession(traceId, authorization);
         }
 
         @Override
         void onAppResetImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            terminateSession(traceId);
+            terminateSession(traceId, authorization);
         }
 
         private void terminateSession(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             sessions.remove(sessionId);
 
             for (McpRequestStream request : requests.values())
             {
-                request.doAppAbort(traceId);
+                request.doAppAbort(traceId, authorization);
                 request.http.doNetAbort(traceId, authorization);
             }
             requests.clear();
@@ -700,24 +712,25 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+            super(sender, originId, routedId, initialId, resolvedId, affinity,
                 session.sessionId, session.with);
             this.session = session;
         }
 
         @Override
         final void onAppBeginImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             http.doNetBegin(traceId, authorization);
         }
 
         @Override
         final void onAppEndImpl(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             http.doNetEnd(traceId, authorization);
             ((HttpRequestStream) http).doUnregister();
@@ -733,10 +746,9 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
         }
     }
 
@@ -749,10 +761,9 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
         }
     }
 
@@ -765,10 +776,9 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpToolsListStream(this);
         }
     }
@@ -782,11 +792,10 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session,
             String toolName)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpToolsCallStream(this, toolName);
         }
     }
@@ -800,10 +809,9 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpPromptsListStream(this);
         }
     }
@@ -817,11 +825,10 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session,
             String promptName)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpPromptsGetStream(this, promptName);
         }
     }
@@ -835,10 +842,9 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpResourcesListStream(this);
         }
     }
@@ -852,11 +858,10 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization,
             McpLifecycleStream session,
             String resourceUri)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, session);
             this.http = new HttpResourcesReadStream(this, resourceUri);
         }
     }
@@ -1018,6 +1023,7 @@ public final class McpClientFactory implements McpStreamFactory
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
             final long sequence = abort.sequence();
             final long acknowledge = abort.acknowledge();
 
@@ -1026,11 +1032,12 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.closedReply(state);
             cleanupEncodeSlot();
             cleanupDecodeSlot();
-            mcp.doAppAbort(traceId);
+            mcp.doAppAbort(traceId, authorization);
         }
 
         protected void doNotifyCancelled(
-            long traceId)
+            long traceId,
+            long authorization)
         {
         }
 
@@ -1063,6 +1070,7 @@ public final class McpClientFactory implements McpStreamFactory
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
 
@@ -1071,7 +1079,7 @@ public final class McpClientFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
             cleanupEncodeSlot();
             cleanupDecodeSlot();
-            mcp.doAppReset(traceId);
+            mcp.doAppReset(traceId, authorization);
         }
 
         abstract void onNetBeginImpl(BeginFW begin);
@@ -1160,7 +1168,8 @@ public final class McpClientFactory implements McpStreamFactory
 
 
         protected void flushResponseToApp(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (decodeSlot != NO_SLOT)
             {
@@ -1169,7 +1178,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if (resultStart >= 0)
                 {
                     final int resultLength = decodeSlotOffset - resultStart - 1;
-                    mcp.doAppData(traceId, buf, resultStart, resultLength);
+                    mcp.doAppData(traceId, authorization, buf, resultStart, resultLength);
                 }
                 cleanupDecodeSlot();
             }
@@ -1263,7 +1272,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 doAbort(net, originId, routedId, initialId, traceId, authorization);
             }
-            mcp.doAppAbort(traceId);
+            mcp.doAppAbort(traceId, authorization);
         }
     }
 
@@ -1418,12 +1427,13 @@ public final class McpClientFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
+            final long authorization = end.authorization();
             final String sid = sessionId;
             final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .lifecycle(b -> b.sessionId(sid))
                 .build();
-            mcp.doAppBegin(traceId, beginEx);
+            mcp.doAppBegin(traceId, authorization, beginEx);
         }
     }
 
@@ -1447,11 +1457,12 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         protected void doNotifyCancelled(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (sessions.containsKey(mcp.sessionId))
             {
-                new HttpNotifyCancelled(this).doNetBegin(traceId);
+                new HttpNotifyCancelled(this).doNetBegin(traceId, authorization);
             }
         }
 
@@ -1481,8 +1492,9 @@ public final class McpClientFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
-            flushResponseToApp(traceId);
-            mcp.doAppEnd(traceId);
+            final long authorization = end.authorization();
+            flushResponseToApp(traceId, authorization);
+            mcp.doAppEnd(traceId, authorization);
         }
     }
 
@@ -1536,7 +1548,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .toolsList(b -> b.sessionId(sid))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1604,7 +1616,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .toolsCall(b -> b.sessionId(sid).name(name))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1658,7 +1670,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .promptsList(b -> b.sessionId(sid))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1720,7 +1732,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .promptsGet(b -> b.sessionId(sid).name(name))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1774,7 +1786,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .resourcesList(b -> b.sessionId(sid))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1836,7 +1848,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .typeId(mcpTypeId)
                 .resourcesRead(b -> b.sessionId(sid).uri(uri))
                 .build();
-            mcp.doAppBegin(begin.traceId(), beginEx);
+            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
         }
     }
 
@@ -1922,7 +1934,7 @@ public final class McpClientFactory implements McpStreamFactory
             BeginFW begin)
         {
             doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
+                begin.traceId(), begin.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
         private void onNetWindow(
@@ -1933,20 +1945,20 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 endSent = true;
                 doEnd(net, mcp.originId, mcp.resolvedId, initialId,
-                    window.traceId(), mcp.authorization);
+                    window.traceId(), window.authorization());
             }
         }
 
         private void onNetEnd(
             EndFW end)
         {
-            mcp.doAppEnd(end.traceId());
+            mcp.doAppEnd(end.traceId(), end.authorization());
         }
 
         private void onNetAbort(
             AbortFW abort)
         {
-            mcp.doAppAbort(abort.traceId());
+            mcp.doAppAbort(abort.traceId(), abort.authorization());
         }
     }
 
@@ -1956,13 +1968,13 @@ public final class McpClientFactory implements McpStreamFactory
         private final long replyId;
         private final String sessionId;
         private final int cancelledRequestId;
-        private final long authorization;
         private final long originId;
         private final long resolvedId;
         private final long affinity;
         private final McpWithConfig with;
 
         private MessageConsumer net;
+        private long authorization;
         private boolean bodySent;
 
         HttpNotifyCancelled(
@@ -1973,7 +1985,6 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
             this.cancelledRequestId = http.requestId;
-            this.authorization = mcp.authorization;
             this.originId = mcp.originId;
             this.resolvedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
@@ -1981,8 +1992,10 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void doNetBegin(
-            long traceId)
+            long traceId,
+            long authorization)
         {
+            this.authorization = authorization;
             final String sid = sessionId;
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
