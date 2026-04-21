@@ -647,6 +647,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void onNetData(
+            DataFW data)
+        {
+        }
+
         void onNetEnd(
             EndFW end)
         {
@@ -823,6 +828,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        void onNetData(
+            DataFW data)
+        {
+            http.doReplyConsumed(data.traceId(), data.authorization(), data.reserved());
+        }
+
+        @Override
         void onNetEnd(
             EndFW end)
         {
@@ -902,6 +914,13 @@ public final class McpClientFactory implements McpStreamFactory
             BeginFW begin)
         {
             doAppBegin(begin.traceId(), begin.authorization(), null);
+        }
+
+        @Override
+        final void onNetData(
+            DataFW data)
+        {
+            ((HttpRequestStream) http).onNetResponseData(data);
         }
 
         @Override
@@ -1187,7 +1206,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            onNetDataImpl(data);
+            mcp.onNetData(data);
         }
 
         void doReplyConsumed(
@@ -1319,8 +1338,6 @@ public final class McpClientFactory implements McpStreamFactory
             cleanupEncodeSlot();
             mcp.doAppReset(traceId, authorization);
         }
-
-        abstract void onNetDataImpl(DataFW data);
 
         void onAppReplyWindow(
             long traceId,
@@ -1552,13 +1569,6 @@ public final class McpClientFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
-
-        @Override
-        void onNetDataImpl(
-            DataFW data)
-        {
-            doReplyConsumed(data.traceId(), data.authorization(), data.reserved());
-        }
     }
 
     private final class HttpNotifyInitialized extends HttpStream
@@ -1596,13 +1606,6 @@ public final class McpClientFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
-
-        @Override
-        void onNetDataImpl(
-            DataFW data)
-        {
-            doReplyConsumed(data.traceId(), data.authorization(), data.reserved());
-        }
     }
 
     private abstract class HttpRequestStream extends HttpStream
@@ -1623,8 +1626,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.decodedResultStart = -1;
         }
 
-        @Override
-        void onNetDataImpl(
+        void onNetResponseData(
             DataFW data)
         {
             final long traceId = data.traceId();
