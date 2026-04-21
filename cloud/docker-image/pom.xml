@@ -33,6 +33,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-json</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>manager</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -106,6 +112,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka-grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mcp</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -334,6 +346,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>model-protobuf</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>store-memory</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

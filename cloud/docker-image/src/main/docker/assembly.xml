@@ -27,6 +27,7 @@
         <include>io/aklivity/zilla/common/**</include>
         <include>io/aklivity/zilla/runtime/**</include>
         <include>io/aklivity/zilla/engine/**</include>
+        <include>io/aklivity/zilla/common-*/**</include>
         <include>io/aklivity/zilla/binding-*/**</include>
         <include>io/aklivity/zilla/catalog-*/**</include>
         <include>io/aklivity/zilla/exporter-*/**</include>
@@ -35,6 +36,7 @@
         <include>io/aklivity/zilla/metrics-*/**</include>
         <include>io/aklivity/zilla/model-*/**</include>
         <include>io/aklivity/zilla/resolver-*/**</include>
+        <include>io/aklivity/zilla/store-*/**</include>
         <include>io/aklivity/zilla/vault-*/**</include>
         <include>io/aklivity/zilla/command/**</include>
         <include>io/aklivity/zilla/command-*/**</include>

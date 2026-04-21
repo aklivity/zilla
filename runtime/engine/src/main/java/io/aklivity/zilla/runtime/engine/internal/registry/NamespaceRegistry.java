@@ -195,14 +195,17 @@ public class NamespaceRegistry
                 int localMetricId = NamespacedId.localId(metricId);
                 IntFunction<LongConsumer> recorderByAttrs = attrId ->
                     supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId);
-                recorderByAttrs.apply(0); // eagerly create default slot in layout
+                recorderByAttrs.apply(0);
+
                 MessageConsumer handler = bindingAttributes.isEmpty()
                     ? metric.supplyHandler(recorderByAttrs.apply(0))
-                    : metric.supplyHandler(recorderByAttrs, bindingAttributes, supplyLabelId);
+                    : metric.supplyHandler(recorderByAttrs, bindingAttributes);
+
                 int originTypeId = binding.originTypeId() != BindingHandler.STREAM_TYPE
                     ? binding.originTypeId() : (int) config.originTypeId;
                 int routedTypeId = binding.routedTypeId() != BindingHandler.STREAM_TYPE
                     ? binding.routedTypeId() : (int) config.routedTypeId;
+
                 MetricHandlerKind kind = resolveKind(originTypeId, routedTypeId, metric.group());
                 MetricContext.Direction direction = metric.direction();
                 if (kind == ROUTED)

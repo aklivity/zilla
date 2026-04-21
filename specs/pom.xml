@@ -36,6 +36,7 @@
     <module>binding-http-filesystem.spec</module>
     <module>binding-http-kafka.spec</module>
     <module>binding-grpc-kafka.spec</module>
+    <module>binding-mcp.spec</module>
     <module>binding-mqtt-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
@@ -120,6 +121,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-http-filesystem.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
