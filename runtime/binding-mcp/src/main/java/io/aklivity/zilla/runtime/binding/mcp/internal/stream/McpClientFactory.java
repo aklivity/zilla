@@ -621,6 +621,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void onNetBegin(
+            BeginFW begin)
+        {
+        }
+
         void doAppBegin(
             long traceId,
             long authorization,
@@ -707,6 +712,7 @@ public final class McpClientFactory implements McpStreamFactory
     {
         private final Int2ObjectHashMap<McpRequestStream> requests = new Int2ObjectHashMap<>();
 
+        String responseSessionId;
         private int nextRequestId = 2;
 
         McpLifecycleStream(
@@ -746,6 +752,32 @@ public final class McpClientFactory implements McpStreamFactory
             this.http = new HttpInitializeRequest(this);
             http.doEncodeRequestBegin(traceId, authorization);
             http.doEncodeRequestEnd(traceId, authorization);
+        }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            if (responseSessionId == null)
+            {
+                responseSessionId = sessionId;
+
+                final OctetsFW ext = begin.extension();
+                if (ext.sizeof() > 0)
+                {
+                    final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
+                        ext.buffer(), ext.offset(), ext.limit());
+                    if (httpBeginEx != null)
+                    {
+                        final HttpHeaderFW sessionHeader = httpBeginEx.headers()
+                            .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
+                        if (sessionHeader != null)
+                        {
+                            responseSessionId = sessionHeader.value().asString();
+                        }
+                    }
+                }
+            }
         }
 
         @Override
@@ -853,10 +885,23 @@ public final class McpClientFactory implements McpStreamFactory
             this.http = new HttpToolsListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .toolsList(b -> b.sessionId(sessionId))
+                .build());
+        }
     }
 
     private final class McpToolsCallStream extends McpRequestOneStream
     {
+        private String toolName;
+
         McpToolsCallStream(
             McpLifecycleStream session,
             MessageConsumer sender,
@@ -876,8 +921,21 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpToolsCallStream(this, mcpBeginEx.toolsCall().name().asString());
+            this.toolName = mcpBeginEx.toolsCall().name().asString();
+            this.http = new HttpToolsCallStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
+        }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            final String name = toolName;
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .toolsCall(b -> b.sessionId(sessionId).name(name))
+                .build());
         }
     }
 
@@ -905,10 +963,23 @@ public final class McpClientFactory implements McpStreamFactory
             this.http = new HttpPromptsListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .promptsList(b -> b.sessionId(sessionId))
+                .build());
+        }
     }
 
     private final class McpPromptsGetStream extends McpRequestOneStream
     {
+        private String promptName;
+
         McpPromptsGetStream(
             McpLifecycleStream session,
             MessageConsumer sender,
@@ -928,8 +999,21 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpPromptsGetStream(this, mcpBeginEx.promptsGet().name().asString());
+            this.promptName = mcpBeginEx.promptsGet().name().asString();
+            this.http = new HttpPromptsGetStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
+        }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            final String name = promptName;
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .promptsGet(b -> b.sessionId(sessionId).name(name))
+                .build());
         }
     }
 
@@ -957,10 +1041,23 @@ public final class McpClientFactory implements McpStreamFactory
             this.http = new HttpResourcesListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resourcesList(b -> b.sessionId(sessionId))
+                .build());
+        }
     }
 
     private final class McpResourcesReadStream extends McpRequestOneStream
     {
+        private String resourceUri;
+
         McpResourcesReadStream(
             McpLifecycleStream session,
             MessageConsumer sender,
@@ -980,8 +1077,21 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpResourcesReadStream(this, mcpBeginEx.resourcesRead().uri().asString());
+            this.resourceUri = mcpBeginEx.resourcesRead().uri().asString();
+            this.http = new HttpResourcesReadStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
+        }
+
+        @Override
+        void onNetBegin(
+            BeginFW begin)
+        {
+            final String uri = resourceUri;
+            doAppBegin(begin.traceId(), begin.authorization(), mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resourcesRead(b -> b.sessionId(sessionId).uri(uri))
+                .build());
         }
     }
 
@@ -1083,7 +1193,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            onNetBeginImpl(begin);
+            mcp.onNetBegin(begin);
             doNetWindow(traceId, authorization, 0L, 0);
         }
 
@@ -1202,8 +1312,6 @@ public final class McpClientFactory implements McpStreamFactory
             cleanupEncodeSlot();
             mcp.doAppReset(traceId, authorization);
         }
-
-        abstract void onNetBeginImpl(BeginFW begin);
 
         abstract void onNetDataImpl(DataFW data);
 
@@ -1399,8 +1507,6 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
-        private String sessionId;
-
         HttpInitializeRequest(
             McpStream mcp)
         {
@@ -1426,37 +1532,14 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .build();
 
-            final int bodyLen = codecBuffer.putStringWithoutLengthAscii(0,
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                 """
                 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"%s","capabilities":{},\
                 "clientInfo":{"name":"%s","version":"%s"}}}\
                 """.formatted(MCP_PROTOCOL_VERSION, clientName, clientVersion));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
-        }
-
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            sessionId = mcp.sessionId;
-
-            final OctetsFW ext = begin.extension();
-            if (ext.sizeof() > 0)
-            {
-                final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(
-                    ext.buffer(), ext.offset(), ext.limit());
-                if (httpBeginEx != null)
-                {
-                    final HttpHeaderFW sessionHeader = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
-                    if (sessionHeader != null)
-                    {
-                        sessionId = sessionHeader.value().asString();
-                    }
-                }
-            }
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1471,7 +1554,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp, sessionId);
+            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp);
             mcp.http = notify;
             notify.doEncodeRequestBegin(traceId, authorization);
             notify.doEncodeRequestEnd(traceId, authorization);
@@ -1480,14 +1563,10 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpNotifyInitialized extends HttpStream
     {
-        private final String sessionId;
-
         HttpNotifyInitialized(
-            McpStream mcp,
-            String sessionId)
+            McpStream mcp)
         {
             super(mcp);
-            this.sessionId = sessionId;
         }
 
         @Override
@@ -1495,7 +1574,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final String sid = sessionId;
+            final String sid = ((McpLifecycleStream) mcp).responseSessionId;
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId);
@@ -1511,17 +1590,11 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            final int bodyLen = codecBuffer.putStringWithoutLengthAscii(0,
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
-        }
-
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1536,10 +1609,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
+            final String sid = ((McpLifecycleStream) mcp).responseSessionId;
             mcp.doAppBegin(traceId, authorization, mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .lifecycle(b -> b.sessionId(sessionId))
+                .lifecycle(b -> b.sessionId(sid))
                 .build());
         }
     }
@@ -1648,30 +1722,14 @@ public final class McpClientFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
-
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .toolsList(b -> b.sessionId(sid))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpToolsCallStream extends HttpRequestStream
     {
-        private final String toolName;
-
         HttpToolsCallStream(
-            McpRequestStream mcp,
-            String toolName)
+            McpRequestStream mcp)
         {
             super(mcp);
-            this.toolName = toolName;
         }
 
         @Override
@@ -1713,19 +1771,6 @@ public final class McpClientFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
-
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final String name = toolName;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .toolsCall(b -> b.sessionId(sid).name(name))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpPromptsListStream extends HttpRequestStream
@@ -1766,29 +1811,14 @@ public final class McpClientFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .promptsList(b -> b.sessionId(sid))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpPromptsGetStream extends HttpRequestStream
     {
-        private final String promptName;
-
         HttpPromptsGetStream(
-            McpRequestStream mcp,
-            String promptName)
+            McpRequestStream mcp)
         {
             super(mcp);
-            this.promptName = promptName;
         }
 
         @Override
@@ -1831,18 +1861,6 @@ public final class McpClientFactory implements McpStreamFactory
             doNetEnd(traceId, authorization);
         }
 
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final String name = promptName;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .promptsGet(b -> b.sessionId(sid).name(name))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpResourcesListStream extends HttpRequestStream
@@ -1883,29 +1901,14 @@ public final class McpClientFactory implements McpStreamFactory
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .resourcesList(b -> b.sessionId(sid))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpResourcesReadStream extends HttpRequestStream
     {
-        private final String resourceUri;
-
         HttpResourcesReadStream(
-            McpRequestStream mcp,
-            String resourceUri)
+            McpRequestStream mcp)
         {
             super(mcp);
-            this.resourceUri = resourceUri;
         }
 
         @Override
@@ -1948,18 +1951,6 @@ public final class McpClientFactory implements McpStreamFactory
             doNetEnd(traceId, authorization);
         }
 
-        @Override
-        void onNetBeginImpl(
-            BeginFW begin)
-        {
-            final String sid = mcp.sessionId;
-            final String uri = resourceUri;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .resourcesRead(b -> b.sessionId(sid).uri(uri))
-                .build();
-            mcp.doAppBegin(begin.traceId(), begin.authorization(), beginEx);
-        }
     }
 
     private final class HttpTerminateSession
