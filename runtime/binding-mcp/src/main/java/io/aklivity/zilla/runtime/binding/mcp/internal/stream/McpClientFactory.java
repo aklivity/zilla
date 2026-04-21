@@ -1642,13 +1642,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/list\"}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"tools/list\"}".formatted(request.requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1699,13 +1697,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            doNetBegin(traceId, authorization, httpBeginEx);
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"tools/call\",\"params\":".formatted(request.requestId));
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"tools/call\",\"params\":");
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1713,8 +1709,8 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
 
@@ -1763,13 +1759,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/list\"}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"prompts/list\"}".formatted(request.requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1832,8 +1826,8 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
 
@@ -1882,13 +1876,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
-            pos += codecBuffer.putIntAscii(pos, request.requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/list\"}");
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"resources/list\"}".formatted(request.requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1951,8 +1943,8 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
             doNetEnd(traceId, authorization);
         }
 
@@ -2173,14 +2165,15 @@ public final class McpClientFactory implements McpStreamFactory
                 bodySent = true;
                 final long traceId = window.traceId();
 
-                int pos = 0;
-                pos += codecBuffer.putStringWithoutLengthAscii(pos,
-                    "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":");
-                pos += codecBuffer.putIntAscii(pos, cancelledRequestId);
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"reason\":\"User cancelled\"}}");
+                final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                    """
+                    {"jsonrpc":"2.0","method":"notifications/cancelled","params":\
+                    {"requestId":%d,"reason":"User cancelled"}}\
+                    """.formatted(cancelledRequestId));
 
                 doData(net, originId, resolvedId, initialId,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
+                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, codecLength,
+                    codecBuffer, 0, codecLength);
                 doEnd(net, originId, resolvedId, initialId, traceId, authorization);
             }
         }
