@@ -499,12 +499,19 @@ public final class McpClientFactory implements McpStreamFactory
                 ? mcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit())
                 : null;
 
+            http.doEncodeRequestBegin(traceId, authorization);
+
             onAppBeginImpl(traceId, authorization, mcpBeginEx);
 
             doAppWindow(traceId, authorization, 0L, 0);
         }
 
-        abstract void onAppBeginImpl(long traceId, long authorization, McpBeginExFW mcpBeginEx);
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+        }
 
         private void onAppData(
             DataFW data)
@@ -800,7 +807,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            http.doEncodeRequestBegin(traceId, authorization);
             http.doEncodeRequestEnd(traceId, authorization);
         }
 
@@ -953,15 +959,6 @@ public final class McpClientFactory implements McpStreamFactory
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpToolsListStream::new);
         }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
-        }
     }
 
     private final class McpToolsCallStream extends McpRequestStream
@@ -978,15 +975,6 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpToolsCallStream::new);
-        }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -1005,15 +993,6 @@ public final class McpClientFactory implements McpStreamFactory
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpPromptsListStream::new);
         }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
-        }
     }
 
     private final class McpPromptsGetStream extends McpRequestStream
@@ -1030,15 +1009,6 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpPromptsGetStream::new);
-        }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -1057,15 +1027,6 @@ public final class McpClientFactory implements McpStreamFactory
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpResourcesListStream::new);
         }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
-        }
     }
 
     private final class McpResourcesReadStream extends McpRequestStream
@@ -1082,15 +1043,6 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
                 HttpResourcesReadStream::new);
-        }
-
-        @Override
-        void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
