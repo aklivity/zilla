@@ -129,6 +129,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final Pattern VERSION_PATTERN = Pattern.compile("HTTP/1\\.\\d");
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile("(?<name>[^\\s:]+):\\s*(?<value>[^\r\n]*)\r\n");
     private static final Pattern CONNECTION_CLOSE_PATTERN = Pattern.compile("(^|\\s*,\\s*)close(\\s*,\\s*|$)");
+    private static final Pattern AUTHORITY_PATTERN = Pattern.compile("(?<host>[^:]+):(?<port>\\d+)");
     private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
     private static final byte[] HOST_BYTES = "Host".getBytes(US_ASCII);
@@ -175,7 +176,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String SCHEME = ":scheme";
     private static final String CACHE_CONTROL = "cache-control";
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
-    private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
@@ -338,6 +338,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
+    private final Matcher authorityPart;
     private final int httpTypeId;
     private final int proxyTypeId;
     private final int encodeMax;
@@ -377,6 +378,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
+        this.authorityPart = AUTHORITY_PATTERN.matcher("");
         this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
@@ -2610,8 +2612,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization,
             long affinity,
-            String authority,
-            String scheme)
+            String authority)
         {
             if (!HttpState.initialOpening(state))
             {
@@ -2619,40 +2620,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 final Flyweight extension;
 
-                if (authority != null && !authority.isEmpty())
+                if (authority != null && authorityPart.reset(authority).matches())
                 {
-                    final String host;
-                    final int port;
-
-                    if (authority.startsWith("["))
-                    {
-                        final int closeBracket = authority.indexOf(']');
-                        if (closeBracket != -1 && closeBracket + 1 < authority.length() &&
-                            authority.charAt(closeBracket + 1) == ':')
-                        {
-                            host = authority.substring(1, closeBracket);
-                            port = parseInt(authority.substring(closeBracket + 2));
-                        }
-                        else
-                        {
-                            host = closeBracket != -1 ? authority.substring(1, closeBracket) : authority;
-                            port = "https".equals(scheme) ? 443 : 80;
-                        }
-                    }
-                    else
-                    {
-                        final int colon = authority.lastIndexOf(':');
-                        if (colon != -1)
-                        {
-                            host = authority.substring(0, colon);
-                            port = parseInt(authority.substring(colon + 1));
-                        }
-                        else
-                        {
-                            host = authority;
-                            port = "https".equals(scheme) ? 443 : 80;
-                        }
-                    }
+                    final String host = authorityPart.group("host");
+                    final int port = parseInt(authorityPart.group("port"));
 
                     extension = proxyBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(proxyTypeId)
@@ -4697,11 +4668,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     HEADER_AUTHORITY.equals(header.name()));
                 final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
 
-                final HttpHeaderFW schemeHeader = headers.matchFirst(header ->
-                    HEADER_SCHEME.equals(header.name()));
-                final String scheme = schemeHeader != null ? schemeHeader.value().asString() : null;
-
-                client.doNetworkBegin(traceId, authorization, 0, authority, scheme);
+                client.doNetworkBegin(traceId, authorization, 0, authority);
 
                 if (HttpState.replyOpened(client.state))
                 {
