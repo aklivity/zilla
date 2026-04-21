@@ -643,7 +643,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            new HttpInitializeRequest(this).doNetBegin(traceId, authorization);
+            this.http = new HttpInitializeRequest(this);
+            http.doNetBegin(traceId, authorization);
         }
 
         @Override
@@ -1315,24 +1316,17 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpInitializeRequest
+    private final class HttpInitializeRequest extends HttpStream
     {
-        private final McpStream mcp;
-        private final long initialId;
-        private final long replyId;
-
-        private MessageConsumer net;
-        private boolean bodySent;
         private String responseSessionId;
 
         HttpInitializeRequest(
             McpStream mcp)
         {
-            this.mcp = mcp;
-            this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
+            super(mcp);
         }
 
+        @Override
         void doNetBegin(
             long traceId,
             long authorization)
@@ -1351,48 +1345,19 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .build();
 
-            net = newStream(this::onNetMessage, mcp.originId, mcp.resolvedId, initialId,
-                0, 0, 0, traceId, authorization, mcp.affinity, httpBeginEx);
+            final int bodyLen = codecBuffer.putStringWithoutLengthAscii(0,
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"%s","capabilities":{},\
+                "clientInfo":{"name":"%s","version":"%s"}}}\
+                """.formatted(MCP_PROTOCOL_VERSION, clientName, clientVersion));
+
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
+            doNetEnd(traceId, authorization);
         }
 
-        private void onNetMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onNetBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onNetData(data);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onNetWindow(window);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onNetEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onNetAbort(abort);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onNetReset(reset);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onNetBegin(
+        @Override
+        void onNetBeginImpl(
             BeginFW begin)
         {
             responseSessionId = mcp.sessionId;
@@ -1412,84 +1377,39 @@ public final class McpClientFactory implements McpStreamFactory
                     }
                 }
             }
-
-            doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                begin.traceId(), begin.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
-        private void onNetData(
+        @Override
+        void onNetDataImpl(
             DataFW data)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                data.traceId(), data.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
-        private void onNetWindow(
-            WindowFW window)
-        {
-            if (!bodySent)
-            {
-                bodySent = true;
-                final long traceId = window.traceId();
-                final long authorization = window.authorization();
-
-                int pos = 0;
-                pos += codecBuffer.putStringWithoutLengthAscii(pos,
-                    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"," +
-                    "\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"");
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, clientName);
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, "\",\"version\":\"");
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, clientVersion);
-                pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}}");
-
-                doData(net, mcp.originId, mcp.resolvedId, initialId,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
-                doEnd(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
-            }
-        }
-
-        private void onNetEnd(
+        @Override
+        void onNetEndImpl(
             EndFW end)
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            new HttpNotifyInitialized(mcp, responseSessionId).doNetBegin(traceId, authorization);
-        }
-
-        private void onNetAbort(
-            AbortFW abort)
-        {
-            mcp.doAppAbort(abort.traceId(), abort.authorization());
-        }
-
-        private void onNetReset(
-            ResetFW reset)
-        {
-            mcp.doAppReset(reset.traceId(), reset.authorization());
+            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp, responseSessionId);
+            mcp.http = notify;
+            notify.doNetBegin(traceId, authorization);
         }
     }
 
-    private final class HttpNotifyInitialized
+    private final class HttpNotifyInitialized extends HttpStream
     {
-        private final McpStream mcp;
         private final String sessionId;
-        private final long initialId;
-        private final long replyId;
-
-        private MessageConsumer net;
-        private boolean bodySent;
 
         HttpNotifyInitialized(
             McpStream mcp,
             String sessionId)
         {
-            this.mcp = mcp;
+            super(mcp);
             this.sessionId = sessionId;
-            this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
+        @Override
         void doNetBegin(
             long traceId,
             long authorization)
@@ -1510,102 +1430,37 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            net = newStream(this::onNetMessage, mcp.originId, mcp.resolvedId, initialId,
-                0, 0, 0, traceId, authorization, mcp.affinity, httpBeginEx);
+            final int bodyLen = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
+            doNetEnd(traceId, authorization);
         }
 
-        private void onNetMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onNetBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onNetData(data);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onNetWindow(window);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onNetEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onNetAbort(abort);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onNetReset(reset);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onNetBegin(
+        @Override
+        void onNetBeginImpl(
             BeginFW begin)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                begin.traceId(), begin.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
-        private void onNetData(
+        @Override
+        void onNetDataImpl(
             DataFW data)
         {
-            doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                data.traceId(), data.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
-        private void onNetWindow(
-            WindowFW window)
-        {
-            if (!bodySent)
-            {
-                bodySent = true;
-                final long traceId = window.traceId();
-                final long authorization = window.authorization();
-
-                final int pos = codecBuffer.putStringWithoutLengthAscii(0,
-                    "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-
-                doData(net, mcp.originId, mcp.resolvedId, initialId,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
-                doEnd(net, mcp.originId, mcp.resolvedId, initialId, traceId, authorization);
-            }
-        }
-
-        private void onNetEnd(
+        @Override
+        void onNetEndImpl(
             EndFW end)
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            final String sid = sessionId;
-            final McpBeginExFW beginEx = mcpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+            mcp.doAppBegin(traceId, authorization, mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .lifecycle(b -> b.sessionId(sid))
-                .build();
-            mcp.doAppBegin(traceId, authorization, beginEx);
-        }
-
-        private void onNetAbort(
-            AbortFW abort)
-        {
-            mcp.doAppAbort(abort.traceId(), abort.authorization());
-        }
-
-        private void onNetReset(
-            ResetFW reset)
-        {
-            mcp.doAppReset(reset.traceId(), reset.authorization());
+                .lifecycle(b -> b.sessionId(sessionId))
+                .build());
         }
     }
 
