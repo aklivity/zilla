@@ -1859,11 +1859,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int pos = codecBuffer.putStringWithoutLengthAscii(0,
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"prompts/get\",\"params\":".formatted(requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
@@ -1978,11 +1978,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
-            final int pos = codecBuffer.putStringWithoutLengthAscii(0,
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"resources/read\",\"params\":".formatted(requestId));
 
             doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
 
         @Override
