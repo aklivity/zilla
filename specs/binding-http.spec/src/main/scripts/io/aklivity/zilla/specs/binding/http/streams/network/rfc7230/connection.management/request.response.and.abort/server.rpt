@@ -29,7 +29,7 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                               .destinationPort(8080)
                               .build()
                             .info()
-                              .authority("localhost:8080")
+                              .authority("localhost")
                               .build()
                             .build()}
 connected

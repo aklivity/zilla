@@ -2632,7 +2632,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                                                    .destination(host)
                                                    .sourcePort(0)
                                                    .destinationPort(port)))
-                        .infos(ii -> ii.item(i -> i.authority(authority)))
+                        .infos(ii -> ii.item(i -> i.authority(host)))
                         .build();
                 }
                 else
