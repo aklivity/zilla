@@ -53,14 +53,6 @@ connected
 write '{"uri":"file:///data/image.png"}'
 write close
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesRead()
-                              .sessionId("session-1")
-                              .uri("file:///data/image.png")
-                              .build()
-                          .build()}
-
 read '{"contents":[{"uri":"file:///data/image.png","mimeType":"image/png","text":"'
 read ${core:randomBase64(10000)}
 read '"}]}'

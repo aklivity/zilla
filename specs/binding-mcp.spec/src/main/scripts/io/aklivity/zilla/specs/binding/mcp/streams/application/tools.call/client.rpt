@@ -59,14 +59,6 @@ write '{'
       '}'
 write close
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("session-1")
-                              .name("get_weather")
-                              .build()
-                          .build()}
-
 read  '{'
         '"content":'
         '['

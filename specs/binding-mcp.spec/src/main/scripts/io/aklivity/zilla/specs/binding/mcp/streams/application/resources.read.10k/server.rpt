@@ -51,13 +51,6 @@ connected
 read  '{"uri":"file:///data/image.png"}'
 read closed
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .resourcesRead()
-                               .sessionId("session-1")
-                               .uri("file:///data/image.png")
-                               .build()
-                           .build()}
 write flush
 
 write '{"contents":[{"uri":"file:///data/image.png","mimeType":"image/png","text":"'

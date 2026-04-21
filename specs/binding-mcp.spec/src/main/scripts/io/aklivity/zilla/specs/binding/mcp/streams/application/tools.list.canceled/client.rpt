@@ -51,11 +51,4 @@ connected
 
 write close
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
-
 read abort

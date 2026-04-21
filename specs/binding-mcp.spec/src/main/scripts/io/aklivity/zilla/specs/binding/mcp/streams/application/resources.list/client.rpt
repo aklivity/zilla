@@ -51,12 +51,5 @@ connected
 
 write close
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesList()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
-
 read '{"resources":[]}'
 read closed

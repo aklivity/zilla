@@ -47,12 +47,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .promptsList()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
 write flush
 
 read closed

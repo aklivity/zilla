@@ -51,13 +51,6 @@ connected
 read  '{"uri":"file:///data/readme.txt"}'
 read closed
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .resourcesRead()
-                               .sessionId("session-1")
-                               .uri("file:///data/readme.txt")
-                               .build()
-                           .build()}
 write flush
 
 write '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'

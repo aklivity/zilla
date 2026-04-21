@@ -53,13 +53,5 @@ connected
 write '{"name":"weather_prompt"}'
 write close
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .promptsGet()
-                              .sessionId("session-1")
-                              .name("weather_prompt")
-                              .build()
-                          .build()}
-
 read  '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
 read closed
