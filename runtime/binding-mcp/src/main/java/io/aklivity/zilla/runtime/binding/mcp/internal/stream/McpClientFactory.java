@@ -183,7 +183,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     @FunctionalInterface
-    private interface McpClientResponseDecoder
+    private interface HttpResponseDecoder
     {
         int decode(
             HttpRequestStream http,
@@ -192,10 +192,10 @@ public final class McpClientFactory implements McpStreamFactory
             int limit);
     }
 
-    private final McpClientResponseDecoder decodeResponseStart = this::decodeResponseStart;
-    private final McpClientResponseDecoder decodeResponseKey = this::decodeResponseKey;
-    private final McpClientResponseDecoder decodeResponseResultValue = this::decodeResponseResultValue;
-    private final McpClientResponseDecoder decodeIgnore = this::decodeIgnore;
+    private final HttpResponseDecoder decodeResponseStart = this::decodeResponseStart;
+    private final HttpResponseDecoder decodeResponseKey = this::decodeResponseKey;
+    private final HttpResponseDecoder decodeResponseResultValue = this::decodeResponseResultValue;
+    private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
 
     private int decodeResponseStart(
         HttpRequestStream http,
@@ -507,7 +507,7 @@ public final class McpClientFactory implements McpStreamFactory
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
             {
-                http.doNetData(traceId, authorization,
+                http.doEncodeRequestData(traceId, authorization,
                     payload.buffer(), payload.offset(), payload.limit());
             }
 
@@ -747,7 +747,8 @@ public final class McpClientFactory implements McpStreamFactory
             McpBeginExFW mcpBeginEx)
         {
             this.http = new HttpInitializeRequest(this);
-            http.doNetBegin(traceId, authorization);
+            http.doEncodeRequestBegin(traceId, authorization);
+            http.doEncodeRequestEnd(traceId, authorization);
         }
 
         @Override
@@ -755,7 +756,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            terminateSession(traceId, authorization);
+            onAppClosed(traceId, authorization);
         }
 
         @Override
@@ -763,7 +764,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            terminateSession(traceId, authorization);
+            onAppClosed(traceId, authorization);
         }
 
         @Override
@@ -771,10 +772,10 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            terminateSession(traceId, authorization);
+            onAppClosed(traceId, authorization);
         }
 
-        private void terminateSession(
+        private void onAppClosed(
             long traceId,
             long authorization)
         {
@@ -809,24 +810,12 @@ public final class McpClientFactory implements McpStreamFactory
             this.session = session;
         }
 
-        abstract HttpRequestStream newHttp(McpBeginExFW mcpBeginEx);
-
-        @Override
-        final void onAppBeginImpl(
-            long traceId,
-            long authorization,
-            McpBeginExFW mcpBeginEx)
-        {
-            this.http = newHttp(mcpBeginEx);
-            http.doNetBegin(traceId, authorization);
-        }
-
         @Override
         final void onAppEndImpl(
             long traceId,
             long authorization)
         {
-            http.doNetEnd(traceId, authorization);
+            http.doEncodeRequestEnd(traceId, authorization);
             ((HttpRequestStream) http).doUnregister();
         }
     }
@@ -877,10 +866,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpToolsListStream(this);
+            this.http = new HttpToolsListStream(this);
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -900,10 +892,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpToolsCallStream(this, mcpBeginEx.toolsCall().name().asString());
+            this.http = new HttpToolsCallStream(this, mcpBeginEx.toolsCall().name().asString());
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -923,10 +918,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpPromptsListStream(this);
+            this.http = new HttpPromptsListStream(this);
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -946,10 +944,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpPromptsGetStream(this, mcpBeginEx.promptsGet().name().asString());
+            this.http = new HttpPromptsGetStream(this, mcpBeginEx.promptsGet().name().asString());
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -969,10 +970,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpResourcesListStream(this);
+            this.http = new HttpResourcesListStream(this);
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -992,10 +996,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpRequestStream newHttp(
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            return new HttpResourcesReadStream(this, mcpBeginEx.resourcesRead().uri().asString());
+            this.http = new HttpResourcesReadStream(this, mcpBeginEx.resourcesRead().uri().asString());
+            http.doEncodeRequestBegin(traceId, authorization);
         }
     }
 
@@ -1168,7 +1175,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            cleanupEncodeSlot();
             cleanupDecodeSlot();
             mcp.doAppAbort(traceId, authorization);
         }
@@ -1221,7 +1227,6 @@ public final class McpClientFactory implements McpStreamFactory
             assert initialAck <= initialSeq;
 
             cleanupEncodeSlot();
-            cleanupDecodeSlot();
             mcp.doAppReset(traceId, authorization);
         }
 
@@ -1231,7 +1236,24 @@ public final class McpClientFactory implements McpStreamFactory
 
         abstract void onNetEndImpl(EndFW end);
 
-        abstract void doNetBegin(long traceId, long authorization);
+        abstract void doEncodeRequestBegin(long traceId, long authorization);
+
+        void doEncodeRequestData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            doNetData(traceId, authorization, buffer, offset, limit);
+        }
+
+        void doEncodeRequestEnd(
+            long traceId,
+            long authorization)
+        {
+            doNetEnd(traceId, authorization);
+        }
 
         protected void doNetBegin(
             long traceId,
@@ -1404,7 +1426,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
-        private String responseSessionId;
+        private String sessionId;
 
         HttpInitializeRequest(
             McpStream mcp)
@@ -1413,7 +1435,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1439,14 +1461,13 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
-            doNetEnd(traceId, authorization);
         }
 
         @Override
         void onNetBeginImpl(
             BeginFW begin)
         {
-            responseSessionId = mcp.sessionId;
+            sessionId = mcp.sessionId;
 
             final OctetsFW ext = begin.extension();
             if (ext.sizeof() > 0)
@@ -1459,7 +1480,7 @@ public final class McpClientFactory implements McpStreamFactory
                         .matchFirst(h -> HTTP_HEADER_SESSION.equals(h.name().asString()));
                     if (sessionHeader != null)
                     {
-                        responseSessionId = sessionHeader.value().asString();
+                        sessionId = sessionHeader.value().asString();
                     }
                 }
             }
@@ -1477,9 +1498,10 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp, responseSessionId);
+            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp, sessionId);
             mcp.http = notify;
-            notify.doNetBegin(traceId, authorization);
+            notify.doEncodeRequestBegin(traceId, authorization);
+            notify.doEncodeRequestEnd(traceId, authorization);
         }
     }
 
@@ -1496,7 +1518,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1521,7 +1543,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, bodyLen);
-            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1555,7 +1576,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected final McpRequestStream request;
         protected final int requestId;
 
-        McpClientResponseDecoder decoder;
+        HttpResponseDecoder decoder;
         JsonParser decodableJson;
         int decodedResultStart;
 
@@ -1643,7 +1664,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1672,7 +1693,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1701,7 +1721,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1733,13 +1753,13 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetEnd(
+        void doEncodeRequestEnd(
             long traceId,
             long authorization)
         {
             final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            super.doNetEnd(traceId, authorization);
+            super.doEncodeRequestEnd(traceId, authorization);
         }
 
         @Override
@@ -1765,7 +1785,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1794,7 +1814,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1823,7 +1842,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1848,14 +1867,20 @@ public final class McpClientFactory implements McpStreamFactory
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
             pos += codecBuffer.putIntAscii(pos, requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos,
-                ",\"method\":\"prompts/get\",\"params\":{\"name\":\"");
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, promptName);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"prompts/get\",\"params\":");
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            doNetEnd(traceId, authorization);
+        }
+
+        @Override
+        void doEncodeRequestEnd(
+            long traceId,
+            long authorization)
+        {
+            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            super.doEncodeRequestEnd(traceId, authorization);
         }
 
         @Override
@@ -1881,7 +1906,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1910,7 +1935,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            doNetEnd(traceId, authorization);
         }
 
         @Override
@@ -1939,7 +1963,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void doNetBegin(
+        void doEncodeRequestBegin(
             long traceId,
             long authorization)
         {
@@ -1964,14 +1988,20 @@ public final class McpClientFactory implements McpStreamFactory
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos, "{\"jsonrpc\":\"2.0\",\"id\":");
             pos += codecBuffer.putIntAscii(pos, requestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos,
-                ",\"method\":\"resources/read\",\"params\":{\"uri\":\"");
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, resourceUri);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, "\"}}");
+            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"method\":\"resources/read\",\"params\":");
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, pos);
-            doNetEnd(traceId, authorization);
+        }
+
+        @Override
+        void doEncodeRequestEnd(
+            long traceId,
+            long authorization)
+        {
+            final int pos = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            doNetData(traceId, authorization, codecBuffer, 0, pos);
+            super.doEncodeRequestEnd(traceId, authorization);
         }
 
         @Override
@@ -2211,7 +2241,7 @@ public final class McpClientFactory implements McpStreamFactory
         int offset,
         int limit)
     {
-        McpClientResponseDecoder previous = null;
+        HttpResponseDecoder previous = null;
         int progress = offset;
         while (progress <= limit && previous != http.decoder)
         {
