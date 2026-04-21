@@ -639,6 +639,11 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void onNetEnd(
+            EndFW end)
+        {
+        }
+
         void doAppBegin(
             long traceId,
             long authorization,
@@ -794,6 +799,31 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        void onNetEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            if (http instanceof HttpInitializeRequest)
+            {
+                final HttpNotifyInitialized notify = new HttpNotifyInitialized(this);
+                this.http = notify;
+                notify.doEncodeRequestBegin(traceId, authorization);
+                notify.doEncodeRequestEnd(traceId, authorization);
+            }
+            else
+            {
+                final String sid = responseSessionId;
+                doAppBegin(traceId, authorization, mcpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .lifecycle(b -> b.sessionId(sid))
+                    .build());
+            }
+        }
+
+        @Override
         void onAppClosed(
             long traceId,
             long authorization)
@@ -848,6 +878,17 @@ public final class McpClientFactory implements McpStreamFactory
             BeginFW begin)
         {
             doAppBegin(begin.traceId(), begin.authorization(), null);
+        }
+
+        @Override
+        final void onNetEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+            ((HttpRequestStream) http).flushResponseToApp(traceId, authorization);
+            doAppEnd(traceId, authorization);
+            session.unregister(requestId);
         }
     }
 
@@ -1065,7 +1106,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onNetEndImpl(end);
+                onNetEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
@@ -1128,6 +1169,24 @@ public final class McpClientFactory implements McpStreamFactory
 
             onNetDataImpl(data);
             doNetWindow(traceId, authorization, 0L, 0);
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge <= replyAck;
+
+            replySeq = sequence;
+            state = McpState.closedReply(state);
+
+            assert replyAck <= replySeq;
+
+            mcp.onNetEnd(end);
         }
 
         private void onNetFlush(
@@ -1226,8 +1285,6 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         abstract void onNetDataImpl(DataFW data);
-
-        abstract void onNetEndImpl(EndFW end);
 
         abstract void doEncodeRequestBegin(long traceId, long authorization);
 
@@ -1459,18 +1516,6 @@ public final class McpClientFactory implements McpStreamFactory
             DataFW data)
         {
         }
-
-        @Override
-        void onNetEndImpl(
-            EndFW end)
-        {
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-            final HttpNotifyInitialized notify = new HttpNotifyInitialized(mcp);
-            mcp.http = notify;
-            notify.doEncodeRequestBegin(traceId, authorization);
-            notify.doEncodeRequestEnd(traceId, authorization);
-        }
     }
 
     private final class HttpNotifyInitialized extends HttpStream
@@ -1514,20 +1559,6 @@ public final class McpClientFactory implements McpStreamFactory
             DataFW data)
         {
         }
-
-        @Override
-        void onNetEndImpl(
-            EndFW end)
-        {
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-            final String sid = ((McpLifecycleStream) mcp).responseSessionId;
-            mcp.doAppBegin(traceId, authorization, mcpBeginExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId)
-                .lifecycle(b -> b.sessionId(sid))
-                .build());
-        }
     }
 
     private abstract class HttpRequestStream extends HttpStream
@@ -1569,12 +1600,10 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        @Override
-        void onNetEndImpl(
-            EndFW end)
+        void flushResponseToApp(
+            long traceId,
+            long authorization)
         {
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
             if (decodeSlot != NO_SLOT)
             {
                 final DirectBuffer buf = bufferPool.buffer(decodeSlot);
@@ -1586,8 +1615,6 @@ public final class McpClientFactory implements McpStreamFactory
                 }
                 cleanupDecodeSlot();
             }
-            mcp.doAppEnd(traceId, authorization);
-            request.session.unregister(request.requestId);
         }
     }
 
