@@ -1005,12 +1005,9 @@ public final class McpClientFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
-            if (net != null)
-            {
-                doWindow(net, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, padding);
-            }
+            doWindow(net, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, padding);
         }
 
         private void onNetAbort(
@@ -1090,11 +1087,10 @@ public final class McpClientFactory implements McpStreamFactory
                 traceId, authorization, affinity,
                 httpBeginEx);
 
-            if (net != null)
-            {
-                replyMax = decodeMax;
-                doNetWindow(traceId, authorization, 0L, 0);
-            }
+            assert net != null;
+
+            replyMax = decodeMax;
+            doNetWindow(traceId, authorization, 0L, 0);
         }
 
         void doNetData(
@@ -1124,22 +1120,11 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!McpState.initialClosed(state) && !McpState.initialClosing(state))
+            state = McpState.closingInitial(state);
+            if (encodeSlot == NO_SLOT && !McpState.initialClosed(state))
             {
-                state = McpState.closingInitial(state);
-                encodeSlotTraceId = traceId;
-                encodeSlotAuthorization = authorization;
-
-                if (encodeSlot != NO_SLOT)
-                {
-                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
-                    encodeNet(traceId, authorization, encodeBuffer, 0, encodeSlotOffset);
-                }
-                else
-                {
-                    doEnd(net, originId, routedId, initialId, traceId, authorization);
-                    state = McpState.closedInitial(state);
-                }
+                state = McpState.closedInitial(state);
+                doEnd(net, originId, routedId, initialId, traceId, authorization);
             }
         }
 
@@ -1147,7 +1132,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state))
             {
                 state = McpState.closedInitial(state);
                 doAbort(net, originId, routedId, initialId, traceId, authorization);
@@ -1158,7 +1143,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !McpState.replyClosed(state))
+            if (!McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
                 doReset(net, originId, routedId, replyId, traceId, authorization);
@@ -1249,10 +1234,9 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (McpState.initialClosing(state) && !McpState.initialClosed(state))
+                if (McpState.initialClosing(state))
                 {
-                    state = McpState.closedInitial(state);
-                    doEnd(net, originId, routedId, initialId, traceId, authorization);
+                    doNetEnd(traceId, authorization);
                 }
             }
         }
