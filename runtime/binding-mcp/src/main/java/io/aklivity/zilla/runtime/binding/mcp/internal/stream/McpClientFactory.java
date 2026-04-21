@@ -2088,13 +2088,17 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetEnd(
             EndFW end)
         {
-            mcp.doAppEnd(end.traceId(), end.authorization());
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+            mcp.doAppEnd(traceId, authorization);
         }
 
         private void onNetAbort(
             AbortFW abort)
         {
-            mcp.doAppAbort(abort.traceId(), abort.authorization());
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+            mcp.doAppAbort(traceId, authorization);
         }
     }
 
