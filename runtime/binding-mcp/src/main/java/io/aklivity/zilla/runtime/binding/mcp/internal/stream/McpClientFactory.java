@@ -831,37 +831,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class McpRequestManyStream extends McpRequestStream
-    {
-        McpRequestManyStream(
-            McpLifecycleStream session,
-            MessageConsumer sender,
-            long originId,
-            long routedId,
-            long initialId,
-            long resolvedId,
-            long affinity)
-        {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
-        }
-    }
-
-    private abstract class McpRequestOneStream extends McpRequestStream
-    {
-        McpRequestOneStream(
-            McpLifecycleStream session,
-            MessageConsumer sender,
-            long originId,
-            long routedId,
-            long initialId,
-            long resolvedId,
-            long affinity)
-        {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
-        }
-    }
-
-    private final class McpToolsListStream extends McpRequestManyStream
+    private final class McpToolsListStream extends McpRequestStream
     {
         McpToolsListStream(
             McpLifecycleStream session,
@@ -898,7 +868,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpToolsCallStream extends McpRequestOneStream
+    private final class McpToolsCallStream extends McpRequestStream
     {
         private String toolName;
 
@@ -939,7 +909,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpPromptsListStream extends McpRequestManyStream
+    private final class McpPromptsListStream extends McpRequestStream
     {
         McpPromptsListStream(
             McpLifecycleStream session,
@@ -976,7 +946,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpPromptsGetStream extends McpRequestOneStream
+    private final class McpPromptsGetStream extends McpRequestStream
     {
         private String promptName;
 
@@ -1017,7 +987,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpResourcesListStream extends McpRequestManyStream
+    private final class McpResourcesListStream extends McpRequestStream
     {
         McpResourcesListStream(
             McpLifecycleStream session,
@@ -1054,7 +1024,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpResourcesReadStream extends McpRequestOneStream
+    private final class McpResourcesReadStream extends McpRequestStream
     {
         private String resourceUri;
 
