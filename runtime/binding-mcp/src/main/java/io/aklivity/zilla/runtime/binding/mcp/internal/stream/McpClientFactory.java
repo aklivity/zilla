@@ -561,8 +561,14 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            http.doNotifyCancelled(traceId, authorization);
+            doCancel(traceId, authorization);
             http.doNetAbort(traceId, authorization);
+        }
+
+        void doCancel(
+            long traceId,
+            long authorization)
+        {
         }
 
         private void onAppFlush(
@@ -623,7 +629,7 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            http.doNotifyCancelled(traceId, authorization);
+            doCancel(traceId, authorization);
             http.doNetReset(traceId, authorization);
         }
 
@@ -821,6 +827,17 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             http.doEncodeRequestEnd(traceId, authorization);
+        }
+
+        @Override
+        final void doCancel(
+            long traceId,
+            long authorization)
+        {
+            if (sessions.containsKey(sessionId))
+            {
+                new HttpNotifyCancelled(this).doNetBegin(traceId, authorization);
+            }
         }
     }
 
@@ -1181,12 +1198,6 @@ public final class McpClientFactory implements McpStreamFactory
 
             cleanupDecodeSlot();
             mcp.doAppAbort(traceId, authorization);
-        }
-
-        protected void doNotifyCancelled(
-            long traceId,
-            long authorization)
-        {
         }
 
         private void onNetWindow(
@@ -1606,17 +1617,6 @@ public final class McpClientFactory implements McpStreamFactory
                     mcp.doAppData(traceId, authorization, buf, decodedResultStart, resultLength);
                 }
                 cleanupDecodeSlot();
-            }
-        }
-
-        @Override
-        protected void doNotifyCancelled(
-            long traceId,
-            long authorization)
-        {
-            if (sessions.containsKey(mcp.sessionId))
-            {
-                new HttpNotifyCancelled(this).doNetBegin(traceId, authorization);
             }
         }
 
@@ -2142,9 +2142,8 @@ public final class McpClientFactory implements McpStreamFactory
         private boolean bodySent;
 
         HttpNotifyCancelled(
-            HttpRequestStream http)
+            McpRequestStream mcp)
         {
-            final McpRequestStream mcp = http.request;
             this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
