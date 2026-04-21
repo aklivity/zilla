@@ -23,6 +23,6 @@ bindings:
       - exit: net0
         with:
           headers:
-            ":scheme": http
-            ":authority": localhost
-            ":path": /mcp
+            :scheme: http
+            :authority: localhost
+            :path: /mcp

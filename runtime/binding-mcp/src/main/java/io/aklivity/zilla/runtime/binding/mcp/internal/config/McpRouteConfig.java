@@ -31,7 +31,7 @@ public final class McpRouteConfig
         RouteConfig route)
     {
         this.id = route.id;
-        this.with = route.with instanceof McpWithConfig ? (McpWithConfig) route.with : null;
+        this.with = McpWithConfig.class.cast(route.with);
         this.when = route.when.stream()
             .map(McpConditionConfig.class::cast)
             .collect(Collectors.toList());
