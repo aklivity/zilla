@@ -2627,7 +2627,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (authority.startsWith("["))
                     {
                         final int closeBracket = authority.indexOf(']');
-                        if (closeBracket != -1 && closeBracket + 1 < authority.length() && authority.charAt(closeBracket + 1) == ':')
+                        if (closeBracket != -1 && closeBracket + 1 < authority.length() &&
+                            authority.charAt(closeBracket + 1) == ':')
                         {
                             host = authority.substring(1, closeBracket);
                             port = parseInt(authority.substring(closeBracket + 2));
@@ -4694,10 +4695,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 final HttpHeaderFW authorityHeader = headers.matchFirst(header ->
                     HEADER_AUTHORITY.equals(header.name()));
+                final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
+
                 final HttpHeaderFW schemeHeader = headers.matchFirst(header ->
                     HEADER_SCHEME.equals(header.name()));
-
-                final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
                 final String scheme = schemeHeader != null ? schemeHeader.value().asString() : null;
 
                 client.doNetworkBegin(traceId, authorization, 0, authority, scheme);
