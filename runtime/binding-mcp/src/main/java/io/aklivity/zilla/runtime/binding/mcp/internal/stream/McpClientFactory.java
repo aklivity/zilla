@@ -1018,6 +1018,10 @@ public final class McpClientFactory implements McpStreamFactory
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+
+            assert acknowledge <= sequence;
 
             state = McpState.closedReply(state);
             cleanupEncodeSlot();
