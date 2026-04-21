@@ -203,8 +203,9 @@ public final class McpClientFactory implements McpStreamFactory
         int offset,
         int limit)
     {
-        inputRO.wrap(buffer, offset, limit - offset);
-        http.decodableJson = StreamingJson.createParser(inputRO);
+        DirectBufferInputStreamEx input = inputRO;
+        input.wrap(buffer, offset, limit - offset);
+        http.decodableJson = StreamingJson.createParser(input);
 
         final JsonParser parser = http.decodableJson;
         int progress = offset;
@@ -214,7 +215,7 @@ public final class McpClientFactory implements McpStreamFactory
             http.decoder = event == JsonParser.Event.START_OBJECT
                 ? decodeResponseKey
                 : decodeIgnore;
-            progress = limit - inputRO.available();
+            progress = limit - input.available();
         }
         return progress;
     }
@@ -225,6 +226,7 @@ public final class McpClientFactory implements McpStreamFactory
         int offset,
         int limit)
     {
+        DirectBufferInputStreamEx input = inputRO;
         final JsonParser parser = http.decodableJson;
         int progress = offset;
         while (parser.hasNext())
@@ -235,7 +237,7 @@ public final class McpClientFactory implements McpStreamFactory
                 if ("result".equals(parser.getString()))
                 {
                     http.decoder = decodeResponseResultValue;
-                    progress = limit - inputRO.available();
+                    progress = limit - input.available();
                     break;
                 }
                 if (parser.hasNext())
@@ -246,7 +248,7 @@ public final class McpClientFactory implements McpStreamFactory
             else if (event == JsonParser.Event.END_OBJECT)
             {
                 http.decoder = decodeIgnore;
-                progress = limit - inputRO.available();
+                progress = limit - input.available();
                 break;
             }
         }
@@ -259,6 +261,7 @@ public final class McpClientFactory implements McpStreamFactory
         int offset,
         int limit)
     {
+        DirectBufferInputStreamEx input = inputRO;
         final JsonParser parser = http.decodableJson;
         int progress = offset;
         if (parser.hasNext())
@@ -271,7 +274,7 @@ public final class McpClientFactory implements McpStreamFactory
                 http.decodedResultStart = after - 1;
             }
             http.decoder = decodeIgnore;
-            progress = limit - inputRO.available();
+            progress = limit - input.available();
         }
         return progress;
     }
