@@ -280,6 +280,7 @@ public class EngineManager
         {
             JsonObject systemBase = Json.createObjectBuilder()
                 .add("name", "sys")
+                .add("bindings", Json.createObjectBuilder())
                 .build();
 
             JsonObject systemPatched = systemBase;

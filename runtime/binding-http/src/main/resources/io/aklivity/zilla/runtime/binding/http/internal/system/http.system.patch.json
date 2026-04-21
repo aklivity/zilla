@@ -1,11 +1,6 @@
 [
   {
     "op": "add",
-    "path": "/bindings",
-    "value": {}
-  },
-  {
-    "op": "add",
     "path": "/bindings/http_client",
     "value": {
       "type": "http",
@@ -32,23 +27,6 @@
           ]
         }
       ]
-    }
-  },
-  {
-    "op": "add",
-    "path": "/bindings/tls_client",
-    "value": {
-      "type": "tls",
-      "kind": "client",
-      "exit": "tcp_client"
-    }
-  },
-  {
-    "op": "add",
-    "path": "/bindings/tcp_client",
-    "value": {
-      "type": "tcp",
-      "kind": "client"
     }
   }
 ]

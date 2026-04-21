@@ -220,11 +220,10 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
 
         final Collection<URL> systemConfigs = new ArrayList<>();
-        URL engineSystemPatch = Engine.class.getResource("system/engine.system.patch.json");
-        if (engineSystemPatch != null)
-        {
-            systemConfigs.add(engineSystemPatch);
-        }
+        bindings.stream()
+            .map(Binding::system)
+            .filter(Objects::nonNull)
+            .forEach(systemConfigs::add);
         exporters.stream()
             .map(Exporter::system)
             .filter(Objects::nonNull)
