@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
@@ -424,7 +425,8 @@ public final class McpClientFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             String sessionId,
-            McpWithConfig with)
+            McpWithConfig with,
+            Function<McpStream, HttpStream> httpFactory)
         {
             this.sender = sender;
             this.originId = originId;
@@ -435,6 +437,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.affinity = affinity;
             this.sessionId = sessionId;
             this.with = with;
+            this.http = httpFactory.apply(this);
         }
 
         void onAppMessage(
@@ -772,7 +775,8 @@ public final class McpClientFactory implements McpStreamFactory
             String sessionId,
             McpWithConfig with)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, sessionId, with);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, sessionId, with,
+                HttpInitializeRequest::new);
             sessions.put(sessionId, this);
         }
 
@@ -796,7 +800,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpInitializeRequest(this);
             http.doEncodeRequestBegin(traceId, authorization);
             http.doEncodeRequestEnd(traceId, authorization);
         }
@@ -890,10 +893,11 @@ public final class McpClientFactory implements McpStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
-            long affinity)
+            long affinity,
+            Function<McpStream, HttpStream> httpFactory)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity,
-                session.sessionId, session.with);
+                session.sessionId, session.with, httpFactory);
             this.session = session;
             this.requestId = session.register(this);
         }
@@ -946,7 +950,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpToolsListStream::new);
         }
 
         @Override
@@ -955,7 +960,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpToolsListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -972,7 +976,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpToolsCallStream::new);
         }
 
         @Override
@@ -981,7 +986,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpToolsCallStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -998,7 +1002,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpPromptsListStream::new);
         }
 
         @Override
@@ -1007,7 +1012,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpPromptsListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -1024,7 +1028,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpPromptsGetStream::new);
         }
 
         @Override
@@ -1033,7 +1038,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpPromptsGetStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -1050,7 +1054,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpResourcesListStream::new);
         }
 
         @Override
@@ -1059,7 +1064,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpResourcesListStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -1076,7 +1080,8 @@ public final class McpClientFactory implements McpStreamFactory
             long affinity,
             long authorization)
         {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity);
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpResourcesReadStream::new);
         }
 
         @Override
@@ -1085,7 +1090,6 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            this.http = new HttpResourcesReadStream(this);
             http.doEncodeRequestBegin(traceId, authorization);
         }
     }
@@ -1618,10 +1622,10 @@ public final class McpClientFactory implements McpStreamFactory
         boolean netEnded;
 
         HttpRequestStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
-            this.request = mcp;
+            this.request = (McpRequestStream) mcp;
             this.decoder = decodeJsonRpc;
             this.decodedResultStart = -1;
         }
@@ -1719,7 +1723,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpToolsListStream extends HttpRequestStream
     {
         HttpToolsListStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
@@ -1758,7 +1762,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpToolsCallStream extends HttpRequestStream
     {
         HttpToolsCallStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
@@ -1807,7 +1811,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpPromptsListStream extends HttpRequestStream
     {
         HttpPromptsListStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
@@ -1847,7 +1851,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpPromptsGetStream extends HttpRequestStream
     {
         HttpPromptsGetStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
@@ -1897,7 +1901,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpResourcesListStream extends HttpRequestStream
     {
         HttpResourcesListStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
@@ -1937,7 +1941,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpResourcesReadStream extends HttpRequestStream
     {
         HttpResourcesReadStream(
-            McpRequestStream mcp)
+            McpStream mcp)
         {
             super(mcp);
         }
