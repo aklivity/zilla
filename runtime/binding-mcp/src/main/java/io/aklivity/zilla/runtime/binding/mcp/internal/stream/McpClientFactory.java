@@ -28,6 +28,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -57,13 +58,11 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String MCP_TYPE_NAME = "mcp";
 
     private static final String HTTP_HEADER_METHOD = ":method";
-    private static final String HTTP_HEADER_PATH = ":path";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
-    private static final String MCP_PATH = "/mcp";
     private static final String HTTP_METHOD_POST = "POST";
 
     private static final int DATA_FLAGS_COMPLETE = 0x03;
@@ -264,7 +263,7 @@ public final class McpClientFactory implements McpStreamFactory
                 {
                     newStream = new McpLifecycleStream(
                         sender, originId, routedId, initialId, route.id, affinity, authorization,
-                        mcpBeginEx.lifecycle().sessionId().asString())::onAppMessage;
+                        mcpBeginEx.lifecycle().sessionId().asString(), route.with)::onAppMessage;
                 }
                 else
                 {
@@ -301,6 +300,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected final long affinity;
         protected final long authorization;
         protected final String sessionId;
+        protected final McpWithConfig with;
 
         protected HttpStream http;
 
@@ -324,7 +324,8 @@ public final class McpClientFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             long authorization,
-            String sessionId)
+            String sessionId,
+            McpWithConfig with)
         {
             this.sender = sender;
             this.originId = originId;
@@ -335,6 +336,7 @@ public final class McpClientFactory implements McpStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.sessionId = sessionId;
+            this.with = with;
         }
 
         void onAppMessage(
@@ -621,9 +623,10 @@ public final class McpClientFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             long authorization,
-            String sessionId)
+            String sessionId,
+            McpWithConfig with)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, sessionId, with);
             sessions.put(sessionId, this);
             this.http = new HttpInitializeRequest(this);
         }
@@ -700,7 +703,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpLifecycleStream session)
         {
-            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization, session.sessionId);
+            super(sender, originId, routedId, initialId, resolvedId, affinity, authorization,
+                session.sessionId, session.with);
             this.session = session;
         }
 
@@ -1274,14 +1278,19 @@ public final class McpClientFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final HttpBeginExFW httpBeginEx = httpBeginExRW
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
-                .build();
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
 
             int pos = 0;
             pos += codecBuffer.putStringWithoutLengthAscii(pos,
@@ -1364,9 +1373,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    builder.headersItem(h -> h.name(name).value(value)));
+            }
+            builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1483,9 +1497,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1536,9 +1555,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1595,9 +1619,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1648,9 +1677,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1701,9 +1735,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1754,9 +1793,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final HttpBeginExFW.Builder extBuilder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    extBuilder.headersItem(h -> h.name(name).value(value)));
+            }
+            extBuilder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
@@ -1815,11 +1859,16 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             final String sid = mcp.sessionId;
-            final HttpBeginExFW httpBeginEx = httpBeginExRW
+            final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    builder.headersItem(h -> h.name(name).value(value)));
+            }
+            final HttpBeginExFW httpBeginEx = builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value("DELETE"))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
@@ -1907,6 +1956,7 @@ public final class McpClientFactory implements McpStreamFactory
         private final long originId;
         private final long resolvedId;
         private final long affinity;
+        private final McpWithConfig with;
 
         private MessageConsumer net;
         private boolean bodySent;
@@ -1923,17 +1973,23 @@ public final class McpClientFactory implements McpStreamFactory
             this.originId = mcp.originId;
             this.resolvedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
+            this.with = mcp.with;
         }
 
         void doNetBegin(
             long traceId)
         {
             final String sid = sessionId;
-            final HttpBeginExFW httpBeginEx = httpBeginExRW
+            final HttpBeginExFW.Builder builder = httpBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
+                .typeId(httpTypeId);
+            if (with != null && with.headers != null)
+            {
+                with.headers.forEach((name, value) ->
+                    builder.headersItem(h -> h.name(name).value(value)));
+            }
+            final HttpBeginExFW httpBeginEx = builder
                 .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_PATH).value(MCP_PATH))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))

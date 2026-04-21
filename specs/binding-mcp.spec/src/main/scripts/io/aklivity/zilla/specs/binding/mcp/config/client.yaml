@@ -21,3 +21,8 @@ bindings:
     kind: client
     routes:
       - exit: net0
+        with:
+          headers:
+            ":scheme": http
+            ":authority": localhost
+            ":path": /mcp
