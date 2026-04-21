@@ -881,8 +881,8 @@ public final class McpClientFactory implements McpStreamFactory
         private long replyAck;
         private int replyMax;
 
-        private int decodeSlot = NO_SLOT;
-        private int decodeSlotOffset;
+        protected int decodeSlot = NO_SLOT;
+        protected int decodeSlotOffset;
 
         private int state;
 
@@ -1150,24 +1150,6 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        protected void bufferResponseData(
-            OctetsFW payload)
-        {
-            if (payload != null && payload.sizeof() > 0)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = bufferPool.acquire(initialId);
-                }
-
-                if (decodeSlot != NO_SLOT)
-                {
-                    final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
-                    buf.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                    decodeSlotOffset += payload.sizeof();
-                }
-            }
-        }
 
         protected void flushResponseToApp(
             long traceId)
@@ -1388,11 +1370,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (sessionId != null)
-            {
-                final String sid = sessionId;
-                builder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = sessionId;
+            builder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = builder.build();
 
@@ -1462,7 +1441,21 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetDataImpl(
             DataFW data)
         {
-            bufferResponseData(data.payload());
+            final OctetsFW payload = data.payload();
+            if (payload != null && payload.sizeof() > 0)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = bufferPool.acquire(initialId);
+                }
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
+                    buf.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                    decodeSlotOffset += payload.sizeof();
+                }
+            }
         }
 
         @Override
@@ -1496,11 +1489,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1552,11 +1542,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1614,11 +1601,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1670,11 +1654,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1726,11 +1707,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1782,11 +1760,8 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
 
-            if (mcp.sessionId != null)
-            {
-                final String sid = mcp.sessionId;
-                extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-            }
+            final String sid = mcp.sessionId;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
 
             final HttpBeginExFW httpBeginEx = extBuilder.build();
 
@@ -1869,32 +1844,56 @@ public final class McpClientFactory implements McpStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                doWindow(net, mcp.originId, mcp.resolvedId, replyId,
-                    begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
+                onNetBegin(begin);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                initialMax = window.maximum();
-                if (!endSent && initialMax > 0)
-                {
-                    endSent = true;
-                    doEnd(net, mcp.originId, mcp.resolvedId, initialId,
-                        window.traceId(), mcp.authorization);
-                }
+                onNetWindow(window);
                 break;
             case DataFW.TYPE_ID:
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                mcp.doAppEnd(end.traceId());
+                onNetEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                mcp.doAppAbort(abort.traceId());
+                onNetAbort(abort);
                 break;
             default:
                 break;
             }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            doWindow(net, mcp.originId, mcp.resolvedId, replyId,
+                begin.traceId(), mcp.authorization, 0, writeBuffer.capacity(), 0);
+        }
+
+        private void onNetWindow(
+            WindowFW window)
+        {
+            initialMax = window.maximum();
+            if (!endSent && initialMax > 0)
+            {
+                endSent = true;
+                doEnd(net, mcp.originId, mcp.resolvedId, initialId,
+                    window.traceId(), mcp.authorization);
+            }
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            mcp.doAppEnd(end.traceId());
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            mcp.doAppAbort(abort.traceId());
         }
     }
 
@@ -1954,34 +1953,42 @@ public final class McpClientFactory implements McpStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                doWindow(net, originId, resolvedId, replyId,
-                    begin.traceId(), authorization, 0, writeBuffer.capacity(), 0);
+                onNetBegin(begin);
                 break;
             case WindowFW.TYPE_ID:
-                if (!bodySent)
-                {
-                    bodySent = true;
-                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                    sendBody(window.traceId());
-                }
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void sendBody(
-            long traceId)
+        private void onNetBegin(
+            BeginFW begin)
         {
-            int pos = 0;
-            pos += codecBuffer.putStringWithoutLengthAscii(pos,
-                "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":");
-            pos += codecBuffer.putIntAscii(pos, cancelledRequestId);
-            pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"reason\":\"User cancelled\"}}");
+            doWindow(net, originId, resolvedId, replyId,
+                begin.traceId(), authorization, 0, writeBuffer.capacity(), 0);
+        }
 
-            doData(net, originId, resolvedId, initialId,
-                traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
-            doEnd(net, originId, resolvedId, initialId, traceId, authorization);
+        private void onNetWindow(
+            WindowFW window)
+        {
+            if (!bodySent)
+            {
+                bodySent = true;
+                final long traceId = window.traceId();
+
+                int pos = 0;
+                pos += codecBuffer.putStringWithoutLengthAscii(pos,
+                    "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":");
+                pos += codecBuffer.putIntAscii(pos, cancelledRequestId);
+                pos += codecBuffer.putStringWithoutLengthAscii(pos, ",\"reason\":\"User cancelled\"}}");
+
+                doData(net, originId, resolvedId, initialId,
+                    traceId, authorization, DATA_FLAGS_COMPLETE, 0, pos, codecBuffer, 0, pos);
+                doEnd(net, originId, resolvedId, initialId, traceId, authorization);
+            }
         }
     }
 
