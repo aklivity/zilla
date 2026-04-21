@@ -1057,8 +1057,13 @@ public final class McpClientFactory implements McpStreamFactory
             final long acknowledge = abort.acknowledge();
 
             assert acknowledge <= sequence;
+            assert sequence >= replySeq;
 
+            replySeq = sequence;
             state = McpState.closedReply(state);
+
+            assert replyAck <= replySeq;
+
             cleanupEncodeSlot();
             cleanupDecodeSlot();
             mcp.doAppAbort(traceId, authorization);
@@ -1104,8 +1109,13 @@ public final class McpClientFactory implements McpStreamFactory
             final long acknowledge = reset.acknowledge();
 
             assert acknowledge <= sequence;
+            assert acknowledge <= initialAck;
 
+            initialAck = acknowledge;
             state = McpState.closedInitial(state);
+
+            assert initialAck <= initialSeq;
+
             cleanupEncodeSlot();
             cleanupDecodeSlot();
             mcp.doAppReset(traceId, authorization);
