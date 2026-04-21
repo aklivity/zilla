@@ -1178,14 +1178,6 @@ public final class McpServerFactory implements McpStreamFactory
         private void doNetData(
             long traceId,
             long authorization,
-            Flyweight payload)
-        {
-            doNetData(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
-        }
-
-        private void doNetData(
-            long traceId,
-            long authorization,
             DirectBuffer buffer,
             int offset,
             int limit)
@@ -1410,7 +1402,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doEncodeBeginResponse(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+            doEncodeResponseBegin(traceId, authorization, httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                 .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
@@ -1423,8 +1415,8 @@ public final class McpServerFactory implements McpStreamFactory
                 "serverInfo":{"name":"%s","version":"%s"}
                 }
                 """.replaceAll("\n", "")).formatted(serverName, serverVersion));
-            doEncodeData(traceId, authorization, payload.value());
-            doEncodeEndResponse(traceId, authorization);
+            doEncodeResponseData(traceId, authorization, payload.value());
+            doEncodeResponseEnd(traceId, authorization);
         }
 
         private void onDecodeNotifyInitialized(
@@ -1455,7 +1447,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             session.touch();
 
-            doEncodeBeginResponse(traceId, authorization,
+            doEncodeResponseBegin(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
@@ -1463,8 +1455,8 @@ public final class McpServerFactory implements McpStreamFactory
                     .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                     .build());
             String8FW payload = new String8FW("{}");
-            doEncodeData(traceId, authorization, payload.value());
-            doEncodeEndResponse(traceId, authorization);
+            doEncodeResponseData(traceId, authorization, payload.value());
+            doEncodeResponseEnd(traceId, authorization);
         }
 
         private void onDecodeToolsList(
@@ -1618,7 +1610,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doEncodeError(traceId, authorization,
+            doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
@@ -1631,7 +1623,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            doEncodeError(traceId, authorization,
+            doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
@@ -1640,19 +1632,58 @@ public final class McpServerFactory implements McpStreamFactory
                 "Invalid request");
         }
 
-        private void doEncodeBeginResponse(
+        private void doEncodeResponseBegin(
             long traceId,
             long authorization,
             Flyweight extension)
         {
             doNetBegin(traceId, authorization, extension);
+        }
 
-            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(decodedId));
+        private void doEncodeResponsePreamble(
+            long traceId,
+            long authorization)
+        {
+            if (replySeq == 0L)
+            {
+                final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
+                    "{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(decodedId));
+                doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
+            }
+        }
+
+        private void doEncodeResponseData(
+            long traceId,
+            long authorization,
+            DirectBuffer payload)
+        {
+            doEncodeResponsePreamble(traceId, authorization);
+            doNetData(traceId, authorization, payload);
+        }
+
+        private void doEncodeResponsePostamble(
+            long traceId,
+            long authorization)
+        {
+            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, "}");
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
-        private void doEncodeError(
+        private void doEncodeResponseEnd(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponsePostamble(traceId, authorization);
+
+            state = McpState.closingReply(state);
+
+            if (encodeSlot == BufferPool.NO_SLOT)
+            {
+                doNetEnd(traceId, authorization);
+            }
+        }
+
+        private void doEncodeResponseError(
             long traceId,
             long authorization,
             Flyweight extension,
@@ -1667,38 +1698,6 @@ public final class McpServerFactory implements McpStreamFactory
                 """.formatted(decodedId, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             doNetEnd(traceId, authorization);
-        }
-
-        private void doEncodeData(
-            long traceId,
-            long authorization,
-            int reserved,
-            OctetsFW payload)
-        {
-            doNetData(traceId, authorization, payload);
-        }
-
-        private void doEncodeData(
-            long traceId,
-            long authorization,
-            DirectBuffer payload)
-        {
-            doNetData(traceId, authorization, payload);
-        }
-
-        private void doEncodeEndResponse(
-            long traceId,
-            long authorization)
-        {
-            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, "}");
-            doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-
-            state = McpState.closingReply(state);
-
-            if (encodeSlot == BufferPool.NO_SLOT)
-            {
-                doNetEnd(traceId, authorization);
-            }
         }
 
         private void encodeNet(
@@ -2576,7 +2575,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             session.touch();
 
-            server.doEncodeBeginResponse(traceId, authorization,
+            server.doEncodeResponseBegin(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
@@ -2610,7 +2609,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else if (payload != null)
             {
-                server.doEncodeData(traceId, authorization, reserved, payload);
+                server.doEncodeResponseData(traceId, authorization, payload.value());
             }
         }
 
@@ -2648,7 +2647,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            server.doEncodeEndResponse(traceId, authorization);
+            server.doEncodeResponseEnd(traceId, authorization);
         }
 
         private void onAppAbort(
