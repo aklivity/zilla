@@ -399,7 +399,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long replyBud;
         private int replyPad;
 
-        private int state;
+        int state;
 
         McpStream(
             MessageConsumer sender,
@@ -488,8 +488,6 @@ public final class McpClientFactory implements McpStreamFactory
 
         abstract void onAppBeginImpl(long traceId, long authorization, McpBeginExFW mcpBeginEx);
 
-        abstract void onAppEndImpl(long traceId, long authorization);
-
         private void onAppData(
             DataFW data)
         {
@@ -534,7 +532,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            onAppEndImpl(traceId, authorization);
+            http.doEncodeRequestEnd(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
         private void onAppAbort(
@@ -554,14 +554,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            onAppAbortImpl(traceId, authorization);
-        }
-
-        void onAppAbortImpl(
-            long traceId,
-            long authorization)
-        {
             http.doNetAbort(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
         private void onAppFlush(
@@ -615,14 +610,15 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            onAppResetImpl(traceId, authorization);
+            http.doNetReset(traceId, authorization);
+
+            onAppClosed(traceId, authorization);
         }
 
-        void onAppResetImpl(
+        void onAppClosed(
             long traceId,
             long authorization)
         {
-            http.doNetReset(traceId, authorization);
         }
 
         void doAppBegin(
@@ -753,43 +749,21 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void onAppEndImpl(
+        void onAppClosed(
             long traceId,
             long authorization)
         {
-            onAppClosed(traceId, authorization);
-        }
-
-        @Override
-        void onAppAbortImpl(
-            long traceId,
-            long authorization)
-        {
-            onAppClosed(traceId, authorization);
-        }
-
-        @Override
-        void onAppResetImpl(
-            long traceId,
-            long authorization)
-        {
-            onAppClosed(traceId, authorization);
-        }
-
-        private void onAppClosed(
-            long traceId,
-            long authorization)
-        {
-            sessions.remove(sessionId);
-
-            for (McpRequestStream request : requests.values())
+            if (sessions.remove(sessionId) != null)
             {
-                request.doAppAbort(traceId, authorization);
-                request.http.doNetAbort(traceId, authorization);
-            }
-            requests.clear();
+                for (McpRequestStream request : requests.values())
+                {
+                    request.doAppAbort(traceId, authorization);
+                    request.http.doNetAbort(traceId, authorization);
+                }
+                requests.clear();
 
-            new HttpTerminateSession(this).doNetBegin(traceId, authorization);
+                new HttpTerminateSession(this).doNetBegin(traceId, authorization);
+            }
         }
     }
 
@@ -814,36 +788,11 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        final void onAppEndImpl(
+        final void onAppClosed(
             long traceId,
             long authorization)
         {
-            http.doEncodeRequestEnd(traceId, authorization);
-        }
-
-        @Override
-        final void onAppAbortImpl(
-            long traceId,
-            long authorization)
-        {
-            doCancel(traceId, authorization);
-            super.onAppAbortImpl(traceId, authorization);
-        }
-
-        @Override
-        final void onAppResetImpl(
-            long traceId,
-            long authorization)
-        {
-            doCancel(traceId, authorization);
-            super.onAppResetImpl(traceId, authorization);
-        }
-
-        private void doCancel(
-            long traceId,
-            long authorization)
-        {
-            if (sessions.containsKey(sessionId))
+            if (McpState.closed(state) && session.requests.remove(requestId) != null)
             {
                 new HttpNotifyCancelled(this).doNetBegin(traceId, authorization);
             }
