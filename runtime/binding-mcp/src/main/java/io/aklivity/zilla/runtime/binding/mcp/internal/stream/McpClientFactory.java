@@ -105,6 +105,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final int httpTypeId;
     private final int mcpTypeId;
     private final int decodeMax;
+    private final int encodeMax;
     private final String clientName;
     private final String clientVersion;
 
@@ -128,6 +129,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.decodeMax = bufferPool.slotCapacity();
+        this.encodeMax = bufferPool.slotCapacity();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
 
@@ -487,7 +489,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
-            initialMax = writeBuffer.capacity();
+            initialMax = encodeMax;
 
             final OctetsFW extension = begin.extension();
             final McpBeginExFW mcpBeginEx = extension.sizeof() > 0
@@ -514,7 +516,6 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence + data.reserved();
-            initialAck = initialSeq;
 
             assert initialAck <= initialSeq;
 
@@ -525,7 +526,7 @@ public final class McpClientFactory implements McpStreamFactory
                     payload.buffer(), payload.offset(), payload.limit());
             }
 
-            doAppWindow(traceId, authorization, 0L, 0);
+            flushAppWindow(traceId, authorization, 0L, 0);
         }
 
         private void onAppEnd(
@@ -590,6 +591,8 @@ public final class McpClientFactory implements McpStreamFactory
         private void onAppWindow(
             WindowFW window)
         {
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
@@ -605,6 +608,11 @@ public final class McpClientFactory implements McpStreamFactory
             replyPad = window.padding();
 
             assert replyAck <= replySeq;
+
+            if (http != null)
+            {
+                http.onAppReplyWindow(traceId, authorization);
+            }
         }
 
         private void onAppReset(
@@ -723,6 +731,22 @@ public final class McpClientFactory implements McpStreamFactory
             doWindow(sender, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
+        }
+
+        void flushAppWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            final int pending = http != null ? http.encodeSlotOffset : 0;
+            final long newAck = Math.max(initialSeq - pending, initialAck);
+            if (newAck > initialAck)
+            {
+                initialAck = newAck;
+                assert initialAck <= initialSeq;
+                doAppWindow(traceId, authorization, budgetId, padding);
+            }
         }
     }
 
@@ -887,7 +911,6 @@ public final class McpClientFactory implements McpStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
             ((HttpRequestStream) http).flushResponseToApp(traceId, authorization);
-            doAppEnd(traceId, authorization);
             session.unregister(requestId);
         }
     }
@@ -1060,7 +1083,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected MessageConsumer net;
 
         private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
+        int encodeSlotOffset;
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
@@ -1153,8 +1176,6 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetData(
             DataFW data)
         {
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
 
@@ -1163,12 +1184,23 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= replyAck;
 
             replySeq = sequence + data.reserved();
-            replyAck = replySeq;
 
             assert replyAck <= replySeq;
 
             onNetDataImpl(data);
-            doNetWindow(traceId, authorization, 0L, 0);
+        }
+
+        void doReplyConsumed(
+            long traceId,
+            long authorization,
+            int consumed)
+        {
+            if (consumed > 0)
+            {
+                replyAck = Math.min(replyAck + consumed, replySeq);
+                assert replyAck <= replySeq;
+                doNetWindow(traceId, authorization, 0L, 0);
+            }
         }
 
         private void onNetEnd(
@@ -1242,6 +1274,8 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetWindow(
             WindowFW window)
         {
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
@@ -1256,12 +1290,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
-                final long traceId = encodeSlotTraceId;
-                final long authorization = encodeSlotAuthorization;
+                final long slotTraceId = encodeSlotTraceId;
+                final long slotAuthorization = encodeSlotAuthorization;
 
                 encodeSlotOffset = 0;
-                encodeNet(traceId, authorization, encodeBuffer, 0, limit);
+                encodeNet(slotTraceId, slotAuthorization, encodeBuffer, 0, limit);
             }
+
+            mcp.flushAppWindow(traceId, authorization, 0L, 0);
         }
 
         private void onNetReset(
@@ -1285,6 +1321,12 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         abstract void onNetDataImpl(DataFW data);
+
+        void onAppReplyWindow(
+            long traceId,
+            long authorization)
+        {
+        }
 
         abstract void doEncodeRequestBegin(long traceId, long authorization);
 
@@ -1515,6 +1557,7 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetDataImpl(
             DataFW data)
         {
+            doReplyConsumed(data.traceId(), data.authorization(), data.reserved());
         }
     }
 
@@ -1558,6 +1601,7 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetDataImpl(
             DataFW data)
         {
+            doReplyConsumed(data.traceId(), data.authorization(), data.reserved());
         }
     }
 
@@ -1568,6 +1612,7 @@ public final class McpClientFactory implements McpStreamFactory
         HttpResponseDecoder decoder;
         JsonParser decodableJson;
         int decodedResultStart;
+        boolean netEnded;
 
         HttpRequestStream(
             McpRequestStream mcp)
@@ -1582,6 +1627,8 @@ public final class McpClientFactory implements McpStreamFactory
         void onNetDataImpl(
             DataFW data)
         {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
             final OctetsFW payload = data.payload();
             if (payload != null && payload.sizeof() > 0)
             {
@@ -1595,26 +1642,75 @@ public final class McpClientFactory implements McpStreamFactory
                     final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
                     buf.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
-                    decodeNet(this, buf, 0, decodeSlotOffset);
+
+                    if (decodedResultStart < 0)
+                    {
+                        decoder = decodeJsonRpc;
+                        decodeNet(this, buf, 0, decodeSlotOffset);
+                    }
                 }
             }
+            drainResponseToApp(traceId, authorization);
         }
 
         void flushResponseToApp(
             long traceId,
             long authorization)
         {
-            if (decodeSlot != NO_SLOT)
+            netEnded = true;
+            drainResponseToApp(traceId, authorization);
+        }
+
+        void drainResponseToApp(
+            long traceId,
+            long authorization)
+        {
+            if (decodedResultStart < 0)
             {
-                final DirectBuffer buf = bufferPool.buffer(decodeSlot);
-                decodeNet(this, buf, 0, decodeSlotOffset);
-                if (decodedResultStart >= 0)
+                if (netEnded)
                 {
-                    final int resultLength = decodeSlotOffset - decodedResultStart - 1;
-                    mcp.doAppData(traceId, authorization, buf, decodedResultStart, resultLength);
+                    mcp.doAppEnd(traceId, authorization);
+                    cleanupDecodeSlot();
                 }
+                return;
+            }
+
+            final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
+            final int drainLimit = decodeSlotOffset - 1;
+
+            while (decodedResultStart < drainLimit)
+            {
+                final int mcpCredit = mcp.replyMax - (int) (mcp.replySeq - mcp.replyAck) - mcp.replyPad;
+                if (mcpCredit <= 0)
+                {
+                    break;
+                }
+                final int length = Math.min(mcpCredit, drainLimit - decodedResultStart);
+                mcp.doAppData(traceId, authorization, buf, decodedResultStart, length);
+                decodedResultStart += length;
+                doReplyConsumed(traceId, authorization, length);
+            }
+
+            if (netEnded && decodedResultStart == drainLimit)
+            {
+                mcp.doAppEnd(traceId, authorization);
                 cleanupDecodeSlot();
             }
+            else if (decodedResultStart > 0)
+            {
+                final int remaining = decodeSlotOffset - decodedResultStart;
+                buf.putBytes(0, buf, decodedResultStart, remaining);
+                decodeSlotOffset = remaining;
+                decodedResultStart = 0;
+            }
+        }
+
+        @Override
+        void onAppReplyWindow(
+            long traceId,
+            long authorization)
+        {
+            drainResponseToApp(traceId, authorization);
         }
     }
 

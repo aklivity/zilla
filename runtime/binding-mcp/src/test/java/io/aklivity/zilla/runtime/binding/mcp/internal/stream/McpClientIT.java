@@ -98,6 +98,26 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/tools.call.10k/client",
+        "${net}/tools.call.10k/server"})
+    public void shouldCallToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.100k/client",
+        "${net}/tools.call.100k/server"})
+    public void shouldCallToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/tools.list/client",
         "${net}/tools.list/server"})
     public void shouldListTools() throws Exception
@@ -153,6 +173,26 @@ public class McpClientIT
         "${app}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.read.10k/client",
+        "${net}/resources.read.10k/server"})
+    public void shouldReadResourceWith10kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.read.100k/client",
+        "${net}/resources.read.100k/server"})
+    public void shouldReadResourceWith100kContents() throws Exception
     {
         k3po.finish();
     }
