@@ -192,12 +192,13 @@ public final class McpClientFactory implements McpStreamFactory
             int limit);
     }
 
-    private final HttpResponseDecoder decodeResponseStart = this::decodeResponseStart;
-    private final HttpResponseDecoder decodeResponseKey = this::decodeResponseKey;
-    private final HttpResponseDecoder decodeResponseResultValue = this::decodeResponseResultValue;
+    private final HttpResponseDecoder decodeJsonRpc = this::decodeJsonRpc;
+    private final HttpResponseDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
+    private final HttpResponseDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
+    private final HttpResponseDecoder decodeJsonRpcResult = this::decodeJsonRpcResult;
     private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
 
-    private int decodeResponseStart(
+    private int decodeJsonRpc(
         HttpRequestStream http,
         DirectBuffer buffer,
         int offset,
@@ -205,22 +206,34 @@ public final class McpClientFactory implements McpStreamFactory
     {
         DirectBufferInputStreamEx input = inputRO;
         input.wrap(buffer, offset, limit - offset);
-        http.decodableJson = StreamingJson.createParser(input);
 
+        http.decodableJson = StreamingJson.createParser(input);
+        http.decoder = decodeJsonRpcStart;
+
+        return limit - input.available();
+    }
+
+    private int decodeJsonRpcStart(
+        HttpRequestStream http,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        DirectBufferInputStreamEx input = inputRO;
         final JsonParser parser = http.decodableJson;
         int progress = offset;
         if (parser.hasNext())
         {
             final JsonParser.Event event = parser.next();
             http.decoder = event == JsonParser.Event.START_OBJECT
-                ? decodeResponseKey
+                ? decodeJsonRpcNext
                 : decodeIgnore;
             progress = limit - input.available();
         }
         return progress;
     }
 
-    private int decodeResponseKey(
+    private int decodeJsonRpcNext(
         HttpRequestStream http,
         DirectBuffer buffer,
         int offset,
@@ -236,7 +249,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 if ("result".equals(parser.getString()))
                 {
-                    http.decoder = decodeResponseResultValue;
+                    http.decoder = decodeJsonRpcResult;
                     progress = limit - input.available();
                     break;
                 }
@@ -255,7 +268,7 @@ public final class McpClientFactory implements McpStreamFactory
         return progress;
     }
 
-    private int decodeResponseResultValue(
+    private int decodeJsonRpcResult(
         HttpRequestStream http,
         DirectBuffer buffer,
         int offset,
@@ -1601,25 +1614,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(mcp);
             this.request = mcp;
-            this.decoder = decodeResponseStart;
+            this.decoder = decodeJsonRpc;
             this.decodedResultStart = -1;
-        }
-
-        private void flushResponseToApp(
-            long traceId,
-            long authorization)
-        {
-            if (decodeSlot != NO_SLOT)
-            {
-                final DirectBuffer buf = bufferPool.buffer(decodeSlot);
-                decodeResponse(this, buf, 0, decodeSlotOffset);
-                if (decodedResultStart >= 0)
-                {
-                    final int resultLength = decodeSlotOffset - decodedResultStart - 1;
-                    mcp.doAppData(traceId, authorization, buf, decodedResultStart, resultLength);
-                }
-                cleanupDecodeSlot();
-            }
         }
 
         @Override
@@ -1639,6 +1635,7 @@ public final class McpClientFactory implements McpStreamFactory
                     final MutableDirectBuffer buf = bufferPool.buffer(decodeSlot);
                     buf.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
+                    decodeNet(this, buf, 0, decodeSlotOffset);
                 }
             }
         }
@@ -1649,7 +1646,17 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            flushResponseToApp(traceId, authorization);
+            if (decodeSlot != NO_SLOT)
+            {
+                final DirectBuffer buf = bufferPool.buffer(decodeSlot);
+                decodeNet(this, buf, 0, decodeSlotOffset);
+                if (decodedResultStart >= 0)
+                {
+                    final int resultLength = decodeSlotOffset - decodedResultStart - 1;
+                    mcp.doAppData(traceId, authorization, buf, decodedResultStart, resultLength);
+                }
+                cleanupDecodeSlot();
+            }
             mcp.doAppEnd(traceId, authorization);
             request.session.unregister(request.requestId);
         }
@@ -2140,7 +2147,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private void decodeResponse(
+    private void decodeNet(
         HttpRequestStream http,
         DirectBuffer buffer,
         int offset,
