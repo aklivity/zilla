@@ -1975,13 +1975,13 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpNotifyCancelled
     {
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final String sessionId;
-        private final int cancelledRequestId;
-        private final long originId;
-        private final long resolvedId;
         private final long affinity;
+        private final String sessionId;
+        private final int requestId;
         private final McpWithConfig with;
 
         private MessageConsumer net;
@@ -1994,9 +1994,9 @@ public final class McpClientFactory implements McpStreamFactory
             this.initialId = supplyInitialId.applyAsLong(mcp.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.sessionId = mcp.sessionId;
-            this.cancelledRequestId = mcp.requestId;
-            this.originId = mcp.originId;
-            this.resolvedId = mcp.resolvedId;
+            this.requestId = mcp.requestId;
+            this.originId = mcp.routedId;
+            this.routedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
             this.with = mcp.with;
         }
@@ -2022,7 +2022,7 @@ public final class McpClientFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
                 .build();
 
-            net = newStream(this::onNetMessage, originId, resolvedId, initialId,
+            net = newStream(this::onNetMessage, originId, routedId, initialId,
                 0, 0, 0, traceId, authorization, affinity, httpBeginEx);
         }
 
@@ -2050,7 +2050,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
-            doWindow(net, originId, resolvedId, replyId,
+            doWindow(net, originId, routedId, replyId,
                 begin.traceId(), authorization, 0, writeBuffer.capacity(), 0);
         }
 
@@ -2066,12 +2066,12 @@ public final class McpClientFactory implements McpStreamFactory
                     """
                     {"jsonrpc":"2.0","method":"notifications/cancelled","params":\
                     {"requestId":%d,"reason":"User cancelled"}}\
-                    """.formatted(cancelledRequestId));
+                    """.formatted(requestId));
 
-                doData(net, originId, resolvedId, initialId,
+                doData(net, originId, routedId, initialId,
                     traceId, authorization, DATA_FLAGS_COMPLETE, 0, codecLength,
                     codecBuffer, 0, codecLength);
-                doEnd(net, originId, resolvedId, initialId, traceId, authorization);
+                doEnd(net, originId, routedId, initialId, traceId, authorization);
             }
         }
     }
