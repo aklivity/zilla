@@ -89,6 +89,7 @@ write '{"jsonrpc":"2.0","id":2,"method":"prompts/get","params":{"name":"weather_
 
 write close
 
+read zilla:begin.ext
 read notify REQUEST_PENDING
 read aborted
 

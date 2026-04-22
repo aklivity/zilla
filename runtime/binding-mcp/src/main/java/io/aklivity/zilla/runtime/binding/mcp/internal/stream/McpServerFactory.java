@@ -59,7 +59,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpServerFactory implements McpStreamFactory
 {
-    private static final byte START_OBJECT_BYTE = (byte) '{';
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
 
@@ -929,6 +928,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.resolvedId = resolvedId;
             this.session = session;
             this.decoder = decodeJsonRpc;
+            this.initialMax = decodeMax;
         }
 
         private void onNetMessage(
@@ -979,11 +979,9 @@ public final class McpServerFactory implements McpStreamFactory
             final long authorization = begin.authorization();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
-            final int maximum = begin.maximum();
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            initialMax = maximum;
 
             state = McpState.openedInitial(state);
 
@@ -1247,6 +1245,8 @@ public final class McpServerFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedInitial(state);
+
             doWindow(net, originId, routedId, initialId,
                 initialSeq, initialAck, decodeMax - decodeSlotReserved, traceId, authorization, budgetId, padding);
         }
@@ -1276,16 +1276,14 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             long budgetId)
         {
-            final long initialAckMax = Math.min(initialAck + decodeMax - decodeSlotReserved, initialSeq);
-            if (initialAckMax > initialAck)
+            final long initialAckMax = Math.max(initialSeq - decodeSlotReserved, initialAck);
+            if (initialAckMax > initialAck || !McpState.initialOpened(state))
             {
                 initialAck = initialAckMax;
                 assert initialAck <= initialSeq;
 
                 doNetWindow(traceId, authorization, budgetId, 0);
             }
-
-            decodeNet(traceId, authorization, budgetId);
         }
 
         private void decodeNet(
@@ -1302,6 +1300,8 @@ public final class McpServerFactory implements McpStreamFactory
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
             }
+
+            flushNetWindow(traceId, authorization, budgetId);
         }
 
         private void decodeNet(
@@ -1987,6 +1987,8 @@ public final class McpServerFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedInitial(state);
+
             doWindow(net, originId, routedId, initialId,
                 initialSeq, initialAck, decodeMax, traceId, authorization, budgetId, padding);
         }
@@ -2683,7 +2685,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            server.flushNetWindow(traceId, authorization, budgetId);
+            server.decodeNet(traceId, authorization, budgetId);
         }
 
         private void onAppReset(
