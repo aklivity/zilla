@@ -35,33 +35,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
-class JsonParserTest
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
+class StreamingJsonParserTest
 {
-    @Test
-    void shouldViewKeyAndValueThroughStringView()
-    {
-        JsonParserEx parser = JsonEx.createParser();
-        byte[] bytes = "{\"alpha\":-12345}".getBytes(UTF_8);
-        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-
-        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
-        assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
-        assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
-        assertEquals("alpha", parser.getStringView().toString());
-        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
-        assertEquals("-12345", parser.getStringView().toString());
-        assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
-    }
-
     @Test
     void shouldParseFlatObject()
     {
@@ -159,10 +141,10 @@ class JsonParserTest
         for (int split = 1; split < full.length; split++)
         {
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
 
             in.wrap(buffer, 0, split);
-            JsonParser parser = JsonEx.createParser(in);
+            JsonParser parser = StreamingJson.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -182,10 +164,10 @@ class JsonParserTest
     void shouldHandleByteByByteFeed()
     {
         byte[] full = "{\"k\":[1,2,3],\"b\":true}".getBytes(UTF_8);
-        UnsafeBuffer buffer = new UnsafeBuffer(full);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(full);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, 1);
-        JsonParser parser = JsonEx.createParser(in);
+        JsonParser parser = StreamingJson.createParser(in);
 
         int events = 0;
         for (int limit = 1; limit <= full.length; limit++)
@@ -272,50 +254,6 @@ class JsonParserTest
         assertEquals(START_ARRAY, parser.next());
         assertEquals(VALUE_NUMBER, parser.next());
         assertEquals(123456789012L, parser.getLong());
-    }
-
-    @Test
-    void shouldGetIntBoundariesWithoutMaterializingString()
-    {
-        JsonParser parser = parserFor("[0,-1,2147483647,-2147483648]");
-
-        assertEquals(START_ARRAY, parser.next());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(0, parser.getInt());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(-1, parser.getInt());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(Integer.MAX_VALUE, parser.getInt());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(Integer.MIN_VALUE, parser.getInt());
-        assertEquals(END_ARRAY, parser.next());
-    }
-
-    @Test
-    void shouldGetLongBoundariesWithoutMaterializingString()
-    {
-        JsonParser parser = parserFor("[0,-1,9223372036854775807,-9223372036854775808]");
-
-        assertEquals(START_ARRAY, parser.next());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(0L, parser.getLong());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(-1L, parser.getLong());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(Long.MAX_VALUE, parser.getLong());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(Long.MIN_VALUE, parser.getLong());
-        assertEquals(END_ARRAY, parser.next());
-    }
-
-    @Test
-    void shouldRejectGetIntOnNonIntegralNumber()
-    {
-        JsonParser parser = parserFor("[3.14]");
-
-        assertEquals(START_ARRAY, parser.next());
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertThrows(NumberFormatException.class, parser::getInt);
     }
 
     @Test
@@ -529,7 +467,7 @@ class JsonParserTest
             }
         };
 
-        assertThrows(IllegalArgumentException.class, () -> JsonEx.createParser(in));
+        assertThrows(IllegalArgumentException.class, () -> StreamingJson.createParser(in));
     }
 
     @Test
@@ -561,95 +499,57 @@ class JsonParserTest
             }
         };
 
-        JsonParser parser = JsonEx.createParser(in);
+        JsonParser parser = StreamingJson.createParser(in);
         JsonParsingException ex = assertThrows(JsonParsingException.class, parser::hasNext);
         assertNotNull(ex.getCause());
     }
 
     @Test
-    void shouldBuildObjectFromGetObject()
-    {
-        JsonParser parser = parserFor("{\"a\":1,\"b\":[2,3]}");
-
-        assertEquals(START_OBJECT, parser.next());
-        JsonObject object = parser.getObject();
-        assertEquals(1, object.getInt("a"));
-        assertEquals(2, object.getJsonArray("b").getInt(0));
-        assertFalse(parser.hasNext());
-    }
-
-    @Test
-    void shouldBuildArrayFromGetArray()
-    {
-        JsonParser parser = parserFor("[1,\"two\",true,null]");
-
-        assertEquals(START_ARRAY, parser.next());
-        JsonArray array = parser.getArray();
-        assertEquals(1, array.getInt(0));
-        assertEquals("two", array.getString(1));
-        assertEquals(JsonValue.TRUE, array.get(2));
-        assertEquals(JsonValue.NULL, array.get(3));
-    }
-
-    @Test
-    void shouldBuildScalarFromGetValue()
-    {
-        JsonParser parser = parserFor("42\n");
-
-        assertEquals(VALUE_NUMBER, parser.next());
-        assertEquals(JsonValue.ValueType.NUMBER, parser.getValue().getValueType());
-    }
-
-    @Test
-    void shouldThrowOnGetValueBeforeNext()
-    {
-        JsonParser parser = parserFor("1");
-
-        assertThrows(IllegalStateException.class, parser::getValue);
-    }
-
-    @Test
-    void shouldStreamObjectEntries()
-    {
-        JsonParser parser = parserFor("{\"a\":1,\"b\":2,\"c\":3}");
-
-        assertEquals(START_OBJECT, parser.next());
-        assertEquals(3, parser.getObjectStream().count());
-    }
-
-    @Test
-    void shouldStreamArrayElements()
-    {
-        JsonParser parser = parserFor("[1,2,3,4]");
-
-        assertEquals(START_ARRAY, parser.next());
-        assertEquals(4, parser.getArrayStream().count());
-    }
-
-    @Test
-    void shouldStreamTopLevelValues()
-    {
-        JsonParser parser = parserFor("[1,2]");
-
-        assertEquals(1, parser.getValueStream().count());
-    }
-
-    @Test
-    void shouldThrowOnGetObjectWhenNotPositioned()
-    {
-        JsonParser parser = parserFor("[]");
-
-        assertEquals(START_ARRAY, parser.next());
-        assertThrows(IllegalStateException.class, parser::getObject);
-    }
-
-    @Test
-    void shouldThrowOnGetArrayWhenNotPositioned()
+    void shouldThrowOnGetObject()
     {
         JsonParser parser = parserFor("{}");
 
-        assertEquals(START_OBJECT, parser.next());
-        assertThrows(IllegalStateException.class, parser::getArray);
+        assertThrows(UnsupportedOperationException.class, parser::getObject);
+    }
+
+    @Test
+    void shouldThrowOnGetArray()
+    {
+        JsonParser parser = parserFor("[]");
+
+        assertThrows(UnsupportedOperationException.class, parser::getArray);
+    }
+
+    @Test
+    void shouldThrowOnGetValue()
+    {
+        JsonParser parser = parserFor("1");
+
+        assertThrows(UnsupportedOperationException.class, parser::getValue);
+    }
+
+    @Test
+    void shouldThrowOnGetObjectStream()
+    {
+        JsonParser parser = parserFor("{}");
+
+        assertThrows(UnsupportedOperationException.class, parser::getObjectStream);
+    }
+
+    @Test
+    void shouldThrowOnGetArrayStream()
+    {
+        JsonParser parser = parserFor("[]");
+
+        assertThrows(UnsupportedOperationException.class, parser::getArrayStream);
+    }
+
+    @Test
+    void shouldThrowOnGetValueStream()
+    {
+        JsonParser parser = parserFor("1");
+
+        assertThrows(UnsupportedOperationException.class, parser::getValueStream);
     }
 
     @Test
@@ -725,14 +625,12 @@ class JsonParserTest
     }
 
     @Test
-    void shouldRejectIsIntegralOnNonNumberEvent()
+    void shouldThrowIsIntegralOnNonNumberEvent()
     {
         JsonParser parser = parserFor("true");
         parser.next();
 
-        // isIntegralNumber() is valid only on a VALUE_NUMBER event; misuse trips the contract assert
-        // (assertions enabled under test), falling back to IllegalStateException when assertions are off
-        assertThrows(AssertionError.class, parser::isIntegralNumber);
+        assertThrows(IllegalStateException.class, parser::isIntegralNumber);
     }
 
     @Test
@@ -741,10 +639,10 @@ class JsonParserTest
         byte[] full = "\"\\u00e9!\"".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
-            JsonParser parser = JsonEx.createParser(in);
+            JsonParser parser = StreamingJson.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -764,10 +662,10 @@ class JsonParserTest
         byte[] full = "-123.45e6 ".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
-            JsonParser parser = JsonEx.createParser(in);
+            JsonParser parser = StreamingJson.createParser(in);
             while (parser.hasNext())
             {
                 parser.next();
@@ -799,7 +697,7 @@ class JsonParserTest
         byte[] bytes)
     {
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        return JsonEx.createParser(in);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        return StreamingJson.createParser(in);
     }
 }

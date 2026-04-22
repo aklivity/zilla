@@ -16,18 +16,18 @@ package io.aklivity.zilla.runtime.common.json;
 
 import java.io.InputStream;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class DirectBufferInputStreamEx extends InputStream
 {
-    private DirectBuffer buffer;
+    private DirectBufferEx buffer;
     private int offset;
     private int length;
     private int position;
     private int markPosition;
 
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -48,7 +48,7 @@ public final class DirectBufferInputStreamEx extends InputStream
         return length;
     }
 
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return buffer;
     }
