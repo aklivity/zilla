@@ -12,4 +12,5 @@ specific language governing permissions and limitations under the License.
 This project includes:
   agrona under The Apache License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  zilla::runtime::common-agrona under The Apache Software License, Version 2.0
 
