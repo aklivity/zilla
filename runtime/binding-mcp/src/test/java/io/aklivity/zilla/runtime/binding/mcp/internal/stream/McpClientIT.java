@@ -151,6 +151,76 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/tools.list.aborted/client",
+        "${net}/tools.list.aborted/server"})
+    public void shouldAbortToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.aborted/client",
+        "${net}/tools.call.aborted/server"})
+    public void shouldAbortCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/prompts.list.aborted/client",
+        "${net}/prompts.list.aborted/server"})
+    public void shouldAbortListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/prompts.get.aborted/client",
+        "${net}/prompts.get.aborted/server"})
+    public void shouldAbortGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.list.aborted/client",
+        "${net}/resources.list.aborted/server"})
+    public void shouldAbortListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.read.aborted/client",
+        "${net}/resources.read.aborted/server"})
+    public void shouldAbortReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.initialize.aborted/client",
+        "${net}/lifecycle.initialize.aborted/server"})
+    public void shouldAbortInitializeLifecycle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/tools.list.canceled/client",
         "${net}/tools.list.canceled/server"})
     @Configure(name = ENGINE_SYNTHETIC_ABORT_NAME, value = "false")
