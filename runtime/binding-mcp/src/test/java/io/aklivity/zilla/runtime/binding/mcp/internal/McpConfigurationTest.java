@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_KEEPALIVE_TOLERANCE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
@@ -36,6 +37,7 @@ public class McpConfigurationTest
     public static final String MCP_CLIENT_NAME_NAME = "zilla.binding.mcp.client.name";
     public static final String MCP_CLIENT_VERSION_NAME = "zilla.binding.mcp.client.version";
     public static final String MCP_INACTIVITY_TIMEOUT_NAME = "zilla.binding.mcp.inactivity.timeout";
+    public static final String MCP_KEEPALIVE_TOLERANCE_NAME = "zilla.binding.mcp.keepalive.tolerance";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -48,5 +50,6 @@ public class McpConfigurationTest
         assertEquals(MCP_CLIENT_NAME.name(), MCP_CLIENT_NAME_NAME);
         assertEquals(MCP_CLIENT_VERSION.name(), MCP_CLIENT_VERSION_NAME);
         assertEquals(MCP_INACTIVITY_TIMEOUT.name(), MCP_INACTIVITY_TIMEOUT_NAME);
+        assertEquals(MCP_KEEPALIVE_TOLERANCE.name(), MCP_KEEPALIVE_TOLERANCE_NAME);
     }
 }

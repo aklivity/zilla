@@ -36,6 +36,7 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<String> MCP_CLIENT_NAME;
     public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
+    public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
 
     static
     {
@@ -52,6 +53,7 @@ public class McpConfiguration extends Configuration
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
+        MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_CONFIG = config;
     }
 
@@ -94,6 +96,11 @@ public class McpConfiguration extends Configuration
     public Duration inactivityTimeout()
     {
         return MCP_INACTIVITY_TIMEOUT.get(this);
+    }
+
+    public int keepaliveTolerance()
+    {
+        return MCP_KEEPALIVE_TOLERANCE.getAsInt(this);
     }
 
     @FunctionalInterface

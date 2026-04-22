@@ -116,6 +116,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final int decodeMax;
     private final int encodeMax;
     private final long inactivityTimeoutMillis;
+    private final int keepaliveTolerance;
     private final Signaler signaler;
     private final String clientName;
     private final String clientVersion;
@@ -143,6 +144,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = decodePool.slotCapacity();
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
+        this.keepaliveTolerance = config.keepaliveTolerance();
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
@@ -936,6 +938,22 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void onNetAbort(
+            HttpStream http,
+            long traceId,
+            long authorization)
+        {
+            doAppAbort(traceId, authorization);
+        }
+
+        void onNetReset(
+            HttpStream http,
+            long traceId,
+            long authorization)
+        {
+            doAppReset(traceId, authorization);
+        }
+
         void doAppBegin(
             long traceId,
             long authorization,
@@ -1063,6 +1081,8 @@ public final class McpClientFactory implements McpStreamFactory
         String responseSessionId;
         private int nextRequestId = 2;
         private long keepaliveId = Signaler.NO_CANCEL_ID;
+        private long lastActiveAt;
+        private int failedKeepalives;
 
         McpLifecycleStream(
             MessageConsumer sender,
@@ -1079,9 +1099,16 @@ public final class McpClientFactory implements McpStreamFactory
             sessions.put(sessionId, this);
         }
 
+        void touch()
+        {
+            lastActiveAt = System.currentTimeMillis();
+            failedKeepalives = 0;
+        }
+
         int register(
             McpRequestStream request)
         {
+            touch();
             final int id = nextRequestId++;
             requests.put(id, request);
             return id;
@@ -1090,6 +1117,7 @@ public final class McpClientFactory implements McpStreamFactory
         boolean unregister(
             int id)
         {
+            touch();
             return requests.remove(id) != null;
         }
 
@@ -1142,6 +1170,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else if (http instanceof HttpKeepalive)
             {
+                touch();
                 scheduleKeepalive(traceId);
             }
             else
@@ -1152,7 +1181,40 @@ public final class McpClientFactory implements McpStreamFactory
                     .typeId(mcpTypeId)
                     .lifecycle(b -> b.sessionId(sid))
                     .build());
+                touch();
                 scheduleKeepalive(traceId);
+            }
+        }
+
+        @Override
+        void onNetAbort(
+            HttpStream http,
+            long traceId,
+            long authorization)
+        {
+            if (http instanceof HttpKeepalive)
+            {
+                scheduleKeepalive(traceId);
+            }
+            else
+            {
+                doAppAbort(traceId, authorization);
+            }
+        }
+
+        @Override
+        void onNetReset(
+            HttpStream http,
+            long traceId,
+            long authorization)
+        {
+            if (http instanceof HttpKeepalive)
+            {
+                scheduleKeepalive(traceId);
+            }
+            else
+            {
+                doAppReset(traceId, authorization);
             }
         }
 
@@ -1169,6 +1231,23 @@ public final class McpClientFactory implements McpStreamFactory
 
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
+            final long now = System.currentTimeMillis();
+            final long nextPingAt = lastActiveAt + inactivityTimeoutMillis / 2;
+
+            if (nextPingAt > now)
+            {
+                keepaliveId = signaler.signalAt(nextPingAt, originId, routedId, replyId,
+                    traceId, KEEPALIVE_SIGNAL_ID, 0);
+                return;
+            }
+
+            if (failedKeepalives >= keepaliveTolerance)
+            {
+                doAppTerminate(traceId, authorization);
+                return;
+            }
+
+            failedKeepalives++;
 
             final HttpKeepalive keepalive = new HttpKeepalive(this);
             this.http = keepalive;
@@ -1198,7 +1277,7 @@ public final class McpClientFactory implements McpStreamFactory
             cancelKeepalive();
             if (sessions.containsKey(sessionId))
             {
-                final long at = System.currentTimeMillis() + inactivityTimeoutMillis / 2;
+                final long at = lastActiveAt + inactivityTimeoutMillis / 2;
                 keepaliveId = signaler.signalAt(at, originId, routedId, replyId,
                     traceId, KEEPALIVE_SIGNAL_ID, 0);
             }
@@ -1230,6 +1309,8 @@ public final class McpClientFactory implements McpStreamFactory
                     request.http.doNetAbort(traceId, authorization);
                 }
                 requests.clear();
+
+                doAppEnd(traceId, authorization);
 
                 new HttpTerminateSession(this).doNetBegin(traceId, authorization);
             }
@@ -1706,7 +1787,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             cleanupDecodeSlot();
-            mcp.doAppAbort(traceId, authorization);
+            mcp.onNetAbort(this, traceId, authorization);
         }
 
         private void onNetWindow(
@@ -1756,7 +1837,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             cleanupEncodeSlot();
 
-            mcp.doAppReset(traceId, authorization);
+            mcp.onNetReset(this, traceId, authorization);
         }
 
         private void flushNetWindow(
