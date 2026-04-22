@@ -1124,7 +1124,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBufferExbuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNet(encodeSlotTraceId, budgetId, buffer, 0, limit);
@@ -1190,7 +1190,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBufferExencodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -1301,7 +1301,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                final MutableDirectBufferExbuffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int reserved = decodeSlotReserved;
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
@@ -1344,7 +1344,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBufferExslot = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
@@ -1750,7 +1750,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBufferExencodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
