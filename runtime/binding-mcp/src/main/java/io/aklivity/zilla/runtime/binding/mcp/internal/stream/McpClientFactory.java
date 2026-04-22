@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
@@ -59,12 +60,15 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpClientFactory implements McpStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
+
+    private static final int KEEPALIVE_SIGNAL_ID = 1;
 
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String HTTP_HEADER_METHOD = ":method";
@@ -84,6 +88,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
 
@@ -110,6 +115,8 @@ public final class McpClientFactory implements McpStreamFactory
     private final int mcpTypeId;
     private final int decodeMax;
     private final int encodeMax;
+    private final long inactivityTimeoutMillis;
+    private final Signaler signaler;
     private final String clientName;
     private final String clientVersion;
 
@@ -135,6 +142,8 @@ public final class McpClientFactory implements McpStreamFactory
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = decodePool.slotCapacity();
+        this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
+        this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
 
@@ -727,9 +736,18 @@ public final class McpClientFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onAppSignal(signal);
+                break;
             default:
                 break;
             }
+        }
+
+        void onAppSignal(
+            SignalFW signal)
+        {
         }
 
         private void onAppBegin(
@@ -1044,6 +1062,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         String responseSessionId;
         private int nextRequestId = 2;
+        private long keepaliveId = Signaler.NO_CANCEL_ID;
 
         McpLifecycleStream(
             MessageConsumer sender,
@@ -1121,6 +1140,10 @@ public final class McpClientFactory implements McpStreamFactory
                 notify.doEncodeRequestBegin(traceId, authorization);
                 notify.doEncodeRequestEnd(traceId, authorization);
             }
+            else if (http instanceof HttpKeepalive)
+            {
+                scheduleKeepalive(traceId);
+            }
             else
             {
                 final String sid = responseSessionId;
@@ -1129,7 +1152,28 @@ public final class McpClientFactory implements McpStreamFactory
                     .typeId(mcpTypeId)
                     .lifecycle(b -> b.sessionId(sid))
                     .build());
+                scheduleKeepalive(traceId);
             }
+        }
+
+        @Override
+        void onAppSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() != KEEPALIVE_SIGNAL_ID)
+            {
+                return;
+            }
+
+            keepaliveId = Signaler.NO_CANCEL_ID;
+
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+
+            final HttpKeepalive keepalive = new HttpKeepalive(this);
+            this.http = keepalive;
+            keepalive.doEncodeRequestBegin(traceId, authorization);
+            keepalive.doEncodeRequestEnd(traceId, authorization);
         }
 
         @Override
@@ -1148,12 +1192,35 @@ public final class McpClientFactory implements McpStreamFactory
             doAppTerminate(traceId, authorization);
         }
 
+        private void scheduleKeepalive(
+            long traceId)
+        {
+            cancelKeepalive();
+            if (sessions.containsKey(sessionId))
+            {
+                final long at = System.currentTimeMillis() + inactivityTimeoutMillis / 2;
+                keepaliveId = signaler.signalAt(at, originId, routedId, replyId,
+                    traceId, KEEPALIVE_SIGNAL_ID, 0);
+            }
+        }
+
+        private void cancelKeepalive()
+        {
+            if (keepaliveId != Signaler.NO_CANCEL_ID)
+            {
+                signaler.cancel(keepaliveId);
+                keepaliveId = Signaler.NO_CANCEL_ID;
+            }
+        }
+
         private void doAppTerminate(
             long traceId,
             long authorization)
         {
             if (sessions.remove(sessionId) != null)
             {
+                cancelKeepalive();
+
                 for (Iterator<McpRequestStream> i = requests.values().iterator(); i.hasNext(); )
                 {
                     McpRequestStream request = i.next();
@@ -1985,6 +2052,44 @@ public final class McpClientFactory implements McpStreamFactory
 
             final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
                 "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+    }
+
+    private final class HttpKeepalive extends HttpStream
+    {
+        HttpKeepalive(
+            McpStream mcp)
+        {
+            super(mcp);
+        }
+
+        @Override
+        void doEncodeRequestBegin(
+            long traceId,
+            long authorization)
+        {
+            final String sid = ((McpLifecycleStream) mcp).responseSessionId;
+            final HttpBeginExFW.Builder builder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId);
+            if (mcp.with != null && mcp.with.headers != null)
+            {
+                mcp.with.headers.forEach((name, value) ->
+                    builder.headersItem(h -> h.name(name).value(value)));
+            }
+            final HttpBeginExFW httpBeginEx = builder
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
+                .build();
+
+            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
+                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"ping\"}"
+                    .formatted(((McpLifecycleStream) mcp).nextRequestId++));
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);

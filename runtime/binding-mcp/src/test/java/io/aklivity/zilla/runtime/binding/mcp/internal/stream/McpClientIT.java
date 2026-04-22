@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.ENGINE_SYNTHETIC_ABORT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -81,6 +82,17 @@ public class McpClientIT
     @Configure(name = ENGINE_SYNTHETIC_ABORT_NAME, value = "false")
     @Configure(name = ENGINE_DETACH_ON_CLOSE_NAME, value = "false")
     public void shouldShutdownLifecycleRequests() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.ping/client",
+        "${net}/lifecycle.ping/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
+    public void shouldPingLifecycle() throws Exception
     {
         k3po.finish();
     }
