@@ -119,10 +119,15 @@ public final class TcpBindingConfig
                 InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
                 resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
             }
-            else if (routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
+            else if (routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES && options == null)
             {
                 ProxyAddressFW address = beginEx.address();
                 resolved = resolveInetSocketAddress(address);
+            }
+            else if (routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
+            {
+                InetAddress[] addresses = resolveHost(options.host);
+                resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
             }
             else
             {
