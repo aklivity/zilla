@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PING;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
@@ -140,7 +139,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.clientVersion = config.clientVersion();
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
-        resolvers.put(KIND_PING, ex -> ex.ping().sessionId().asString());
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
         resolvers.put(KIND_TOOLS_CALL, ex -> ex.toolsCall().sessionId().asString());
         resolvers.put(KIND_PROMPTS_LIST, ex -> ex.promptsList().sessionId().asString());
@@ -150,7 +148,6 @@ public final class McpClientFactory implements McpStreamFactory
         this.resolvers = resolvers;
 
         final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories = new Int2ObjectHashMap<>();
-        requestFactories.put(KIND_PING, McpPingStream::new);
         requestFactories.put(KIND_TOOLS_LIST, McpToolsListStream::new);
         requestFactories.put(KIND_TOOLS_CALL, McpToolsCallStream::new);
         requestFactories.put(KIND_PROMPTS_LIST, McpPromptsListStream::new);
@@ -1231,23 +1228,6 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpPingStream extends McpRequestStream
-    {
-        McpPingStream(
-            McpLifecycleStream session,
-            MessageConsumer sender,
-            long originId,
-            long routedId,
-            long initialId,
-            long resolvedId,
-            long affinity,
-            long authorization)
-        {
-            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
-                HttpPingStream::new);
-        }
-    }
-
     private final class McpToolsListStream extends McpRequestStream
     {
         McpToolsListStream(
@@ -2021,45 +2001,6 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             this.request = (McpRequestStream) mcp;
             this.decoder = decodeJsonRpc;
-        }
-    }
-
-    private final class HttpPingStream extends HttpRequestStream
-    {
-        HttpPingStream(
-            McpStream mcp)
-        {
-            super(mcp);
-        }
-
-        @Override
-        void doEncodeRequestBegin(
-            long traceId,
-            long authorization)
-        {
-            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId);
-            if (mcp.with != null && mcp.with.headers != null)
-            {
-                mcp.with.headers.forEach((name, value) ->
-                    extBuilder.headersItem(h -> h.name(name).value(value)));
-            }
-            extBuilder
-                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
-                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION));
-
-            final String sid = mcp.sessionId;
-            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
-
-            final HttpBeginExFW httpBeginEx = extBuilder.build();
-
-            final int codecLength = codecBuffer.putStringWithoutLengthAscii(0,
-                "{\"jsonrpc\":\"2.0\",\"id\":%d,\"method\":\"ping\"}".formatted(request.requestId));
-
-            doNetBegin(traceId, authorization, httpBeginEx);
-            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
         }
     }
 

@@ -88,16 +88,6 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/lifecycle.ping/client",
-        "${net}/lifecycle.ping/server"})
-    public void shouldPingLifecycle() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/tools.call/client",
         "${net}/tools.call/server"})
     public void shouldCallTool() throws Exception

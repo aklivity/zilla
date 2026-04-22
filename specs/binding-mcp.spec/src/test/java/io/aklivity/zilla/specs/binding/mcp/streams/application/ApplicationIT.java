@@ -74,15 +74,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.ping/client",
-        "${app}/lifecycle.ping/server"})
-    public void shouldPingLifecycle() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/reject.request.method.before.id/client",
         "${app}/reject.request.method.before.id/server"})
     public void shouldRejectRequestMethodBeforeId() throws Exception

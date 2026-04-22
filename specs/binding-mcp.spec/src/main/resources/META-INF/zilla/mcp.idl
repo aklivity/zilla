@@ -25,15 +25,9 @@ scope mcp
             case 4: mcp::stream::McpPromptsGetBeginEx promptsGet;
             case 5: mcp::stream::McpResourcesListBeginEx resourcesList;
             case 6: mcp::stream::McpResourcesReadBeginEx resourcesRead;
-            case 7: mcp::stream::McpPingBeginEx ping;
         }
 
         struct McpLifecycleBeginEx
-        {
-            string16 sessionId;
-        }
-
-        struct McpPingBeginEx
         {
             string16 sessionId;
         }
