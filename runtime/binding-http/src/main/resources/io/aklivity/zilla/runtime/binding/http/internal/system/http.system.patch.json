@@ -1,0 +1,32 @@
+[
+  {
+    "op": "add",
+    "path": "/bindings/http_client",
+    "value": {
+      "type": "http",
+      "kind": "client",
+      "routes": [
+        {
+          "exit": "tls_client",
+          "when": [
+            {
+              "headers": {
+                ":scheme": "https"
+              }
+            }
+          ]
+        },
+        {
+          "exit": "tcp_client",
+          "when": [
+            {
+              "headers": {
+                ":scheme": "http"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

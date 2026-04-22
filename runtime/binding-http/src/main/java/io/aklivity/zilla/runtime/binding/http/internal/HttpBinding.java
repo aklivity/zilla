@@ -46,6 +46,12 @@ public final class HttpBinding implements Binding
     }
 
     @Override
+    public URL system()
+    {
+        return getClass().getResource("system/http.system.patch.json");
+    }
+
+    @Override
     public String originType(
         KindConfig kind)
     {
