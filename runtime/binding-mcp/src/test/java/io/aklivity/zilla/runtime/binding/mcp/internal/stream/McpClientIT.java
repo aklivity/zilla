@@ -100,10 +100,10 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/lifecycle.timeout.keepalive/client",
-        "${net}/lifecycle.timeout.keepalive/server"})
+        "${app}/lifecycle.timeout.rejected/client",
+        "${net}/lifecycle.timeout.rejected/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT0.2S")
-    public void shouldTimeoutLifecycleKeepalive() throws Exception
+    public void shouldTimeoutLifecycleRejected() throws Exception
     {
         k3po.finish();
     }
