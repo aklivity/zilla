@@ -64,6 +64,11 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String KIND_NAME = "kind";
     private static final String VALUES_NAME = "values";
     private static final String STORE_NAME = "store";
+    private static final String STORE_OP_NAME = "op";
+    private static final String STORE_KEY_NAME = "key";
+    private static final String STORE_VALUE_NAME = "value";
+    private static final String STORE_TTL_NAME = "ttl";
+    private static final String STORE_EXPECT_NAME = "expect";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -115,7 +120,8 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
         }
 
         if (testOptions.catalogAssertions != null ||
-            testOptions.vaultAssertion != null)
+            testOptions.vaultAssertion != null ||
+            testOptions.storeAssertions != null)
         {
             JsonObjectBuilder assertions = Json.createObjectBuilder();
 
@@ -152,6 +158,47 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 }
 
                 assertions.add(VAULT_NAME, assertion);
+            }
+
+            if (testOptions.storeAssertions != null)
+            {
+                JsonObjectBuilder storeAssertions = Json.createObjectBuilder();
+                for (TestBindingOptionsConfig.StoreAssertions s : testOptions.storeAssertions)
+                {
+                    JsonArrayBuilder array = Json.createArrayBuilder();
+                    for (TestBindingOptionsConfig.StoreAssertion a : s.assertions)
+                    {
+                        JsonObjectBuilder assertion = Json.createObjectBuilder();
+                        assertion.add(STORE_OP_NAME, a.op);
+                        assertion.add(STORE_KEY_NAME, a.key);
+                        if (a.value != null)
+                        {
+                            assertion.add(STORE_VALUE_NAME, a.value);
+                        }
+                        if (a.ttl != Long.MAX_VALUE)
+                        {
+                            assertion.add(STORE_TTL_NAME, a.ttl);
+                        }
+                        if (a.hasExpect)
+                        {
+                            if (a.expect == null)
+                            {
+                                assertion.addNull(STORE_EXPECT_NAME);
+                            }
+                            else
+                            {
+                                assertion.add(STORE_EXPECT_NAME, a.expect);
+                            }
+                        }
+                        if (a.delay != 0L)
+                        {
+                            assertion.add(DELAY_NAME, a.delay);
+                        }
+                        array.add(assertion);
+                    }
+                    storeAssertions.add(s.name, array);
+                }
+                assertions.add(STORE_NAME, storeAssertions);
             }
 
             object.add(ASSERTIONS_NAME, assertions);
@@ -271,6 +318,35 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                         vaultJson.getString(VAULT_SIGNER_NAME, null),
                         vaultJson.getString(VAULT_TRUST_NAME, null),
                         vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false)));
+                }
+
+                if (assertionsJson.containsKey(STORE_NAME))
+                {
+                    JsonObject storesJson = assertionsJson.getJsonObject(STORE_NAME);
+                    for (String storeName : storesJson.keySet())
+                    {
+                        JsonArray storeAssertionsJson = storesJson.getJsonArray(storeName);
+                        List<TestBindingOptionsConfig.StoreAssertion> storeAssertions = new LinkedList<>();
+                        for (JsonValue assertion : storeAssertionsJson)
+                        {
+                            JsonObject s = assertion.asJsonObject();
+                            String expect = null;
+                            boolean hasExpect = s.containsKey(STORE_EXPECT_NAME);
+                            if (hasExpect && !s.isNull(STORE_EXPECT_NAME))
+                            {
+                                expect = s.getString(STORE_EXPECT_NAME);
+                            }
+                            storeAssertions.add(new TestBindingOptionsConfig.StoreAssertion(
+                                s.getString(STORE_OP_NAME),
+                                s.getString(STORE_KEY_NAME),
+                                s.getString(STORE_VALUE_NAME, null),
+                                s.containsKey(STORE_TTL_NAME) ? s.getJsonNumber(STORE_TTL_NAME).longValue() : Long.MAX_VALUE,
+                                expect,
+                                hasExpect,
+                                s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));
+                        }
+                        testOptions.storeAssertions(storeName, storeAssertions);
+                    }
                 }
             }
 

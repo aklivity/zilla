@@ -34,6 +34,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final List<CatalogAssertions> catalogAssertions;
     public final VaultAssertion vaultAssertion;
     public final String store;
+    public final List<StoreAssertions> storeAssertions;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -56,7 +57,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<Metric> metrics,
         List<CatalogAssertions> catalogAssertions,
         VaultAssertion vaultAssertion,
-        String store)
+        String store,
+        List<StoreAssertions> storeAssertions)
     {
         super(value != null ? List.of(value) : List.of(), List.of());
         this.value = value;
@@ -69,6 +71,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.catalogAssertions = catalogAssertions;
         this.vaultAssertion = vaultAssertion;
         this.store = store;
+        this.storeAssertions = storeAssertions;
     }
 
     public static final class Event
@@ -150,6 +153,49 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         {
             this.id = id;
             this.schema = schema;
+            this.delay = delay;
+        }
+    }
+
+    public static final class StoreAssertions
+    {
+        public final String name;
+        public final List<StoreAssertion> assertions;
+
+        public StoreAssertions(
+            String name,
+            List<StoreAssertion> assertions)
+        {
+            this.name = name;
+            this.assertions = assertions;
+        }
+    }
+
+    public static final class StoreAssertion
+    {
+        public final String op;
+        public final String key;
+        public final String value;
+        public final long ttl;
+        public final String expect;
+        public final boolean hasExpect;
+        public final long delay;
+
+        public StoreAssertion(
+            String op,
+            String key,
+            String value,
+            long ttl,
+            String expect,
+            boolean hasExpect,
+            long delay)
+        {
+            this.op = op;
+            this.key = key;
+            this.value = value;
+            this.ttl = ttl;
+            this.expect = expect;
+            this.hasExpect = hasExpect;
             this.delay = delay;
         }
     }

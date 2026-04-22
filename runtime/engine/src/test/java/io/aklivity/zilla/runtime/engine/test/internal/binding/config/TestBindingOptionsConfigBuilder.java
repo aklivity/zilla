@@ -40,6 +40,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
     private VaultAssertion vaultAssertion;
     private String store;
+    private List<TestBindingOptionsConfig.StoreAssertions> storeAssertions;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -142,10 +143,22 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> storeAssertions(
+        String name,
+        List<TestBindingOptionsConfig.StoreAssertion> assertions)
+    {
+        if (this.storeAssertions == null)
+        {
+            this.storeAssertions = new LinkedList<>();
+        }
+        this.storeAssertions.add(new TestBindingOptionsConfig.StoreAssertions(name, assertions));
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store));
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions));
     }
 }
