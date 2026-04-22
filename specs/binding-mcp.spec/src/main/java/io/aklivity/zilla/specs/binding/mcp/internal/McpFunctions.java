@@ -28,6 +28,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPingBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
@@ -69,6 +70,11 @@ public final class McpFunctions
         public McpLifecycleBeginExBuilder lifecycle()
         {
             return new McpLifecycleBeginExBuilder();
+        }
+
+        public McpPingBeginExBuilder ping()
+        {
+            return new McpPingBeginExBuilder();
         }
 
         public McpToolsListBeginExBuilder toolsList()
@@ -122,6 +128,24 @@ public final class McpFunctions
             public McpBeginExBuilder build()
             {
                 beginExRW.lifecycle(b -> b.sessionId(sessionId));
+                return McpBeginExBuilder.this;
+            }
+        }
+
+        public final class McpPingBeginExBuilder
+        {
+            private String sessionId;
+
+            public McpPingBeginExBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = sessionId;
+                return this;
+            }
+
+            public McpBeginExBuilder build()
+            {
+                beginExRW.ping(b -> b.sessionId(sessionId));
                 return McpBeginExBuilder.this;
             }
         }
@@ -283,6 +307,14 @@ public final class McpFunctions
             return matcher;
         }
 
+        public McpPingBeginExMatcherBuilder ping()
+        {
+            this.kind = McpBeginExFW.KIND_PING;
+            final McpPingBeginExMatcherBuilder matcher = new McpPingBeginExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
         public McpToolsListBeginExMatcherBuilder toolsList()
         {
             this.kind = McpBeginExFW.KIND_TOOLS_LIST;
@@ -404,6 +436,35 @@ public final class McpFunctions
                 McpLifecycleBeginExFW lifecycle)
             {
                 return sessionId == null || sessionId.equals(lifecycle.sessionId());
+            }
+        }
+
+        public final class McpPingBeginExMatcherBuilder
+        {
+            private String16FW sessionId;
+
+            public McpPingBeginExMatcherBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpBeginExMatcherBuilder build()
+            {
+                return McpBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpBeginExFW beginEx)
+            {
+                return matchSessionId(beginEx.ping());
+            }
+
+            private boolean matchSessionId(
+                McpPingBeginExFW ping)
+            {
+                return sessionId == null || sessionId.equals(ping.sessionId());
             }
         }
 
