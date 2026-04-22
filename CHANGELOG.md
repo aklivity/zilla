@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.9](https://github.com/aklivity/zilla/tree/1.1.9) (2026-04-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.1.8...1.1.9)
+
+**Merged pull requests:**
+
+- test\(engine\): add store operation drivers to TestBinding [\#1732](https://github.com/aklivity/zilla/pull/1732) ([akrambek](https://github.com/akrambek))
+
 ## [1.1.8](https://github.com/aklivity/zilla/tree/1.1.8) (2026-04-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.1.7...1.1.8)
