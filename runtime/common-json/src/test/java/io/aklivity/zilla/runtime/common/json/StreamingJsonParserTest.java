@@ -38,8 +38,9 @@ import java.math.BigDecimal;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 class StreamingJsonParserTest
 {
@@ -140,7 +141,7 @@ class StreamingJsonParserTest
         for (int split = 1; split < full.length; split++)
         {
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
 
             in.wrap(buffer, 0, split);
             JsonParser parser = StreamingJson.createParser(in);
@@ -163,7 +164,7 @@ class StreamingJsonParserTest
     void shouldHandleByteByByteFeed()
     {
         byte[] full = "{\"k\":[1,2,3],\"b\":true}".getBytes(UTF_8);
-        UnsafeBuffer buffer = new UnsafeBuffer(full);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(full);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, 1);
         JsonParser parser = StreamingJson.createParser(in);
@@ -590,7 +591,7 @@ class StreamingJsonParserTest
         byte[] full = "\"\\u00e9!\"".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
             JsonParser parser = StreamingJson.createParser(in);
@@ -613,7 +614,7 @@ class StreamingJsonParserTest
         byte[] full = "-123.45e6 ".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
             JsonParser parser = StreamingJson.createParser(in);
@@ -648,7 +649,7 @@ class StreamingJsonParserTest
         byte[] bytes)
     {
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return StreamingJson.createParser(in);
     }
 }
