@@ -74,6 +74,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.timeout.rejected/client",
+        "${net}/lifecycle.timeout.rejected/server"})
+    public void shouldTimeoutLifecycleRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.request.method.before.id/client",
         "${net}/reject.request.method.before.id/server"})
     public void shouldRejectRequestMethodBeforeId() throws Exception

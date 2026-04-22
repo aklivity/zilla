@@ -74,6 +74,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.timeout.rejected/client",
+        "${app}/lifecycle.timeout.rejected/server"})
+    public void shouldTimeoutLifecycleRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reject.request.method.before.id/client",
         "${app}/reject.request.method.before.id/server"})
     public void shouldRejectRequestMethodBeforeId() throws Exception
