@@ -23,11 +23,8 @@ import java.util.function.Supplier;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
@@ -48,6 +45,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -85,7 +85,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -103,8 +103,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final String serverVersion;
     private final long inactivityTimeoutMillis;
     private final Signaler signaler;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer codecBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -145,7 +145,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -189,7 +189,7 @@ public final class McpServerFactory implements McpStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -269,7 +269,7 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -281,7 +281,7 @@ public final class McpServerFactory implements McpStreamFactory
         int accept(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -292,7 +292,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -317,7 +317,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -350,7 +350,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -412,7 +412,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -444,7 +444,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -478,7 +478,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -514,7 +514,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -611,7 +611,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -655,7 +655,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -695,7 +695,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -731,7 +731,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -779,7 +779,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -813,7 +813,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -860,7 +860,7 @@ public final class McpServerFactory implements McpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -933,7 +933,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1015,13 +1015,13 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 final OctetsFW payload = data.payload();
                 int reserved = data.reserved();
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -1126,7 +1126,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferExbuffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNet(encodeSlotTraceId, budgetId, buffer, 0, limit);
@@ -1170,7 +1170,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void doNetData(
             long traceId,
             long authorization,
-            DirectBuffer payload)
+            DirectBufferEx payload)
         {
             doNetData(traceId, authorization, payload, 0, payload.capacity());
         }
@@ -1186,13 +1186,13 @@ public final class McpServerFactory implements McpStreamFactory
         private void doNetData(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferExencodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -1303,7 +1303,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferExbuffer = decodePool.buffer(decodeSlot);
                 final int reserved = decodeSlotReserved;
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
@@ -1317,7 +1317,7 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1344,7 +1344,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferExslot = decodePool.buffer(decodeSlot);
                     slot.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
@@ -1393,7 +1393,7 @@ public final class McpServerFactory implements McpStreamFactory
         private int onDecodeInitialize(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1572,7 +1572,7 @@ public final class McpServerFactory implements McpStreamFactory
         private int onDecodeRequestParams(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1582,7 +1582,7 @@ public final class McpServerFactory implements McpStreamFactory
         private int onDecodeNotifyCancelled(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1681,7 +1681,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeData(
             long traceId,
             long authorization,
-            DirectBuffer payload)
+            DirectBufferEx payload)
         {
             doNetData(traceId, authorization, payload);
         }
@@ -1704,7 +1704,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void encodeNet(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1741,7 +1741,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferExencodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -1831,7 +1831,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2139,7 +2139,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2383,7 +2383,7 @@ public final class McpServerFactory implements McpStreamFactory
         private int doAppData(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2518,7 +2518,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2786,7 +2786,7 @@ public final class McpServerFactory implements McpStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {
@@ -2944,7 +2944,7 @@ public final class McpServerFactory implements McpStreamFactory
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte value)
