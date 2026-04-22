@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBinding
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.StoreAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
@@ -105,6 +106,8 @@ final class TestBindingFactory implements BindingHandler
     private int eventIndex;
     private VaultHandler vault;
     private VaultAssertion vaultAssertion;
+    private StoreHandler store;
+    private List<StoreAssertion> storeAssertions;
     private long authorization;
 
     TestBindingFactory(
@@ -167,10 +170,12 @@ final class TestBindingFactory implements BindingHandler
             if (options.store != null)
             {
                 int storeId = context.supplyTypeId(options.store);
-                StoreHandler store = context.supplyStore(NamespacedId.id(namespaceId, storeId));
-                if (store != null)
+                this.store = context.supplyStore(NamespacedId.id(namespaceId, storeId));
+                this.storeAssertions = options.storeAssertions != null && !options.storeAssertions.isEmpty() ?
+                    options.storeAssertions.get(0).assertions : null;
+                if (this.store != null && this.storeAssertions == null)
                 {
-                    store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
+                    this.store.putIfAbsent("init", "", Long.MAX_VALUE, v -> {});
                 }
             }
 
@@ -419,6 +424,68 @@ final class TestBindingFactory implements BindingHandler
                     if (!entry.getValue().equals(guard.attribute(authorization, entry.getKey())))
                     {
                         doInitialReset(traceId);
+                    }
+                }
+            }
+
+            if (store != null && storeAssertions != null && !storeAssertions.isEmpty())
+            {
+                for (StoreAssertion a : storeAssertions)
+                {
+                    if (a.delay > 0L)
+                    {
+                        try
+                        {
+                            Thread.sleep(a.delay);
+                        }
+                        catch (InterruptedException ex)
+                        {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                    switch (a.op)
+                    {
+                    case "get":
+                        store.get(a.key, (k, v) ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    case "put":
+                        store.put(a.key, a.value, a.ttl, v ->
+                        {
+                        });
+                        break;
+                    case "putIfAbsent":
+                        store.putIfAbsent(a.key, a.value, a.ttl, v ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    case "delete":
+                        store.delete(a.key, v ->
+                        {
+                        });
+                        break;
+                    case "getAndDelete":
+                        store.getAndDelete(a.key, v ->
+                        {
+                            if (a.hasExpect && !Objects.equals(v, a.expect))
+                            {
+                                doInitialReset(traceId);
+                            }
+                        });
+                        break;
+                    default:
+                        doInitialReset(traceId);
+                        break;
                     }
                 }
             }
