@@ -94,7 +94,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read '{"jsonrpc":"2.0","id":2,"result":'
 read notify RESPONSE_IN_PROGRESS
 read aborted
 

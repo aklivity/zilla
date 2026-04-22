@@ -95,5 +95,5 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read '{"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "Current weather in New York:\nTemperature: 72°F\nConditions: Partly cloudy"}],"isError": false}}'
+read '{"jsonrpc":"2.0","id":2,"result":{"content":[{"type": "text","text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"}],"isError": false}}'
 read closed

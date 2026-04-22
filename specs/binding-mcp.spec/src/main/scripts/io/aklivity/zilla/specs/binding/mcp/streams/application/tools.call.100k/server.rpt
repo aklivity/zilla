@@ -53,6 +53,8 @@ read ${core:randomBase64(100000)}
 read '","location":"New York"}}'
 read closed
 
+write flush
+
 write '{"content":[{"type": "text","text": "ok"}],"isError": false}'
 write flush
 

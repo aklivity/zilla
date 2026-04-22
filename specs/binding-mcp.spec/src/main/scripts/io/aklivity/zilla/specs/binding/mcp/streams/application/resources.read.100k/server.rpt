@@ -51,6 +51,8 @@ connected
 read  '{"uri":"file:///data/image.png"}'
 read closed
 
+write flush
+
 write '{"contents":[{"uri":"file:///data/image.png","mimeType":"image/png","text":"'
 write ${core:randomBase64(100000)}
 write '"}]}'

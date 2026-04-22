@@ -92,7 +92,6 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":2,"result":'
 write await REQUEST_CANCELED
 write abort
 

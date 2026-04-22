@@ -82,7 +82,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"jsonrpc":"2.0","id":3,"method":"ping"}'
+read '{"jsonrpc":"2.0","id":2,"method":"ping"}'
 read closed
 
 write zilla:begin.ext ${http:beginEx()
@@ -93,7 +93,8 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"jsonrpc":"2.0","id":3,"result":{}}'
+write '{"jsonrpc":"2.0","id":2,"result":{}}'
 write flush
 
 write close
+write notify KEEPALIVE_COMPLETE
