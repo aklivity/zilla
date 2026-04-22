@@ -14,28 +14,19 @@
  */
 package io.aklivity.zilla.specs.binding.mcp.internal;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitAction;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpEndExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpOutcome;
-import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 
 public class McpFunctionsTest
 {
@@ -71,7 +62,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b.sessionId("session-1"))
             .build();
@@ -86,14 +77,10 @@ public class McpFunctionsTest
             .typeId(0)
             .toolsList()
                 .sessionId("session-1")
-                .timeout(30000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(30000L, beginEx.toolsList().timeout());
     }
 
     @Test
@@ -103,16 +90,15 @@ public class McpFunctionsTest
             .typeId(0)
             .toolsList()
                 .sessionId("session-1")
-                .timeout(30000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .toolsList(b -> b.sessionId("session-1").timeout(30000L))
+            .toolsList(b -> b.sessionId("session-1"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -126,15 +112,10 @@ public class McpFunctionsTest
             .toolsCall()
                 .sessionId("session-1")
                 .name("my-tool")
-                .contentLength(59)
-                .timeout(45000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(45000L, beginEx.toolsCall().timeout());
     }
 
     @Test
@@ -145,21 +126,17 @@ public class McpFunctionsTest
             .toolsCall()
                 .sessionId("session-1")
                 .name("my-tool")
-                .contentLength(59)
-                .timeout(45000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsCall(b -> b
                 .sessionId("session-1")
-                .name("my-tool")
-                .contentLength(59)
-                .timeout(45000L))
+                .name("my-tool"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -172,14 +149,10 @@ public class McpFunctionsTest
             .typeId(0)
             .promptsList()
                 .sessionId("session-1")
-                .timeout(15000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(15000L, beginEx.promptsList().timeout());
     }
 
     @Test
@@ -189,18 +162,16 @@ public class McpFunctionsTest
             .typeId(0)
             .promptsList()
                 .sessionId("session-1")
-                .timeout(15000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsList(b -> b
-                .sessionId("session-1")
-                .timeout(15000L))
+                .sessionId("session-1"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -214,15 +185,10 @@ public class McpFunctionsTest
             .promptsGet()
                 .sessionId("session-1")
                 .name("my-prompt")
-                .contentLength(25)
-                .timeout(20000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(20000L, beginEx.promptsGet().timeout());
     }
 
     @Test
@@ -233,21 +199,17 @@ public class McpFunctionsTest
             .promptsGet()
                 .sessionId("session-1")
                 .name("my-prompt")
-                .contentLength(25)
-                .timeout(20000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsGet(b -> b
                 .sessionId("session-1")
-                .name("my-prompt")
-                .contentLength(25)
-                .timeout(20000L))
+                .name("my-prompt"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -260,14 +222,10 @@ public class McpFunctionsTest
             .typeId(0)
             .resourcesList()
                 .sessionId("session-1")
-                .timeout(10000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(10000L, beginEx.resourcesList().timeout());
     }
 
     @Test
@@ -277,18 +235,16 @@ public class McpFunctionsTest
             .typeId(0)
             .resourcesList()
                 .sessionId("session-1")
-                .timeout(10000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesList(b -> b
-                .sessionId("session-1")
-                .timeout(10000L))
+                .sessionId("session-1"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -302,15 +258,10 @@ public class McpFunctionsTest
             .resourcesRead()
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
-                .contentLength(33)
-                .timeout(25000L)
                 .build()
             .build();
 
         assertNotNull(bytes);
-
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
-        assertEquals(25000L, beginEx.resourcesRead().timeout());
     }
 
     @Test
@@ -321,21 +272,17 @@ public class McpFunctionsTest
             .resourcesRead()
                 .sessionId("session-1")
                 .uri("file:///data/resource.txt")
-                .contentLength(33)
-                .timeout(25000L)
                 .build()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesRead(b -> b
                 .sessionId("session-1")
-                .uri("file:///data/resource.txt")
-                .contentLength(33)
-                .timeout(25000L))
+                .uri("file:///data/resource.txt"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -353,7 +300,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsList(b -> b.sessionId("session-1"))
             .build();
@@ -393,7 +340,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("connection reset")
             .build();
@@ -421,7 +368,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("actual reason")
             .build();
@@ -436,7 +383,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(new String16FW("string-fw-reason"))
             .build();
@@ -451,7 +398,7 @@ public class McpFunctionsTest
         byteBuf.clear();
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(b -> b.set("consumer-reason", StandardCharsets.UTF_8))
             .build();
@@ -464,86 +411,10 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateEndEx()
-    {
-        byte[] bytes = McpFunctions.endEx()
-            .typeId(0)
-            .outcome("ERROR")
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchEndEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchEndEx()
-            .typeId(0)
-            .outcome("ERROR")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .outcome(o -> o.set(McpOutcome.ERROR))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldMatchEndExByTypeIdOnly() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchEndEx()
-            .typeId(0)
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .outcome(o -> o.set(McpOutcome.OK))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldReturnNullWhenEndExMatcherIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchEndEx()
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenEndExOutcomeMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchEndEx()
-            .typeId(0)
-            .outcome("OK")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .outcome(o -> o.set(McpOutcome.ERROR))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
     public void shouldWrapAndReadAbortEx()
     {
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer buffer = new UnsafeBuffer(byteBuf);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(byteBuf);
 
         new McpAbortExFW.Builder()
             .wrap(buffer, 0, buffer.capacity())
@@ -561,7 +432,7 @@ public class McpFunctionsTest
     public void shouldCopyAbortEx()
     {
         ByteBuffer srcBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(srcBuf);
+        final UnsafeBufferEx srcBuffer = new UnsafeBufferEx(srcBuf);
 
         final McpAbortExFW source = new McpAbortExFW.Builder()
             .wrap(srcBuffer, 0, srcBuffer.capacity())
@@ -570,7 +441,7 @@ public class McpFunctionsTest
             .build();
 
         ByteBuffer dstBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer dstBuffer = new UnsafeBuffer(dstBuf);
+        final UnsafeBufferEx dstBuffer = new UnsafeBufferEx(dstBuf);
 
         final McpAbortExFW copy = new McpAbortExFW.Builder()
             .wrap(dstBuffer, 0, dstBuffer.capacity())
@@ -578,1047 +449,5 @@ public class McpFunctionsTest
             .build();
 
         assertNotNull(copy.reason());
-    }
-
-    @Test
-    public void shouldGenerateResumableFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .resumable()
-                .id("2:0")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchResumableFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .resumable()
-                .id("2:0")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .resumable(b -> b.id("2:0"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateToolsListChangedFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .toolsListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchToolsListChangedFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .toolsListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .toolsListChanged(b -> b.id("1"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGeneratePromptsListChangedFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .promptsListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchPromptsListChangedFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .promptsListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .promptsListChanged(b -> b.id("1"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateResourcesListChangedFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .resourcesListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchResourcesListChangedFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .resourcesListChanged()
-                .id("1")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .resourcesListChanged(b -> b.id("1"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateProgressFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .progress()
-                .id("2:1")
-                .token("abc123")
-                .progress(50L)
-                .total(100L)
-                .message("halfway")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchProgressFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .progress()
-                .id("2:1")
-                .token("abc123")
-                .progress(50L)
-                .total(100L)
-                .message("halfway")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .progress(b -> b
-                .id("2:1")
-                .token("abc123")
-                .progress(50L)
-                .total(100L)
-                .message("halfway"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldReturnNullWhenFlushExMatcherIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldGenerateSuspendFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .suspend()
-                .retry(60000L)
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchSuspendFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .suspend()
-                .retry(60000L)
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .suspend(b -> b.retry(60000L))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateResumeChallengeEx()
-    {
-        byte[] bytes = McpFunctions.challengeEx()
-            .typeId(0)
-            .resume()
-                .id("2:0")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldGenerateResumeChallengeExWithoutId()
-    {
-        byte[] bytes = McpFunctions.challengeEx()
-            .typeId(0)
-            .resume()
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchResumeChallengeEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .resume()
-                .id("2:0")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .resume(b -> b.id("2:0"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateSuspendedChallengeEx()
-    {
-        byte[] bytes = McpFunctions.challengeEx()
-            .typeId(0)
-            .suspended()
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchSuspendedChallengeEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .suspended()
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .suspended(b ->
-            {
-            })
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldReturnNullWhenChallengeExMatcherIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldGenerateElicitCreateChallengeEx()
-    {
-        byte[] bytes = McpFunctions.challengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .id("1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCreateChallengeUrlMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCreate(b -> b
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=actual"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateElicitCreateChallengeExWithCorrelationId()
-    {
-        byte[] bytes = McpFunctions.challengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .message("Open the link to authorize access.")
-                .correlationId("3")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchElicitCreateChallengeExWithCorrelationId() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .message("Open the link to authorize access.")
-                .correlationId("3")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCreate(b -> b
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .message("Open the link to authorize access.")
-                .correlationId("3"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCreateChallengeMessageMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .message("expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCreate(b -> b
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .message("actual"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCreateChallengeCorrelationIdMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .elicitCreate()
-                .correlationId("3")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCreate(b -> b
-                .id("elicit-1")
-                .url("https://server.example.com/authorize?state=7f3a9b1c")
-                .correlationId("4"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateElicitResponseFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .elicitResponse()
-                .correlationId("3")
-                .action("ACCEPT")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchElicitResponseFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitResponse()
-                .correlationId("3")
-                .action("ACCEPT")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitResponse(b -> b
-                .correlationId("3")
-                .action(a -> a.set(McpElicitAction.ACCEPT)))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldMatchElicitResponseFlushExWhenEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitResponse()
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitResponse(b -> b
-                .correlationId("3")
-                .action(a -> a.set(McpElicitAction.ACCEPT)))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitResponseCorrelationIdMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitResponse()
-                .correlationId("3")
-                .action("ACCEPT")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitResponse(b -> b
-                .correlationId("4")
-                .action(a -> a.set(McpElicitAction.ACCEPT)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitResponseActionMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitResponse()
-                .correlationId("3")
-                .action("ACCEPT")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitResponse(b -> b
-                .correlationId("3")
-                .action(a -> a.set(McpElicitAction.DECLINE)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateElicitCallbackFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .elicitCallback()
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchElicitCallbackFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitCallback()
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCallback(b -> b
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateElicitCallbackFlushExWithCorrelationId()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .elicitCallback()
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .correlationId("3")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchElicitCallbackFlushExWithCorrelationId() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitCallback()
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .correlationId("3")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCallback(b -> b
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .correlationId("3"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenElicitCallbackFlushCorrelationIdMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitCallback()
-                .correlationId("expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitCallback(b -> b
-                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                .correlationId("actual"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateElicitCompleteFlushEx()
-    {
-        byte[] bytes = McpFunctions.flushEx()
-            .typeId(0)
-            .elicitComplete()
-                .id("elicit-1")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchElicitCompleteFlushEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitComplete()
-                .id("elicit-1")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitComplete(b -> b
-                .id("elicit-1"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenFlushExCaseMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .elicitCallback()
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .elicitComplete(b -> b
-                .id("elicit-1"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateBearerResetEx()
-    {
-        byte[] bytes = McpFunctions.resetEx()
-            .typeId(0)
-            .bearer()
-                .realm("github")
-                .scopes("repo")
-                .error("INSUFFICIENT_SCOPE")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldGenerateBearerResetExWithMinimalFields()
-    {
-        byte[] bytes = McpFunctions.resetEx()
-            .typeId(0)
-            .bearer()
-                .error("INVALID_TOKEN")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchBearerResetEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .realm("github")
-                .scopes("repo")
-                .error("INSUFFICIENT_SCOPE")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b.realm("github").scopes("repo").error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateErrorResetEx()
-    {
-        byte[] bytes = McpFunctions.resetEx()
-            .typeId(0)
-            .error()
-                .code(-32603)
-                .message("unresolved expression: args.ownerr")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchErrorResetEx() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .error()
-                .code(-32603)
-                .message("unresolved expression: args.ownerr")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .error(e -> e.code(-32603).message("unresolved expression: args.ownerr"))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldReturnNullWhenResetExMatcherIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenBearerResetExRealmMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .realm("expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b.realm("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenBearerResetExScopesMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .scopes("expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b.scopes("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenBearerResetExErrorMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .error("INVALID_TOKEN")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b.error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateLifecycleBeginExWithCapabilities()
-    {
-        byte[] bytes = McpFunctions.beginEx()
-            .typeId(0)
-            .lifecycle()
-                .sessionId("session-1")
-                .capabilities("SERVER_TOOLS", "SERVER_PROMPTS", "SERVER_RESOURCES")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchLifecycleBeginExWithCapabilities() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0)
-            .lifecycle()
-                .sessionId("session-1")
-                .capabilities("SERVER_TOOLS", "SERVER_PROMPTS")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .lifecycle(b -> b
-                .sessionId("session-1")
-                .capabilities(McpCapabilities.SERVER_TOOLS.value() | McpCapabilities.SERVER_PROMPTS.value()))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenLifecycleBeginExCapabilitiesMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0)
-            .lifecycle()
-                .capabilities("SERVER_TOOLS")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .lifecycle(b -> b
-                .sessionId("session-1")
-                .capabilities(McpCapabilities.SERVER_PROMPTS.value()))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldGenerateBearerResetExWithResourceMetadata()
-    {
-        byte[] bytes = McpFunctions.resetEx()
-            .typeId(0)
-            .bearer()
-                .realm("github")
-                .scopes("repo")
-                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
-                .error("INSUFFICIENT_SCOPE")
-                .build()
-            .build();
-
-        assertNotNull(bytes);
-    }
-
-    @Test
-    public void shouldMatchBearerResetExWithResourceMetadata() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .realm("github")
-                .scopes("repo")
-                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
-                .error("INSUFFICIENT_SCOPE")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b
-                .realm("github")
-                .scopes("repo")
-                .resourceMetadata("https://server.example.com/.well-known/oauth-protected-resource")
-                .error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldFailWhenBearerResetExResourceMetadataMismatch() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .bearer()
-                .resourceMetadata("https://server.example.com/.well-known/expected")
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .bearer(b -> b
-                .resourceMetadata("https://server.example.com/.well-known/actual")
-                .error(s -> s.set(McpBearerError.INVALID_TOKEN)))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldReturnNullWhenFlushExMatcherBufferIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchFlushEx()
-            .typeId(0)
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldReturnNullWhenChallengeExMatcherBufferIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchChallengeEx()
-            .typeId(0)
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldReturnNullWhenResetExMatcherBufferIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchResetEx()
-            .typeId(0)
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldReturnNullWhenAbortExMatcherBufferIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchAbortEx()
-            .typeId(0)
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
-    }
-
-    @Test
-    public void shouldReturnNullWhenBeginExMatcherBufferIsEmpty() throws Exception
-    {
-        BytesMatcher matcher = McpFunctions.matchBeginEx()
-            .typeId(0)
-            .build();
-
-        assertNull(matcher.match(ByteBuffer.allocate(0)));
     }
 }
