@@ -1663,7 +1663,7 @@ public final class McpServerFactory implements McpStreamFactory
         private void doEncodeResponseData(
             long traceId,
             long authorization,
-            DirectBuffer payload)
+            DirectBufferEx payload)
         {
             doEncodeResponsePreamble(traceId, authorization);
             doNetData(traceId, authorization, payload);
