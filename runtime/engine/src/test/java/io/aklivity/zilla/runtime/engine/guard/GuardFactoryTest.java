@@ -22,7 +22,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardHandler;
 
 public final class GuardFactoryTest
 {
@@ -39,55 +42,8 @@ public final class GuardFactoryTest
     @Test
     public void shouldReturnNullElicitationByDefault()
     {
-        GuardHandler handler = new GuardHandler()
-        {
-            @Override
-            public long reauthorize(long traceId, long bindingId, long contextId, String credentials)
-            {
-                return NOT_AUTHORIZED;
-            }
-
-            @Override
-            public void deauthorize(long sessionId)
-            {
-            }
-
-            @Override
-            public String identity(long sessionId)
-            {
-                return null;
-            }
-
-            @Override
-            public String attribute(long sessionId, String name)
-            {
-                return null;
-            }
-
-            @Override
-            public String credentials(long sessionId)
-            {
-                return null;
-            }
-
-            @Override
-            public long expiresAt(long sessionId)
-            {
-                return EXPIRES_NEVER;
-            }
-
-            @Override
-            public long expiringAt(long sessionId)
-            {
-                return EXPIRES_NEVER;
-            }
-
-            @Override
-            public boolean challenge(long sessionId, long now)
-            {
-                return false;
-            }
-        };
+        GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
         assertThat(handler.elicitation(0L, 0L, 0L, null), nullValue());
     }
