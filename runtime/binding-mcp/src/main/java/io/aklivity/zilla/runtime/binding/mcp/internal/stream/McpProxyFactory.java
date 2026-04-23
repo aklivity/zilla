@@ -59,6 +59,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -139,6 +140,10 @@ public final class McpProxyFactory implements McpStreamFactory
 
             if (route != null)
             {
+                final int beginKind = beginEx.kind();
+                final String sessionId = sessionId(beginEx);
+                final String identifier = route.strip(beginEx);
+
                 newStream = new McpServer(
                     sender,
                     originId,
@@ -147,9 +152,9 @@ public final class McpProxyFactory implements McpStreamFactory
                     route.id,
                     affinity,
                     authorization,
-                    beginEx.kind(),
-                    sessionId(beginEx),
-                    route.strip(beginEx))::onServerMessage;
+                    beginKind,
+                    sessionId,
+                    identifier)::onServerMessage;
             }
         }
 
@@ -320,7 +325,7 @@ public final class McpProxyFactory implements McpStreamFactory
             client.doClientReset(traceId);
         }
 
-        private void doServerBeginReply(
+        private void doServerBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -408,7 +413,30 @@ public final class McpProxyFactory implements McpStreamFactory
             sender = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onClientMessage);
             assert sender != null;
 
-            final McpBeginExFW beginEx = buildBeginEx(server.beginKind, server.sessionId, server.identifier);
+            final String sessionId = server.sessionId;
+            final String identifier = server.identifier;
+            final McpBeginExFW.Builder builder = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId);
+            switch (server.beginKind)
+            {
+            case KIND_LIFECYCLE -> builder
+                .lifecycle(l -> l.sessionId(sessionId));
+            case KIND_TOOLS_LIST -> builder
+                .toolsList(t -> t.sessionId(sessionId));
+            case KIND_TOOLS_CALL -> builder
+                .toolsCall(t -> t.sessionId(sessionId).name(identifier));
+            case KIND_PROMPTS_LIST -> builder
+                .promptsList(p -> p.sessionId(sessionId));
+            case KIND_PROMPTS_GET -> builder
+                .promptsGet(p -> p.sessionId(sessionId).name(identifier));
+            case KIND_RESOURCES_LIST -> builder
+                .resourcesList(r -> r.sessionId(sessionId));
+            case KIND_RESOURCES_READ -> builder
+                .resourcesRead(r -> r.sessionId(sessionId).uri(identifier));
+            default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.beginKind);
+            }
+            final McpBeginExFW beginEx = builder.build();
 
             doBegin(sender, server.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
@@ -519,7 +547,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            server.doServerBeginReply(traceId, extension);
+            server.doServerBegin(traceId, extension);
         }
 
         private void onClientData(
@@ -596,42 +624,6 @@ public final class McpProxyFactory implements McpStreamFactory
         };
     }
 
-    private McpBeginExFW buildBeginEx(
-        int kind,
-        String sessionId,
-        String identifier)
-    {
-        final McpBeginExFW.Builder builder = mcpBeginExRW
-            .wrap(codecBuffer, 0, codecBuffer.capacity())
-            .typeId(mcpTypeId);
-
-        return switch (kind)
-        {
-        case KIND_LIFECYCLE -> builder
-            .lifecycle(l -> l.sessionId(sessionId))
-            .build();
-        case KIND_TOOLS_LIST -> builder
-            .toolsList(t -> t.sessionId(sessionId))
-            .build();
-        case KIND_TOOLS_CALL -> builder
-            .toolsCall(t -> t.sessionId(sessionId).name(identifier))
-            .build();
-        case KIND_PROMPTS_LIST -> builder
-            .promptsList(p -> p.sessionId(sessionId))
-            .build();
-        case KIND_PROMPTS_GET -> builder
-            .promptsGet(p -> p.sessionId(sessionId).name(identifier))
-            .build();
-        case KIND_RESOURCES_LIST -> builder
-            .resourcesList(r -> r.sessionId(sessionId))
-            .build();
-        case KIND_RESOURCES_READ -> builder
-            .resourcesRead(r -> r.sessionId(sessionId).uri(identifier))
-            .build();
-        default -> null;
-        };
-    }
-
     private void doBegin(
         MessageConsumer receiver,
         long originId,
@@ -642,7 +634,7 @@ public final class McpProxyFactory implements McpStreamFactory
         long affinity,
         Flyweight extension)
     {
-        final BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
@@ -651,14 +643,9 @@ public final class McpProxyFactory implements McpStreamFactory
             .maximum(0)
             .traceId(traceId)
             .authorization(authorization)
-            .affinity(affinity);
-
-        if (extension != null && extension.sizeof() > 0)
-        {
-            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
-        }
-
-        final BeginFW begin = builder.build();
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
