@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.guard;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
@@ -33,5 +34,61 @@ public final class GuardFactoryTest
         Guard guard = factory.create("test", config);
 
         assertThat(guard, instanceOf(TestGuard.class));
+    }
+
+    @Test
+    public void shouldReturnNullElicitationByDefault()
+    {
+        GuardHandler handler = new GuardHandler()
+        {
+            @Override
+            public long reauthorize(long traceId, long bindingId, long contextId, String credentials)
+            {
+                return NOT_AUTHORIZED;
+            }
+
+            @Override
+            public void deauthorize(long sessionId)
+            {
+            }
+
+            @Override
+            public String identity(long sessionId)
+            {
+                return null;
+            }
+
+            @Override
+            public String attribute(long sessionId, String name)
+            {
+                return null;
+            }
+
+            @Override
+            public String credentials(long sessionId)
+            {
+                return null;
+            }
+
+            @Override
+            public long expiresAt(long sessionId)
+            {
+                return EXPIRES_NEVER;
+            }
+
+            @Override
+            public long expiringAt(long sessionId)
+            {
+                return EXPIRES_NEVER;
+            }
+
+            @Override
+            public boolean challenge(long sessionId, long now)
+            {
+                return false;
+            }
+        };
+
+        assertThat(handler.elicitation(0L, 0L, 0L, null), nullValue());
     }
 }
