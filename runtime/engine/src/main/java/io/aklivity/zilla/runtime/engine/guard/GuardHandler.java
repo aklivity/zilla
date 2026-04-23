@@ -135,4 +135,29 @@ public interface GuardHandler
     boolean challenge(
         long sessionId,
         long now);
+
+    /**
+     * If this guard requires user interaction to acquire credentials (e.g. an interactive
+     * OAuth consent flow), returns the URL the user must visit. Returns {@code null} for
+     * guards that never require user interaction; the default implementation returns
+     * {@code null}.
+     * <p>
+     * A caller may invoke this after {@link #reauthorize} returns {@link #NOT_AUTHORIZED}
+     * to recover an authorization URL to surface upstream.
+     * </p>
+     *
+     * @param traceId    the trace identifier for diagnostics
+     * @param bindingId  the binding identifier requesting authorization
+     * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
+     * @param credentials  the raw credential string associated with the request
+     * @return the URL the user must visit, or {@code null} if not applicable
+     */
+    default String elicitation(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials)
+    {
+        return null;
+    }
 }
