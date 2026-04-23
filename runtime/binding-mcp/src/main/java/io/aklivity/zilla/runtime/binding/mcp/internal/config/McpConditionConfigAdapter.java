@@ -14,9 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
@@ -50,7 +57,9 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
 
         if (mcpCondition.capability != null)
         {
-            object.add(CAPABILITY_NAME, mcpCondition.capability);
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpCondition.capability.forEach(array::add);
+            object.add(CAPABILITY_NAME, array);
         }
 
         return object.build();
@@ -64,9 +73,15 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
             ? object.getString(TOOLKIT_NAME)
             : null;
 
-        String capability = object.containsKey(CAPABILITY_NAME)
-            ? object.getString(CAPABILITY_NAME)
-            : null;
+        List<String> capability = null;
+        if (object.containsKey(CAPABILITY_NAME))
+        {
+            JsonArray array = object.getJsonArray(CAPABILITY_NAME);
+            capability = array.stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .collect(toList());
+        }
 
         return McpConditionConfig.builder()
             .toolkit(toolkit)

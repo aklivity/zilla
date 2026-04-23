@@ -14,13 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,13 +23,6 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpBindingConfig
 {
-    private static final String CAPABILITY_TOOLS = "tools";
-    private static final String CAPABILITY_PROMPTS = "prompts";
-    private static final String CAPABILITY_RESOURCES = "resources";
-
-    private static final String TOOLKIT_NAME_DELIMITER = "__";
-    private static final String TOOLKIT_URI_DELIMITER = "+";
-
     public final long id;
     public final McpOptionsConfig options;
 
@@ -65,44 +51,27 @@ public final class McpBindingConfig
         McpBeginExFW beginEx,
         long authorization)
     {
-        final String capability = capability(beginEx);
-        final String toolkit = toolkit(beginEx);
+        final String capability = McpRouteConfig.capabilityOf(beginEx);
+        final String identifier = McpRouteConfig.identifierOf(beginEx);
 
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(toolkit, capability))
-            .findFirst()
-            .orElse(null);
-    }
+        McpRouteConfig resolved = null;
 
-    private static String capability(
-        McpBeginExFW beginEx)
-    {
-        return switch (beginEx.kind())
+        if (capability == null)
         {
-        case KIND_TOOLS_LIST, KIND_TOOLS_CALL -> CAPABILITY_TOOLS;
-        case KIND_PROMPTS_LIST, KIND_PROMPTS_GET -> CAPABILITY_PROMPTS;
-        case KIND_RESOURCES_LIST, KIND_RESOURCES_READ -> CAPABILITY_RESOURCES;
-        default -> null;
-        };
-    }
-
-    private static String toolkit(
-        McpBeginExFW beginEx)
-    {
-        return switch (beginEx.kind())
+            resolved = resolve(authorization);
+        }
+        else if (identifier != null)
         {
-        case KIND_TOOLS_CALL -> prefix(beginEx.toolsCall().name().asString(), TOOLKIT_NAME_DELIMITER);
-        case KIND_PROMPTS_GET -> prefix(beginEx.promptsGet().name().asString(), TOOLKIT_NAME_DELIMITER);
-        case KIND_RESOURCES_READ -> prefix(beginEx.resourcesRead().uri().asString(), TOOLKIT_URI_DELIMITER);
-        default -> null;
-        };
-    }
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.matches(capability, identifier))
+                {
+                    resolved = route;
+                    break;
+                }
+            }
+        }
 
-    private static String prefix(
-        String value,
-        String delimiter)
-    {
-        final int index = value != null ? value.indexOf(delimiter) : -1;
-        return index > 0 ? value.substring(0, index) : null;
+        return resolved;
     }
 }

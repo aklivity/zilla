@@ -14,15 +14,25 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
@@ -56,8 +66,10 @@ public final class McpProxyFactory implements McpStreamFactory
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -70,6 +82,7 @@ public final class McpProxyFactory implements McpStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -133,7 +146,10 @@ public final class McpProxyFactory implements McpStreamFactory
                     initialId,
                     route.id,
                     affinity,
-                    authorization)::onServerMessage;
+                    authorization,
+                    beginEx.kind(),
+                    sessionId(beginEx),
+                    route.strip(beginEx))::onServerMessage;
             }
         }
 
@@ -150,6 +166,9 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long affinity;
         private final long authorization;
         private final McpClient client;
+        private final int beginKind;
+        private final String sessionId;
+        private final String identifier;
 
         private int state;
 
@@ -160,7 +179,10 @@ public final class McpProxyFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            long authorization)
+            long authorization,
+            int beginKind,
+            String sessionId,
+            String identifier)
         {
             this.sender = sender;
             this.originId = originId;
@@ -169,6 +191,9 @@ public final class McpProxyFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
+            this.beginKind = beginKind;
+            this.sessionId = sessionId;
+            this.identifier = identifier;
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -296,9 +321,10 @@ public final class McpProxyFactory implements McpStreamFactory
         }
 
         private void doServerBeginReply(
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
-            doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity);
+            doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity, extension);
             state = McpState.openedReply(state);
         }
 
@@ -382,8 +408,10 @@ public final class McpProxyFactory implements McpStreamFactory
             sender = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onClientMessage);
             assert sender != null;
 
+            final McpBeginExFW beginEx = buildBeginEx(server.beginKind, server.sessionId, server.identifier);
+
             doBegin(sender, server.originId, resolvedId, initialId,
-                traceId, server.authorization, server.affinity);
+                traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
         }
 
@@ -487,10 +515,11 @@ public final class McpProxyFactory implements McpStreamFactory
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
 
             state = McpState.openedInitial(state);
 
-            server.doServerBeginReply(traceId);
+            server.doServerBeginReply(traceId, extension);
         }
 
         private void onClientData(
@@ -551,6 +580,58 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
+    private static String sessionId(
+        McpBeginExFW beginEx)
+    {
+        return switch (beginEx.kind())
+        {
+        case KIND_LIFECYCLE -> beginEx.lifecycle().sessionId().asString();
+        case KIND_TOOLS_LIST -> beginEx.toolsList().sessionId().asString();
+        case KIND_TOOLS_CALL -> beginEx.toolsCall().sessionId().asString();
+        case KIND_PROMPTS_LIST -> beginEx.promptsList().sessionId().asString();
+        case KIND_PROMPTS_GET -> beginEx.promptsGet().sessionId().asString();
+        case KIND_RESOURCES_LIST -> beginEx.resourcesList().sessionId().asString();
+        case KIND_RESOURCES_READ -> beginEx.resourcesRead().sessionId().asString();
+        default -> null;
+        };
+    }
+
+    private McpBeginExFW buildBeginEx(
+        int kind,
+        String sessionId,
+        String identifier)
+    {
+        final McpBeginExFW.Builder builder = mcpBeginExRW
+            .wrap(codecBuffer, 0, codecBuffer.capacity())
+            .typeId(mcpTypeId);
+
+        return switch (kind)
+        {
+        case KIND_LIFECYCLE -> builder
+            .lifecycle(l -> l.sessionId(sessionId))
+            .build();
+        case KIND_TOOLS_LIST -> builder
+            .toolsList(t -> t.sessionId(sessionId))
+            .build();
+        case KIND_TOOLS_CALL -> builder
+            .toolsCall(t -> t.sessionId(sessionId).name(identifier))
+            .build();
+        case KIND_PROMPTS_LIST -> builder
+            .promptsList(p -> p.sessionId(sessionId))
+            .build();
+        case KIND_PROMPTS_GET -> builder
+            .promptsGet(p -> p.sessionId(sessionId).name(identifier))
+            .build();
+        case KIND_RESOURCES_LIST -> builder
+            .resourcesList(r -> r.sessionId(sessionId))
+            .build();
+        case KIND_RESOURCES_READ -> builder
+            .resourcesRead(r -> r.sessionId(sessionId).uri(identifier))
+            .build();
+        default -> null;
+        };
+    }
+
     private void doBegin(
         MessageConsumer receiver,
         long originId,
@@ -558,9 +639,10 @@ public final class McpProxyFactory implements McpStreamFactory
         long streamId,
         long traceId,
         long authorization,
-        long affinity)
+        long affinity,
+        Flyweight extension)
     {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
@@ -569,8 +651,14 @@ public final class McpProxyFactory implements McpStreamFactory
             .maximum(0)
             .traceId(traceId)
             .authorization(authorization)
-            .affinity(affinity)
-            .build();
+            .affinity(affinity);
+
+        if (extension != null && extension.sizeof() > 0)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final BeginFW begin = builder.build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
