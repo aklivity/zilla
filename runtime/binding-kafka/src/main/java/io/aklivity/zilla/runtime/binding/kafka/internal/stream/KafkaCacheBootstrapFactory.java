@@ -35,10 +35,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConfigDetailFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaPartitionMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -666,14 +666,14 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onTopicConfigChanged(
             long traceId,
-            ArrayFW<KafkaConfigFW> changedConfigs)
+            ArrayFW<KafkaConfigDetailFW> changedConfigs)
         {
             metaStream.doMetaInitialBeginIfNecessary(traceId);
         }
 
         private void onTopicMetaDataChanged(
             long traceId,
-            ArrayFW<KafkaPartitionFW> partitions)
+            ArrayFW<KafkaPartitionMetadataFW> partitions)
         {
             leadersByPartitionId.clear();
             partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
@@ -698,7 +698,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         private void onPartitionMetaDataChangedIfNecessary(
             long traceId,
-            KafkaPartitionFW partition)
+            KafkaPartitionMetadataFW partition)
         {
             final int partitionId = partition.partitionId();
             final int leaderId = partition.leaderId();
@@ -886,7 +886,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
                 traceId, bootstrap.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .describe(m -> m.topic(bootstrap.topic)
+                        .describe(m -> m.name(bootstrap.topic)
                                         .configsItem(ci -> ci.set(CONFIG_NAME_CLEANUP_POLICY))
                                         .configsItem(ci -> ci.set(CONFIG_NAME_MAX_MESSAGE_BYTES))
                                         .configsItem(ci -> ci.set(CONFIG_NAME_SEGMENT_BYTES))
@@ -1009,7 +1009,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
             {
                 final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
                 final KafkaDescribeDataExFW kafkaDescribeDataEx = kafkaDataEx.describe();
-                final ArrayFW<KafkaConfigFW> changedConfigs = kafkaDescribeDataEx.configs();
+                final ArrayFW<KafkaConfigDetailFW> changedConfigs = kafkaDescribeDataEx.configs();
 
                 bootstrap.onTopicConfigChanged(traceId, changedConfigs);
 
@@ -1266,7 +1266,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
             {
                 final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
                 final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx.meta();
-                final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
+                final ArrayFW<KafkaPartitionMetadataFW> partitions = kafkaMetaDataEx.partitions();
 
                 bootstrap.onTopicMetaDataChanged(traceId, partitions);
 
