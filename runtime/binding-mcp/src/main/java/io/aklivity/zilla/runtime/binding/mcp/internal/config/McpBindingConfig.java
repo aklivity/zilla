@@ -47,6 +47,20 @@ public final class McpBindingConfig
             .orElse(null);
     }
 
+    public int serverCapabilities(
+        long authorization)
+    {
+        int bits = 0;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization))
+            {
+                bits |= route.serverCapabilities();
+            }
+        }
+        return bits;
+    }
+
     public McpRouteConfig resolve(
         McpBeginExFW beginEx,
         long authorization)

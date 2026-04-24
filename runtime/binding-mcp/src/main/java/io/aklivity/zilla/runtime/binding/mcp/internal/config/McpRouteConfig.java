@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
@@ -63,6 +66,24 @@ public final class McpRouteConfig
         long authorization)
     {
         return authorized.test(authorization, identity());
+    }
+
+    public int serverCapabilities()
+    {
+        int bits;
+        if (matchers.isEmpty())
+        {
+            bits = SERVER_TOOLS.value() | SERVER_PROMPTS.value() | SERVER_RESOURCES.value();
+        }
+        else
+        {
+            bits = 0;
+            for (ConditionMatcher matcher : matchers)
+            {
+                bits |= matcher.serverCapabilities();
+            }
+        }
+        return bits;
     }
 
     public String strip(
@@ -154,6 +175,24 @@ public final class McpRouteConfig
             this.toolsPrefix = tools ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
             this.promptsPrefix = prompts ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
             this.resourcesPrefix = resources ? (toolkit != null ? toolkit + DELIMITER_URI : "") : null;
+        }
+
+        private int serverCapabilities()
+        {
+            int bits = 0;
+            if (toolsPrefix != null)
+            {
+                bits |= SERVER_TOOLS.value();
+            }
+            if (promptsPrefix != null)
+            {
+                bits |= SERVER_PROMPTS.value();
+            }
+            if (resourcesPrefix != null)
+            {
+                bits |= SERVER_RESOURCES.value();
+            }
+            return bits;
         }
 
         private String match(
