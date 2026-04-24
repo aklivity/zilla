@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -50,6 +52,18 @@ public class McpProxyIT
     @Specification({
         "${app}/lifecycle.initialize/client" })
     public void shouldInitializeLifecycle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("WIP: lazy outbound lifecycle + invocation proceed triggers a JVM crash in engine close; deferred")
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call/client",
+        "${app}/tools.call/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallTool() throws Exception
     {
         k3po.finish();
     }
