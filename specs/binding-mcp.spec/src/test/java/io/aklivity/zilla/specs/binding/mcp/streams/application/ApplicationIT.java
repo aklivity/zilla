@@ -164,6 +164,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/prompts.get.toolkit/client",
+        "${app}/prompts.get.toolkit/server"})
+    public void shouldGetPromptWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.read.toolkit/client",
+        "${app}/resources.read.toolkit/server"})
+    public void shouldReadResourceWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server"})
     public void shouldListTools() throws Exception
