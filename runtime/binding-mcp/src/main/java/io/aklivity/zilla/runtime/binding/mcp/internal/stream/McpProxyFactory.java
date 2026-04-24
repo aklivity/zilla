@@ -444,7 +444,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private void doServerBegin(
             long traceId,
-            OctetsFW extension)
+            Flyweight extension)
         {
             doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity, extension);
             state = McpState.openedReply(state);
@@ -668,7 +668,55 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            server.doServerBegin(traceId, extension);
+            final Flyweight replyExtension = extension.sizeof() > 0
+                ? rewriteReplyBeginEx(mcpBeginExRO.wrap(
+                    extension.buffer(), extension.offset(), extension.limit()))
+                : emptyRO;
+
+            server.doServerBegin(traceId, replyExtension);
+        }
+
+        private Flyweight rewriteReplyBeginEx(
+            McpBeginExFW beginEx)
+        {
+            final String sid = server.sessionId;
+            final McpBeginExFW.Builder builder = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId);
+
+            return switch (beginEx.kind())
+            {
+            case KIND_LIFECYCLE ->
+            {
+                final int caps = beginEx.lifecycle().capabilities();
+                yield builder.lifecycle(l -> l.sessionId(sid).capabilities(caps)).build();
+            }
+            case KIND_TOOLS_LIST -> builder
+                .toolsList(t -> t.sessionId(sid))
+                .build();
+            case KIND_TOOLS_CALL ->
+            {
+                final String name = beginEx.toolsCall().name().asString();
+                yield builder.toolsCall(t -> t.sessionId(sid).name(name)).build();
+            }
+            case KIND_PROMPTS_LIST -> builder
+                .promptsList(p -> p.sessionId(sid))
+                .build();
+            case KIND_PROMPTS_GET ->
+            {
+                final String name = beginEx.promptsGet().name().asString();
+                yield builder.promptsGet(p -> p.sessionId(sid).name(name)).build();
+            }
+            case KIND_RESOURCES_LIST -> builder
+                .resourcesList(r -> r.sessionId(sid))
+                .build();
+            case KIND_RESOURCES_READ ->
+            {
+                final String uri = beginEx.resourcesRead().uri().asString();
+                yield builder.resourcesRead(r -> r.sessionId(sid).uri(uri)).build();
+            }
+            default -> beginEx;
+            };
         }
 
         private void onClientData(
