@@ -65,4 +65,15 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/tools.call.toolkit/client",
+        "${app}/tools.call.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolForToolkit() throws Exception
+    {
+        k3po.finish();
+    }
 }
