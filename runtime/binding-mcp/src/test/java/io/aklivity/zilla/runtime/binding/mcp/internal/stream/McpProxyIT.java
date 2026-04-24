@@ -98,4 +98,37 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.aborted/client",
+        "${app}/tools.call.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.get/client",
+        "${app}/prompts.get/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read/client",
+        "${app}/resources.read/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
 }
