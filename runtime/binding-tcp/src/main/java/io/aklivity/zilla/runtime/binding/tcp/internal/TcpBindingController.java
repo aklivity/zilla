@@ -130,17 +130,16 @@ final class TcpBindingController implements BindingController
 
                 boolean accepted = false;
                 int contextCount = contexts.size();
-                for (int i = 0; !accepted && i < contextCount; i++)
+                if (contextCount > 0)
                 {
-                    int index = nextIndex.getAndIncrement();
-                    TcpBindingContext context = contexts.get(index);
+                    int base = nextIndex.getAndIncrement();
+                    for (int i = 0; !accepted && i < contextCount; i++)
+                    {
+                        int index = Math.floorMod(base + i, contextCount);
+                        TcpBindingContext context = contexts.get(index);
 
-                    accepted = context.accepted(binding.id, channel, local);
-                }
-
-                if (nextIndex.get() >= contextCount)
-                {
-                    nextIndex.set(0);
+                        accepted = context.accepted(binding.id, channel, local);
+                    }
                 }
 
                 if (!accepted)
