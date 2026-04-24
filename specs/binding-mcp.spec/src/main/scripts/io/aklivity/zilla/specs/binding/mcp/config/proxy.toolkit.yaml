@@ -22,4 +22,4 @@ bindings:
     routes:
       - exit: app1
         when:
-          - toolkit: github
+          - toolkit: bluesky

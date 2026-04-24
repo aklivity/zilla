@@ -14,6 +14,7 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property toolName "bluesky__get_weather"
 
 accept ${serverAddress}
        option zilla:window 8192
@@ -44,14 +45,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("get_weather")
+                              .name(toolName)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"github__get_weather",'
+        '"name":"bluesky__get_weather",'
         '"arguments":'
         '{'
           '"location": "New York"'

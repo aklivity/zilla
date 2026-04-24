@@ -71,8 +71,10 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit/client",
         "${app}/tools.call.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldCallToolForToolkit() throws Exception
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "toolName \"get_weather\"" })
+    public void shouldCallToolWithToolkit() throws Exception
     {
         k3po.finish();
     }

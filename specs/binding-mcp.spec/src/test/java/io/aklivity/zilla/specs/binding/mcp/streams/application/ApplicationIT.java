@@ -155,6 +155,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.toolkit/client",
+        "${app}/tools.call.toolkit/server"})
+    public void shouldCallToolWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server"})
     public void shouldListTools() throws Exception
