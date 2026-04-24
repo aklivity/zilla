@@ -359,7 +359,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             client.doClientBegin(traceId);
 
-            doWindow(sender, originId, routedId, replyId, traceId, authorization, 0,
+            doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
                 writeBuffer.capacity(), 0);
         }
 
@@ -865,7 +865,7 @@ public final class McpProxyFactory implements McpStreamFactory
             doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity, beginEx);
             state = McpState.openedReply(state);
 
-            doWindow(sender, originId, routedId, replyId, traceId, authorization, 0,
+            doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
                 writeBuffer.capacity(), 0);
         }
 
