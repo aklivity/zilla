@@ -150,8 +150,11 @@ public final class McpProxyFactory implements McpStreamFactory
                 final McpSession session = lifecycle
                     ? sessions.computeIfAbsent(sessionId, McpSession::new)
                     : sessions.get(sessionId);
+                final McpExit exit = session != null
+                    ? (lifecycle ? session.supplyExit(route.id) : session.exits.get(route.id))
+                    : null;
 
-                if (session != null)
+                if (exit != null)
                 {
                     final String identifier = route.strip(beginEx);
                     final int capabilities = lifecycle ? beginEx.lifecycle().capabilities() : 0;
@@ -168,7 +171,8 @@ public final class McpProxyFactory implements McpStreamFactory
                         sessionId,
                         identifier,
                         capabilities,
-                        session)::onServerMessage;
+                        session,
+                        exit)::onServerMessage;
                 }
             }
         }
@@ -179,11 +183,31 @@ public final class McpProxyFactory implements McpStreamFactory
     private final class McpSession
     {
         private final String sessionId;
+        private final Long2ObjectHashMap<McpExit> exits;
 
         private McpSession(
             String sessionId)
         {
             this.sessionId = sessionId;
+            this.exits = new Long2ObjectHashMap<>();
+        }
+
+        private McpExit supplyExit(
+            long exitId)
+        {
+            return exits.computeIfAbsent(exitId, McpExit::new);
+        }
+    }
+
+    private static final class McpExit
+    {
+        private final long exitId;
+        private String exitSessionId;
+
+        private McpExit(
+            long exitId)
+        {
+            this.exitId = exitId;
         }
     }
 
@@ -202,6 +226,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final String identifier;
         private final int capabilities;
         private final McpSession session;
+        private final McpExit exit;
 
         private int state;
 
@@ -217,7 +242,8 @@ public final class McpProxyFactory implements McpStreamFactory
             String sessionId,
             String identifier,
             int capabilities,
-            McpSession session)
+            McpSession session,
+            McpExit exit)
         {
             this.sender = sender;
             this.originId = originId;
@@ -231,6 +257,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.identifier = identifier;
             this.capabilities = capabilities;
             this.session = session;
+            this.exit = exit;
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -455,28 +482,31 @@ public final class McpProxyFactory implements McpStreamFactory
             sender = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onClientMessage);
             assert sender != null;
 
-            final String sessionId = server.sessionId;
             final String identifier = server.identifier;
             final int capabilities = server.capabilities;
+            final boolean lifecycle = server.beginKind == KIND_LIFECYCLE;
+            final String outboundSessionId = lifecycle || server.exit.exitSessionId == null
+                ? server.sessionId
+                : server.exit.exitSessionId;
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
             switch (server.beginKind)
             {
             case KIND_LIFECYCLE -> builder
-                .lifecycle(l -> l.sessionId(sessionId).capabilities(capabilities));
+                .lifecycle(l -> l.sessionId(outboundSessionId).capabilities(capabilities));
             case KIND_TOOLS_LIST -> builder
-                .toolsList(t -> t.sessionId(sessionId));
+                .toolsList(t -> t.sessionId(outboundSessionId));
             case KIND_TOOLS_CALL -> builder
-                .toolsCall(t -> t.sessionId(sessionId).name(identifier));
+                .toolsCall(t -> t.sessionId(outboundSessionId).name(identifier));
             case KIND_PROMPTS_LIST -> builder
-                .promptsList(p -> p.sessionId(sessionId));
+                .promptsList(p -> p.sessionId(outboundSessionId));
             case KIND_PROMPTS_GET -> builder
-                .promptsGet(p -> p.sessionId(sessionId).name(identifier));
+                .promptsGet(p -> p.sessionId(outboundSessionId).name(identifier));
             case KIND_RESOURCES_LIST -> builder
-                .resourcesList(r -> r.sessionId(sessionId));
+                .resourcesList(r -> r.sessionId(outboundSessionId));
             case KIND_RESOURCES_READ -> builder
-                .resourcesRead(r -> r.sessionId(sessionId).uri(identifier));
+                .resourcesRead(r -> r.sessionId(outboundSessionId).uri(identifier));
             default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.beginKind);
             }
             final McpBeginExFW beginEx = builder.build();
@@ -589,6 +619,16 @@ public final class McpProxyFactory implements McpStreamFactory
             final OctetsFW extension = begin.extension();
 
             state = McpState.openedInitial(state);
+
+            if (server.beginKind == KIND_LIFECYCLE && extension.sizeof() > 0)
+            {
+                final McpBeginExFW beginEx = mcpBeginExRO.wrap(
+                    extension.buffer(), extension.offset(), extension.limit());
+                if (beginEx.kind() == KIND_LIFECYCLE)
+                {
+                    server.exit.exitSessionId = beginEx.lifecycle().sessionId().asString();
+                }
+            }
 
             server.doServerBegin(traceId, extension);
         }
