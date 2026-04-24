@@ -22,11 +22,13 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -77,6 +79,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final int mcpTypeId;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
+    private final Map<String, McpSession> sessions;
 
     public McpProxyFactory(
         McpConfiguration config,
@@ -88,6 +91,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
+        this.sessions = new Object2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
     }
 
@@ -142,25 +146,45 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 final int beginKind = beginEx.kind();
                 final String sessionId = sessionId(beginEx);
-                final String identifier = route.strip(beginEx);
-                final int capabilities = beginKind == KIND_LIFECYCLE ? beginEx.lifecycle().capabilities() : 0;
+                final boolean lifecycle = beginKind == KIND_LIFECYCLE;
+                final McpSession session = lifecycle
+                    ? sessions.computeIfAbsent(sessionId, McpSession::new)
+                    : sessions.get(sessionId);
 
-                newStream = new McpServer(
-                    sender,
-                    originId,
-                    routedId,
-                    initialId,
-                    route.id,
-                    affinity,
-                    authorization,
-                    beginKind,
-                    sessionId,
-                    identifier,
-                    capabilities)::onServerMessage;
+                if (session != null)
+                {
+                    final String identifier = route.strip(beginEx);
+                    final int capabilities = lifecycle ? beginEx.lifecycle().capabilities() : 0;
+
+                    newStream = new McpServer(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        route.id,
+                        affinity,
+                        authorization,
+                        beginKind,
+                        sessionId,
+                        identifier,
+                        capabilities,
+                        session)::onServerMessage;
+                }
             }
         }
 
         return newStream;
+    }
+
+    private final class McpSession
+    {
+        private final String sessionId;
+
+        private McpSession(
+            String sessionId)
+        {
+            this.sessionId = sessionId;
+        }
     }
 
     private final class McpServer
@@ -177,6 +201,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final String sessionId;
         private final String identifier;
         private final int capabilities;
+        private final McpSession session;
 
         private int state;
 
@@ -191,7 +216,8 @@ public final class McpProxyFactory implements McpStreamFactory
             int beginKind,
             String sessionId,
             String identifier,
-            int capabilities)
+            int capabilities,
+            McpSession session)
         {
             this.sender = sender;
             this.originId = originId;
@@ -204,6 +230,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.sessionId = sessionId;
             this.identifier = identifier;
             this.capabilities = capabilities;
+            this.session = session;
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -288,6 +315,11 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 client.doClientEnd(traceId);
             }
+
+            if (beginKind == KIND_LIFECYCLE)
+            {
+                sessions.remove(session.sessionId);
+            }
         }
 
         private void onServerAbort(
@@ -300,6 +332,11 @@ public final class McpProxyFactory implements McpStreamFactory
             if (!McpState.closed(state))
             {
                 client.doClientAbort(traceId);
+            }
+
+            if (beginKind == KIND_LIFECYCLE)
+            {
+                sessions.remove(session.sessionId);
             }
         }
 
