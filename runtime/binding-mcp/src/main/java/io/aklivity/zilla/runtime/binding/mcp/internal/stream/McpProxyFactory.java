@@ -158,10 +158,10 @@ public final class McpProxyFactory implements McpStreamFactory
                     session.affinity = affinity;
                     session.clientCapabilities = beginEx.lifecycle().capabilities();
 
-                    final McpInboundLifecycle inboundLifecycle = new McpInboundLifecycle(
+                    final McpLifecycleServer lifecycle = new McpLifecycleServer(
                         sender, originId, routedId, initialId, affinity, authorization, session, binding);
-                    session.lifecycle = inboundLifecycle;
-                    newStream = inboundLifecycle::onServerMessage;
+                    session.lifecycle = lifecycle;
+                    newStream = lifecycle::onServerMessage;
                 }
                 else
                 {
@@ -203,7 +203,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private long authorization;
         private long affinity;
         private int clientCapabilities;
-        private McpInboundLifecycle lifecycle;
+        private McpLifecycleServer lifecycle;
 
         private McpSession(
             String sessionId)
@@ -230,7 +230,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private int state;
         private String exitSessionId;
-        private McpOutboundLifecycle lifecycle;
+        private McpLifecycleClient lifecycle;
 
         private McpExit(
             long exitId)
@@ -348,7 +348,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 if (exit.state == McpExit.UNINITIALIZED)
                 {
                     exit.state = McpExit.OPENING;
-                    exit.lifecycle = new McpOutboundLifecycle(exit, session);
+                    exit.lifecycle = new McpLifecycleClient(exit, session);
                     exit.lifecycle.doClientBegin(traceId);
                 }
             }
@@ -775,7 +775,7 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class McpInboundLifecycle
+    private final class McpLifecycleServer
     {
         private final MessageConsumer sender;
         private final long originId;
@@ -789,7 +789,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private int state;
 
-        private McpInboundLifecycle(
+        private McpLifecycleServer(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -929,7 +929,7 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class McpOutboundLifecycle
+    private final class McpLifecycleClient
     {
         private final McpExit exit;
         private final McpSession session;
@@ -939,7 +939,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private int state;
 
-        private McpOutboundLifecycle(
+        private McpLifecycleClient(
             McpExit exit,
             McpSession session)
         {
@@ -1175,9 +1175,9 @@ public final class McpProxyFactory implements McpStreamFactory
             .maximum(0)
             .traceId(traceId)
             .authorization(authorization)
+            .flags(flags)
             .budgetId(budgetId)
             .reserved(reserved)
-            .flags(flags)
             .payload(payload, offset, length)
             .build();
 

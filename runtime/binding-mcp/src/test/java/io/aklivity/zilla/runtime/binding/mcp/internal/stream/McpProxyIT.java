@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -56,7 +55,6 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    @Ignore("WIP: lazy outbound lifecycle + invocation proceed triggers a JVM crash in engine close; deferred")
     @Test
     @Configuration("proxy.yaml")
     @Specification({
