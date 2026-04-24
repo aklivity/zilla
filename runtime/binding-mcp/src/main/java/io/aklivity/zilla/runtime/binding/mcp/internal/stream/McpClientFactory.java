@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
@@ -65,6 +68,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpClientFactory implements McpStreamFactory
 {
+    private static final int SERVER_CAPABILITIES =
+        SERVER_TOOLS.value() | SERVER_PROMPTS.value() | SERVER_RESOURCES.value();
+
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
 
@@ -1179,7 +1185,9 @@ public final class McpClientFactory implements McpStreamFactory
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .lifecycle(b -> b.sessionId(sid))
+                    .lifecycle(b -> b
+                        .sessionId(sid)
+                        .capabilities(SERVER_CAPABILITIES))
                     .build());
                 touch();
                 scheduleKeepalive(traceId);

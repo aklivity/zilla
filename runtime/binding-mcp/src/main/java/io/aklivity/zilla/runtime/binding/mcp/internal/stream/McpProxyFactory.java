@@ -143,6 +143,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 final int beginKind = beginEx.kind();
                 final String sessionId = sessionId(beginEx);
                 final String identifier = route.strip(beginEx);
+                final int capabilities = beginKind == KIND_LIFECYCLE ? beginEx.lifecycle().capabilities() : 0;
 
                 newStream = new McpServer(
                     sender,
@@ -154,7 +155,8 @@ public final class McpProxyFactory implements McpStreamFactory
                     authorization,
                     beginKind,
                     sessionId,
-                    identifier)::onServerMessage;
+                    identifier,
+                    capabilities)::onServerMessage;
             }
         }
 
@@ -174,6 +176,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final int beginKind;
         private final String sessionId;
         private final String identifier;
+        private final int capabilities;
 
         private int state;
 
@@ -187,7 +190,8 @@ public final class McpProxyFactory implements McpStreamFactory
             long authorization,
             int beginKind,
             String sessionId,
-            String identifier)
+            String identifier,
+            int capabilities)
         {
             this.sender = sender;
             this.originId = originId;
@@ -199,6 +203,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.beginKind = beginKind;
             this.sessionId = sessionId;
             this.identifier = identifier;
+            this.capabilities = capabilities;
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -415,13 +420,14 @@ public final class McpProxyFactory implements McpStreamFactory
 
             final String sessionId = server.sessionId;
             final String identifier = server.identifier;
+            final int capabilities = server.capabilities;
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
             switch (server.beginKind)
             {
             case KIND_LIFECYCLE -> builder
-                .lifecycle(l -> l.sessionId(sessionId));
+                .lifecycle(l -> l.sessionId(sessionId).capabilities(capabilities));
             case KIND_TOOLS_LIST -> builder
                 .toolsList(t -> t.sessionId(sessionId));
             case KIND_TOOLS_CALL -> builder

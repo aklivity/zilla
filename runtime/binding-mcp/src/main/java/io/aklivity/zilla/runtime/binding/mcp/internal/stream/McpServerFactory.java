@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ROOTS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Map;
@@ -59,6 +62,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpServerFactory implements McpStreamFactory
 {
+    private static final int CLIENT_CAPABILITIES =
+        CLIENT_ROOTS.value() | CLIENT_SAMPLING.value() | CLIENT_ELICITATION.value();
+
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
 
@@ -1377,7 +1383,8 @@ public final class McpServerFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .lifecycle(i -> i
-                    .sessionId(session.sessionId))
+                    .sessionId(session.sessionId)
+                    .capabilities(CLIENT_CAPABILITIES))
                 .build();
             session.doAppBegin(traceId, authorization, beginEx);
         }
