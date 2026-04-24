@@ -22,6 +22,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
@@ -146,33 +148,44 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 final int beginKind = beginEx.kind();
                 final String sessionId = sessionId(beginEx);
-                final boolean lifecycle = beginKind == KIND_LIFECYCLE;
-                final McpSession session = lifecycle
-                    ? sessions.computeIfAbsent(sessionId, McpSession::new)
-                    : sessions.get(sessionId);
-                final McpExit exit = session != null
-                    ? (lifecycle ? session.supplyExit(route.id) : session.exits.get(route.id))
-                    : null;
 
-                if (exit != null)
+                if (beginKind == KIND_LIFECYCLE)
                 {
-                    final String identifier = route.strip(beginEx);
-                    final int capabilities = lifecycle ? beginEx.lifecycle().capabilities() : 0;
+                    final McpSession session = sessions.computeIfAbsent(sessionId, McpSession::new);
+                    session.originId = originId;
+                    session.routedId = routedId;
+                    session.authorization = authorization;
+                    session.affinity = affinity;
+                    session.clientCapabilities = beginEx.lifecycle().capabilities();
 
-                    newStream = new McpServer(
-                        sender,
-                        originId,
-                        routedId,
-                        initialId,
-                        route.id,
-                        affinity,
-                        authorization,
-                        beginKind,
-                        sessionId,
-                        identifier,
-                        capabilities,
-                        session,
-                        exit)::onServerMessage;
+                    final McpInboundLifecycle inboundLifecycle = new McpInboundLifecycle(
+                        sender, originId, routedId, initialId, affinity, authorization, session, binding);
+                    session.lifecycle = inboundLifecycle;
+                    newStream = inboundLifecycle::onServerMessage;
+                }
+                else
+                {
+                    final McpSession session = sessions.get(sessionId);
+                    if (session != null)
+                    {
+                        final McpExit exit = session.supplyExit(route.id);
+                        final String identifier = route.strip(beginEx);
+
+                        newStream = new McpServer(
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            route.id,
+                            affinity,
+                            authorization,
+                            beginKind,
+                            sessionId,
+                            identifier,
+                            0,
+                            session,
+                            exit)::onServerMessage;
+                    }
                 }
             }
         }
@@ -184,6 +197,13 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         private final String sessionId;
         private final Long2ObjectHashMap<McpExit> exits;
+
+        private long originId;
+        private long routedId;
+        private long authorization;
+        private long affinity;
+        private int clientCapabilities;
+        private McpInboundLifecycle lifecycle;
 
         private McpSession(
             String sessionId)
@@ -199,15 +219,24 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private static final class McpExit
+    private final class McpExit
     {
+        private static final int UNINITIALIZED = 0;
+        private static final int OPENING = 1;
+        private static final int OPENED = 2;
+
         private final long exitId;
+        private final Deque<McpServer> pending;
+
+        private int state;
         private String exitSessionId;
+        private McpOutboundLifecycle lifecycle;
 
         private McpExit(
             long exitId)
         {
             this.exitId = exitId;
+            this.pending = new ArrayDeque<>();
         }
     }
 
@@ -309,6 +338,25 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openingInitial(state);
 
+            if (exit.state == McpExit.OPENED)
+            {
+                proceed(traceId);
+            }
+            else
+            {
+                exit.pending.add(this);
+                if (exit.state == McpExit.UNINITIALIZED)
+                {
+                    exit.state = McpExit.OPENING;
+                    exit.lifecycle = new McpOutboundLifecycle(exit, session);
+                    exit.lifecycle.doClientBegin(traceId);
+                }
+            }
+        }
+
+        private void proceed(
+            long traceId)
+        {
             client.doClientBegin(traceId);
 
             doWindow(sender, originId, routedId, replyId, traceId, authorization, 0,
@@ -620,16 +668,6 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            if (server.beginKind == KIND_LIFECYCLE && extension.sizeof() > 0)
-            {
-                final McpBeginExFW beginEx = mcpBeginExRO.wrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-                if (beginEx.kind() == KIND_LIFECYCLE)
-                {
-                    server.exit.exitSessionId = beginEx.lifecycle().sessionId().asString();
-                }
-            }
-
             server.doServerBegin(traceId, extension);
         }
 
@@ -688,6 +726,312 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
 
             server.doServerReset(traceId);
+        }
+    }
+
+    private final class McpInboundLifecycle
+    {
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final long authorization;
+        private final McpSession session;
+        private final McpBindingConfig binding;
+
+        private int state;
+
+        private McpInboundLifecycle(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long affinity,
+            long authorization,
+            McpSession session,
+            McpBindingConfig binding)
+        {
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.session = session;
+            this.binding = binding;
+        }
+
+        private void onServerMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onServerBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                // no-op: proxy terminates lifecycle locally, no DATA is forwarded
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onServerEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onServerAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                // reply direction window from upstream; no DATA to send so ignore
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onServerReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onServerBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            state = McpState.openingInitial(state);
+
+            final int serverCapabilities = binding.serverCapabilities(authorization);
+            final String sid = session.sessionId;
+            final McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .lifecycle(l -> l.sessionId(sid).capabilities(serverCapabilities))
+                .build();
+
+            doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity, beginEx);
+            state = McpState.openedReply(state);
+
+            doWindow(sender, originId, routedId, replyId, traceId, authorization, 0,
+                writeBuffer.capacity(), 0);
+        }
+
+        private void onServerEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = McpState.closedInitial(state);
+
+            cleanup(traceId);
+
+            if (!McpState.replyClosed(state))
+            {
+                doEnd(sender, originId, routedId, replyId, traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void onServerAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpState.closedInitial(state);
+
+            cleanup(traceId);
+
+            if (!McpState.replyClosed(state))
+            {
+                doAbort(sender, originId, routedId, replyId, traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void onServerReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpState.closedReply(state);
+
+            cleanup(traceId);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            sessions.remove(session.sessionId);
+
+            for (McpExit exit : session.exits.values())
+            {
+                if (exit.lifecycle != null)
+                {
+                    exit.lifecycle.doClientEnd(traceId);
+                }
+                for (McpServer pending : exit.pending)
+                {
+                    pending.doServerReset(traceId);
+                }
+                exit.pending.clear();
+            }
+        }
+    }
+
+    private final class McpOutboundLifecycle
+    {
+        private final McpExit exit;
+        private final McpSession session;
+        private final long initialId;
+        private final long replyId;
+        private MessageConsumer sender;
+
+        private int state;
+
+        private McpOutboundLifecycle(
+            McpExit exit,
+            McpSession session)
+        {
+            this.exit = exit;
+            this.session = session;
+            this.initialId = supplyInitialId.applyAsLong(exit.exitId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+        }
+
+        private void doClientBegin(
+            long traceId)
+        {
+            sender = streamFactory.newStream(BeginFW.TYPE_ID, writeBuffer, 0, 0, this::onClientMessage);
+            assert sender != null;
+
+            final String sid = session.sessionId;
+            final int clientCapabilities = session.clientCapabilities;
+            final McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .lifecycle(l -> l.sessionId(sid).capabilities(clientCapabilities))
+                .build();
+
+            doBegin(sender, session.originId, exit.exitId, initialId, traceId,
+                session.authorization, session.affinity, beginEx);
+            state = McpState.openingInitial(state);
+        }
+
+        private void doClientEnd(
+            long traceId)
+        {
+            if (sender != null && !McpState.initialClosed(state))
+            {
+                doEnd(sender, session.originId, exit.exitId, initialId, traceId, session.authorization);
+                state = McpState.closedInitial(state);
+            }
+        }
+
+        private void onClientMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onClientBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                // lifecycle does not carry DATA in this proxy model
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onClientEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onClientAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                // we do not send DATA on this stream; nothing to do
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onClientReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onClientBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            state = McpState.openedInitial(state);
+
+            if (extension.sizeof() > 0)
+            {
+                final McpBeginExFW beginEx = mcpBeginExRO.wrap(
+                    extension.buffer(), extension.offset(), extension.limit());
+                if (beginEx.kind() == KIND_LIFECYCLE)
+                {
+                    exit.exitSessionId = beginEx.lifecycle().sessionId().asString();
+                }
+            }
+
+            doWindow(sender, session.originId, exit.exitId, replyId, traceId, session.authorization, 0,
+                writeBuffer.capacity(), 0);
+
+            exit.state = McpExit.OPENED;
+            while (!exit.pending.isEmpty())
+            {
+                exit.pending.poll().proceed(traceId);
+            }
+        }
+
+        private void onClientEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = McpState.closedReply(state);
+
+            failPending(traceId);
+        }
+
+        private void onClientAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpState.closedReply(state);
+
+            failPending(traceId);
+        }
+
+        private void onClientReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpState.closedInitial(state);
+
+            failPending(traceId);
+        }
+
+        private void failPending(
+            long traceId)
+        {
+            while (!exit.pending.isEmpty())
+            {
+                exit.pending.poll().doServerReset(traceId);
+            }
         }
     }
 
