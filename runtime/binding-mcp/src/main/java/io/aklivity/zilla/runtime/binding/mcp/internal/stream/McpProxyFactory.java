@@ -557,7 +557,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             final McpBeginExFW beginEx = builder.build();
 
-            sender = openStream(this::onClientMessage, server.originId, resolvedId, initialId,
+            sender = newStream(this::onClientMessage, server.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
         }
@@ -960,7 +960,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 .lifecycle(l -> l.sessionId(sid).capabilities(clientCapabilities))
                 .build();
 
-            sender = openStream(this::onClientMessage, session.originId, exit.exitId, initialId,
+            sender = newStream(this::onClientMessage, session.originId, exit.exitId, initialId,
                 traceId, session.authorization, session.affinity, beginEx);
             state = McpState.openingInitial(state);
         }
@@ -1094,6 +1094,38 @@ public final class McpProxyFactory implements McpStreamFactory
         };
     }
 
+    private MessageConsumer newStream(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        final MessageConsumer receiver =
+            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+        assert receiver != null;
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+        return receiver;
+    }
+
     private void doBegin(
         MessageConsumer receiver,
         long originId,
@@ -1118,35 +1150,6 @@ public final class McpProxyFactory implements McpStreamFactory
             .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private MessageConsumer openStream(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long traceId,
-        long authorization,
-        long affinity,
-        Flyweight extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        final MessageConsumer receiver = streamFactory.newStream(
-            begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-        return receiver;
     }
 
     private void doData(
