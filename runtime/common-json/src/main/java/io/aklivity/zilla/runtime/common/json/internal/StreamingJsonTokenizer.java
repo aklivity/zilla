@@ -433,15 +433,18 @@ public final class StreamingJsonTokenizer
         InputStream in,
         int c) throws IOException
     {
+        valueReadable = currentPathReadable();
         switch (c)
         {
         case '{':
             pendingEvent = JsonParser.Event.START_OBJECT;
             pushAndEnter(ParseState.OBJ_AFTER_OPEN);
+            pushPath(false);
             break;
         case '[':
             pendingEvent = JsonParser.Event.START_ARRAY;
             pushAndEnter(ParseState.ARR_AFTER_OPEN);
+            pushPath(true);
             break;
         case '"':
             scratch.setLength(0);
@@ -514,6 +517,10 @@ public final class StreamingJsonTokenizer
         pendingString = takeScratch();
         resumeOp = ResumeOp.NONE;
         state = ParseState.OBJ_AFTER_KEY;
+        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
+        {
+            pathKey[pathDepth - 1] = pendingString;
+        }
     }
 
     private void pushAndEnter(
@@ -556,12 +563,14 @@ public final class StreamingJsonTokenizer
         default:
             throw new JsonParsingException("Unexpected state after value: " + state, null);
         }
+        markValueConsumed();
     }
 
     private void emitEnd(
         JsonParser.Event endEvent)
     {
         pendingEvent = endEvent;
+        popPath();
         if (stack.isEmpty())
         {
             state = ParseState.DOC_DONE;
@@ -570,6 +579,7 @@ public final class StreamingJsonTokenizer
         {
             state = stack.pop();
         }
+        markValueConsumed();
     }
 
     private int skipWhitespace(
