@@ -135,9 +135,16 @@ public final class StreamingJsonTokenizer
         pendingEvent = null;
         pendingString = null;
 
-        try
+        while (pendingEvent == null && state != ParseState.DOC_DONE)
         {
-            while (pendingEvent == null && state != ParseState.DOC_DONE)
+            // Snapshot at the start of each iteration. On EOF mid-readable-scalar-scan we rewind
+            // to drop any partial scratch and let the caller retry once more bytes are appended.
+            // For other parse steps (KEY_NAME, structural separators, non-readable values) the
+            // existing internal-resume state carries across frames without needing rewind.
+            final long iterStart = streamOffset;
+            in.mark(tokenMaxBytes == Integer.MAX_VALUE ? Integer.MAX_VALUE : tokenMaxBytes);
+
+            try
             {
                 if (resumeOp != ResumeOp.NONE)
                 {
@@ -148,12 +155,28 @@ public final class StreamingJsonTokenizer
                     advanceOne(in);
                 }
             }
-            return true;
+            catch (EOFException ex)
+            {
+                if (pendingEvent != null)
+                {
+                    return true;
+                }
+                final boolean midReadableScalarScan =
+                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && valueReadable;
+                if (midReadableScalarScan)
+                {
+                    in.reset();
+                    streamOffset = iterStart;
+                    scratch.setLength(0);
+                    resumeOp = ResumeOp.NONE;
+                    resumeEscape = false;
+                    resumeUnicodePending = 0;
+                    resumeUnicodeValue = 0;
+                }
+                return false;
+            }
         }
-        catch (EOFException ex)
-        {
-            return pendingEvent != null;
-        }
+        return true;
     }
 
     public JsonParser.Event event()
@@ -794,6 +817,14 @@ public final class StreamingJsonTokenizer
             throw new EOFException();
         }
         streamOffset++;
+        if (valueReadable &&
+            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
+            scratch.length() >= tokenMaxBytes)
+        {
+            throw new JsonParsingException(
+                "value at " + currentPath() + " exceeds max " + tokenMaxBytes + " bytes",
+                null);
+        }
         return c;
     }
 

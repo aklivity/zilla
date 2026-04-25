@@ -30,6 +30,7 @@ import jakarta.json.JsonPointer;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParsingException;
 
 import org.junit.jupiter.api.Test;
 
@@ -244,6 +245,54 @@ class StreamingJsonTokenizerPathTest
         {
             throw new AssertionError("did not reach the non-readable value");
         }
+    }
+
+    @Test
+    void shouldThrowWhenReadableValueExceedsTokenMaxBytes() throws IOException
+    {
+        // Configure PATH_INCLUDES to /payload and TOKEN_MAX_BYTES = 8.
+        // The "payload" string is 20 chars long, so the parser must throw before completing.
+        final List<JsonPointer> includes = List.of(stubPointer("/payload"));
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(includes, List.of(), 8);
+
+        final String json = "{\"payload\":\"abcdefghijklmnopqrst\"}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        assertThrows(JsonParsingException.class, () ->
+        {
+            while (tokenizer.advance(in))
+            {
+                tokenizer.clearEvent();
+            }
+        });
+    }
+
+    @Test
+    void shouldNotThrowWhenExcludedValueExceedsTokenMaxBytes() throws IOException
+    {
+        // Same large value but the path is now excluded, so scratch is never populated
+        // and TOKEN_MAX_BYTES does not apply.
+        final List<JsonPointer> excludes = List.of(stubPointer("/payload"));
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(List.of(), excludes, 8);
+
+        final String json = "{\"payload\":\"abcdefghijklmnopqrst\",\"id\":1}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        // Walk the entire document without throwing; "id" value should still be readable.
+        Long observedId = null;
+        while (tokenizer.advance(in))
+        {
+            if (tokenizer.event() == JsonParser.Event.VALUE_NUMBER && tokenizer.valueReadable())
+            {
+                observedId = Long.parseLong(tokenizer.stringValue());
+            }
+            tokenizer.clearEvent();
+        }
+        assertEquals(1L, observedId);
     }
 
     @Test
