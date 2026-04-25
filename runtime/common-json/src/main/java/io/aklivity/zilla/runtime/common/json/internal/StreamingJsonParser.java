@@ -49,9 +49,9 @@ public final class StreamingJsonParser implements JsonParser
         }
         this.in = in;
         this.tokenizer = new StreamingJsonTokenizer(
-            pathList(config, StreamingJson.PATHS_INCLUDED),
-            pathList(config, StreamingJson.PATHS_EXCLUDED),
-            maxTokenBytes(config));
+            pathList(config, StreamingJson.PATH_INCLUDES),
+            pathList(config, StreamingJson.PATH_EXCLUDES),
+            tokenMaxBytes(config));
         this.location = new StreamingJsonLocation(tokenizer);
     }
 
@@ -64,10 +64,10 @@ public final class StreamingJsonParser implements JsonParser
         return raw == null ? List.of() : (List<JsonPointer>) raw;
     }
 
-    private static int maxTokenBytes(
+    private static int tokenMaxBytes(
         Map<String, ?> config)
     {
-        final Object raw = config.get(StreamingJson.MAX_TOKEN_BYTES);
+        final Object raw = config.get(StreamingJson.TOKEN_MAX_BYTES);
         return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
     }
 

@@ -30,17 +30,17 @@ public final class StreamingJson
      * as a wildcard matching any index (parser-internal extension to RFC 6901).
      * <p>
      * Defaults to "every path included" when absent. When specified, only listed paths
-     * (minus any matched by {@link #PATHS_EXCLUDED}) are readable; values at all other
+     * (minus any matched by {@link #PATH_EXCLUDES}) are readable; values at all other
      * paths are scanned and discarded, and {@code getString()} on those throws.
      */
-    public static final String PATHS_INCLUDED = "io.aklivity.zilla.runtime.common.json.paths.included";
+    public static final String PATH_INCLUDES = "io.aklivity.zilla.runtime.common.json.path.includes";
 
     /**
      * Config key whose value is a {@code List<JsonPointer>} identifying document paths
      * whose values are NOT required to be readable, even if matched by
-     * {@link #PATHS_INCLUDED}. Excludes have final veto.
+     * {@link #PATH_INCLUDES}. Excludes have final veto.
      */
-    public static final String PATHS_EXCLUDED = "io.aklivity.zilla.runtime.common.json.paths.excluded";
+    public static final String PATH_EXCLUDES = "io.aklivity.zilla.runtime.common.json.path.excludes";
 
     /**
      * Config key whose value is an {@code Integer} bounding the number of bytes the parser
@@ -50,7 +50,7 @@ public final class StreamingJson
      * <p>
      * Defaults to unbounded (no enforcement) when absent.
      */
-    public static final String MAX_TOKEN_BYTES = "io.aklivity.zilla.runtime.common.json.max.token.bytes";
+    public static final String TOKEN_MAX_BYTES = "io.aklivity.zilla.runtime.common.json.token.max.bytes";
 
     private StreamingJson()
     {

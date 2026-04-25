@@ -57,9 +57,9 @@ public final class StreamingJsonTokenizer
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    private final List<String[]> includedPaths;
-    private final List<String[]> excludedPaths;
-    private final int maxTokenBytes;
+    private final List<String[]> pathIncludes;
+    private final List<String[]> pathExcludes;
+    private final int tokenMaxBytes;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -86,13 +86,13 @@ public final class StreamingJsonTokenizer
     }
 
     public StreamingJsonTokenizer(
-        List<JsonPointer> includedPaths,
-        List<JsonPointer> excludedPaths,
-        int maxTokenBytes)
+        List<JsonPointer> pathIncludes,
+        List<JsonPointer> pathExcludes,
+        int tokenMaxBytes)
     {
-        this.includedPaths = compilePaths(includedPaths);
-        this.excludedPaths = compilePaths(excludedPaths);
-        this.maxTokenBytes = maxTokenBytes;
+        this.pathIncludes = compilePaths(pathIncludes);
+        this.pathExcludes = compilePaths(pathExcludes);
+        this.tokenMaxBytes = tokenMaxBytes;
     }
 
     private static List<String[]> compilePaths(
@@ -205,10 +205,10 @@ public final class StreamingJsonTokenizer
 
     private boolean currentPathReadable()
     {
-        // include is everything by default; if includedPaths is specified, restrict to those
-        final boolean included = includedPaths.isEmpty() || pathMatchesAny(includedPaths);
+        // include is everything by default; if pathIncludes is specified, restrict to those
+        final boolean included = pathIncludes.isEmpty() || pathMatchesAny(pathIncludes);
         // excludes have final veto
-        return included && !pathMatchesAny(excludedPaths);
+        return included && !pathMatchesAny(pathExcludes);
     }
 
     private boolean pathMatchesAny(
