@@ -316,14 +316,14 @@ public final class StreamingJsonTokenizer
         case VALUE_STRING:
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case VALUE_NUMBER:
             continueNumberContent(in);
             pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -453,7 +453,7 @@ public final class StreamingJsonTokenizer
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -485,11 +485,14 @@ public final class StreamingJsonTokenizer
             if (c == '-' || c >= '0' && c <= '9')
             {
                 scratch.setLength(0);
-                scratch.append((char) c);
+                if (valueReadable)
+                {
+                    scratch.append((char) c);
+                }
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                pendingString = takeScratch();
+                pendingString = valueReadable ? takeScratch() : null;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -508,6 +511,8 @@ public final class StreamingJsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
+        // keys must always be readable so path matching can compare them
+        valueReadable = true;
         scratch.setLength(0);
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -621,7 +626,7 @@ public final class StreamingJsonTokenizer
                 resumeUnicodePending--;
                 if (resumeUnicodePending == 0)
                 {
-                    scratch.append((char) resumeUnicodeValue);
+                    appendScratch((char) resumeUnicodeValue);
                 }
                 continue;
             }
@@ -633,22 +638,22 @@ public final class StreamingJsonTokenizer
                 case '"':
                 case '\\':
                 case '/':
-                    scratch.append((char) c);
+                    appendScratch((char) c);
                     break;
                 case 'b':
-                    scratch.append('\b');
+                    appendScratch('\b');
                     break;
                 case 'f':
-                    scratch.append('\f');
+                    appendScratch('\f');
                     break;
                 case 'n':
-                    scratch.append('\n');
+                    appendScratch('\n');
                     break;
                 case 'r':
-                    scratch.append('\r');
+                    appendScratch('\r');
                     break;
                 case 't':
-                    scratch.append('\t');
+                    appendScratch('\t');
                     break;
                 case 'u':
                     resumeUnicodePending = 4;
@@ -673,13 +678,31 @@ public final class StreamingJsonTokenizer
             }
             else if (c < 0x80)
             {
-                scratch.append((char) c);
+                appendScratch((char) c);
             }
             else
             {
                 int codePoint = decodeUtf8(in, c);
-                scratch.appendCodePoint(codePoint);
+                appendCodePointScratch(codePoint);
             }
+        }
+    }
+
+    private void appendScratch(
+        char c)
+    {
+        if (valueReadable)
+        {
+            scratch.append(c);
+        }
+    }
+
+    private void appendCodePointScratch(
+        int codePoint)
+    {
+        if (valueReadable)
+        {
+            scratch.appendCodePoint(codePoint);
         }
     }
 
@@ -752,7 +775,7 @@ public final class StreamingJsonTokenizer
             if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
-                scratch.append((char) c);
+                appendScratch((char) c);
             }
             else
             {

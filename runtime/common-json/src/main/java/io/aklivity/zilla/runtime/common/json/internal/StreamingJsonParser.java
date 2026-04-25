@@ -103,7 +103,13 @@ public final class StreamingJsonParser implements JsonParser
     @Override
     public String getString()
     {
-        return tokenizer.stringValue();
+        final String value = tokenizer.stringValue();
+        if (value == null && !tokenizer.valueReadable())
+        {
+            throw new IllegalStateException("value not readable; configure path via " +
+                "StreamingJson.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
+        }
+        return value;
     }
 
     @Override

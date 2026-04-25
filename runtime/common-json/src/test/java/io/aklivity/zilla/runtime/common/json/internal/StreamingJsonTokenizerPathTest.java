@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.JsonPointer;
 import jakarta.json.JsonStructure;
@@ -30,6 +32,8 @@ import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 class StreamingJsonTokenizerPathTest
 {
@@ -164,6 +168,82 @@ class StreamingJsonTokenizerPathTest
         }
         // currentPath() re-encodes per RFC 6901, so "/" becomes "~1" and "~" becomes "~0"
         assertEquals("/a~1b/c~0d", observedPathAtNumber);
+    }
+
+    @Test
+    void shouldSuppressScratchForNonReadableValues() throws IOException
+    {
+        // Only /tools/-/name is readable; everything else is non-readable.
+        final List<JsonPointer> includes = List.of(stubPointer("/tools/-/name"));
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+
+        final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a quite long description\"}]}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        // Walk events; stringValue() is non-null only for KEY_NAME (always readable) and
+        // for the readable VALUE_STRING at /tools/0/name.
+        final List<String> readableValues = new ArrayList<>();
+        final List<JsonParser.Event> nonReadableValueEvents = new ArrayList<>();
+        while (tokenizer.advance(in))
+        {
+            final JsonParser.Event ev = tokenizer.event();
+            switch (ev)
+            {
+            case VALUE_STRING:
+            case VALUE_NUMBER:
+                if (tokenizer.valueReadable())
+                {
+                    readableValues.add(tokenizer.stringValue());
+                }
+                else
+                {
+                    nonReadableValueEvents.add(ev);
+                }
+                break;
+            default:
+                break;
+            }
+            tokenizer.clearEvent();
+        }
+        // Only "X" is readable; "a quite long description" is non-readable
+        assertEquals(List.of("X"), readableValues);
+        assertEquals(1, nonReadableValueEvents.size());
+    }
+
+    @Test
+    void shouldThrowFromGetStringForNonReadableValueAtParserLevel() throws IOException
+    {
+        // Use the parser-level API with PATH_INCLUDES configured so that /tools/-/name is the
+        // only readable value path; everything else throws when getString() is called.
+        final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a long description\"}]}";
+        final BufferedInputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        final Map<String, Object> config = Map.of(
+            StreamingJson.PATH_INCLUDES, List.of(stubPointer("/tools/-/name")));
+        final JsonParser parser = StreamingJson.createParser(in, config);
+
+        // Walk to the description value (non-readable) and verify getString throws.
+        boolean sawNonReadableValue = false;
+        while (parser.hasNext())
+        {
+            final JsonParser.Event ev = parser.next();
+            if (ev == JsonParser.Event.KEY_NAME && "description".equals(parser.getString()))
+            {
+                // The next VALUE_STRING event is at /tools/0/description (non-readable).
+                final JsonParser.Event next = parser.next();
+                assertEquals(JsonParser.Event.VALUE_STRING, next);
+                assertThrows(IllegalStateException.class, parser::getString);
+                sawNonReadableValue = true;
+                break;
+            }
+        }
+        if (!sawNonReadableValue)
+        {
+            throw new AssertionError("did not reach the non-readable value");
+        }
     }
 
     @Test
