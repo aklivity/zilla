@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import java.io.InputStream;
+import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
@@ -22,6 +23,19 @@ import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
 
 public final class StreamingJson
 {
+    /**
+     * Config key whose value is a {@code List<JsonPointer>} identifying the document paths
+     * whose values must be readable via {@link JsonParser#getString()} after the corresponding
+     * {@code VALUE_STRING} event. The convention {@code -} as an array-index segment is treated
+     * as a wildcard matching any index (parser-internal extension to RFC 6901).
+     * <p>
+     * Values at non-readable paths are scanned and discarded; calling
+     * {@link JsonParser#getString()} on such a value throws {@link IllegalStateException}.
+     * <p>
+     * Absent or empty: every value is readable (legacy behavior).
+     */
+    public static final String READABLE_PATHS = "io.aklivity.zilla.runtime.common.json.readable.paths";
+
     private StreamingJson()
     {
     }
@@ -29,6 +43,13 @@ public final class StreamingJson
     public static JsonParser createParser(
         InputStream in)
     {
-        return new StreamingJsonParser(in);
+        return new StreamingJsonParser(in, Map.of());
+    }
+
+    public static JsonParser createParser(
+        InputStream in,
+        Map<String, ?> config)
+    {
+        return new StreamingJsonParser(in, config);
     }
 }

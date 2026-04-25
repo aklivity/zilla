@@ -17,10 +17,15 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
+import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
+
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 public final class StreamingJsonParser implements JsonParser
 {
@@ -31,13 +36,28 @@ public final class StreamingJsonParser implements JsonParser
     public StreamingJsonParser(
         InputStream in)
     {
+        this(in, Map.of());
+    }
+
+    public StreamingJsonParser(
+        InputStream in,
+        Map<String, ?> config)
+    {
         if (!in.markSupported())
         {
             throw new IllegalArgumentException("InputStream must support mark/reset");
         }
         this.in = in;
-        this.tokenizer = new StreamingJsonTokenizer();
+        this.tokenizer = new StreamingJsonTokenizer(readablePaths(config));
         this.location = new StreamingJsonLocation(tokenizer);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<JsonPointer> readablePaths(
+        Map<String, ?> config)
+    {
+        final Object raw = config.get(StreamingJson.READABLE_PATHS);
+        return raw == null ? List.of() : (List<JsonPointer>) raw;
     }
 
     @Override

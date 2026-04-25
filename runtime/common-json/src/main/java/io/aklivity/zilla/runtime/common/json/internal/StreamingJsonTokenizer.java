@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 
+import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
@@ -52,6 +54,7 @@ public final class StreamingJsonTokenizer
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
+    private final List<JsonPointer> readablePaths;
 
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
@@ -64,6 +67,17 @@ public final class StreamingJsonTokenizer
     private int resumeUnicodePending;   // hex digits remaining for backslash-u escape
     private int resumeUnicodeValue;
     private int resumeLiteralIndex;     // chars matched so far for true/false/null
+
+    public StreamingJsonTokenizer()
+    {
+        this(List.of());
+    }
+
+    public StreamingJsonTokenizer(
+        List<JsonPointer> readablePaths)
+    {
+        this.readablePaths = readablePaths;
+    }
 
     public boolean advance(
         InputStream in) throws IOException
