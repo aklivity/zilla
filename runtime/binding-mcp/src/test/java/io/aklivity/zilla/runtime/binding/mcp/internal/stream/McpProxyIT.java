@@ -190,4 +190,46 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit/client",
+        "${app}/tools.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "toolsListReply \"{\\\"tools\\\":[{\\\"name\\\":\\\"get_weather\\\"," +
+            "\\\"title\\\":\\\"Weather Information Provider\\\"}]}\"" })
+    public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/prompts.list.toolkit/client",
+        "${app}/prompts.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "promptsListReply \"{\\\"prompts\\\":[{\\\"name\\\":\\\"weather_prompt\\\"," +
+            "\\\"description\\\":\\\"Ask about weather\\\"}]}\"" })
+    public void shouldListPromptsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/resources.list.toolkit/client",
+        "${app}/resources.list.toolkit/server" })
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "resourcesListReply \"{\\\"resources\\\":[{\\\"uri\\\":\\\"file:///data/readme.txt\\\"," +
+            "\\\"mimeType\\\":\\\"text/plain\\\"}]}\"" })
+    public void shouldListResourcesWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
 }

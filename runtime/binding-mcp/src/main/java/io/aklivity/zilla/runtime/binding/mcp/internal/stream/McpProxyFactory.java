@@ -21,11 +21,22 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -49,6 +60,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpProxyFactory implements McpStreamFactory
@@ -76,6 +88,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BindingHandler streamFactory;
+    private final BufferPool bufferPool;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
@@ -90,6 +103,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
+        this.bufferPool = context.bufferPool();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
@@ -170,6 +184,7 @@ public final class McpProxyFactory implements McpStreamFactory
                     {
                         final McpExit exit = session.supplyExit(route.id);
                         final String identifier = route.strip(beginEx);
+                        final String prefix = route.prefix(beginEx);
 
                         newStream = new McpServer(
                             sender,
@@ -182,6 +197,7 @@ public final class McpProxyFactory implements McpStreamFactory
                             beginKind,
                             sessionId,
                             identifier,
+                            prefix,
                             0,
                             session,
                             exit)::onServerMessage;
@@ -253,6 +269,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final int beginKind;
         private final String sessionId;
         private final String identifier;
+        private final String prefix;
         private final int capabilities;
         private final McpSession session;
         private final McpExit exit;
@@ -270,6 +287,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int beginKind,
             String sessionId,
             String identifier,
+            String prefix,
             int capabilities,
             McpSession session,
             McpExit exit)
@@ -284,6 +302,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.beginKind = beginKind;
             this.sessionId = sessionId;
             this.identifier = identifier;
+            this.prefix = prefix;
             this.capabilities = capabilities;
             this.session = session;
             this.exit = exit;
@@ -513,6 +532,8 @@ public final class McpProxyFactory implements McpStreamFactory
         private MessageConsumer sender;
 
         private int state;
+        private int replySlot = NO_SLOT;
+        private int replySlotOffset;
 
         private McpClient(
             McpServer server,
@@ -728,8 +749,15 @@ public final class McpProxyFactory implements McpStreamFactory
 
             if (payload != null)
             {
-                server.doServerData(traceId, budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
+                if (transformsList())
+                {
+                    bufferReplyPayload(payload);
+                }
+                else
+                {
+                    server.doServerData(traceId, budgetId, flags, reserved,
+                        payload.buffer(), payload.offset(), payload.sizeof());
+                }
             }
         }
 
@@ -739,6 +767,13 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = end.traceId();
 
             state = McpState.closedReply(state);
+
+            if (transformsList() && replySlot != NO_SLOT)
+            {
+                emitTransformedListReply(traceId);
+            }
+
+            cleanupReplySlot();
 
             server.doServerEnd(traceId);
         }
@@ -750,7 +785,56 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.closedReply(state);
 
+            cleanupReplySlot();
+
             server.doServerAbort(traceId);
+        }
+
+        private boolean transformsList()
+        {
+            return !server.prefix.isEmpty() &&
+                (server.beginKind == KIND_TOOLS_LIST ||
+                 server.beginKind == KIND_PROMPTS_LIST ||
+                 server.beginKind == KIND_RESOURCES_LIST);
+        }
+
+        private void bufferReplyPayload(
+            OctetsFW payload)
+        {
+            if (replySlot == NO_SLOT)
+            {
+                replySlot = bufferPool.acquire(initialId);
+            }
+
+            if (replySlot != NO_SLOT)
+            {
+                final MutableDirectBuffer buffer = bufferPool.buffer(replySlot);
+                buffer.putBytes(replySlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                replySlotOffset += payload.sizeof();
+            }
+        }
+
+        private void emitTransformedListReply(
+            long traceId)
+        {
+            final byte[] inputBytes = new byte[replySlotOffset];
+            bufferPool.buffer(replySlot).getBytes(0, inputBytes);
+
+            final byte[] outputBytes = applyListPrefix(server.prefix, server.beginKind, inputBytes);
+
+            final UnsafeBuffer outputBuffer = new UnsafeBuffer(outputBytes);
+            server.doServerData(traceId, 0L, 0x03, outputBytes.length,
+                outputBuffer, 0, outputBytes.length);
+        }
+
+        private void cleanupReplySlot()
+        {
+            if (replySlot != NO_SLOT)
+            {
+                bufferPool.release(replySlot);
+                replySlot = NO_SLOT;
+                replySlotOffset = 0;
+            }
         }
 
         private void onClientWindow(
@@ -1092,6 +1176,51 @@ public final class McpProxyFactory implements McpStreamFactory
         case KIND_RESOURCES_READ -> beginEx.resourcesRead().sessionId().asString();
         default -> null;
         };
+    }
+
+    private static byte[] applyListPrefix(
+        String prefix,
+        int beginKind,
+        byte[] jsonBytes)
+    {
+        final String arrayKey = switch (beginKind)
+        {
+        case KIND_TOOLS_LIST -> "tools";
+        case KIND_PROMPTS_LIST -> "prompts";
+        case KIND_RESOURCES_LIST -> "resources";
+        default -> null;
+        };
+        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
+
+        byte[] result = jsonBytes;
+        if (arrayKey != null)
+        {
+            try (JsonReader reader = Json.createReader(new ByteArrayInputStream(jsonBytes)))
+            {
+                final JsonObject root = reader.readObject();
+                final JsonArray items = root.getJsonArray(arrayKey);
+                if (items != null)
+                {
+                    final JsonArrayBuilder transformed = Json.createArrayBuilder();
+                    for (JsonValue item : items)
+                    {
+                        final JsonObject obj = item.asJsonObject();
+                        final JsonObjectBuilder builder = Json.createObjectBuilder(obj);
+                        final String oldId = obj.containsKey(idKey) ? obj.getString(idKey) : null;
+                        if (oldId != null)
+                        {
+                            builder.add(idKey, prefix + oldId);
+                        }
+                        transformed.add(builder.build());
+                    }
+                    final JsonObjectBuilder rootBuilder = Json.createObjectBuilder(root);
+                    rootBuilder.add(arrayKey, transformed.build());
+                    result = rootBuilder.build().toString().getBytes(StandardCharsets.UTF_8);
+                }
+            }
+        }
+
+        return result;
     }
 
     private MessageConsumer newStream(

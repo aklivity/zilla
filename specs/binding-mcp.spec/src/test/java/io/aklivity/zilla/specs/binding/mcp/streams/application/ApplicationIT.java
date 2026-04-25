@@ -182,6 +182,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.list.toolkit/client",
+        "${app}/tools.list.toolkit/server"})
+    public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/prompts.list.toolkit/client",
+        "${app}/prompts.list.toolkit/server"})
+    public void shouldListPromptsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.list.toolkit/client",
+        "${app}/resources.list.toolkit/server"})
+    public void shouldListResourcesWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server"})
     public void shouldListTools() throws Exception

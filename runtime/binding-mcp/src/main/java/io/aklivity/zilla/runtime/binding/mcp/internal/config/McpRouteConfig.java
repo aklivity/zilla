@@ -110,6 +110,28 @@ public final class McpRouteConfig
         return result;
     }
 
+    public String prefix(
+        McpBeginExFW beginEx)
+    {
+        final String capability = capabilityOf(beginEx);
+        String result = "";
+
+        if (capability != null && !matchers.isEmpty())
+        {
+            for (ConditionMatcher matcher : matchers)
+            {
+                final String prefix = matcher.prefix(capability);
+                if (prefix != null)
+                {
+                    result = prefix;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
     boolean matches(
         String capability,
         String identifier)
