@@ -19,10 +19,13 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_SAMPLING;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import jakarta.json.Json;
+import jakarta.json.JsonPointer;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 
@@ -122,6 +125,17 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
+    // JSON paths whose values McpServerFactory reads via getString(). Configured on the
+    // StreamingJson parser so non-included values (e.g. /params/arguments contents) are
+    // scanned without scratch accumulation. KEY_NAME tokens are always readable.
+    private static final List<JsonPointer> SERVER_JSON_PATH_INCLUDES = List.of(
+        Json.createPointer("/jsonrpc"),
+        Json.createPointer("/id"),
+        Json.createPointer("/method"),
+        Json.createPointer("/params/name"),
+        Json.createPointer("/params/uri"));
+    private final Map<String, ?> serverJsonConfig;
+
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
     private final McpServerDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
     private final McpServerDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
@@ -162,6 +176,9 @@ public final class McpServerFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.sessions = new Object2ObjectHashMap<>();
+        this.serverJsonConfig = Map.of(
+            StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
+            StreamingJson.TOKEN_MAX_BYTES, decodeMax);
     }
 
     @Override
@@ -308,7 +325,7 @@ public final class McpServerFactory implements McpStreamFactory
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
-        server.decodableJson = StreamingJson.createParser(input);
+        server.decodableJson = StreamingJson.createParser(input, serverJsonConfig);
         server.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();
