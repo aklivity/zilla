@@ -41,6 +41,7 @@ public class McpProxyIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/config")
         .external("app1")
+        .external("app2")
         .clean();
 
     @Rule
@@ -229,6 +230,16 @@ public class McpProxyIT
         "resourcesListReply \"{\\\"resources\\\":[{\\\"uri\\\":\\\"file:///data/readme.txt\\\"," +
             "\\\"mimeType\\\":\\\"text/plain\\\"}]}\"" })
     public void shouldListResourcesWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit.multi/client",
+        "${app}/tools.list.toolkit.multi/server" })
+    public void shouldListToolsWithToolkitMulti() throws Exception
     {
         k3po.finish();
     }

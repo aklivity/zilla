@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -98,5 +99,27 @@ public final class McpBindingConfig
         }
 
         return resolved;
+    }
+
+    public List<McpRouteConfig> resolveAll(
+        McpBeginExFW beginEx,
+        long authorization)
+    {
+        final String capability = McpRouteConfig.capabilityOf(beginEx);
+        final String identifier = McpRouteConfig.identifierOf(beginEx);
+        final List<McpRouteConfig> result = new ArrayList<>();
+
+        if (capability != null && identifier == null)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    result.add(route);
+                }
+            }
+        }
+
+        return result;
     }
 }
