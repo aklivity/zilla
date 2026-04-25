@@ -131,6 +131,26 @@ public final class McpRouteConfig
         return result;
     }
 
+    boolean serves(
+        String capability)
+    {
+        boolean result = matchers.isEmpty();
+
+        if (!result)
+        {
+            for (ConditionMatcher matcher : matchers)
+            {
+                if (matcher.serves(capability))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
     static String capabilityOf(
         McpBeginExFW beginEx)
     {
@@ -208,6 +228,12 @@ public final class McpRouteConfig
             }
 
             return result;
+        }
+
+        private boolean serves(
+            String capability)
+        {
+            return prefix(capability) != null;
         }
 
         private String prefix(

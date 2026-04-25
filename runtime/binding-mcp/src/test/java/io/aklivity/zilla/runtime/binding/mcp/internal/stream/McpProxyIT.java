@@ -157,4 +157,15 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.list/client",
+        "${app}/tools.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
 }

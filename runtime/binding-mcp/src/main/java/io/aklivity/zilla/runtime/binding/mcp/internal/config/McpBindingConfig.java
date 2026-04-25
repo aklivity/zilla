@@ -85,6 +85,17 @@ public final class McpBindingConfig
                 }
             }
         }
+        else
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    resolved = route;
+                    break;
+                }
+            }
+        }
 
         return resolved;
     }
