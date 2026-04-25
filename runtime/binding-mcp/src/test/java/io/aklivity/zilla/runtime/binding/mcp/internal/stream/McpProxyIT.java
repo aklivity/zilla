@@ -168,4 +168,26 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.list/client",
+        "${app}/prompts.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.list/client",
+        "${app}/resources.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
 }
