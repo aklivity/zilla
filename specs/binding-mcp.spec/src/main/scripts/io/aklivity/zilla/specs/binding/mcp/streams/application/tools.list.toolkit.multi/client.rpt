@@ -54,7 +54,7 @@ write close
 read  '{"tools":'
         '['
           '{"name":"bluesky__get_weather"},'
-          '{"name":"openai__complete"}'
+          '{"name":"quartz__get_current_time"}'
         ']'
       '}'
 read closed

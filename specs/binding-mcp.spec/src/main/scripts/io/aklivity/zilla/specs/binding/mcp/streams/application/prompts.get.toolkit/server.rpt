@@ -13,10 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-property promptName "bluesky__weather_prompt"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -45,7 +42,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .promptsGet()
                               .sessionId("session-1")
-                              .name(promptName)
+                              .name("weather_prompt")
                               .build()
                           .build()}
 

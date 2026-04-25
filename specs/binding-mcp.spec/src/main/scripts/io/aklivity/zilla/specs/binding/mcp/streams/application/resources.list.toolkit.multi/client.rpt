@@ -54,7 +54,7 @@ write close
 read  '{"resources":'
         '['
           '{"uri":"bluesky+file:///data/readme.txt"},'
-          '{"uri":"openai+file:///data/notes.txt"}'
+          '{"uri":"quartz+file:///data/timezones.txt"}'
         ']'
       '}'
 read closed

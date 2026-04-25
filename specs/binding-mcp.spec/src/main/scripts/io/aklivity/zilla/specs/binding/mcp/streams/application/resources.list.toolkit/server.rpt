@@ -13,10 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-property resourcesListReply "{\"resources\":[{\"uri\":\"bluesky+file:///data/readme.txt\",\"mimeType\":\"text/plain\"}]}"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -54,7 +51,7 @@ write flush
 
 read closed
 
-write ${resourcesListReply}
+write '{"resources":[{"uri":"file:///data/readme.txt","mimeType":"text/plain"}]}'
 write flush
 
 write close

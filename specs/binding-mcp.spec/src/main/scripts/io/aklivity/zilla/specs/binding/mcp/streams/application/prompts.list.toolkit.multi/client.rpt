@@ -54,7 +54,7 @@ write close
 read  '{"prompts":'
         '['
           '{"name":"bluesky__weather_prompt"},'
-          '{"name":"openai__generate_text"}'
+          '{"name":"quartz__current_time_prompt"}'
         ']'
       '}'
 read closed

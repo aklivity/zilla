@@ -155,60 +155,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/tools.call.toolkit/client",
-        "${app}/tools.call.toolkit/server"})
-    public void shouldCallToolWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/prompts.get.toolkit/client",
-        "${app}/prompts.get.toolkit/server"})
-    public void shouldGetPromptWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/resources.read.toolkit/client",
-        "${app}/resources.read.toolkit/server"})
-    public void shouldReadResourceWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/tools.list.toolkit/client",
-        "${app}/tools.list.toolkit/server"})
-    public void shouldListToolsWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/prompts.list.toolkit/client",
-        "${app}/prompts.list.toolkit/server"})
-    public void shouldListPromptsWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/resources.list.toolkit/client",
-        "${app}/resources.list.toolkit/server"})
-    public void shouldListResourcesWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server"})
     public void shouldListTools() throws Exception

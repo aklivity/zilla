@@ -25,4 +25,4 @@ bindings:
           - toolkit: bluesky
       - exit: app2
         when:
-          - toolkit: openai
+          - toolkit: quartz

@@ -95,7 +95,7 @@ write flush
 
 read closed
 
-write '{"resources":[{"uri":"file:///data/notes.txt"}]}'
+write '{"resources":[{"uri":"file:///data/timezones.txt"}]}'
 write flush
 
 write close

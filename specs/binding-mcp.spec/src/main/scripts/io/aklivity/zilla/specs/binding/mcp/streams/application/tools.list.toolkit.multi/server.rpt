@@ -95,7 +95,7 @@ write flush
 
 read closed
 
-write '{"tools":[{"name":"complete"}]}'
+write '{"tools":[{"name":"get_current_time"}]}'
 write flush
 
 write close
