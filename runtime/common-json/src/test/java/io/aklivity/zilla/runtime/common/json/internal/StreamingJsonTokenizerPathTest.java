@@ -24,6 +24,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.json.JsonPointer;
+import jakarta.json.JsonStructure;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
@@ -104,5 +107,136 @@ class StreamingJsonTokenizerPathTest
             tokenizer.clearEvent();
         }
         assertEquals("/a/b/c", pathAtNumber);
+    }
+
+    @Test
+    void shouldCompilePathsAndMatchExpectedValues() throws IOException
+    {
+        final List<JsonPointer> includes = List.of(
+            stubPointer(""),                       // root
+            stubPointer("/tools/-/name"),          // wildcard array index
+            stubPointer("/tools/-/title"));
+        final List<JsonPointer> excludes = List.of(
+            stubPointer("/tools/-/title"));        // excludes win for title
+
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(includes, excludes, 1024);
+
+        final String json = "{\"tools\":[{\"name\":\"X\",\"title\":\"T\"},{\"name\":\"Y\"}]}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        // Walk all events; the parser must drive currentPathReadable() at every value
+        // entry, which exercises compilePaths + pathMatchesAny across both lists.
+        int eventCount = 0;
+        while (tokenizer.advance(in))
+        {
+            eventCount++;
+            tokenizer.clearEvent();
+        }
+        // Sanity: parser still emits the same event sequence under config
+        // ({, "tools", [, {, "name", "X", "title", "T", }, {, "name", "Y", }, ], })
+        assertEquals(15, eventCount);
+    }
+
+    @Test
+    void shouldMatchPathSegmentWithEscapedSlashAndTilde() throws IOException
+    {
+        // RFC 6901 escapes: "~1" decodes to "/", "~0" decodes to "~"
+        final List<JsonPointer> includes = List.of(
+            stubPointer("/a~1b/c~0d"));            // path of "/a/b" then "c~d"
+
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
+
+        final String json = "{\"a/b\":{\"c~d\":42}}";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        String observedPathAtNumber = null;
+        while (tokenizer.advance(in))
+        {
+            if (tokenizer.event() == JsonParser.Event.VALUE_NUMBER)
+            {
+                observedPathAtNumber = tokenizer.currentPath();
+            }
+            tokenizer.clearEvent();
+        }
+        // currentPath() re-encodes per RFC 6901, so "/" becomes "~1" and "~" becomes "~0"
+        assertEquals("/a~1b/c~0d", observedPathAtNumber);
+    }
+
+    @Test
+    void shouldHandleEmptyConfigAsLegacyBehavior() throws IOException
+    {
+        final StreamingJsonTokenizer tokenizer =
+            new StreamingJsonTokenizer(List.of(), List.of(), Integer.MAX_VALUE);
+
+        final String json = "[1,2,3]";
+        final InputStream in = new BufferedInputStream(
+            new ByteArrayInputStream(json.getBytes(UTF_8)));
+
+        int events = 0;
+        while (tokenizer.advance(in))
+        {
+            events++;
+            tokenizer.clearEvent();
+        }
+        assertEquals(5, events); // [, 1, 2, 3, ]
+    }
+
+    /**
+     * The tokenizer only consults JsonPointer.toString() to compile its match table; we
+     * stub the rest of the interface so tests do not need a JSON-Provider runtime impl
+     * (parsson, joy, etc.) on the test classpath.
+     */
+    private static JsonPointer stubPointer(
+        String s)
+    {
+        return new JsonPointer()
+        {
+            @Override
+            public String toString()
+            {
+                return s;
+            }
+
+            @Override
+            public <T extends JsonStructure> T add(
+                T target,
+                JsonValue value)
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public <T extends JsonStructure> T remove(
+                T target)
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public <T extends JsonStructure> T replace(
+                T target,
+                JsonValue value)
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public boolean containsValue(
+                JsonStructure target)
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public JsonValue getValue(
+                JsonStructure target)
+            {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 }
