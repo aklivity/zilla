@@ -24,17 +24,33 @@ import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
 public final class StreamingJson
 {
     /**
-     * Config key whose value is a {@code List<JsonPointer>} identifying the document paths
-     * whose values must be readable via {@link JsonParser#getString()} after the corresponding
-     * {@code VALUE_STRING} event. The convention {@code -} as an array-index segment is treated
+     * Config key whose value is a {@code List<JsonPointer>} identifying document paths
+     * whose values must be readable via {@link JsonParser#getString()} after the
+     * corresponding event. The convention {@code -} as an array-index segment is treated
      * as a wildcard matching any index (parser-internal extension to RFC 6901).
      * <p>
-     * Values at non-readable paths are scanned and discarded; calling
-     * {@link JsonParser#getString()} on such a value throws {@link IllegalStateException}.
-     * <p>
-     * Absent or empty: every value is readable (legacy behavior).
+     * Defaults to "every path included" when absent. When specified, only listed paths
+     * (minus any matched by {@link #PATHS_EXCLUDED}) are readable; values at all other
+     * paths are scanned and discarded, and {@code getString()} on those throws.
      */
-    public static final String READABLE_PATHS = "io.aklivity.zilla.runtime.common.json.readable.paths";
+    public static final String PATHS_INCLUDED = "io.aklivity.zilla.runtime.common.json.paths.included";
+
+    /**
+     * Config key whose value is a {@code List<JsonPointer>} identifying document paths
+     * whose values are NOT required to be readable, even if matched by
+     * {@link #PATHS_INCLUDED}. Excludes have final veto.
+     */
+    public static final String PATHS_EXCLUDED = "io.aklivity.zilla.runtime.common.json.paths.excluded";
+
+    /**
+     * Config key whose value is an {@code Integer} bounding the number of bytes the parser
+     * will scan for a single included value before throwing {@link
+     * jakarta.json.stream.JsonParsingException}. Set to the caller's slot capacity to fail
+     * fast on values that cannot make progress under reset semantics.
+     * <p>
+     * Defaults to unbounded (no enforcement) when absent.
+     */
+    public static final String MAX_TOKEN_BYTES = "io.aklivity.zilla.runtime.common.json.max.token.bytes";
 
     private StreamingJson()
     {

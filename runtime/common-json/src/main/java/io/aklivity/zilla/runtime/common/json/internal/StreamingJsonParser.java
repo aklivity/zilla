@@ -48,16 +48,27 @@ public final class StreamingJsonParser implements JsonParser
             throw new IllegalArgumentException("InputStream must support mark/reset");
         }
         this.in = in;
-        this.tokenizer = new StreamingJsonTokenizer(readablePaths(config));
+        this.tokenizer = new StreamingJsonTokenizer(
+            pathList(config, StreamingJson.PATHS_INCLUDED),
+            pathList(config, StreamingJson.PATHS_EXCLUDED),
+            maxTokenBytes(config));
         this.location = new StreamingJsonLocation(tokenizer);
     }
 
     @SuppressWarnings("unchecked")
-    private static List<JsonPointer> readablePaths(
+    private static List<JsonPointer> pathList(
+        Map<String, ?> config,
+        String key)
+    {
+        final Object raw = config.get(key);
+        return raw == null ? List.of() : (List<JsonPointer>) raw;
+    }
+
+    private static int maxTokenBytes(
         Map<String, ?> config)
     {
-        final Object raw = config.get(StreamingJson.READABLE_PATHS);
-        return raw == null ? List.of() : (List<JsonPointer>) raw;
+        final Object raw = config.get(StreamingJson.MAX_TOKEN_BYTES);
+        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
     }
 
     @Override

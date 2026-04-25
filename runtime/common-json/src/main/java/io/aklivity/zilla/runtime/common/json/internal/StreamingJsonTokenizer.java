@@ -52,14 +52,26 @@ public final class StreamingJsonTokenizer
         VALUE_NULL
     }
 
+    private static final int MAX_DEPTH = 64;
+    private static final String WILDCARD_INDEX = "-";
+
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
-    private final List<JsonPointer> readablePaths;
+    private final List<String[]> includedPaths;
+    private final List<String[]> excludedPaths;
+    private final int maxTokenBytes;
+
+    // path tracking — pre-allocated, no per-event allocation
+    private final boolean[] pathInArray = new boolean[MAX_DEPTH];
+    private final String[] pathKey = new String[MAX_DEPTH];
+    private final int[] pathIndex = new int[MAX_DEPTH];
+    private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
     private String pendingString;
     private long streamOffset;
+    private boolean valueReadable = true;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -70,13 +82,46 @@ public final class StreamingJsonTokenizer
 
     public StreamingJsonTokenizer()
     {
-        this(List.of());
+        this(List.of(), List.of(), Integer.MAX_VALUE);
     }
 
     public StreamingJsonTokenizer(
-        List<JsonPointer> readablePaths)
+        List<JsonPointer> includedPaths,
+        List<JsonPointer> excludedPaths,
+        int maxTokenBytes)
     {
-        this.readablePaths = readablePaths;
+        this.includedPaths = compilePaths(includedPaths);
+        this.excludedPaths = compilePaths(excludedPaths);
+        this.maxTokenBytes = maxTokenBytes;
+    }
+
+    private static List<String[]> compilePaths(
+        List<JsonPointer> paths)
+    {
+        if (paths.isEmpty())
+        {
+            return List.of();
+        }
+        final List<String[]> compiled = new java.util.ArrayList<>(paths.size());
+        for (JsonPointer p : paths)
+        {
+            final String s = p.toString();
+            if (s.isEmpty())
+            {
+                compiled.add(new String[0]);
+            }
+            else
+            {
+                // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
+                final String[] parts = s.substring(1).split("/", -1);
+                for (int i = 0; i < parts.length; i++)
+                {
+                    parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
+                }
+                compiled.add(parts);
+            }
+        }
+        return compiled;
     }
 
     public boolean advance(
@@ -129,6 +174,94 @@ public final class StreamingJsonTokenizer
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    public boolean valueReadable()
+    {
+        return valueReadable;
+    }
+
+    public String currentPath()
+    {
+        if (pathDepth == 0)
+        {
+            return "";
+        }
+        final StringBuilder path = new StringBuilder();
+        for (int i = 0; i < pathDepth; i++)
+        {
+            path.append('/');
+            if (pathInArray[i])
+            {
+                path.append(pathIndex[i]);
+            }
+            else if (pathKey[i] != null)
+            {
+                path.append(pathKey[i].replace("~", "~0").replace("/", "~1"));
+            }
+        }
+        return path.toString();
+    }
+
+    private boolean currentPathReadable()
+    {
+        // include is everything by default; if includedPaths is specified, restrict to those
+        final boolean included = includedPaths.isEmpty() || pathMatchesAny(includedPaths);
+        // excludes have final veto
+        return included && !pathMatchesAny(excludedPaths);
+    }
+
+    private boolean pathMatchesAny(
+        List<String[]> paths)
+    {
+        outer:
+        for (String[] target : paths)
+        {
+            if (target.length != pathDepth)
+            {
+                continue;
+            }
+            for (int i = 0; i < pathDepth; i++)
+            {
+                final String segment = pathInArray[i]
+                    ? Integer.toString(pathIndex[i])
+                    : pathKey[i];
+                final String expected = target[i];
+                if (!WILDCARD_INDEX.equals(expected) && !expected.equals(segment))
+                {
+                    continue outer;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void pushPath(
+        boolean inArray)
+    {
+        if (pathDepth == MAX_DEPTH)
+        {
+            throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
+        }
+        pathInArray[pathDepth] = inArray;
+        pathKey[pathDepth] = null;
+        pathIndex[pathDepth] = 0;
+        pathDepth++;
+    }
+
+    private void popPath()
+    {
+        pathDepth--;
+        pathKey[pathDepth] = null;
+    }
+
+    private void markValueConsumed()
+    {
+        if (pathDepth > 0 && pathInArray[pathDepth - 1])
+        {
+            pathIndex[pathDepth - 1]++;
+        }
     }
 
     private void advanceOne(
