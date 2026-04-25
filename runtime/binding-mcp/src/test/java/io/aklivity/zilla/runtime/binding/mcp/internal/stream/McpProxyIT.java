@@ -243,4 +243,24 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/prompts.list.toolkit.multi/client",
+        "${app}/prompts.list.toolkit.multi/server" })
+    public void shouldListPromptsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/resources.list.toolkit.multi/client",
+        "${app}/resources.list.toolkit.multi/server" })
+    public void shouldListResourcesWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
 }
