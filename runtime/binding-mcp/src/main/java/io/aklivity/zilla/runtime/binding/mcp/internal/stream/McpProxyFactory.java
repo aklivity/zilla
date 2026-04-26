@@ -23,8 +23,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -55,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -1123,6 +1122,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final McpExit exit;
         private final long resolvedId;
         private final String prefix;
+        private final byte[] prefixBytes;
 
         private long initialId;
         private long replyId;
@@ -1130,6 +1130,19 @@ public final class McpProxyFactory implements McpStreamFactory
         private int state;
         private int replySlot = NO_SLOT;
         private int replySlotOffset;
+
+        // streaming JSON state — built lazily on first DATA frame
+        private JsonParser parser;
+        private DirectBufferInputStreamEx jsonInput;
+        private ByteArrayOutputStream itemOut;
+        private long parserBaseOffset;       // absolute streamOffset of slot[0]
+        private int depth;
+        private int itemDepth = -1;          // depth at which target items live, set on START_ARRAY
+        private boolean inTargetArray;
+        private boolean awaitingArrayValue;
+        private boolean awaitingIdValue;
+        private long itemStartStreamOffset = -1;
+        private long itemLastEmittedStreamOffset = -1;
 
         private McpListClient(
             McpListServer server,
@@ -1141,6 +1154,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.exit = exit;
             this.resolvedId = resolvedId;
             this.prefix = prefix;
+            this.prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
         }
 
         @Override
@@ -1273,7 +1287,15 @@ public final class McpProxyFactory implements McpStreamFactory
             final OctetsFW payload = data.payload();
             if (payload != null)
             {
-                bufferClientPayload(payload);
+                final long traceId = data.traceId();
+                final boolean appended = appendToSlot(payload);
+                if (!appended)
+                {
+                    state = McpState.closedReply(state);
+                    server.clientFailed(this, traceId);
+                    return;
+                }
+                streamItems(traceId);
             }
         }
 
@@ -1284,9 +1306,8 @@ public final class McpProxyFactory implements McpStreamFactory
             if (!McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
-                final byte[] reply = bufferedClientReply();
                 cleanupClientSlot();
-                server.clientDone(this, reply, traceId);
+                server.clientDone(this, traceId);
             }
         }
 
@@ -1314,30 +1335,183 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        private void bufferClientPayload(
+        private boolean appendToSlot(
             OctetsFW payload)
         {
             if (replySlot == NO_SLOT)
             {
                 replySlot = bufferPool.acquire(initialId);
             }
-            if (replySlot != NO_SLOT)
+            if (replySlot == NO_SLOT)
             {
-                final MutableDirectBuffer buf = bufferPool.buffer(replySlot);
-                buf.putBytes(replySlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                replySlotOffset += payload.sizeof();
+                return false;
+            }
+            final MutableDirectBuffer buf = bufferPool.buffer(replySlot);
+            if (replySlotOffset + payload.sizeof() > buf.capacity())
+            {
+                return false;
+            }
+            buf.putBytes(replySlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+            replySlotOffset += payload.sizeof();
+            return true;
+        }
+
+        private void streamItems(
+            long traceId)
+        {
+            if (parser == null)
+            {
+                final JsonParserFactory parserFactory = switch (server.beginKind)
+                {
+                case KIND_TOOLS_LIST -> TOOLS_LIST_ITEM_PARSER_FACTORY;
+                case KIND_PROMPTS_LIST -> PROMPTS_LIST_ITEM_PARSER_FACTORY;
+                case KIND_RESOURCES_LIST -> RESOURCES_LIST_ITEM_PARSER_FACTORY;
+                default -> null;
+                };
+                if (parserFactory == null)
+                {
+                    return;
+                }
+                jsonInput = new DirectBufferInputStreamEx();
+                parser = parserFactory.createParser(jsonInput);
+                itemOut = new ByteArrayOutputStream(256);
+            }
+
+            final MutableDirectBuffer slotBuffer = bufferPool.buffer(replySlot);
+            final int parserPosInSlot = (int) (parser.getLocation().getStreamOffset() - parserBaseOffset);
+            jsonInput.wrap(slotBuffer, parserPosInSlot, replySlotOffset - parserPosInSlot);
+
+            final String idKey = server.beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
+            final String arrayKey = switch (server.beginKind)
+            {
+            case KIND_TOOLS_LIST -> "tools";
+            case KIND_PROMPTS_LIST -> "prompts";
+            case KIND_RESOURCES_LIST -> "resources";
+            default -> null;
+            };
+
+            walk:
+            while (true)
+            {
+                final long beforeStreamOffset = parser.getLocation().getStreamOffset();
+                if (!parser.hasNext())
+                {
+                    break;
+                }
+                final long afterStreamOffset = parser.getLocation().getStreamOffset();
+                final JsonParser.Event ev = parser.next();
+                final int afterInSlot = (int) (afterStreamOffset - parserBaseOffset);
+                final int beforeInSlot = (int) (beforeStreamOffset - parserBaseOffset);
+                switch (ev)
+                {
+                case START_OBJECT:
+                    depth++;
+                    if (inTargetArray && depth == itemDepth)
+                    {
+                        itemStartStreamOffset = afterStreamOffset - 1;
+                        itemLastEmittedStreamOffset = itemStartStreamOffset;
+                        itemOut.reset();
+                    }
+                    break;
+                case START_ARRAY:
+                    depth++;
+                    if (awaitingArrayValue)
+                    {
+                        awaitingArrayValue = false;
+                        inTargetArray = true;
+                        itemDepth = depth + 1;
+                    }
+                    break;
+                case END_OBJECT:
+                    if (depth == itemDepth && itemStartStreamOffset >= 0)
+                    {
+                        final int itemLastEmittedInSlot = (int) (itemLastEmittedStreamOffset - parserBaseOffset);
+                        slotBuffer.getBytes(itemLastEmittedInSlot, itemBuffer(),
+                            0, afterInSlot - itemLastEmittedInSlot);
+                        itemOut.write(itemBuffer(), 0, afterInSlot - itemLastEmittedInSlot);
+                        server.streamItem(itemOut.toByteArray(), 0, itemOut.size(), traceId);
+                        itemStartStreamOffset = -1;
+                        itemLastEmittedStreamOffset = -1;
+                    }
+                    depth--;
+                    break;
+                case END_ARRAY:
+                    depth--;
+                    if (inTargetArray && depth + 1 == itemDepth - 1)
+                    {
+                        inTargetArray = false;
+                        itemDepth = -1;
+                    }
+                    break;
+                case KEY_NAME:
+                    final String key = parser.getString();
+                    if (depth == 1 && arrayKey.equals(key))
+                    {
+                        awaitingArrayValue = true;
+                    }
+                    else if (inTargetArray && depth == itemDepth && idKey.equals(key))
+                    {
+                        awaitingIdValue = true;
+                    }
+                    break;
+                case VALUE_STRING:
+                    if (awaitingIdValue && itemStartStreamOffset >= 0 && prefixBytes.length > 0)
+                    {
+                        awaitingIdValue = false;
+                        // bytes [beforeInSlot..afterInSlot) span ":<ws>\"<content>\"" — find opening quote
+                        int openingQuote = beforeInSlot;
+                        while (openingQuote < afterInSlot && slotBuffer.getByte(openingQuote) != (byte) '"')
+                        {
+                            openingQuote++;
+                        }
+                        final int contentStart = openingQuote + 1;
+                        final int itemLastEmittedInSlot = (int) (itemLastEmittedStreamOffset - parserBaseOffset);
+                        // emit verbatim up to and including opening quote
+                        slotBuffer.getBytes(itemLastEmittedInSlot, itemBuffer(),
+                            0, contentStart - itemLastEmittedInSlot);
+                        itemOut.write(itemBuffer(), 0, contentStart - itemLastEmittedInSlot);
+                        // splice in the prefix
+                        itemOut.write(prefixBytes, 0, prefixBytes.length);
+                        itemLastEmittedStreamOffset = parserBaseOffset + contentStart;
+                    }
+                    else if (awaitingIdValue)
+                    {
+                        awaitingIdValue = false;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            // Compact slot: drop bytes that are no longer needed (consumed and not part of an in-progress item)
+            final int compactBoundaryInSlot;
+            if (itemStartStreamOffset >= 0)
+            {
+                compactBoundaryInSlot = (int) (itemStartStreamOffset - parserBaseOffset);
+            }
+            else
+            {
+                compactBoundaryInSlot = (int) (parser.getLocation().getStreamOffset() - parserBaseOffset);
+            }
+            if (compactBoundaryInSlot > 0)
+            {
+                slotBuffer.putBytes(0, slotBuffer, compactBoundaryInSlot, replySlotOffset - compactBoundaryInSlot);
+                replySlotOffset -= compactBoundaryInSlot;
+                parserBaseOffset += compactBoundaryInSlot;
             }
         }
 
-        private byte[] bufferedClientReply()
+        private byte[] itemTransferBuffer;
+
+        private byte[] itemBuffer()
         {
-            if (replySlot == NO_SLOT || replySlotOffset == 0)
+            // grows as needed; reused across items
+            if (itemTransferBuffer == null || itemTransferBuffer.length < bufferPool.slotCapacity())
             {
-                return null;
+                itemTransferBuffer = new byte[bufferPool.slotCapacity()];
             }
-            final byte[] inputBytes = new byte[replySlotOffset];
-            bufferPool.buffer(replySlot).getBytes(0, inputBytes);
-            return inputBytes;
+            return itemTransferBuffer;
         }
 
         private void cleanupClientSlot()
@@ -1501,13 +1675,8 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private void clientDone(
             McpListClient client,
-            byte[] data,
             long traceId)
         {
-            if (data != null)
-            {
-                forEachListItem(data, beginKind, client.prefix, traceId, this::streamItem);
-            }
             currentClient = null;
             startNextRoute(traceId);
         }
@@ -1663,137 +1832,6 @@ public final class McpProxyFactory implements McpStreamFactory
         case KIND_RESOURCES_READ -> beginEx.resourcesRead().sessionId().asString();
         default -> null;
         };
-    }
-
-    @FunctionalInterface
-    private interface ListItemEmitter
-    {
-        void emit(byte[] item, int offset, int length, long traceId);
-    }
-
-    /**
-     * Walks a single route's list reply (e.g. {@code {"tools":[{...},{...}]}}) and emits each
-     * item one at a time via {@code emitter}. The idKey value in each item is spliced with
-     * {@code prefix} during the walk; remaining bytes flow through verbatim. Non-conforming
-     * replies (no matching arrayKey) result in zero emitted items.
-     */
-    private static void forEachListItem(
-        byte[] jsonBytes,
-        int beginKind,
-        String prefix,
-        long traceId,
-        ListItemEmitter emitter)
-    {
-        final String arrayKey;
-        final String idKey;
-        final JsonParserFactory parserFactory;
-        switch (beginKind)
-        {
-        case KIND_TOOLS_LIST:
-            arrayKey = "tools";
-            idKey = "name";
-            parserFactory = TOOLS_LIST_ITEM_PARSER_FACTORY;
-            break;
-        case KIND_PROMPTS_LIST:
-            arrayKey = "prompts";
-            idKey = "name";
-            parserFactory = PROMPTS_LIST_ITEM_PARSER_FACTORY;
-            break;
-        case KIND_RESOURCES_LIST:
-            arrayKey = "resources";
-            idKey = "uri";
-            parserFactory = RESOURCES_LIST_ITEM_PARSER_FACTORY;
-            break;
-        default:
-            return;
-        }
-        final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
-
-        final ByteArrayOutputStream itemOut = new ByteArrayOutputStream(256);
-        int depth = 0;
-        int targetItemDepth = -1;
-        int itemStart = -1;
-        int itemLastEmitted = -1;
-        boolean awaitingIdValue = false;
-
-        final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
-        try (JsonParser parser = parserFactory.createParser(in))
-        {
-            while (true)
-            {
-                final long beforeOffset = parser.getLocation().getStreamOffset();
-                if (!parser.hasNext())
-                {
-                    break;
-                }
-                final long afterOffset = parser.getLocation().getStreamOffset();
-                final JsonParser.Event ev = parser.next();
-                switch (ev)
-                {
-                case START_OBJECT:
-                    depth++;
-                    if (depth == targetItemDepth)
-                    {
-                        // first byte of the item is the `{` at afterOffset - 1
-                        itemStart = (int) (afterOffset - 1);
-                        itemLastEmitted = itemStart;
-                        itemOut.reset();
-                    }
-                    break;
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                    if (depth == targetItemDepth && itemStart >= 0)
-                    {
-                        // emit any tail since the last splice through the closing `}`
-                        itemOut.write(jsonBytes, itemLastEmitted, (int) afterOffset - itemLastEmitted);
-                        emitter.emit(itemOut.toByteArray(), 0, itemOut.size(), traceId);
-                        itemStart = -1;
-                        itemLastEmitted = -1;
-                    }
-                    depth--;
-                    break;
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    final String key = parser.getString();
-                    if (depth == 1 && arrayKey.equals(key))
-                    {
-                        // upcoming START_ARRAY at depth 2; items are at depth 3
-                        targetItemDepth = 3;
-                    }
-                    else if (depth == targetItemDepth && idKey.equals(key))
-                    {
-                        awaitingIdValue = true;
-                    }
-                    break;
-                case VALUE_STRING:
-                    if (awaitingIdValue)
-                    {
-                        awaitingIdValue = false;
-                        if (itemStart >= 0 && prefixBytes.length > 0)
-                        {
-                            int openingQuote = (int) beforeOffset;
-                            while (openingQuote < (int) afterOffset && jsonBytes[openingQuote] != '"')
-                            {
-                                openingQuote++;
-                            }
-                            final int contentStart = openingQuote + 1;
-                            // emit bytes from item start up to and including opening quote
-                            itemOut.write(jsonBytes, itemLastEmitted, contentStart - itemLastEmitted);
-                            // splice in the prefix
-                            itemOut.write(prefixBytes, 0, prefixBytes.length);
-                            itemLastEmitted = contentStart;
-                        }
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
     }
 
     private MessageConsumer newStream(
