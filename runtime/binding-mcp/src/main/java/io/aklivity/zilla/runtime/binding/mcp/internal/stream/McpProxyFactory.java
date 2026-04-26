@@ -1006,7 +1006,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void doClientEnd(
             long traceId)
         {
-            if (sender != null && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state))
             {
                 final McpLifecycleServer server = session.lifecycle;
                 doEnd(sender, server.originId, exit.exitId, initialId, traceId, server.authorization);
@@ -1194,7 +1194,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void doClientEnd(
             long traceId)
         {
-            if (sender != null && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state))
             {
                 doEnd(sender, server.originId, resolvedId, initialId,
                     traceId, server.authorization);
@@ -1205,7 +1205,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void doClientAbort(
             long traceId)
         {
-            if (sender != null && !McpState.initialClosed(state))
+            if (!McpState.initialClosed(state))
             {
                 doAbort(sender, server.originId, resolvedId, initialId,
                     traceId, server.authorization);
@@ -1216,7 +1216,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void doClientReset(
             long traceId)
         {
-            if (sender != null && !McpState.replyClosed(state))
+            if (!McpState.replyClosed(state))
             {
                 doReset(sender, server.originId, resolvedId, replyId,
                     traceId, server.authorization);
@@ -1475,10 +1475,7 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 currentClient.doClientAbort(traceId);
             }
-            for (final McpListClient queued : remaining)
-            {
-                queued.doClientAbort(traceId);
-            }
+            // queued clients have not opened an upstream stream — drop them
             remaining.clear();
         }
 
@@ -1492,10 +1489,7 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 currentClient.doClientReset(traceId);
             }
-            for (final McpListClient queued : remaining)
-            {
-                queued.doClientReset(traceId);
-            }
+            // queued clients have not opened an upstream stream — drop them
             remaining.clear();
         }
 
