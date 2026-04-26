@@ -19,22 +19,23 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varuint32FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class Varuint32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -62,7 +63,7 @@ public class Varuint32FWTest
     {
         // Set up buffer so it will give index out of bounds if the implementation attempts to compute
         // the varint value without respecting maxLimit
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[2]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[2]);
         buffer.putByte(0, (byte) 0x81);
         buffer.putByte(1, (byte) 0x81);
         assertNull(varuint32RO.tryWrap(buffer, 0, buffer.capacity()));
@@ -73,7 +74,7 @@ public class Varuint32FWTest
     {
         // Set up buffer so it will overflow if the implementation attempts to compute
         // the varint value without respecting maxLimit
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[2]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[2]);
         buffer.putByte(0, (byte) 0x81);
         buffer.putByte(1, (byte) 0x81);
         varuint32RO.wrap(buffer, 0, 1);

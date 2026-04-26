@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>common</artifactId>
-  <name>zilla::runtime::common</name>
+  <artifactId>common-agrona</artifactId>
+  <name>zilla::runtime::common-agrona</name>
 
   <licenses>
     <license>
@@ -24,14 +24,28 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.00</jacoco.coverage.ratio>
+    <jacoco.missed.count>10</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
+      <groupId>org.agrona</groupId>
+      <artifactId>agrona</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

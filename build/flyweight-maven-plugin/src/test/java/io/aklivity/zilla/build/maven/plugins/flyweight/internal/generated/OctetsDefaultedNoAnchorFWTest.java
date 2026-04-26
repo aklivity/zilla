@@ -19,15 +19,16 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.OctetsDefaultedNoAnchorFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class OctetsDefaultedNoAnchorFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(150))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(150))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -35,7 +36,6 @@ public class OctetsDefaultedNoAnchorFWTest
         }
     };
     private final OctetsDefaultedNoAnchorFW octetsDefaultedNoAnchorRO = new OctetsDefaultedNoAnchorFW();
-
 
     @Test
     public void shouldWrapWithNullPayload() throws Exception

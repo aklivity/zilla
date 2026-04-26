@@ -20,12 +20,11 @@ import static io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags.
 
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
 
@@ -59,7 +58,7 @@ public class Http2ContinuationFW extends Http2FrameFW
     }
 
     @Override
-    public Http2ContinuationFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public Http2ContinuationFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -97,7 +96,7 @@ public class Http2ContinuationFW extends Http2FrameFW
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             blockRW.wrap(buffer, offset + PAYLOAD_OFFSET, maxLimit);

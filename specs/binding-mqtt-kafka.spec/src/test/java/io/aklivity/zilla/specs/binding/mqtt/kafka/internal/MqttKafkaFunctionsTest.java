@@ -19,11 +19,11 @@ import static org.junit.Assert.assertEquals;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.IntArrayList;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 
@@ -47,7 +47,7 @@ public class MqttKafkaFunctionsTest
             .build();
 
         final IntArrayList metadataList = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        UnsafeBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
         MqttSubscribeOffsetMetadataFW offsetMetadata = new MqttSubscribeOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
         offsetMetadata.subscribeMetadataV1().packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
@@ -68,7 +68,7 @@ public class MqttKafkaFunctionsTest
             .build();
 
         final IntArrayList metadataList = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        UnsafeBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
         MqttSubscribeOffsetMetadataFW offsetMetadata = new MqttSubscribeOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
         offsetMetadata.subscribeMetadataV2().packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
@@ -85,7 +85,7 @@ public class MqttKafkaFunctionsTest
             .packetId(1)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        DirectBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
         MqttPublishOffsetMetadataFW offsetMetadata = new MqttPublishOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, offsetMetadata.version());

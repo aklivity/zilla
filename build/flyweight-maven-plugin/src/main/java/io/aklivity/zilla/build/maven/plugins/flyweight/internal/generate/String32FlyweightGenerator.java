@@ -21,7 +21,7 @@ import static com.squareup.javapoet.TypeSpec.classBuilder;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.BIT_UTIL_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_EX_TYPE;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PUBLIC;
@@ -93,7 +93,7 @@ public final class String32FlyweightGenerator extends ClassSpecGenerator
     private FieldSpec valueField()
     {
         return FieldSpec.builder(DIRECT_BUFFER_TYPE, "valueRO", PRIVATE, FINAL)
-                        .initializer("new $T(0L, 0)", UNSAFE_BUFFER_TYPE)
+                        .initializer("new $T(0L, 0)", UNSAFE_BUFFER_EX_TYPE)
                         .build();
     }
 
@@ -146,13 +146,13 @@ public final class String32FlyweightGenerator extends ClassSpecGenerator
                          .addStatement("final byte[] encoded = value.getBytes(charset)")
                          .addStatement("final $T buffer = " +
                                  "new $T(new byte[FIELD_SIZE_LENGTH + Math.max(encoded.length, 1)])",
-                             MUTABLE_DIRECT_BUFFER_TYPE, UNSAFE_BUFFER_TYPE)
+                             MUTABLE_DIRECT_BUFFER_TYPE, UNSAFE_BUFFER_EX_TYPE)
                          .addStatement("buffer.putInt(0, encoded.length, byteOrder)")
                          .addStatement("buffer.putBytes(FIELD_SIZE_LENGTH, encoded)")
                          .addStatement("wrap(buffer, 0, buffer.capacity())")
                          .nextControlFlow("else")
                          .addStatement("final $T buffer = new $T(new byte[FIELD_SIZE_LENGTH + 1])",
-                                 MUTABLE_DIRECT_BUFFER_TYPE, UNSAFE_BUFFER_TYPE)
+                                 MUTABLE_DIRECT_BUFFER_TYPE, UNSAFE_BUFFER_EX_TYPE)
                          .addStatement("buffer.putInt(0, -1)")
                          .addStatement("wrap(buffer, 0, buffer.capacity())")
                          .endControlFlow()

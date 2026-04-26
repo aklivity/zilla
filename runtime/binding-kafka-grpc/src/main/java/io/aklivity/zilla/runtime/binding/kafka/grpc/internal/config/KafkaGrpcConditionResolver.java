@@ -17,12 +17,11 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaGrpcConditionResolver
 {
@@ -49,7 +48,7 @@ public final class KafkaGrpcConditionResolver
         KafkaAckMode acks = options.acks;
 
         List<KafkaGrpcFetchFilterResult> filters = null;
-        DirectBuffer key = null;
+        DirectBufferEx key = null;
         if (condition.key.isPresent())
         {
             key = condition.key.get().value();
@@ -60,8 +59,8 @@ public final class KafkaGrpcConditionResolver
         {
             condition.headers.get().forEach((k, v) ->
             {
-                DirectBuffer name = k.value();
-                DirectBuffer value = v.value();
+                DirectBufferEx name = k.value();
+                DirectBufferEx value = v.value();
 
                 headers.add(new KafkaGrpcFetchFilterHeaderResult(name, value));
             });

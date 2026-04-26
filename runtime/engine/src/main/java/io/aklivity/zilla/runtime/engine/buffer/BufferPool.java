@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.buffer;
 
 import java.nio.ByteBuffer;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public interface BufferPool
 {
@@ -46,7 +46,7 @@ public interface BufferPool
      *
      * @return  a buffer suitable for <b>one-time use only</b>
      */
-    MutableDirectBuffer buffer(int slot);
+    MutableDirectBufferEx buffer(int slot);
 
     /**
      * Returns a {@code ByteBuffer} which can be used to write data into the given slot
@@ -65,7 +65,7 @@ public interface BufferPool
      *
      * @return  a buffer suitable for <b>one-time use only</b>
      */
-    MutableDirectBuffer buffer(int slot, int offset);
+    MutableDirectBufferEx buffer(int slot, int offset);
 
     /**
      * Releases a slot so it may be used by other streams

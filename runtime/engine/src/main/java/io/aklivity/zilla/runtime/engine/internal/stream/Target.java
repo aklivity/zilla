@@ -22,12 +22,12 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttle
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
 import static io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW.FIELD_OFFSET_TIMESTAMP;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
@@ -52,7 +52,7 @@ public final class Target implements AutoCloseable
     private final int localIndex;
     private final String targetName;
     private final AutoCloseable streamsLayout;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final boolean timestamps;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
@@ -66,7 +66,7 @@ public final class Target implements AutoCloseable
     public Target(
         EngineConfiguration config,
         int index,
-        MutableDirectBuffer writeBuffer,
+        MutableDirectBufferEx writeBuffer,
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
@@ -125,7 +125,7 @@ public final class Target implements AutoCloseable
 
     private void handleWrite(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -133,7 +133,7 @@ public final class Target implements AutoCloseable
 
         if (timestamps)
         {
-            ((MutableDirectBuffer) buffer).putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
+            ((MutableDirectBufferEx) buffer).putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
         }
 
         final FrameFW frame = frameRO.wrap(buffer, index, index + length);
@@ -165,7 +165,7 @@ public final class Target implements AutoCloseable
         long routedId,
         long streamId,
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index, int length)
     {
         boolean handled = false;
@@ -188,7 +188,7 @@ public final class Target implements AutoCloseable
         long routedId,
         long streamId,
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -256,7 +256,7 @@ public final class Target implements AutoCloseable
         long routedId,
         long streamId,
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

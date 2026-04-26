@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 /**
@@ -76,7 +75,7 @@ public interface ConverterHandler
          * @param length  the length of the field value
          */
         void visit(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length);
     }
@@ -116,7 +115,7 @@ public interface ConverterHandler
     int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next);
@@ -160,7 +159,7 @@ public interface ConverterHandler
      * @return the padding byte count (0 for converters that do not expand the payload)
      */
     default int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

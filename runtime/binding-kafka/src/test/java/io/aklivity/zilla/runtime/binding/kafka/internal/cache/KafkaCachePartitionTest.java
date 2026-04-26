@@ -26,9 +26,7 @@ import static org.junit.Assert.assertSame;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -42,6 +40,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaCachePartitionTest
@@ -202,7 +202,7 @@ public class KafkaCachePartitionTest
             KafkaCacheTopicConfig topic = new KafkaCacheTopicConfig(config);
 
             int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(slotCapacity * 2));
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(slotCapacity * 2));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);
@@ -264,7 +264,7 @@ public class KafkaCachePartitionTest
             Path location = tempFolder.newFolder().toPath();
             KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
 
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024));
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);

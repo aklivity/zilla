@@ -20,10 +20,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -40,7 +40,7 @@ public class Int64ConverterTest
     @Test
     public void shouldVerifyValidInt64()
     {
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
@@ -53,7 +53,7 @@ public class Int64ConverterTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ConverterHandler converter = new Int64ConverterHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = "Not an Int64".getBytes();
         data.wrap(bytes, 0, bytes.length);

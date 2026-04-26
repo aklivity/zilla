@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroValidatorHandler extends AvroModelHandler implements ValidatorHandler
 {
-    private final ExpandableDirectByteBuffer buffer;
+    private final ExpandableDirectByteBufferEx buffer;
 
     public AvroValidatorHandler(
         AvroModelConfiguration config,
@@ -39,7 +39,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         EngineContext context)
     {
         super(config, options, context);
-        this.buffer = new ExpandableDirectByteBuffer();
+        this.buffer = new ExpandableDirectByteBufferEx();
     }
 
     @Override
@@ -47,7 +47,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -95,7 +95,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

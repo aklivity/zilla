@@ -30,10 +30,7 @@ import java.net.UnknownHostException;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
@@ -59,6 +56,9 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -70,7 +70,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private static final InetAddress INET4_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[4]);
     private static final InetAddress INET6_ANY_LOCAL_ADDRESS = getInetAddressByAddress(new byte[16]);
 
-    private static final DirectBuffer HEADER_V2 = new UnsafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBufferEx HEADER_V2 = new UnsafeBufferEx("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -100,7 +100,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private final ProxyTlvFW.Builder tlvRW = new ProxyTlvFW.Builder();
 
     private final ProxyRouter router;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -138,7 +138,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -198,7 +198,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -491,7 +491,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -629,7 +629,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                DirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                DirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 OctetsFW payload = payloadRO.wrap(encodeBuffer, 0, encodeSlotOffset);
 
                 doNetData(traceId, authorization, budgetId, 0x03, payload.sizeof() + padding, payload);
@@ -674,7 +674,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             encodeSlot = encodePool.acquire(initialId);
             assert encodeSlot != NO_SLOT;
 
-            MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+            MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
             if (beginEx != null)
             {
                 encodeSlotOffset = encodeProxy(buffer, beginEx);
@@ -772,14 +772,14 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeHeader(
-            MutableDirectBuffer buffer)
+            MutableDirectBufferEx buffer)
         {
             buffer.putBytes(0, HEADER_V2, 0, HEADER_V2.capacity());
             return HEADER_V2.capacity();
         }
 
         private int encodeLocal(
-            MutableDirectBuffer buffer)
+            MutableDirectBufferEx buffer)
         {
             int progress = encodeHeader(buffer);
 
@@ -791,7 +791,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxy(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             ProxyBeginExFW beginEx)
         {
             ProxyAddressFW address = beginEx.address();
@@ -809,7 +809,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyAddress(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyAddressFW address)
         {
@@ -834,7 +834,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyAddressInet(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyAddressFW address)
         {
@@ -864,7 +864,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyAddressInet4(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyAddressFW address)
         {
@@ -883,7 +883,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyAddressInet6(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyAddressFW address)
         {
@@ -902,7 +902,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyAddressUnix(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyAddressFW address)
         {
@@ -917,11 +917,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvs(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             Array32FW<ProxyInfoFW> infos)
         {
-            DirectBuffer items = infos.items();
+            DirectBufferEx items = infos.items();
             for (int itemOffset = 0; itemOffset < items.capacity(); )
             {
                 ProxyInfoFW info = infoRO.wrap(items, itemOffset, items.capacity());
@@ -988,11 +988,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvAlpn(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyInfoFW info)
         {
-            DirectBuffer alpn = info.alpn().value();
+            DirectBufferEx alpn = info.alpn().value();
             ProxyTlvFW alpnTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                  .type(0x01)
                  .value(alpn, 0, alpn.capacity())
@@ -1002,11 +1002,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvAuthority(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyInfoFW info)
         {
-            DirectBuffer authority = info.authority().value();
+            DirectBufferEx authority = info.authority().value();
             ProxyTlvFW authorityTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                  .type(0x02)
                  .value(authority, 0, authority.capacity())
@@ -1016,7 +1016,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvUniqueId(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyInfoFW info)
         {
@@ -1030,11 +1030,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvSslKey(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer key = secureInfo.key().value();
+            DirectBufferEx key = secureInfo.key().value();
             ProxyTlvFW keyTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x25)
                 .value(key, 0, key.capacity())
@@ -1044,11 +1044,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvSslSignature(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer signature = secureInfo.signature().value();
+            DirectBufferEx signature = secureInfo.signature().value();
             ProxyTlvFW signatureTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x24)
                 .value(signature, 0, signature.capacity())
@@ -1058,11 +1058,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvSslCipher(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer cipher = secureInfo.cipher().value();
+            DirectBufferEx cipher = secureInfo.cipher().value();
             ProxyTlvFW cipherTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x23)
                 .value(cipher, 0, cipher.capacity())
@@ -1072,11 +1072,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvSslCommonName(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer commonName = secureInfo.name().value();
+            DirectBufferEx commonName = secureInfo.name().value();
             ProxyTlvFW commonNameTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x22)
                 .value(commonName, 0, commonName.capacity())
@@ -1086,11 +1086,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvSslVersion(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer version = secureInfo.version().value();
+            DirectBufferEx version = secureInfo.version().value();
             ProxyTlvFW versionTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x21)
                 .value(version, 0, version.capacity())
@@ -1100,11 +1100,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         }
 
         private int encodeProxyTlvNamespace(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int progress,
             ProxyInfoFW info)
         {
-            DirectBuffer namespace = info.namespace().value();
+            DirectBufferEx namespace = info.namespace().value();
             ProxyTlvFW namespaceTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                  .type(0x30)
                  .value(namespace, 0, namespace.capacity())

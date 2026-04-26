@@ -43,12 +43,12 @@ import java.nio.charset.MalformedInputException;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
@@ -210,7 +210,7 @@ public class HttpFunctionsTest
                                     .typeId(0x01)
                                     .header("name", "value")
                                     .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         HttpBeginExFW beginEx = new HttpBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
         beginEx.headers().forEach(onlyHeader ->
@@ -231,7 +231,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .headersItem(h -> h.name("name")
                                .value("value"))
@@ -250,7 +250,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .headersItem(h -> h.name("name")
                                .value("value"))
@@ -268,7 +268,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .headersItem(h -> h.name("name")
                                .value("value"))
@@ -287,7 +287,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
             .headersItem(h -> h.name("name")
                                .value("value"))
@@ -306,7 +306,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .headersItem(h -> h.name("name")
                                .value("value"))
@@ -339,7 +339,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -358,7 +358,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -378,7 +378,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x02)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -398,7 +398,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -429,7 +429,7 @@ public class HttpFunctionsTest
                                     .promiseId(1L)
                                     .promise("name", "value")
                                     .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         HttpFlushExFW flushEx = new HttpFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
         flushEx.promise().forEach(onlyHeader ->
@@ -447,7 +447,7 @@ public class HttpFunctionsTest
                                     .typeId(0x01)
                                     .trailer("name", "value")
                                     .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         HttpEndExFW endEx = new HttpEndExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, endEx.typeId());
         endEx.trailers().forEach(onlyHeader ->
@@ -465,7 +465,7 @@ public class HttpFunctionsTest
             .typeId(0x01)
             .header("name", "value")
             .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         HttpResetExFW resetEx = new HttpResetExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, resetEx.typeId());
         resetEx.headers().forEach(onlyHeader ->
@@ -483,7 +483,7 @@ public class HttpFunctionsTest
                                     .typeId(0x01)
                                     .header("name", "value")
                                     .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         HttpChallengeExFW challengeEx = new HttpChallengeExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, challengeEx.typeId());
         challengeEx.headers().forEach(onlyHeader ->

@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -30,6 +28,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.CanonicalJsonEncoder;
 import org.apache.avro.io.JsonEncoder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -40,7 +40,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
 
     private final Matcher matcher;
 
@@ -55,7 +55,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -94,7 +94,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -137,7 +137,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -162,7 +162,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
             int recordLength = expandable.position();
             if (recordLength > 0)
             {
-                next.accept(expandable.buffer(), 0, recordLength);
+                next.accept((DirectBufferEx) expandable.buffer(), 0, recordLength);
                 valLength = recordLength;
             }
         }
@@ -178,7 +178,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

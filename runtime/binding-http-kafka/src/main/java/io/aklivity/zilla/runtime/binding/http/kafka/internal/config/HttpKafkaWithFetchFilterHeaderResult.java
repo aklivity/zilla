@@ -14,18 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class HttpKafkaWithFetchFilterHeaderResult
 {
-    public final DirectBuffer name;
-    public final DirectBuffer value;
+    public final DirectBufferEx name;
+    public final DirectBufferEx value;
 
     HttpKafkaWithFetchFilterHeaderResult(
-        DirectBuffer name,
-        DirectBuffer value)
+        DirectBufferEx name,
+        DirectBufferEx value)
     {
         this.name = name;
         this.value = value;

@@ -23,9 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctets16FW;
@@ -34,10 +31,14 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Bound
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.BoundedOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfOctetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class VariantOfOctetsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(1000000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -53,7 +54,7 @@ public class VariantOfOctetsFWTest
     private final int kindSize = Byte.BYTES;
 
     private int setOctets8(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         int length = 6;
@@ -317,10 +318,10 @@ public class VariantOfOctetsFWTest
         assertEquals("", variantOfOctets.get().get((b, o, l) -> b.getStringWithoutLengthUtf8(o, l - o)));
     }
 
-    private static DirectBuffer asBuffer(
+    private static DirectBufferEx asBuffer(
         String value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(value.length()));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(value.length()));
         valueBuffer.putStringWithoutLengthUtf8(0, value);
         return valueBuffer;
     }
@@ -330,19 +331,19 @@ public class VariantOfOctetsFWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:
         case 4:
-            buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
             return new BoundedOctets8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         case 1:
-            buffer = new UnsafeBuffer(allocateDirect(Short.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Short.SIZE + value.length()));
             return new BoundedOctets16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         case 2:
         case 3:
-            buffer = new UnsafeBuffer(allocateDirect(Integer.SIZE + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Integer.SIZE + value.length()));
             return new BoundedOctets32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value.getBytes(UTF_8)).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);

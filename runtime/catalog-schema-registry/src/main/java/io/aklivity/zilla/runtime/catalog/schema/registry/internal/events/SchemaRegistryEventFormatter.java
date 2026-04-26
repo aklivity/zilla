@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.events;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
@@ -24,6 +22,7 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Sc
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryUnretrievableSchemaIdExFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryUnretrievableSchemaSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryUnretrievableSchemaSubjectVersionStaleSchemaExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -38,7 +37,7 @@ public final class SchemaRegistryEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

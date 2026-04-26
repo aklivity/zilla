@@ -19,7 +19,8 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.nativeOrder;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class WsMaskUtil
 {
@@ -49,7 +50,7 @@ public final class WsMaskUtil
     }
 
     public static int xor(
-        final MutableDirectBuffer buffer,
+        final MutableDirectBufferEx buffer,
         final int offset,
         final int limit,
         final int bits)

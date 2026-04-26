@@ -14,12 +14,10 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.kafka.internal;
 
-
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
 
@@ -36,7 +34,7 @@ public final class GrpcKafkaFunctions
         private final GrpcKafkaMessageFieldFW.Builder messageFieldRW = new GrpcKafkaMessageFieldFW.Builder();
         private final GrpcKafkaMessageFieldPartitionV1FW.Builder partitionV1RW =
             new GrpcKafkaMessageFieldPartitionV1FW.Builder();
-        private final MutableDirectBuffer progressBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final MutableDirectBufferEx progressBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
         private int progressOffset;
 
         private MessageIdBuilder()
@@ -57,7 +55,7 @@ public final class GrpcKafkaFunctions
             int partitionId,
             long partitionOffset)
         {
-            MutableDirectBuffer buffer = messageFieldRW.buffer();
+            MutableDirectBufferEx buffer = messageFieldRW.buffer();
             progressOffset = partitionV1RW.wrap(buffer, progressOffset, buffer.capacity())
                 .partitionId(partitionId)
                 .partitionOffset(partitionOffset)

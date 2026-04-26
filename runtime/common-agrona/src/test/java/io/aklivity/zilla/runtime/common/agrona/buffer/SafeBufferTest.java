@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.concurent;
+package io.aklivity.zilla.runtime.common.agrona.buffer;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED;
 import static java.nio.ByteOrder.BIG_ENDIAN;
@@ -118,7 +118,7 @@ public class SafeBufferTest
     @Test
     public void shouldWrapUnsafeBufferBackedByArray()
     {
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(new byte[64]);
+        final SafeBuffer unsafeBuffer = new SafeBuffer(new byte[64]);
         unsafeBuffer.putInt(4, 123);
 
         final SafeBuffer buffer = new SafeBuffer(unsafeBuffer);
@@ -129,7 +129,7 @@ public class SafeBufferTest
     @Test
     public void shouldWrapUnsafeBufferBackedByDirectByteBuffer()
     {
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocateDirect(64));
+        final SafeBuffer unsafeBuffer = new SafeBuffer(ByteBuffer.allocateDirect(64));
         unsafeBuffer.putInt(4, 456);
 
         final SafeBuffer buffer = new SafeBuffer(unsafeBuffer);
@@ -412,9 +412,9 @@ public class SafeBufferTest
     }
 
     @Test
-    public void shouldPutBytesFromUnsafeBuffer()
+    public void shouldPutBytesFromSafeBuffer()
     {
-        final UnsafeBuffer src = new UnsafeBuffer(new byte[64]);
+        final SafeBuffer src = new SafeBuffer(new byte[64]);
         src.putInt(0, 0xCAFEBABE);
 
         final SafeBuffer dst = new SafeBuffer(new byte[64]);
@@ -996,10 +996,10 @@ public class SafeBufferTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void shouldBeByteCompatibleWithUnsafeBuffer()
+    public void shouldBeByteCompatibleWithSafeBuffer()
     {
         final byte[] backing = new byte[64];
-        final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(backing);
+        final SafeBuffer unsafeBuffer = new SafeBuffer(backing);
         final SafeBuffer safeBuffer = new SafeBuffer(backing);
 
         unsafeBuffer.putInt(0, 0xDEADC0DE);
@@ -1016,11 +1016,85 @@ public class SafeBufferTest
         safe.putInt(0, 111);
         safe.putInt(4, 222);
 
-        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        final SafeBuffer unsafe = new SafeBuffer(new byte[64]);
         safe.getBytes(0, unsafe, 0, 8);
 
         assertEquals(111, unsafe.getInt(0));
         assertEquals(222, unsafe.getInt(4));
+    }
+
+    // -----------------------------------------------------------------------
+    // Copy from SafeBuffer to UnsafeBuffer (UnsafeBuffer controls the copy)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void shouldCopyHeapSafeBufferToUnsafeBuffer()
+    {
+        final SafeBuffer safe = new SafeBuffer(new byte[64]);
+        safe.putInt(0, 0xDEADBEEF);
+        safe.putLong(8, 0x1234567890ABCDEFL);
+
+        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        unsafe.putBytes(0, safe, 0, 16);
+
+        assertEquals(0xDEADBEEF, unsafe.getInt(0));
+        assertEquals(0x1234567890ABCDEFL, unsafe.getLong(8));
+    }
+
+    @Test
+    public void shouldCopyHeapSafeBufferToUnsafeBufferAtOffset()
+    {
+        final SafeBuffer safe = new SafeBuffer(new byte[64]);
+        safe.putInt(4, 42);
+        safe.putInt(8, 99);
+
+        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        unsafe.putBytes(16, safe, 4, 8);
+
+        assertEquals(42, unsafe.getInt(16));
+        assertEquals(99, unsafe.getInt(20));
+    }
+
+    @Test
+    public void shouldCopyDirectSafeBufferToUnsafeBuffer()
+    {
+        final SafeBuffer safe = new SafeBuffer(ByteBuffer.allocateDirect(64));
+        safe.putInt(0, 0xCAFEBABE);
+        safe.putLong(8, 0xFEEDFACEFEEDFACEL);
+
+        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        unsafe.putBytes(0, safe, 0, 16);
+
+        assertEquals(0xCAFEBABE, unsafe.getInt(0));
+        assertEquals(0xFEEDFACEFEEDFACEL, unsafe.getLong(8));
+    }
+
+    @Test
+    public void shouldCopyUnsafeBufferToHeapSafeBuffer()
+    {
+        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        unsafe.putInt(0, 0xDEADC0DE);
+        unsafe.putLong(8, 0xABCDABCDABCDABCDL);
+
+        final SafeBuffer safe = new SafeBuffer(new byte[64]);
+        safe.putBytes(0, unsafe, 0, 16);
+
+        assertEquals(0xDEADC0DE, safe.getInt(0));
+        assertEquals(0xABCDABCDABCDABCDL, safe.getLong(8));
+    }
+
+    @Test
+    public void shouldCopyUnsafeBufferToDirectSafeBuffer()
+    {
+        final UnsafeBuffer unsafe = new UnsafeBuffer(new byte[64]);
+        unsafe.putInt(0, 12345);
+        unsafe.putInt(4, 67890);
+
+        final SafeBuffer safe = new SafeBuffer(ByteBuffer.allocateDirect(64));
+        safe.putBytes(8, unsafe, 0, 8);
+
+        assertEquals(12345, safe.getInt(8));
+        assertEquals(67890, safe.getInt(12));
     }
 
     // -----------------------------------------------------------------------

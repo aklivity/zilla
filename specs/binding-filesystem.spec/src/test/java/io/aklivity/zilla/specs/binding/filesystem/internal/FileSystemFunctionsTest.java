@@ -27,12 +27,12 @@ import java.nio.ByteBuffer;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemError;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemErrorFW;
@@ -65,7 +65,7 @@ public class FileSystemFunctionsTest
             .timeout(60)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         FileSystemBeginExFW beginEx = new FileSystemBeginExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, beginEx.typeId());
@@ -91,7 +91,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .directory("var/www")
@@ -114,7 +114,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -140,7 +140,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -167,7 +167,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -195,7 +195,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_METADATA.ordinal())
             .path("index.html")
@@ -223,7 +223,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -252,7 +252,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .directory("var/www/tmp")
@@ -279,7 +279,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -306,7 +306,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -333,7 +333,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -361,7 +361,7 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .capabilities(1 << READ_FILE.ordinal())
             .path("index.html")
@@ -400,7 +400,7 @@ public class FileSystemFunctionsTest
             .error("FILE_MODIFIED")
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         FileSystemResetExFW resetEx = new FileSystemResetExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0x01, resetEx.typeId());
@@ -417,9 +417,9 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBufferEx(new byte[1]), 0, 1)
                 .set(FileSystemError.FILE_MODIFIED).build())
             .build();
 
@@ -436,9 +436,9 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBufferEx(new byte[1]), 0, 1)
                 .set(FileSystemError.FILE_NOT_FOUND).build())
             .build();
 
@@ -455,9 +455,9 @@ public class FileSystemFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new FileSystemResetExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new FileSystemResetExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
-            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
+            .error(new FileSystemErrorFW.Builder().wrap(new UnsafeBufferEx(new byte[1]), 0, 1)
                 .set(FileSystemError.FILE_NOT_FOUND).build())
             .build();
 

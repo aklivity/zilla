@@ -93,12 +93,9 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpBinding;
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpConfiguration;
@@ -171,6 +168,9 @@ import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -183,7 +183,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class AmqpServerFactory implements AmqpStreamFactory
 {
     private static final StringFW[] EMPTY_STRINGFW_ARRAY = new StringFW[0];
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private static final StringFW[] DEFAULT_INCOMING_LOCALES = asStringFWArray(AMQP_INCOMING_LOCALES_DEFAULT);
 
@@ -294,77 +294,77 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         new Array8FW.Builder<>(new AmqpIETFLanguageTagFW.Builder(), new AmqpIETFLanguageTagFW());
 
     private final AmqpPerformativeTypeFW openType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(OPEN)
         .build();
 
     private final AmqpPerformativeTypeFW beginType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(BEGIN)
         .build();
 
     private final AmqpPerformativeTypeFW attachType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(ATTACH)
         .build();
 
     private final AmqpPerformativeTypeFW flowType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(FLOW)
         .build();
 
     private final AmqpPerformativeTypeFW transferType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(TRANSFER)
         .build();
 
     private final AmqpPerformativeTypeFW detachType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(DETACH)
         .build();
 
     private final AmqpPerformativeTypeFW endType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(END)
         .build();
 
     private final AmqpPerformativeTypeFW closeType = new AmqpPerformativeTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(CLOSE)
         .build();
 
     private final AmqpDescribedTypeFW applicationPropertiesSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(APPLICATION_PROPERTIES)
         .build();
 
     private final AmqpDescribedTypeFW messagePropertiesSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(PROPERTIES)
         .build();
 
     private final AmqpDescribedTypeFW messageAnnotationsSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(MESSAGE_ANNOTATIONS)
         .build();
 
     private final AmqpDescribedTypeFW dataSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(DATA)
         .build();
 
     private final AmqpDescribedTypeFW sequenceSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(SEQUENCE)
         .build();
 
     private final AmqpDescribedTypeFW valueSectionType = new AmqpDescribedTypeFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[3]), 0, 3)
+        .wrap(new UnsafeBufferEx(new byte[3]), 0, 3)
         .set(VALUE)
         .build();
 
     private final AmqpProtocolHeaderFW plainProtocolHeader = new AmqpProtocolHeaderFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+        .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
         .name(n -> n.set("AMQP".getBytes(StandardCharsets.US_ASCII)))
         .id(PLAIN_PROTOCOL_ID)
         .major(1)
@@ -373,7 +373,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         .build();
 
     private final AmqpProtocolHeaderFW saslProtocolHeader = new AmqpProtocolHeaderFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+        .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
         .name(n -> n.set("AMQP".getBytes(StandardCharsets.US_ASCII)))
         .id(SASL_PROTOCOL_ID)
         .major(1)
@@ -382,10 +382,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         .build();
 
     private final OctetsFW nullConstructor = new OctetsFW()
-        .wrap(new UnsafeBuffer(new byte[] {0x40}), 0, 1);
+        .wrap(new UnsafeBufferEx(new byte[] {0x40}), 0, 1);
 
     private final OctetsFW emptyFrameHeader = new OctetsFW()
-        .wrap(new UnsafeBuffer(new byte[] {0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00}), 0, 8);
+        .wrap(new UnsafeBufferEx(new byte[] {0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00}), 0, 8);
 
     private final StringFW timeoutDescription = new String8FW("idle-timeout expired");
     private final StringFW timeoutTooSmallDescription = new String8FW("idle-timeout is too small");
@@ -442,11 +442,11 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         this.decodersBySaslType = decodersBySaslType;
     }
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer frameBuffer;
-    private final MutableDirectBuffer extraBuffer;
-    private final MutableDirectBuffer valueBuffer;
-    private final MutableDirectBuffer stringBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx frameBuffer;
+    private final MutableDirectBufferEx extraBuffer;
+    private final MutableDirectBufferEx valueBuffer;
+    private final MutableDirectBufferEx stringBuffer;
 
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -476,10 +476,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extraBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.stringBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.valueBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.frameBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extraBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.stringBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.valueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();
@@ -520,7 +520,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -802,7 +802,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -812,7 +812,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     {
         int decode(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -822,7 +822,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     {
         int encode(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -832,7 +832,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -880,7 +880,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -924,7 +924,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -976,7 +976,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1015,7 +1015,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1047,7 +1047,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1085,7 +1085,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1120,7 +1120,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1149,7 +1149,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1178,7 +1178,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1270,7 +1270,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1300,7 +1300,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1330,7 +1330,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1368,7 +1368,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1400,7 +1400,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1412,7 +1412,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1439,7 +1439,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1848,7 +1848,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long authorization,
             int channel,
             AmqpTransferFW transfer,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1881,7 +1881,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             int channel,
             long handle,
             boolean more,
-            DirectBuffer fragmentBuffer,
+            DirectBufferEx fragmentBuffer,
             int fragmentProgress,
             int fragmentLimit)
         {
@@ -2063,7 +2063,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             int maxLimit)
@@ -2075,7 +2075,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             int maxLimit)
@@ -2118,7 +2118,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -2135,7 +2135,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2225,14 +2225,14 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 final long budgetId = data.budgetId();
                 final OctetsFW payload = data.payload();
 
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -2344,7 +2344,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
                 final int limit = Math.min(encodeSlotOffset, encodeSlotMaxLimit);
                 final int maxLimit = encodeSlotOffset;
 
@@ -2490,14 +2490,14 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long budgetId,
             Flyweight payload)
         {
-            DirectBuffer buffer = payload.buffer();
+            DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
             int limit = payload.limit();
             int maxLimit = limit;
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -2589,7 +2589,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 final long authorization = 0L; // TODO
                 final long budgetId = 0L; // TODO
 
-                final DirectBuffer buffer = bufferPool.buffer(decodeSlot);
+                final DirectBufferEx buffer = bufferPool.buffer(decodeSlot);
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
                 final int reserved = decodeSlotReserved;
@@ -2603,7 +2603,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2628,7 +2628,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int)((long) reserved * (limit - progress) / (limit - offset));
                     slotBuffer.putBytes(0, buffer, progress, decodeSlotOffset);
@@ -2794,7 +2794,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long authorization,
             AmqpTransferFW transfer,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3222,7 +3222,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 long authorization,
                 AmqpTransferFW transfer,
                 int reserved,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int limit)
             {
@@ -3413,7 +3413,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     boolean aborted,
                     boolean batchable,
                     boolean more,
-                    DirectBuffer buffer,
+                    DirectBufferEx buffer,
                     int offset,
                     int limit)
                 {
@@ -3640,7 +3640,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                 private void onApplication(
                     int msgTypeId,
-                    DirectBuffer buffer,
+                    DirectBufferEx buffer,
                     int index,
                     int length)
                 {
@@ -3904,7 +3904,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         transferBuilder.more(1);
                     }
 
-                    final DirectBuffer fragmentBuffer = messageFragment.buffer();
+                    final DirectBufferEx fragmentBuffer = messageFragment.buffer();
                     final int fragmentOffset = messageFragment.offset();
                     final int fragmentLimit = messageFragment.limit();
                     int fragmentSize = fragmentLimit - fragmentOffset;
@@ -3975,7 +3975,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         transferBuilder.aborted(1);
                     }
 
-                    final DirectBuffer fragmentBuffer = messageFragment.buffer();
+                    final DirectBufferEx fragmentBuffer = messageFragment.buffer();
                     final int fragmentOffset = messageFragment.offset();
                     final int fragmentLimit = messageFragment.limit();
                     final int fragmentSize = fragmentLimit - fragmentOffset;
@@ -4245,7 +4245,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             OctetsFW payload)
         {
             AmqpSectionEncoder previous = null;
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             int progress = payload.offset();
             final int limit = payload.limit();
 
@@ -4463,7 +4463,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             AmqpApplicationPropertyFW item)
         {
             final OctetsFW bytes = item.value().bytes();
-            DirectBuffer buffer = bytes.buffer();
+            DirectBufferEx buffer = bytes.buffer();
             int offset = bytes.offset();
             int limit = bytes.limit();
 
@@ -4475,7 +4475,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionData(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4510,7 +4510,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionDataBytes(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4529,7 +4529,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionSequence(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4562,7 +4562,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionSequenceBytes(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4581,7 +4581,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValue(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4640,7 +4640,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueString8(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4662,7 +4662,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueString32(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4684,7 +4684,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueBinary8(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4706,7 +4706,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueBinary32(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4728,7 +4728,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueSymbol8(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4750,7 +4750,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueSymbol32(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4772,7 +4772,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int encodeSectionValueBytes(
             int deferred,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4790,7 +4790,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private OctetsFW decodeFragmentInit(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             AmqpDataExFW.Builder amqpDataEx)
@@ -4817,7 +4817,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private OctetsFW decodeFragment(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4852,7 +4852,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private OctetsFW decodeMessageFragment(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4872,7 +4872,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int decodeSection(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4888,7 +4888,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int decodeSectionData(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4932,7 +4932,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int decodeSectionSequence(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4978,7 +4978,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int decodeSectionValue(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5082,7 +5082,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int decodeSectionBytes(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5104,7 +5104,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         }
 
         private void decodeHeaders(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             AmqpServer.AmqpSession.AmqpServerStream stream)
@@ -5127,7 +5127,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         }
 
         private void skipDeliveryAnnotations(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5143,7 +5143,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         }
 
         private Array32FW<AmqpAnnotationFW> decodeAnnotations(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5184,7 +5184,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         }
 
         private AmqpPropertiesFW decodeProperties(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5255,7 +5255,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         }
 
         private Array32FW<AmqpApplicationPropertyFW> decodeApplicationProperties(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5282,7 +5282,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         private int skipFooter(
             AmqpServer.AmqpSession.AmqpServerStream stream,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {

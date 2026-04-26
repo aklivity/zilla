@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.concurrent;
 
 import java.util.function.IntConsumer;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Schedules time-based and task-based signals on the owning I/O thread.
@@ -84,7 +84,7 @@ public interface Signaler
      * @param length     the length of the data
      */
     void signalNow(long originId, long routedId, long streamId, long traceId, int signalId, int contextId,
-                   DirectBuffer buffer, int offset, int length);
+                   DirectBufferEx buffer, int offset, int length);
 
     /**
      * Schedules a signal to be delivered to the target stream at the given wall-clock time.

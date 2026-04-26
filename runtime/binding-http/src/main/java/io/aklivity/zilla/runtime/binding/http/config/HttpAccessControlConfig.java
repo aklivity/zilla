@@ -32,10 +32,9 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class HttpAccessControlConfig
 {
@@ -52,14 +51,14 @@ public final class HttpAccessControlConfig
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
                 .name("access-control-allow-origin")
                 .value("*")
                 .build();
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS_TRUE =
             new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
                 .name("access-control-allow-credentials")
                 .value("true")
                 .build();
@@ -121,7 +120,7 @@ public final class HttpAccessControlConfig
         {
             allowOrigin = origin != null && allowOriginExplicit()
                 ? HEADER_BUILDER.get()
-                        .wrap(new UnsafeBuffer(new byte[256]), 0, 256)
+                        .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
                         .name(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN)
                         .value(origin)
                         .build()
@@ -140,7 +139,7 @@ public final class HttpAccessControlConfig
     {
         return maxAge != null
                 ? HEADER_BUILDER.get()
-                        .wrap(new UnsafeBuffer(new byte[256]), 0, 256)
+                        .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
                         .name(HEADER_ACCESS_CONTROL_MAX_AGE)
                         .value(Long.toString(maxAge.toSeconds()))
                         .build()

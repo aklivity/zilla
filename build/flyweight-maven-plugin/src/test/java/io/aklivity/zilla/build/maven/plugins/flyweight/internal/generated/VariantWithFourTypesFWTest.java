@@ -23,8 +23,6 @@ import static org.junit.Assert.assertNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.List8FW;
@@ -36,10 +34,13 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfListFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfMapFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantWithFourTypesFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class VariantWithFourTypesFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -62,7 +63,7 @@ public class VariantWithFourTypesFWTest
     @Test
     public void shouldSetAsVariantOfList()
     {
-        MutableDirectBuffer variantOfListBuffer = new UnsafeBuffer(allocateDirect(20));
+        MutableDirectBufferEx variantOfListBuffer = new UnsafeBufferEx(allocateDirect(20));
         VariantEnumKindOfStringFW.Builder field1RW = new VariantEnumKindOfStringFW.Builder();
         ListFW.Builder<List8FW> listRW = new List8FW.Builder()
             .wrap(variantOfListBuffer, 0, variantOfListBuffer.capacity())
@@ -85,7 +86,7 @@ public class VariantWithFourTypesFWTest
     @Test
     public void shouldSetAsVariantOfMap()
     {
-        MutableDirectBuffer variantOfMapBuffer = new UnsafeBuffer(allocateDirect(30));
+        MutableDirectBufferEx variantOfMapBuffer = new UnsafeBufferEx(allocateDirect(30));
 
         VariantOfMapFW<VariantWithFourTypesFW, VariantWithFourTypesFW> variantOfMap =
             new VariantOfMapFW.Builder<>(new VariantWithFourTypesFW(), new VariantWithFourTypesFW(),
@@ -133,7 +134,7 @@ public class VariantWithFourTypesFWTest
     private static VariantEnumKindOfStringFW asVariantEnumKindOfStringFW(
         StringFW value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.sizeof()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES + value.sizeof()));
         return new VariantEnumKindOfStringFW.Builder().wrap(buffer, 0, buffer.capacity())
             .set(value).build();
     }
@@ -141,7 +142,7 @@ public class VariantWithFourTypesFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

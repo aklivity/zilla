@@ -19,10 +19,6 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
@@ -36,6 +32,9 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class GrpcKafkaWithProduceResult
 {
@@ -47,7 +46,7 @@ public class GrpcKafkaWithProduceResult
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+            .wrap(new UnsafeBufferEx(new byte[32]), 0, 32)
             .partitionId(-1)
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
@@ -57,12 +56,12 @@ public class GrpcKafkaWithProduceResult
     private final String16FW topic;
     private final String16FW replyTo;
     private final KafkaAckMode acks;
-    private final Supplier<DirectBuffer> keyRef;
+    private final Supplier<DirectBufferEx> keyRef;
     private final GrpcKafkaWithProduceHash hash;
     private final String16FW service;
     private final String16FW method;
     private final Array32FW<GrpcMetadataFW> metadata;
-    private final ExpandableDirectByteBuffer nameBuffer;
+    private final ExpandableDirectByteBufferEx nameBuffer;
 
     GrpcKafkaWithProduceResult(
         String16FW service,
@@ -70,7 +69,7 @@ public class GrpcKafkaWithProduceResult
         Array32FW<GrpcMetadataFW> metadata,
         String16FW topic,
         KafkaAckMode acks,
-        Supplier<DirectBuffer> keyRef,
+        Supplier<DirectBufferEx> keyRef,
         List<GrpcKafkaWithProduceOverrideResult> overrides,
         String16FW replyTo,
         GrpcKafkaCorrelationConfig correlation,
@@ -86,7 +85,7 @@ public class GrpcKafkaWithProduceResult
         this.acks = acks;
         this.keyRef = keyRef;
         this.hash = hash;
-        this.nameBuffer = new ExpandableDirectByteBuffer();
+        this.nameBuffer = new ExpandableDirectByteBufferEx();
         this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
 
         if (hasReplyTo())
@@ -131,7 +130,7 @@ public class GrpcKafkaWithProduceResult
     public void key(
         KafkaKeyFW.Builder builder)
     {
-        final DirectBuffer key = keyRef.get();
+        final DirectBufferEx key = keyRef.get();
         if (key != null)
         {
             builder
@@ -172,7 +171,7 @@ public class GrpcKafkaWithProduceResult
         GrpcMetadataFW metadata)
     {
         GrpcType type = metadata.type().get();
-        DirectBuffer name = metadata.name().value();
+        DirectBufferEx name = metadata.name().value();
         int nameLen = META_PREFIX_LENGTH + metadata.nameLen();
         nameBuffer.putBytes(META_PREFIX_LENGTH, name, 0, name.capacity());
         if (type == BASE64)
@@ -191,7 +190,7 @@ public class GrpcKafkaWithProduceResult
         KafkaHeaderFW.Builder builder)
     {
         final String16FW name = correlation.service;
-        final DirectBuffer value = service.value();
+        final DirectBufferEx value = service.value();
 
         builder
             .nameLen(name.length())
@@ -204,7 +203,7 @@ public class GrpcKafkaWithProduceResult
         KafkaHeaderFW.Builder builder)
     {
         final String16FW name = correlation.method;
-        DirectBuffer value = method.value();
+        DirectBufferEx value = method.value();
 
         builder
             .nameLen(name.length())

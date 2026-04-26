@@ -19,8 +19,9 @@ import static com.squareup.javapoet.MethodSpec.constructorBuilder;
 import static com.squareup.javapoet.MethodSpec.methodBuilder;
 import static com.squareup.javapoet.TypeSpec.classBuilder;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.DIRECT_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MEMORY_SEGMENT_TYPE;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.MUTABLE_DIRECT_BUFFER_TYPE;
-import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_TYPE;
+import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generate.TypeNames.UNSAFE_BUFFER_EX_TYPE;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -60,12 +61,14 @@ public final class FlyweightGenerator extends ClassSpecGenerator
     {
         return classBuilder
             .addField(bufferField())
+            .addField(segmentField())
             .addField(emptyBytesField())
             .addField(offsetField())
             .addField(maxLimitField())
             .addField(compareBufferField())
             .addMethod(offsetMethod())
             .addMethod(bufferMethod())
+            .addMethod(segmentMethod())
             .addMethod(limitMethod())
             .addMethod(sizeofMethod())
             .addMethod(maxLimitMethod())
@@ -102,6 +105,11 @@ public final class FlyweightGenerator extends ClassSpecGenerator
         return FieldSpec.builder(DIRECT_BUFFER_TYPE, "buffer", PRIVATE).build();
     }
 
+    private FieldSpec segmentField()
+    {
+        return FieldSpec.builder(MEMORY_SEGMENT_TYPE, "segment", PRIVATE).build();
+    }
+
     private FieldSpec offsetField()
     {
         return FieldSpec.builder(int.class, "offset", PRIVATE).build();
@@ -114,8 +122,8 @@ public final class FlyweightGenerator extends ClassSpecGenerator
 
     private FieldSpec compareBufferField()
     {
-        return FieldSpec.builder(UNSAFE_BUFFER_TYPE, "compareBuffer", PRIVATE)
-                .initializer("new UnsafeBuffer(EMPTY_BYTES)")
+        return FieldSpec.builder(UNSAFE_BUFFER_EX_TYPE, "compareBuffer", PRIVATE)
+                .initializer("new UnsafeBufferEx(EMPTY_BYTES)")
                 .build();
     }
 
@@ -153,6 +161,15 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                   .build();
     }
 
+    private MethodSpec segmentMethod()
+    {
+        return methodBuilder("segment")
+                  .addModifiers(PUBLIC, FINAL)
+                  .returns(MEMORY_SEGMENT_TYPE)
+                  .addStatement("return segment")
+                  .build();
+    }
+
     private MethodSpec limitMethod()
     {
         return methodBuilder("limit")
@@ -182,6 +199,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                   .addStatement("return null")
                   .endControlFlow()
                   .addStatement("this.buffer = buffer")
+                  .addStatement("this.segment = buffer.segment()")
                   .addStatement("this.offset = offset")
                   .addStatement("this.maxLimit = maxLimit")
                   .addStatement("return this")
@@ -202,6 +220,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                   .addStatement("throw new IndexOutOfBoundsException(msg)")
                   .endControlFlow()
                   .addStatement("this.buffer = buffer")
+                  .addStatement("this.segment = buffer.segment()")
                   .addStatement("this.offset = offset")
                   .addStatement("this.maxLimit = maxLimit")
                   .addStatement("return this")
@@ -298,6 +317,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
             return classBuilder
                 .addField(flyweightField())
                 .addField(bufferField())
+                .addField(segmentField())
                 .addField(offsetField())
                 .addField(limitField())
                 .addField(maxLimitField())
@@ -344,6 +364,11 @@ public final class FlyweightGenerator extends ClassSpecGenerator
         private FieldSpec bufferField()
         {
             return FieldSpec.builder(MUTABLE_DIRECT_BUFFER_TYPE, "buffer", PRIVATE).build();
+        }
+
+        private FieldSpec segmentField()
+        {
+            return FieldSpec.builder(MEMORY_SEGMENT_TYPE, "segment", PRIVATE).build();
         }
 
         private FieldSpec offsetField()
@@ -475,6 +500,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                       .addParameter(int.class, "offset")
                       .addParameter(int.class, "maxLimit")
                       .addStatement("this.buffer = buffer")
+                      .addStatement("this.segment = buffer.segment()")
                       .addStatement("this.offset = offset")
                       .addStatement("this.limit = offset")
                       .addStatement("this.maxLimit = maxLimit")
@@ -494,6 +520,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                 .returns(thisName)
                 .addParameter(arrayBuilderType, "array")
                 .addStatement("this.buffer = array.buffer()")
+                .addStatement("this.segment = array.buffer().segment()")
                 .addStatement("this.offset = array.limit()")
                 .addStatement("this.limit = array.limit()")
                 .addStatement("this.maxLimit = array.maxLimit()")

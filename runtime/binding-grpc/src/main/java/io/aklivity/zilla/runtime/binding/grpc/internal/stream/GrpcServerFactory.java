@@ -27,11 +27,8 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
@@ -62,6 +59,9 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpResetExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -83,7 +83,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
     private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_NAME_GRPC_ENCODING = new String8FW("grpc-encoding");
     private static final String8FW HEADER_NAME_GRPC_STATUS = new String8FW("grpc-status");
@@ -137,9 +137,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcMessageFW.Builder grpcMessageRW = new GrpcMessageFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer metadataBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx metadataBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
@@ -150,7 +150,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
     private final int grpcTypeId;
     private final int httpTypeId;
-
 
     enum ContentType
     {
@@ -249,8 +248,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -293,7 +292,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer network)
@@ -456,7 +455,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -542,7 +541,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert initialAck <= initialSeq;
             assert initialSeq <= initialAck + initialMax;
 
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
             final int size = payload.sizeof();
@@ -746,7 +745,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -863,7 +862,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             if (!GrpcState.replyClosed(state))
             {
-                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final MutableDirectBufferEx encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int encodeLimit = encodeBuffer.capacity();
                 int encodeProgress = encodeOffset + GRPC_MESSAGE_PADDING;
@@ -980,7 +979,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             Flyweight extension)
@@ -1038,7 +1037,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1168,7 +1167,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
             final int payloadSize = payload.sizeof();
@@ -1236,7 +1235,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             delegate.doNetAbort(traceId, authorization, status, message);
         }
 
-
         private void doAppReset(
             long traceId,
             long authorization)
@@ -1299,7 +1297,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {
@@ -1320,7 +1318,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Flyweight extension)
@@ -1602,10 +1600,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     }
 
     private int doEncodeHeader(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
-        DirectBuffer name,
-        DirectBuffer value,
+        DirectBufferEx name,
+        DirectBufferEx value,
         boolean valueInitCaps)
     {
         int progress = offset;
@@ -1631,8 +1629,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     }
 
     private int doEncodeInitialCaps(
-        MutableDirectBuffer buffer,
-        DirectBuffer name,
+        MutableDirectBufferEx buffer,
+        DirectBufferEx name,
         int offset)
     {
         int progress = offset;

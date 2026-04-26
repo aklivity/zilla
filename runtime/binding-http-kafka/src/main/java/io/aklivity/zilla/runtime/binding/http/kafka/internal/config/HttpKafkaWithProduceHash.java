@@ -19,10 +19,10 @@ import static org.agrona.BitUtil.toHex;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class HttpKafkaWithProduceHash
 {
@@ -42,7 +42,7 @@ public class HttpKafkaWithProduceHash
     }
 
     public void updateHash(
-        DirectBuffer value)
+        DirectBufferEx value)
     {
         final int chunkSize = hashBytesRW.length;
         int offset = 0;

@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -44,7 +44,7 @@ public class Int64ValidatorTest
             .format(BINARY)
             .build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
@@ -58,7 +58,7 @@ public class Int64ValidatorTest
             .format(BINARY)
             .build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {-1, -1, -1, -1, -1, -1, -1, -32};
         data.wrap(bytes, 0, bytes.length);
@@ -70,7 +70,7 @@ public class Int64ValidatorTest
     {
         Int64ModelConfig config = Int64ModelConfig.builder().build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
         String payload = "+8449999l";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -86,7 +86,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "8449999";
         byte[] bytes = payload.getBytes();
@@ -104,7 +104,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "999";
         byte[] bytes = payload.getBytes();
@@ -122,7 +122,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "999";
         byte[] bytes = payload.getBytes();
@@ -137,7 +137,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-.1a1";
         byte[] bytes = payload.getBytes();
@@ -150,7 +150,7 @@ public class Int64ValidatorTest
     {
         Int64ModelConfig config = Int64ModelConfig.builder().build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-125";
         byte[] bytes = payload.getBytes();
@@ -163,7 +163,7 @@ public class Int64ValidatorTest
     {
         Int64ModelConfig config = Int64ModelConfig.builder().build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-458";
         byte[] bytes = payload.getBytes();
@@ -185,7 +185,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-4a4";
         byte[] bytes = payload.getBytes();
@@ -204,7 +204,7 @@ public class Int64ValidatorTest
             .format(BINARY)
             .build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
 
@@ -227,7 +227,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = "Test value".getBytes();
         data.wrap(bytes, 0, bytes.length);
@@ -243,7 +243,7 @@ public class Int64ValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);

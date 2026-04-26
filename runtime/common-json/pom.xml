@@ -34,6 +34,11 @@
       <artifactId>agrona</artifactId>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-agrona</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>jakarta.json</groupId>
       <artifactId>jakarta.json-api</artifactId>
     </dependency>

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.binding.function;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Applies a function to a frame from a {@link DirectBuffer} slice and returns a result.
@@ -44,5 +44,5 @@ public interface MessageFunction<R>
      * @param length     the length of the frame
      * @return the function result
      */
-    R apply(int msgTypeId, DirectBuffer buffer, int index, int length);
+    R apply(int msgTypeId, DirectBufferEx buffer, int index, int length);
 }

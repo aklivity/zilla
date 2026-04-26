@@ -27,23 +27,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.FlatWithArrayFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class FlatWithArrayFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -53,10 +54,10 @@ public class FlatWithArrayFWTest
     private final FlatWithArrayFW.Builder flatRW = new FlatWithArrayFW.Builder();
     private final FlatWithArrayFW flyweightRO = new FlatWithArrayFW();
     private final String8FW.Builder stringRW = new String8FW.Builder();
-    private final MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(100));
+    private final MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(100));
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         int arrayLengthSize = Integer.BYTES;

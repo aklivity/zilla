@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum FloatFormat
 {
@@ -29,7 +29,7 @@ public enum FloatFormat
         public int decode(
             FloatState state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -135,7 +135,7 @@ public enum FloatFormat
         public int decode(
             FloatState state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -178,7 +178,7 @@ public enum FloatFormat
     public abstract int decode(
         FloatState state,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length);
 

@@ -23,14 +23,13 @@ import java.lang.reflect.Method;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
 import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
-
 
 public class GrpcKafkaFunctionsTest
 {
@@ -53,7 +52,7 @@ public class GrpcKafkaFunctionsTest
             .partition(0, 2)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         final GrpcKafkaMessageFieldFW partitionCount =
             new GrpcKafkaMessageFieldFW();
         partitionCount.wrap(buffer, 0, buffer.capacity());

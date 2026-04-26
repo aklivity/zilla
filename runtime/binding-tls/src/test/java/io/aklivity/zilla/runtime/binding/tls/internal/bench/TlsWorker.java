@@ -28,14 +28,14 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.zip.CRC32C;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -73,8 +73,8 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 public class TlsWorker implements EngineContext
 {
     private static final int BUFFER_SIZE = 1024 * 64;
-    private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
-    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new UnsafeBuffer(new byte[1024 * 1024 + 768]));
+    private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
+    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new UnsafeBufferEx(new byte[1024 * 1024 + 768]));
     private final BufferPool bufferPool;
     private final Long2ObjectHashMap<BindingHandler> handlers;
     private final Object2ObjectHashMap<String, Binding> bindings;
@@ -241,7 +241,7 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
-    public MutableDirectBuffer writeBuffer()
+    public MutableDirectBufferEx writeBuffer()
     {
         return writeBuffer;
     }
@@ -510,23 +510,24 @@ public class TlsWorker implements EngineContext
 
     private void handleRead(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        org.agrona.MutableDirectBuffer buffer,
         int index,
         int length)
     {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final DirectBufferEx bufferEx = (DirectBufferEx) buffer;
+        final FrameFW frame = frameRO.wrap(bufferEx, index, index + length);
         final long streamId = frame.streamId();
 
         final MessageConsumer stream = StreamId.isThrottle(msgTypeId)
             ? throtllesById.get(streamId)
             : streamsById.get(streamId);
 
-        stream.accept(msgTypeId, buffer, index, length);
+        stream.accept(msgTypeId, bufferEx, index, length);
     }
 
     private MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -557,7 +558,7 @@ public class TlsWorker implements EngineContext
 
     private void handleWrite(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -600,7 +601,7 @@ public class TlsWorker implements EngineContext
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
@@ -696,7 +697,7 @@ public class TlsWorker implements EngineContext
             long traceId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -735,7 +736,7 @@ public class TlsWorker implements EngineContext
             long cancelId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {

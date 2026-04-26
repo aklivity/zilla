@@ -18,14 +18,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class SseKafkaIdHelperTest
 {
@@ -34,15 +34,14 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDecodeBase64() throws Exception
     {
-        DirectBuffer base64 = new String8FW("AQQABAIC").value();
+        DirectBufferEx base64 = new String8FW("AQQABAIC").value();
         Array32FW<KafkaOffsetFW> expected =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024)
+                .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024)
                 .item(o -> o.partitionId(0).partitionOffset(2))
                 .item(o -> o.partitionId(1).partitionOffset(1))
                 .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))
                 .build();
-
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -53,7 +52,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDefaultBase64WhenNull() throws Exception
     {
-        DirectBuffer base64 = new String8FW(null).value();
+        DirectBufferEx base64 = new String8FW(null).value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -63,7 +62,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDefaultBase64WhenIncomplete() throws Exception
     {
-        DirectBuffer base64 = new String8FW("AQQA").value();
+        DirectBufferEx base64 = new String8FW("AQQA").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -73,7 +72,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidLength() throws Exception
     {
-        DirectBuffer base64 = new String8FW("AQQABAIC===").value();
+        DirectBufferEx base64 = new String8FW("AQQABAIC===").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -83,7 +82,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidChar() throws Exception
     {
-        DirectBuffer base64 = new String8FW("AQQABAI^").value();
+        DirectBufferEx base64 = new String8FW("AQQABAI^").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -93,7 +92,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidPaddingChar() throws Exception
     {
-        DirectBuffer base64 = new String8FW("AQQABAIC==^=").value();
+        DirectBufferEx base64 = new String8FW("AQQABAIC==^=").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 

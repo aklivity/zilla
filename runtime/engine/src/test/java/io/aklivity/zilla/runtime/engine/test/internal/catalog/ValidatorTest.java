@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
 import static org.junit.Assert.assertTrue;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -30,6 +30,6 @@ public class ValidatorTest
     {
         CatalogHandler.Validator validator = CatalogHandler.Validator.IDENTITY;
 
-        assertTrue(validator.accept(0L, 0L, 1, new UnsafeBuffer(), 1, 1, ValueConsumer.NOP));
+        assertTrue(validator.accept(0L, 0L, 1, new UnsafeBufferEx(), 1, 1, ValueConsumer.NOP));
     }
 }

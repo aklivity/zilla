@@ -19,9 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoConfiguration;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoRouter;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.OctetsFW;
@@ -33,6 +30,8 @@ import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -60,7 +59,7 @@ public final class EchoServerFactory implements BindingHandler
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final LongUnaryOperator supplyReplyId;
 
     private final EchoRouter router;
@@ -78,7 +77,7 @@ public final class EchoServerFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -120,7 +119,7 @@ public final class EchoServerFactory implements BindingHandler
 
         private void onMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {

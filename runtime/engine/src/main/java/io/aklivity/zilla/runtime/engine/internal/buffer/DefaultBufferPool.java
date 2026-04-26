@@ -21,13 +21,13 @@ import static org.agrona.BitUtil.isPowerOfTwo;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Hashing;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 /**
@@ -38,11 +38,11 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
  */
 public class DefaultBufferPool implements BufferPool
 {
-    private final MutableDirectBuffer slotBuffer = new UnsafeBuffer(new byte[0]);
+    private final MutableDirectBufferEx slotBuffer = new UnsafeBufferEx(new byte[0]);
 
     private final int slotCapacity;
     private final int slotCount;
-    private final AtomicBuffer poolBuffer;
+    private final AtomicBufferEx poolBuffer;
     private final ByteBuffer slotByteBuffer;
 
     private final int bitsPerSlot;
@@ -50,7 +50,6 @@ public class DefaultBufferPool implements BufferPool
     private final BitSet used;
     private final MutableInteger availableSlots;
     private final int usedIndex;
-
 
     public DefaultBufferPool(
         int poolCapacity,
@@ -84,7 +83,7 @@ public class DefaultBufferPool implements BufferPool
         this.slotCount = slotCount;
         this.bitsPerSlot = numberOfTrailingZeros(slotCapacity);
         this.hashMask = slotCount - 1;
-        this.poolBuffer = new UnsafeBuffer(poolByteBuffer);
+        this.poolBuffer = new UnsafeBufferEx(poolByteBuffer);
         this.slotByteBuffer = poolByteBuffer.duplicate();
 
         this.used = new BitSet(slotCount);
@@ -129,7 +128,7 @@ public class DefaultBufferPool implements BufferPool
     }
 
     @Override
-    public MutableDirectBuffer buffer(
+    public MutableDirectBufferEx buffer(
         int slot)
     {
         assert used.get(slot);
@@ -150,13 +149,12 @@ public class DefaultBufferPool implements BufferPool
     }
 
     @Override
-    public MutableDirectBuffer buffer(
+    public MutableDirectBufferEx buffer(
         int slot,
         int offset)
     {
         assert used.get(slot);
-        final long slotAddressOffset = poolBuffer.addressOffset() + (slot << bitsPerSlot);
-        slotBuffer.wrap(slotAddressOffset + offset, slotCapacity);
+        slotBuffer.wrap(poolBuffer, (slot << bitsPerSlot) + offset, slotCapacity);
         return slotBuffer;
     }
 
@@ -180,7 +178,7 @@ public class DefaultBufferPool implements BufferPool
         return new DefaultBufferPool(this);
     }
 
-    public DirectBuffer poolBuffer()
+    public DirectBufferEx poolBuffer()
     {
         return poolBuffer;
     }

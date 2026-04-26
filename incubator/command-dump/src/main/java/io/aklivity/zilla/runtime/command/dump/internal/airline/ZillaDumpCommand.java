@@ -47,14 +47,11 @@ import java.util.stream.Stream;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -82,6 +79,9 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
@@ -228,8 +228,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
     private final IPv6JumboHeaderFW.Builder ipv6JumboHeaderRW = new IPv6JumboHeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
-    private final MutableDirectBuffer patchBuffer;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx patchBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private int minWorkerIndex;
     private long minTimeStamp;
 
@@ -238,8 +238,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     public ZillaDumpCommand()
     {
-        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
+        this.patchBuffer = new UnsafeBufferEx(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
+        this.writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
         this.initialByWorker = new Long2LongHashMap(0L);
     }
 
@@ -359,7 +359,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                     dumpHandlers[i] = new DumpHandler(i, filter, lookupLabel, lookupBindingInfo, writer, supplyInstant);
                 }
 
-                final MutableDirectBuffer buffer = writeBuffer;
+                final MutableDirectBufferEx buffer = writeBuffer;
                 encodePcapGlobal(buffer);
                 writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
 
@@ -450,7 +450,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     }
 
     private void encodePcapGlobal(
-        MutableDirectBuffer buffer)
+        MutableDirectBufferEx buffer)
     {
         pcapGlobalHeaderRW.wrap(buffer, 0, buffer.capacity())
             .magic_number(PCAP_GLOBAL_MAGIC)
@@ -465,7 +465,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private void writePcapOutput(
         WritableByteChannel writer,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -510,7 +510,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final Function<Long, long[]> lookupBindingInfo;
         private final CRC32C crc;
         private final ExtensionFW extensionRO;
-        private final MutableDirectBuffer labelsBuffer;
+        private final MutableDirectBufferEx labelsBuffer;
         private final Long2LongHashMap sequence;
         private final Int2IntHashMap crcCache;
 
@@ -532,7 +532,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.supplyInstant = supplyInstant;
             this.crc = new CRC32C();
             this.extensionRO = new ExtensionFW();
-            this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
+            this.labelsBuffer = new UnsafeBufferEx(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
             this.sequence = new Long2LongHashMap(0L);
             this.crcCache = new Int2IntHashMap(0);
         }
@@ -554,7 +554,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         private boolean handleFrame(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -741,7 +741,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private void patchExtension(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             ExtensionFW extension,
             int offset)
         {
@@ -803,7 +803,6 @@ public final class ZillaDumpCommand extends ZillaCommand
 
             writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, 0);
         }
-
 
         private void writeFrame(
             int frameTypeId,
@@ -873,7 +872,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private void encodePcapHeader(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             long length,
             long timestamp)
         {
@@ -890,13 +889,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private void encodeEtherHeader(
-            MutableDirectBuffer buffer)
+            MutableDirectBufferEx buffer)
         {
             buffer.putBytes(ETHER_HEADER_OFFSET, ETHERNET_FRAME);
         }
 
         private void encodeIpv6Header(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             boolean jumbo,
             long source,
             long destination,
@@ -936,7 +935,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private void encodeTcpHeader(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int ipv6JumboLength,
             boolean initial,
             long sequence,
@@ -960,7 +959,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private void encodeZillaHeader(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int ipv6JumboLength,
             int frameTypeId,
             int protocolTypeId,
@@ -974,7 +973,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
 
         private int encodeZillaLabels(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             long originId,
             long routedId)
         {

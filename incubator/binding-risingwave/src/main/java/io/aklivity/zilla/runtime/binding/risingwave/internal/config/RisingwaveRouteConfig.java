@@ -20,9 +20,8 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -51,7 +50,7 @@ public final class RisingwaveRouteConfig
     }
 
     boolean matches(
-        DirectBuffer statement,
+        DirectBufferEx statement,
         int offset,
         int length)
     {

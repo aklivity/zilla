@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.spy;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 /**
@@ -109,7 +108,7 @@ public interface RingBufferSpy
      *
      * @return the backing buffer
      */
-    DirectBuffer buffer();
+    DirectBufferEx buffer();
 
     /**
      * Releases the memory-mapped resources held by this spy.

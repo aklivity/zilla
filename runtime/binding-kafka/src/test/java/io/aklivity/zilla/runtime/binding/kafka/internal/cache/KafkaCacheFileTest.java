@@ -23,12 +23,13 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaCacheFileTest
 {
@@ -40,11 +41,11 @@ public class KafkaCacheFileTest
     {
         Path location = tempFolder.newFile().toPath();
         int capacity = 1024;
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(1024));
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(1024));
 
         try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
         {
-            file.appendBytes(new UnsafeBuffer("Hello, world".getBytes(UTF_8)));
+            file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8)));
         }
 
         assertEquals("Hello, world", new String(Files.readAllBytes(location), UTF_8));
@@ -55,11 +56,11 @@ public class KafkaCacheFileTest
     {
         Path location = tempFolder.newFile().toPath();
         int capacity = 1024;
-        MutableDirectBuffer appendBuf = new UnsafeBuffer(ByteBuffer.allocate(1024));
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(1024));
 
         try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
         {
-            file.appendBytes(new UnsafeBuffer("Hello, world".getBytes(UTF_8)));
+            file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8)));
             file.freeze();
 
             assertEquals(0, file.available());
@@ -77,7 +78,7 @@ public class KafkaCacheFileTest
 
         try (KafkaCacheFile file = new KafkaCacheFile(location))
         {
-            DirectBuffer buffer = new UnsafeBuffer("Hello, again".getBytes(UTF_8));
+            DirectBufferEx buffer = new UnsafeBufferEx("Hello, again".getBytes(UTF_8));
             file.writeBytes(0, buffer, 0, buffer.capacity());
         }
 

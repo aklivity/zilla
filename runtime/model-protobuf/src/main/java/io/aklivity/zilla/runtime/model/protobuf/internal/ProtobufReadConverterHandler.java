@@ -23,14 +23,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -42,7 +41,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     private static final int TAG_TYPE_BITS = 3;
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
 
     private final Matcher matcher;
     private final JsonFormat.Printer printer;
@@ -67,7 +66,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -101,7 +100,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -144,7 +143,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -170,7 +169,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -202,7 +201,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                         printer.appendTo(message, output);
                         output.flush();
                         valLength = out.position();
-                        next.accept(out.buffer(), 0, valLength);
+                        next.accept((DirectBufferEx) out.buffer(), 0, valLength);
                     }
                     else
                     {
@@ -224,7 +223,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     private void extractFields(
-        DirectBuffer data,
+        DirectBufferEx data,
         int length,
         Descriptors.Descriptor descriptor)
     {
@@ -244,7 +243,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
     private void extract(
         Descriptors.FieldDescriptor descriptor,
-        DirectBuffer data,
+        DirectBufferEx data,
         int limit,
         ProtobufField field)
     {
@@ -268,7 +267,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             int intValue = decodeVarint32(data, limit);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putIntAscii(0, intValue);
                 field.value.wrap(text, 0, length);
             }
@@ -278,7 +277,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             long longValue = decodeVarint64(data, limit);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putLongAscii(0, longValue);
                 field.value.wrap(text, 0, length);
             }
@@ -287,7 +286,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             float floatValue = Float.intBitsToFloat(decodeLittleEndian32(data));
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putStringWithoutLengthAscii(0, String.valueOf(floatValue));
                 field.value.wrap(text, 0, length);
             }
@@ -296,7 +295,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             double doubleValue = Double.longBitsToDouble(decodeLittleEndian64(data));
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putStringWithoutLengthAscii(0, String.valueOf(doubleValue));
                 field.value.wrap(text, 0, length);
             }
@@ -306,7 +305,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             int fixed32Value = decodeLittleEndian32(data);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putIntAscii(0, fixed32Value);
                 field.value.wrap(text, 0, length);
             }
@@ -316,7 +315,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             long fixed64Value = decodeLittleEndian64(data);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putLongAscii(0, fixed64Value);
                 field.value.wrap(text, 0, length);
             }
@@ -325,7 +324,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             int sintValue = decodeVarint32(data, limit);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putIntAscii(0, (sintValue >>> 1) ^ - (sintValue & 1));
                 field.value.wrap(text, 0, length);
             }
@@ -334,7 +333,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             long sint64Value = decodeVarint64(data, limit);
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 length = text.putLongAscii(0, (sint64Value >>> 1) ^ - (sint64Value & 1));
                 field.value.wrap(text, 0, length);
             }
@@ -345,7 +344,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     public int decodeVarint32(
-        DirectBuffer data,
+        DirectBufferEx data,
         int limit)
     {
         int value;
@@ -398,7 +397,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     long decodeVarint64(
-        DirectBuffer data,
+        DirectBufferEx data,
         int limit)
     {
         long value;
@@ -469,7 +468,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     private long decodeVarint64SlowPath(
-        DirectBuffer data)
+        DirectBufferEx data)
     {
         long result = 0;
         for (int shift = 0; shift < 64; shift += 7)
@@ -485,7 +484,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     private int decodeLittleEndian32(
-        DirectBuffer data)
+        DirectBufferEx data)
     {
         return (data.getByte(progress++) & 0xff) |
             ((data.getByte(progress++) & 0xff) << 8) |
@@ -494,7 +493,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     }
 
     long decodeLittleEndian64(
-        DirectBuffer data)
+        DirectBufferEx data)
     {
         return (data.getByte(progress++) & 0xffL) |
             ((data.getByte(progress++) & 0xffL) << 8) |
