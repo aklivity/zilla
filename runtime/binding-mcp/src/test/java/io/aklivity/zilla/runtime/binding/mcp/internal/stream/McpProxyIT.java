@@ -47,8 +47,6 @@ public class McpProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    // lifecycle ----------------------------------------------------------------
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -77,8 +75,6 @@ public class McpProxyIT
     {
         k3po.finish();
     }
-
-    // tools --------------------------------------------------------------------
 
     @Test
     @Configuration("proxy.yaml")
@@ -143,8 +139,6 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    // prompts ------------------------------------------------------------------
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -196,8 +190,6 @@ public class McpProxyIT
     {
         k3po.finish();
     }
-
-    // resources ----------------------------------------------------------------
 
     @Test
     @Configuration("proxy.yaml")

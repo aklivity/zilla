@@ -18,6 +18,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
@@ -101,17 +102,17 @@ public final class StreamingJsonTokenizer
         {
             return List.of();
         }
-        final List<String[]> compiled = new java.util.ArrayList<>(paths.size());
-        for (String s : paths)
+        final List<String[]> compiled = new ArrayList<>(paths.size());
+        for (String path : paths)
         {
-            if (s.isEmpty())
+            if (path.isEmpty())
             {
                 compiled.add(new String[0]);
             }
             else
             {
                 // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
-                final String[] parts = s.substring(1).split("/", -1);
+                final String[] parts = path.substring(1).split("/", -1);
                 for (int i = 0; i < parts.length; i++)
                 {
                     parts[i] = parts[i].replace("~1", "/").replace("~0", "~");

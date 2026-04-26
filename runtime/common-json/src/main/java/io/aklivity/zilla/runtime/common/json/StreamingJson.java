@@ -65,13 +65,6 @@ public final class StreamingJson
         return new StreamingJsonParser(in, Map.of());
     }
 
-    public static JsonParser createParser(
-        InputStream in,
-        Map<String, ?> config)
-    {
-        return new StreamingJsonParser(in, config);
-    }
-
     /**
      * Mirrors {@link jakarta.json.Json#createParserFactory(Map)}. Construct once per
      * factory class and reuse for the lifetime of the binding to avoid repeating config

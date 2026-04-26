@@ -130,7 +130,7 @@ public final class McpServerFactory implements McpStreamFactory
         "/method",
         "/params/name",
         "/params/uri");
-    private final JsonParserFactory jsonParserFactory;
+    private final JsonParserFactory parserFactory;
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
     private final McpServerDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
@@ -172,7 +172,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.sessions = new Object2ObjectHashMap<>();
-        this.jsonParserFactory = StreamingJson.createParserFactory(Map.of(
+        this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
     }
@@ -321,7 +321,7 @@ public final class McpServerFactory implements McpStreamFactory
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
-        server.decodableJson = jsonParserFactory.createParser(input);
+        server.decodableJson = parserFactory.createParser(input);
         server.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();

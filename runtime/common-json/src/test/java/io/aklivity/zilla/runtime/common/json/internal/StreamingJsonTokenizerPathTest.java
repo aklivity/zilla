@@ -189,7 +189,7 @@ public class StreamingJsonTokenizerPathTest
 
         final Map<String, Object> config = Map.of(
             StreamingJson.PATH_INCLUDES, List.of("/tools/-/name"));
-        final JsonParser parser = StreamingJson.createParser(in, config);
+        final JsonParser parser = StreamingJson.createParserFactory(config).createParser(in);
 
         boolean sawNonReadableValue = false;
         while (parser.hasNext())

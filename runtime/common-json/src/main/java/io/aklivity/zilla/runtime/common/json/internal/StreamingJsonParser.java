@@ -54,22 +54,6 @@ public final class StreamingJsonParser implements JsonParser
         this.location = new StreamingJsonLocation(tokenizer);
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<String> pathList(
-        Map<String, ?> config,
-        String key)
-    {
-        final Object raw = config.get(key);
-        return raw == null ? List.of() : (List<String>) raw;
-    }
-
-    private static int tokenMaxBytes(
-        Map<String, ?> config)
-    {
-        final Object raw = config.get(StreamingJson.TOKEN_MAX_BYTES);
-        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
-    }
-
     @Override
     public boolean hasNext()
     {
@@ -207,5 +191,21 @@ public final class StreamingJsonParser implements JsonParser
     {
         throw new UnsupportedOperationException("skipArray not yet supported; " +
             "use event-by-event consumption instead");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> pathList(
+        Map<String, ?> config,
+        String key)
+    {
+        final Object raw = config.get(key);
+        return raw == null ? List.of() : (List<String>) raw;
+    }
+
+    private static int tokenMaxBytes(
+        Map<String, ?> config)
+    {
+        final Object raw = config.get(StreamingJson.TOKEN_MAX_BYTES);
+        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
     }
 }

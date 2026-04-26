@@ -1351,6 +1351,13 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
+    private static final JsonParserFactory TOOLS_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
+        Map.of(StreamingJson.PATH_INCLUDES, List.of("/tools/-/name")));
+    private static final JsonParserFactory PROMPTS_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
+        Map.of(StreamingJson.PATH_INCLUDES, List.of("/prompts/-/name")));
+    private static final JsonParserFactory RESOURCES_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
+        Map.of(StreamingJson.PATH_INCLUDES, List.of("/resources/-/uri")));
+
     private static final byte[] LIST_REPLY_TOOLS_OPEN = "{\"tools\":[".getBytes(StandardCharsets.UTF_8);
     private static final byte[] LIST_REPLY_PROMPTS_OPEN = "{\"prompts\":[".getBytes(StandardCharsets.UTF_8);
     private static final byte[] LIST_REPLY_RESOURCES_OPEN = "{\"resources\":[".getBytes(StandardCharsets.UTF_8);
@@ -1677,22 +1684,29 @@ public final class McpProxyFactory implements McpStreamFactory
         long traceId,
         ListItemEmitter emitter)
     {
-        final String arrayKey = switch (beginKind)
+        final String arrayKey;
+        final String idKey;
+        final JsonParserFactory parserFactory;
+        switch (beginKind)
         {
-        case KIND_TOOLS_LIST -> "tools";
-        case KIND_PROMPTS_LIST -> "prompts";
-        case KIND_RESOURCES_LIST -> "resources";
-        default -> null;
-        };
-        if (arrayKey == null)
-        {
+        case KIND_TOOLS_LIST:
+            arrayKey = "tools";
+            idKey = "name";
+            parserFactory = TOOLS_LIST_ITEM_PARSER_FACTORY;
+            break;
+        case KIND_PROMPTS_LIST:
+            arrayKey = "prompts";
+            idKey = "name";
+            parserFactory = PROMPTS_LIST_ITEM_PARSER_FACTORY;
+            break;
+        case KIND_RESOURCES_LIST:
+            arrayKey = "resources";
+            idKey = "uri";
+            parserFactory = RESOURCES_LIST_ITEM_PARSER_FACTORY;
+            break;
+        default:
             return;
         }
-        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
-        final String idPath = "/" + arrayKey + "/-/" + idKey;
-        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of(
-            StreamingJson.PATH_INCLUDES, List.of(idPath),
-            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length));
         final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
 
         final ByteArrayOutputStream itemOut = new ByteArrayOutputStream(256);
@@ -1703,7 +1717,7 @@ public final class McpProxyFactory implements McpStreamFactory
         boolean awaitingIdValue = false;
 
         final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
-        try (JsonParser parser = factory.createParser(in))
+        try (JsonParser parser = parserFactory.createParser(in))
         {
             while (true)
             {

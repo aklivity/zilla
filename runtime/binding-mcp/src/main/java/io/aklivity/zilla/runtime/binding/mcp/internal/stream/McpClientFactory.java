@@ -134,7 +134,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final List<String> CLIENT_JSON_PATH_INCLUDES = List.of(
         "/jsonrpc",
         "/id");
-    private final JsonParserFactory jsonParserFactory;
+    private final JsonParserFactory parserFactory;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
@@ -163,7 +163,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
-        this.jsonParserFactory = StreamingJson.createParserFactory(Map.of(
+        this.parserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
             StreamingJson.TOKEN_MAX_BYTES, decodeMax));
 
@@ -258,7 +258,7 @@ public final class McpClientFactory implements McpStreamFactory
         DirectBufferInputStreamEx input = inputRO;
         input.wrap(buffer, offset, limit - offset);
 
-        http.decodableJson = jsonParserFactory.createParser(input);
+        http.decodableJson = parserFactory.createParser(input);
         http.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();
