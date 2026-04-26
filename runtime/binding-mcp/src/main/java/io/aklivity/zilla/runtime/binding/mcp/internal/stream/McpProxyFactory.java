@@ -29,6 +29,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongConsumer;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
@@ -247,11 +248,10 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private interface McpPending
+    private record PendingAction(
+        LongConsumer onProceed,
+        LongConsumer onReset)
     {
-        void proceed(long traceId);
-
-        void doServerReset(long traceId);
     }
 
     private final class McpExit
@@ -261,7 +261,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private static final int OPENED = 2;
 
         private final long exitId;
-        private final Deque<McpPending> pending;
+        private final Deque<PendingAction> pending;
 
         private int state;
         private String sessionId;
@@ -275,7 +275,7 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
-    private final class McpServer implements McpPending
+    private final class McpServer
     {
         private final MessageConsumer sender;
         private final long originId;
@@ -383,7 +383,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             else
             {
-                exit.pending.add(this);
+                exit.pending.add(new PendingAction(this::proceed, this::doServerReset));
                 if (exit.state == McpExit.UNINITIALIZED)
                 {
                     exit.state = McpExit.OPENING;
@@ -393,7 +393,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        public void proceed(
+        private void proceed(
             long traceId)
         {
             this.client = new McpClient(this, resolvedId, traceId);
@@ -522,7 +522,7 @@ public final class McpProxyFactory implements McpStreamFactory
             doWindow(sender, originId, routedId, initialId, traceId, authorization, budgetId, credit, padding);
         }
 
-        public void doServerReset(
+        private void doServerReset(
             long traceId)
         {
             if (!McpState.initialClosed(state))
@@ -938,9 +938,9 @@ public final class McpProxyFactory implements McpStreamFactory
                 {
                     exit.lifecycle.doClientEnd(traceId);
                 }
-                for (McpPending pending : exit.pending)
+                for (PendingAction pending : exit.pending)
                 {
-                    pending.doServerReset(traceId);
+                    pending.onReset().accept(traceId);
                 }
                 exit.pending.clear();
             }
@@ -1055,7 +1055,7 @@ public final class McpProxyFactory implements McpStreamFactory
             exit.state = McpExit.OPENED;
             while (!exit.pending.isEmpty())
             {
-                exit.pending.poll().proceed(traceId);
+                exit.pending.poll().onProceed().accept(traceId);
             }
         }
 
@@ -1094,12 +1094,12 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             while (!exit.pending.isEmpty())
             {
-                exit.pending.poll().doServerReset(traceId);
+                exit.pending.poll().onReset().accept(traceId);
             }
         }
     }
 
-    private final class McpListClient implements McpPending
+    private final class McpListClient
     {
         private final McpListServer server;
         private final McpExit exit;
@@ -1141,8 +1141,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
         }
 
-        @Override
-        public void proceed(
+        private void proceed(
             long traceId)
         {
             doClientBegin(traceId);
@@ -1152,8 +1151,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        @Override
-        public void doServerReset(
+        private void doServerReset(
             long traceId)
         {
             if (!McpState.replyClosed(state))
@@ -1680,7 +1678,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             else
             {
-                exit.pending.add(currentClient);
+                exit.pending.add(new PendingAction(currentClient::proceed, currentClient::doServerReset));
                 if (exit.state == McpExit.UNINITIALIZED)
                 {
                     exit.state = McpExit.OPENING;
