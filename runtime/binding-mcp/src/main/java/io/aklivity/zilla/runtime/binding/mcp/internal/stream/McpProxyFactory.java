@@ -34,13 +34,7 @@ import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonPointer;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
@@ -187,22 +181,19 @@ public final class McpProxyFactory implements McpStreamFactory
                     if (isListKind(beginKind))
                     {
                         final List<McpRouteConfig> routes = binding.resolveAll(beginEx, authorization);
-                        if (!routes.isEmpty())
-                        {
-                            final McpListServer server = new McpListServer(
-                                sender,
-                                originId,
-                                routedId,
-                                initialId,
-                                affinity,
-                                authorization,
-                                beginKind,
-                                sessionId,
-                                session,
-                                routes,
-                                beginEx);
-                            newStream = server::onServerMessage;
-                        }
+                        final McpListServer server = new McpListServer(
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            affinity,
+                            authorization,
+                            beginKind,
+                            sessionId,
+                            session,
+                            routes,
+                            beginEx);
+                        newStream = server::onServerMessage;
                     }
                     else
                     {
@@ -562,8 +553,6 @@ public final class McpProxyFactory implements McpStreamFactory
         private MessageConsumer sender;
 
         private int state;
-        private int replySlot = NO_SLOT;
-        private int replySlotOffset;
 
         private McpClient(
             McpServer server,
@@ -779,15 +768,8 @@ public final class McpProxyFactory implements McpStreamFactory
 
             if (payload != null)
             {
-                if (transformsList())
-                {
-                    bufferReplyPayload(payload);
-                }
-                else
-                {
-                    server.doServerData(traceId, budgetId, flags, reserved,
-                        payload.buffer(), payload.offset(), payload.sizeof());
-                }
+                server.doServerData(traceId, budgetId, flags, reserved,
+                    payload.buffer(), payload.offset(), payload.sizeof());
             }
         }
 
@@ -795,16 +777,7 @@ public final class McpProxyFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
-
             state = McpState.closedReply(state);
-
-            if (transformsList() && replySlot != NO_SLOT)
-            {
-                emitTransformedListReply(traceId);
-            }
-
-            cleanupReplySlot();
-
             server.doServerEnd(traceId);
         }
 
@@ -812,56 +785,8 @@ public final class McpProxyFactory implements McpStreamFactory
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-
             state = McpState.closedReply(state);
-
-            cleanupReplySlot();
-
             server.doServerAbort(traceId);
-        }
-
-        private boolean transformsList()
-        {
-            return !server.prefix.isEmpty() && isListKind(server.beginKind);
-        }
-
-        private void bufferReplyPayload(
-            OctetsFW payload)
-        {
-            if (replySlot == NO_SLOT)
-            {
-                replySlot = bufferPool.acquire(initialId);
-            }
-
-            if (replySlot != NO_SLOT)
-            {
-                final MutableDirectBuffer buffer = bufferPool.buffer(replySlot);
-                buffer.putBytes(replySlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                replySlotOffset += payload.sizeof();
-            }
-        }
-
-        private void emitTransformedListReply(
-            long traceId)
-        {
-            final byte[] inputBytes = new byte[replySlotOffset];
-            bufferPool.buffer(replySlot).getBytes(0, inputBytes);
-
-            final byte[] outputBytes = applyListPrefix(server.prefix, server.beginKind, inputBytes);
-
-            final UnsafeBuffer outputBuffer = new UnsafeBuffer(outputBytes);
-            server.doServerData(traceId, 0L, 0x03, outputBytes.length,
-                outputBuffer, 0, outputBytes.length);
-        }
-
-        private void cleanupReplySlot()
-        {
-            if (replySlot != NO_SLOT)
-            {
-                bufferPool.release(replySlot);
-                replySlot = NO_SLOT;
-                replySlotOffset = 0;
-            }
         }
 
         private void onClientWindow(
@@ -1868,146 +1793,6 @@ public final class McpProxyFactory implements McpStreamFactory
                 }
             }
         }
-    }
-
-    private static byte[] applyListPrefix(
-        String prefix,
-        int beginKind,
-        byte[] jsonBytes)
-    {
-        final String arrayKey = switch (beginKind)
-        {
-        case KIND_TOOLS_LIST -> "tools";
-        case KIND_PROMPTS_LIST -> "prompts";
-        case KIND_RESOURCES_LIST -> "resources";
-        default -> null;
-        };
-        if (prefix.isEmpty() || arrayKey == null)
-        {
-            return jsonBytes;
-        }
-        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
-        final JsonPointer idPath = Json.createPointer("/" + arrayKey + "/-/" + idKey);
-        final Map<String, ?> config = Map.of(
-            StreamingJson.PATH_INCLUDES, List.of(idPath),
-            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length);
-
-        final ByteArrayOutputStream out = new ByteArrayOutputStream(jsonBytes.length + 64);
-        final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
-        int lastEmitted = 0;
-        boolean awaitingIdValue = false;
-        int depth = 0;
-        int targetItemDepth = -1;
-
-        final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
-        try (JsonParser parser = StreamingJson.createParser(in, config))
-        {
-            while (true)
-            {
-                final long beforeOffset = parser.getLocation().getStreamOffset();
-                if (!parser.hasNext())
-                {
-                    break;
-                }
-                final long afterOffset = parser.getLocation().getStreamOffset();
-                final JsonParser.Event ev = parser.next();
-                switch (ev)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    final String key = parser.getString();
-                    if (depth == 1 && arrayKey.equals(key))
-                    {
-                        // next event will be START_ARRAY of the items array; items live at depth == 3
-                        targetItemDepth = 3;
-                    }
-                    else if (depth == targetItemDepth && idKey.equals(key))
-                    {
-                        awaitingIdValue = true;
-                    }
-                    break;
-                case VALUE_STRING:
-                    if (awaitingIdValue)
-                    {
-                        awaitingIdValue = false;
-                        // bytes [beforeOffset..afterOffset) span ":<ws>\"<content>\"" — find opening quote
-                        int openingQuote = (int) beforeOffset;
-                        while (openingQuote < (int) afterOffset && jsonBytes[openingQuote] != '"')
-                        {
-                            openingQuote++;
-                        }
-                        final int contentStart = openingQuote + 1;
-                        // emit verbatim up to and including opening quote
-                        out.write(jsonBytes, lastEmitted, contentStart - lastEmitted);
-                        // splice prefix
-                        out.write(prefixBytes, 0, prefixBytes.length);
-                        // continue with original content + closing quote
-                        out.write(jsonBytes, contentStart, (int) afterOffset - contentStart);
-                        lastEmitted = (int) afterOffset;
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-        // emit any trailing bytes (typically empty for well-formed JSON)
-        out.write(jsonBytes, lastEmitted, jsonBytes.length - lastEmitted);
-        return out.toByteArray();
-    }
-
-    private static byte[] mergeListReplies(
-        int beginKind,
-        byte[][] parts)
-    {
-        if (parts.length == 1 && parts[0] != null)
-        {
-            return parts[0];
-        }
-
-        final String arrayKey = switch (beginKind)
-        {
-        case KIND_TOOLS_LIST -> "tools";
-        case KIND_PROMPTS_LIST -> "prompts";
-        case KIND_RESOURCES_LIST -> "resources";
-        default -> null;
-        };
-
-        if (arrayKey == null)
-        {
-            return new byte[0];
-        }
-
-        final JsonArrayBuilder merged = Json.createArrayBuilder();
-        for (byte[] part : parts)
-        {
-            if (part != null)
-            {
-                try (JsonReader reader = Json.createReader(new ByteArrayInputStream(part)))
-                {
-                    final JsonObject root = reader.readObject();
-                    final JsonArray items = root.getJsonArray(arrayKey);
-                    if (items != null)
-                    {
-                        for (JsonValue item : items)
-                        {
-                            merged.add(item);
-                        }
-                    }
-                }
-            }
-        }
-
-        final JsonObjectBuilder rootBuilder = Json.createObjectBuilder();
-        rootBuilder.add(arrayKey, merged.build());
-        return rootBuilder.build().toString().getBytes(StandardCharsets.UTF_8);
     }
 
     private MessageConsumer newStream(
