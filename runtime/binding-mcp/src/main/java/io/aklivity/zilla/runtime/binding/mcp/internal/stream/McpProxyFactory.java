@@ -1131,7 +1131,6 @@ public final class McpProxyFactory implements McpStreamFactory
         private int state;
         private int replySlot = NO_SLOT;
         private int replySlotOffset;
-        private boolean completed;
 
         private McpListClient(
             McpListServer server,
@@ -1150,7 +1149,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long traceId)
         {
             doClientBegin(traceId);
-            if (server.endReceived)
+            if (McpState.initialClosed(server.state))
             {
                 doClientEnd(traceId);
             }
@@ -1160,9 +1159,9 @@ public final class McpProxyFactory implements McpStreamFactory
         public void doServerReset(
             long traceId)
         {
-            if (!completed)
+            if (!McpState.replyClosed(state))
             {
-                completed = true;
+                state = McpState.closedReply(state);
                 server.clientFailed(this, traceId);
             }
         }
@@ -1283,10 +1282,9 @@ public final class McpProxyFactory implements McpStreamFactory
             EndFW end)
         {
             final long traceId = end.traceId();
-            state = McpState.closedReply(state);
-            if (!completed)
+            if (!McpState.replyClosed(state))
             {
-                completed = true;
+                state = McpState.closedReply(state);
                 final byte[] reply = bufferedClientReply();
                 cleanupClientSlot();
                 server.clientDone(this, reply, traceId);
@@ -1297,11 +1295,10 @@ public final class McpProxyFactory implements McpStreamFactory
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = McpState.closedReply(state);
-            cleanupClientSlot();
-            if (!completed)
+            if (!McpState.replyClosed(state))
             {
-                completed = true;
+                state = McpState.closedReply(state);
+                cleanupClientSlot();
                 server.clientFailed(this, traceId);
             }
         }
@@ -1311,9 +1308,9 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long traceId = reset.traceId();
             state = McpState.closedInitial(state);
-            if (!completed)
+            if (!McpState.replyClosed(state))
             {
-                completed = true;
+                state = McpState.closedReply(state);
                 server.clientFailed(this, traceId);
             }
         }
@@ -1376,7 +1373,6 @@ public final class McpProxyFactory implements McpStreamFactory
         private final Deque<McpListClient> remaining;
 
         private int state;
-        private boolean endReceived;
         private int itemsEmitted;
         private McpListClient currentClient;
 
@@ -1462,7 +1458,6 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             state = McpState.closedInitial(state);
-            endReceived = true;
 
             if (currentClient != null && McpState.initialOpened(currentClient.state))
             {
@@ -1475,7 +1470,6 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long traceId = abort.traceId();
             state = McpState.closedInitial(state);
-            endReceived = true;
 
             if (currentClient != null)
             {
