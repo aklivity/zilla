@@ -410,11 +410,8 @@ public final class McpProxyFactory implements McpStreamFactory
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
-            if (!McpState.closed(state) && payload != null)
-            {
-                client.doClientData(traceId, budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
-            }
+            client.doClientData(traceId, budgetId, flags, reserved,
+                payload.buffer(), payload.offset(), payload.sizeof());
         }
 
         private void onServerEnd(
@@ -424,10 +421,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.closedInitial(state);
 
-            if (!McpState.closed(state))
-            {
-                client.doClientEnd(traceId);
-            }
+            client.doClientEnd(traceId);
 
             if (beginKind == KIND_LIFECYCLE)
             {
@@ -442,10 +436,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.closedInitial(state);
 
-            if (!McpState.closed(state))
-            {
-                client.doClientAbort(traceId);
-            }
+            client.doClientAbort(traceId);
 
             if (beginKind == KIND_LIFECYCLE)
             {
@@ -764,11 +755,8 @@ public final class McpProxyFactory implements McpStreamFactory
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
-            if (payload != null)
-            {
-                server.doServerData(traceId, budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
-            }
+            server.doServerData(traceId, budgetId, flags, reserved,
+                payload.buffer(), payload.offset(), payload.sizeof());
         }
 
         private void onClientEnd(
@@ -1135,6 +1123,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private JsonParser parser;
         private DirectBufferInputStreamEx jsonInput;
         private ByteArrayOutputStream itemOut;
+        private byte[] itemTransferBuffer;
         private long parserBaseOffset;       // absolute streamOffset of slot[0]
         private int depth;
         private int itemDepth = -1;          // depth at which target items live, set on START_ARRAY
@@ -1284,19 +1273,16 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onClientData(
             DataFW data)
         {
+            final long traceId = data.traceId();
             final OctetsFW payload = data.payload();
-            if (payload != null)
+            final boolean appended = appendToSlot(payload);
+            if (!appended)
             {
-                final long traceId = data.traceId();
-                final boolean appended = appendToSlot(payload);
-                if (!appended)
-                {
-                    state = McpState.closedReply(state);
-                    server.clientFailed(this, traceId);
-                    return;
-                }
-                streamItems(traceId);
+                state = McpState.closedReply(state);
+                server.clientFailed(this, traceId);
+                return;
             }
+            streamItems(traceId);
         }
 
         private void onClientEnd(
@@ -1375,6 +1361,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 jsonInput = new DirectBufferInputStreamEx();
                 parser = parserFactory.createParser(jsonInput);
                 itemOut = new ByteArrayOutputStream(256);
+                itemTransferBuffer = new byte[bufferPool.slotCapacity()];
             }
 
             final MutableDirectBuffer slotBuffer = bufferPool.buffer(replySlot);
@@ -1426,9 +1413,9 @@ public final class McpProxyFactory implements McpStreamFactory
                     if (depth == itemDepth && itemStartStreamOffset >= 0)
                     {
                         final int itemLastEmittedInSlot = (int) (itemLastEmittedStreamOffset - parserBaseOffset);
-                        slotBuffer.getBytes(itemLastEmittedInSlot, itemBuffer(),
+                        slotBuffer.getBytes(itemLastEmittedInSlot, itemTransferBuffer,
                             0, afterInSlot - itemLastEmittedInSlot);
-                        itemOut.write(itemBuffer(), 0, afterInSlot - itemLastEmittedInSlot);
+                        itemOut.write(itemTransferBuffer, 0, afterInSlot - itemLastEmittedInSlot);
                         server.streamItem(itemOut.toByteArray(), 0, itemOut.size(), traceId);
                         itemStartStreamOffset = -1;
                         itemLastEmittedStreamOffset = -1;
@@ -1467,9 +1454,9 @@ public final class McpProxyFactory implements McpStreamFactory
                         final int contentStart = openingQuote + 1;
                         final int itemLastEmittedInSlot = (int) (itemLastEmittedStreamOffset - parserBaseOffset);
                         // emit verbatim up to and including opening quote
-                        slotBuffer.getBytes(itemLastEmittedInSlot, itemBuffer(),
+                        slotBuffer.getBytes(itemLastEmittedInSlot, itemTransferBuffer,
                             0, contentStart - itemLastEmittedInSlot);
-                        itemOut.write(itemBuffer(), 0, contentStart - itemLastEmittedInSlot);
+                        itemOut.write(itemTransferBuffer, 0, contentStart - itemLastEmittedInSlot);
                         // splice in the prefix
                         itemOut.write(prefixBytes, 0, prefixBytes.length);
                         itemLastEmittedStreamOffset = parserBaseOffset + contentStart;
@@ -1500,18 +1487,6 @@ public final class McpProxyFactory implements McpStreamFactory
                 replySlotOffset -= compactBoundaryInSlot;
                 parserBaseOffset += compactBoundaryInSlot;
             }
-        }
-
-        private byte[] itemTransferBuffer;
-
-        private byte[] itemBuffer()
-        {
-            // grows as needed; reused across items
-            if (itemTransferBuffer == null || itemTransferBuffer.length < bufferPool.slotCapacity())
-            {
-                itemTransferBuffer = new byte[bufferPool.slotCapacity()];
-            }
-            return itemTransferBuffer;
         }
 
         private void cleanupClientSlot()
