@@ -154,10 +154,10 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final McpBeginExFW beginEx = mcpBeginExRO.wrap(
                 extension.buffer(), extension.offset(), extension.limit());
-            final int beginKind = beginEx.kind();
+            final int kind = beginEx.kind();
             final String sessionId = sessionId(beginEx);
 
-            if (beginKind == KIND_LIFECYCLE)
+            if (kind == KIND_LIFECYCLE)
             {
                 final McpRouteConfig route = binding.resolve(beginEx, authorization);
                 if (route != null)
@@ -176,7 +176,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 final McpSession session = sessions.get(sessionId);
                 if (session != null)
                 {
-                    if (isListKind(beginKind))
+                    if (isListKind(kind))
                     {
                         final List<McpRouteConfig> routes = binding.resolveAll(beginEx, authorization);
                         final McpListServer server = new McpListServer(
@@ -186,7 +186,7 @@ public final class McpProxyFactory implements McpStreamFactory
                             initialId,
                             affinity,
                             authorization,
-                            beginKind,
+                            kind,
                             sessionId,
                             session,
                             routes,
@@ -210,7 +210,7 @@ public final class McpProxyFactory implements McpStreamFactory
                                 route.id,
                                 affinity,
                                 authorization,
-                                beginKind,
+                                kind,
                                 sessionId,
                                 identifier,
                                 prefix,
@@ -285,7 +285,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long affinity;
         private final long authorization;
         private final McpClient client;
-        private final int beginKind;
+        private final int kind;
         private final String sessionId;
         private final String identifier;
         private final String prefix;
@@ -303,7 +303,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             long authorization,
-            int beginKind,
+            int kind,
             String sessionId,
             String identifier,
             String prefix,
@@ -318,7 +318,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.beginKind = beginKind;
+            this.kind = kind;
             this.sessionId = sessionId;
             this.identifier = identifier;
             this.prefix = prefix;
@@ -423,7 +423,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             client.doClientEnd(traceId);
 
-            if (beginKind == KIND_LIFECYCLE)
+            if (kind == KIND_LIFECYCLE)
             {
                 sessions.remove(session.sessionId);
             }
@@ -438,7 +438,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             client.doClientAbort(traceId);
 
-            if (beginKind == KIND_LIFECYCLE)
+            if (kind == KIND_LIFECYCLE)
             {
                 sessions.remove(session.sessionId);
             }
@@ -559,14 +559,14 @@ public final class McpProxyFactory implements McpStreamFactory
 
             final String identifier = server.identifier;
             final int capabilities = server.capabilities;
-            final boolean lifecycle = server.beginKind == KIND_LIFECYCLE;
+            final boolean lifecycle = server.kind == KIND_LIFECYCLE;
             final String outboundSessionId = lifecycle || server.exit.sessionId == null
                 ? server.sessionId
                 : server.exit.sessionId;
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
-            switch (server.beginKind)
+            switch (server.kind)
             {
             case KIND_LIFECYCLE -> builder
                 .lifecycle(l -> l.sessionId(outboundSessionId).capabilities(capabilities));
@@ -582,7 +582,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 .resourcesList(r -> r.sessionId(outboundSessionId));
             case KIND_RESOURCES_READ -> builder
                 .resourcesRead(r -> r.sessionId(outboundSessionId).uri(identifier));
-            default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.beginKind);
+            default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.kind);
             }
             final McpBeginExFW beginEx = builder.build();
 
@@ -1179,12 +1179,12 @@ public final class McpProxyFactory implements McpStreamFactory
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
-            switch (server.beginKind)
+            switch (server.kind)
             {
             case KIND_TOOLS_LIST -> builder.toolsList(t -> t.sessionId(sid));
             case KIND_PROMPTS_LIST -> builder.promptsList(p -> p.sessionId(sid));
             case KIND_RESOURCES_LIST -> builder.resourcesList(r -> r.sessionId(sid));
-            default -> throw new IllegalStateException("unexpected list kind: " + server.beginKind);
+            default -> throw new IllegalStateException("unexpected list kind: " + server.kind);
             }
             final McpBeginExFW beginEx = builder.build();
 
@@ -1347,7 +1347,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (parser == null)
             {
-                final JsonParserFactory parserFactory = switch (server.beginKind)
+                final JsonParserFactory parserFactory = switch (server.kind)
                 {
                 case KIND_TOOLS_LIST -> TOOLS_LIST_ITEM_PARSER_FACTORY;
                 case KIND_PROMPTS_LIST -> PROMPTS_LIST_ITEM_PARSER_FACTORY;
@@ -1368,8 +1368,8 @@ public final class McpProxyFactory implements McpStreamFactory
             final int parserPosInSlot = (int) (parser.getLocation().getStreamOffset() - parserBaseOffset);
             jsonInput.wrap(slotBuffer, parserPosInSlot, replySlotOffset - parserPosInSlot);
 
-            final String idKey = server.beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
-            final String arrayKey = switch (server.beginKind)
+            final String idKey = server.kind == KIND_RESOURCES_LIST ? "uri" : "name";
+            final String arrayKey = switch (server.kind)
             {
             case KIND_TOOLS_LIST -> "tools";
             case KIND_PROMPTS_LIST -> "prompts";
@@ -1522,7 +1522,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final int beginKind;
+        private final int kind;
         private final String sessionId;
         private final McpSession session;
         private final Deque<McpListClient> remaining;
@@ -1538,7 +1538,7 @@ public final class McpProxyFactory implements McpStreamFactory
             long initialId,
             long affinity,
             long authorization,
-            int beginKind,
+            int kind,
             String sessionId,
             McpSession session,
             List<McpRouteConfig> routes,
@@ -1551,7 +1551,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.beginKind = beginKind;
+            this.kind = kind;
             this.sessionId = sessionId;
             this.session = session;
             this.remaining = new ArrayDeque<>(routes.size());
@@ -1714,12 +1714,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private void emitPrelude(
             long traceId)
         {
-            final byte[] preludeBytes = switch (beginKind)
+            final byte[] preludeBytes = switch (kind)
             {
             case KIND_TOOLS_LIST -> LIST_REPLY_TOOLS_OPEN;
             case KIND_PROMPTS_LIST -> LIST_REPLY_PROMPTS_OPEN;
             case KIND_RESOURCES_LIST -> LIST_REPLY_RESOURCES_OPEN;
-            default -> throw new IllegalStateException("unexpected list kind: " + beginKind);
+            default -> throw new IllegalStateException("unexpected list kind: " + kind);
             };
             final UnsafeBuffer buf = new UnsafeBuffer(preludeBytes);
             doServerData(traceId, 0L, 0x03, preludeBytes.length, buf, 0, preludeBytes.length);
@@ -1740,12 +1740,12 @@ public final class McpProxyFactory implements McpStreamFactory
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
-            switch (beginKind)
+            switch (kind)
             {
             case KIND_TOOLS_LIST -> builder.toolsList(t -> t.sessionId(sid));
             case KIND_PROMPTS_LIST -> builder.promptsList(p -> p.sessionId(sid));
             case KIND_RESOURCES_LIST -> builder.resourcesList(r -> r.sessionId(sid));
-            default -> throw new IllegalStateException("unexpected list kind: " + beginKind);
+            default -> throw new IllegalStateException("unexpected list kind: " + kind);
             }
             final McpBeginExFW beginEx = builder.build();
 
