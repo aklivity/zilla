@@ -28,7 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -1200,7 +1199,6 @@ public final class McpProxyFactory implements McpStreamFactory
         private final McpExit exit;
         private final long resolvedId;
         private final String prefix;
-        private final int clientIndex;
 
         private long initialId;
         private long replyId;
@@ -1214,14 +1212,12 @@ public final class McpProxyFactory implements McpStreamFactory
             McpListServer server,
             McpExit exit,
             long resolvedId,
-            String prefix,
-            int clientIndex)
+            String prefix)
         {
             this.server = server;
             this.exit = exit;
             this.resolvedId = resolvedId;
             this.prefix = prefix;
-            this.clientIndex = clientIndex;
         }
 
         @Override
@@ -1366,9 +1362,9 @@ public final class McpProxyFactory implements McpStreamFactory
             if (!completed)
             {
                 completed = true;
-                final byte[] transformed = transformedClientReply();
+                final byte[] reply = bufferedClientReply();
                 cleanupClientSlot();
-                server.clientDone(this, transformed, traceId);
+                server.clientDone(this, reply, traceId);
             }
         }
 
@@ -1412,7 +1408,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        private byte[] transformedClientReply()
+        private byte[] bufferedClientReply()
         {
             if (replySlot == NO_SLOT || replySlotOffset == 0)
             {
@@ -1420,8 +1416,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             final byte[] inputBytes = new byte[replySlotOffset];
             bufferPool.buffer(replySlot).getBytes(0, inputBytes);
-            return prefix.isEmpty() ? inputBytes :
-                applyListPrefix(prefix, server.beginKind, inputBytes);
+            return inputBytes;
         }
 
         private void cleanupClientSlot()
@@ -1435,6 +1430,12 @@ public final class McpProxyFactory implements McpStreamFactory
         }
     }
 
+    private static final byte[] LIST_REPLY_TOOLS_OPEN = "{\"tools\":[".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] LIST_REPLY_PROMPTS_OPEN = "{\"prompts\":[".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] LIST_REPLY_RESOURCES_OPEN = "{\"resources\":[".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] LIST_REPLY_CLOSE = "]}".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] LIST_REPLY_SEPARATOR = ",".getBytes(StandardCharsets.UTF_8);
+
     private final class McpListServer
     {
         private final MessageConsumer sender;
@@ -1447,13 +1448,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private final int beginKind;
         private final String sessionId;
         private final McpSession session;
-        private final List<McpListClient> clients;
-        private final byte[][] clientReplies;
+        private final Deque<McpListClient> remaining;
 
         private int state;
         private boolean endReceived;
-        private int doneClients;
-        private int failedClients;
+        private int itemsEmitted;
+        private McpListClient currentClient;
 
         private McpListServer(
             MessageConsumer sender,
@@ -1478,15 +1478,13 @@ public final class McpProxyFactory implements McpStreamFactory
             this.beginKind = beginKind;
             this.sessionId = sessionId;
             this.session = session;
-            this.clients = new ArrayList<>(routes.size());
-            for (int i = 0; i < routes.size(); i++)
+            this.remaining = new ArrayDeque<>(routes.size());
+            for (final McpRouteConfig route : routes)
             {
-                final McpRouteConfig route = routes.get(i);
                 final McpExit exit = session.supplyExit(route.id);
                 final String prefix = route.prefix(beginEx);
-                clients.add(new McpListClient(this, exit, route.id, prefix, i));
+                remaining.add(new McpListClient(this, exit, route.id, prefix));
             }
-            this.clientReplies = new byte[clients.size()][];
         }
 
         private void onServerMessage(
@@ -1529,24 +1527,9 @@ public final class McpProxyFactory implements McpStreamFactory
             doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
                 writeBuffer.capacity(), 0);
 
-            for (McpListClient client : clients)
-            {
-                final McpExit exit = client.exit;
-                if (exit.state == McpExit.OPENED)
-                {
-                    client.proceed(traceId);
-                }
-                else
-                {
-                    exit.pending.add(client);
-                    if (exit.state == McpExit.UNINITIALIZED)
-                    {
-                        exit.state = McpExit.OPENING;
-                        exit.lifecycle = new McpLifecycleClient(exit, session);
-                        exit.lifecycle.doClientBegin(traceId);
-                    }
-                }
-            }
+            doServerBegin(traceId);
+            emitPrelude(traceId);
+            startNextRoute(traceId);
         }
 
         private void onServerEnd(
@@ -1556,12 +1539,9 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
             endReceived = true;
 
-            for (McpListClient client : clients)
+            if (currentClient != null && McpState.initialOpened(currentClient.state))
             {
-                if (McpState.initialOpened(client.state))
-                {
-                    client.doClientEnd(traceId);
-                }
+                currentClient.doClientEnd(traceId);
             }
         }
 
@@ -1572,10 +1552,15 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
             endReceived = true;
 
-            for (McpListClient client : clients)
+            if (currentClient != null)
             {
-                client.doClientAbort(traceId);
+                currentClient.doClientAbort(traceId);
             }
+            for (final McpListClient queued : remaining)
+            {
+                queued.doClientAbort(traceId);
+            }
+            remaining.clear();
         }
 
         private void onServerReset(
@@ -1584,10 +1569,15 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = reset.traceId();
             state = McpState.closedReply(state);
 
-            for (McpListClient client : clients)
+            if (currentClient != null)
             {
-                client.doClientReset(traceId);
+                currentClient.doClientReset(traceId);
             }
+            for (final McpListClient queued : remaining)
+            {
+                queued.doClientReset(traceId);
+            }
+            remaining.clear();
         }
 
         private void clientDone(
@@ -1595,46 +1585,88 @@ public final class McpProxyFactory implements McpStreamFactory
             byte[] data,
             long traceId)
         {
-            clientReplies[client.clientIndex] = data;
-            doneClients++;
-
-            if (doneClients + failedClients == clients.size())
+            if (data != null)
             {
-                emitMergedReply(traceId);
+                forEachListItem(data, beginKind, client.prefix, traceId, this::streamItem);
             }
+            currentClient = null;
+            startNextRoute(traceId);
         }
 
         private void clientFailed(
             McpListClient client,
             long traceId)
         {
-            failedClients++;
-
-            for (McpListClient other : clients)
+            currentClient = null;
+            for (final McpListClient queued : remaining)
             {
-                if (other != client && !other.completed)
-                {
-                    other.completed = true;
-                    other.doClientAbort(traceId);
-                }
+                queued.doClientAbort(traceId);
             }
+            remaining.clear();
+            doServerAbort(traceId);
+        }
 
-            if (doneClients + failedClients == clients.size())
+        private void startNextRoute(
+            long traceId)
+        {
+            if (remaining.isEmpty())
             {
-                doServerAbort(traceId);
+                closeReply(traceId);
+                return;
+            }
+            currentClient = remaining.poll();
+            final McpExit exit = currentClient.exit;
+            if (exit.state == McpExit.OPENED)
+            {
+                currentClient.proceed(traceId);
+            }
+            else
+            {
+                exit.pending.add(currentClient);
+                if (exit.state == McpExit.UNINITIALIZED)
+                {
+                    exit.state = McpExit.OPENING;
+                    exit.lifecycle = new McpLifecycleClient(exit, session);
+                    exit.lifecycle.doClientBegin(traceId);
+                }
             }
         }
 
-        private void emitMergedReply(
+        private void streamItem(
+            byte[] item,
+            int offset,
+            int length,
             long traceId)
         {
-            final byte[] mergedJson = mergeListReplies(beginKind, clientReplies);
+            if (itemsEmitted > 0)
+            {
+                final UnsafeBuffer sep = new UnsafeBuffer(LIST_REPLY_SEPARATOR);
+                doServerData(traceId, 0L, 0x03, sep.capacity(), sep, 0, sep.capacity());
+            }
+            final UnsafeBuffer itemBuffer = new UnsafeBuffer(item, offset, length);
+            doServerData(traceId, 0L, 0x03, length, itemBuffer, 0, length);
+            itemsEmitted++;
+        }
 
-            doServerBegin(traceId);
+        private void emitPrelude(
+            long traceId)
+        {
+            final byte[] preludeBytes = switch (beginKind)
+            {
+            case KIND_TOOLS_LIST -> LIST_REPLY_TOOLS_OPEN;
+            case KIND_PROMPTS_LIST -> LIST_REPLY_PROMPTS_OPEN;
+            case KIND_RESOURCES_LIST -> LIST_REPLY_RESOURCES_OPEN;
+            default -> throw new IllegalStateException("unexpected list kind: " + beginKind);
+            };
+            final UnsafeBuffer buf = new UnsafeBuffer(preludeBytes);
+            doServerData(traceId, 0L, 0x03, preludeBytes.length, buf, 0, preludeBytes.length);
+        }
 
-            final UnsafeBuffer outputBuffer = new UnsafeBuffer(mergedJson);
-            doServerData(traceId, 0L, 0x03, mergedJson.length, outputBuffer, 0, mergedJson.length);
-
+        private void closeReply(
+            long traceId)
+        {
+            final UnsafeBuffer buf = new UnsafeBuffer(LIST_REPLY_CLOSE);
+            doServerData(traceId, 0L, 0x03, buf.capacity(), buf, 0, buf.capacity());
             doServerEnd(traceId);
         }
 
@@ -1712,6 +1744,130 @@ public final class McpProxyFactory implements McpStreamFactory
         case KIND_RESOURCES_READ -> beginEx.resourcesRead().sessionId().asString();
         default -> null;
         };
+    }
+
+    @FunctionalInterface
+    private interface ListItemEmitter
+    {
+        void emit(byte[] item, int offset, int length, long traceId);
+    }
+
+    /**
+     * Walks a single route's list reply (e.g. {@code {"tools":[{...},{...}]}}) and emits each
+     * item one at a time via {@code emitter}. The idKey value in each item is spliced with
+     * {@code prefix} during the walk; remaining bytes flow through verbatim. Non-conforming
+     * replies (no matching arrayKey) result in zero emitted items.
+     */
+    private static void forEachListItem(
+        byte[] jsonBytes,
+        int beginKind,
+        String prefix,
+        long traceId,
+        ListItemEmitter emitter)
+    {
+        final String arrayKey = switch (beginKind)
+        {
+        case KIND_TOOLS_LIST -> "tools";
+        case KIND_PROMPTS_LIST -> "prompts";
+        case KIND_RESOURCES_LIST -> "resources";
+        default -> null;
+        };
+        if (arrayKey == null)
+        {
+            return;
+        }
+        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
+        final JsonPointer idPath = Json.createPointer("/" + arrayKey + "/-/" + idKey);
+        final Map<String, ?> config = Map.of(
+            StreamingJson.PATH_INCLUDES, List.of(idPath),
+            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length);
+        final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
+
+        final ByteArrayOutputStream itemOut = new ByteArrayOutputStream(256);
+        int depth = 0;
+        int targetItemDepth = -1;
+        int itemStart = -1;
+        int itemLastEmitted = -1;
+        boolean awaitingIdValue = false;
+
+        final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
+        try (JsonParser parser = StreamingJson.createParser(in, config))
+        {
+            while (true)
+            {
+                final long beforeOffset = parser.getLocation().getStreamOffset();
+                if (!parser.hasNext())
+                {
+                    break;
+                }
+                final long afterOffset = parser.getLocation().getStreamOffset();
+                final JsonParser.Event ev = parser.next();
+                switch (ev)
+                {
+                case START_OBJECT:
+                    depth++;
+                    if (depth == targetItemDepth)
+                    {
+                        // first byte of the item is the `{` at afterOffset - 1
+                        itemStart = (int) (afterOffset - 1);
+                        itemLastEmitted = itemStart;
+                        itemOut.reset();
+                    }
+                    break;
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                    if (depth == targetItemDepth && itemStart >= 0)
+                    {
+                        // emit any tail since the last splice through the closing `}`
+                        itemOut.write(jsonBytes, itemLastEmitted, (int) afterOffset - itemLastEmitted);
+                        emitter.emit(itemOut.toByteArray(), 0, itemOut.size(), traceId);
+                        itemStart = -1;
+                        itemLastEmitted = -1;
+                    }
+                    depth--;
+                    break;
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    final String key = parser.getString();
+                    if (depth == 1 && arrayKey.equals(key))
+                    {
+                        // upcoming START_ARRAY at depth 2; items are at depth 3
+                        targetItemDepth = 3;
+                    }
+                    else if (depth == targetItemDepth && idKey.equals(key))
+                    {
+                        awaitingIdValue = true;
+                    }
+                    break;
+                case VALUE_STRING:
+                    if (awaitingIdValue)
+                    {
+                        awaitingIdValue = false;
+                        if (itemStart >= 0 && prefixBytes.length > 0)
+                        {
+                            int openingQuote = (int) beforeOffset;
+                            while (openingQuote < (int) afterOffset && jsonBytes[openingQuote] != '"')
+                            {
+                                openingQuote++;
+                            }
+                            final int contentStart = openingQuote + 1;
+                            // emit bytes from item start up to and including opening quote
+                            itemOut.write(jsonBytes, itemLastEmitted, contentStart - itemLastEmitted);
+                            // splice in the prefix
+                            itemOut.write(prefixBytes, 0, prefixBytes.length);
+                            itemLastEmitted = contentStart;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     private static byte[] applyListPrefix(
