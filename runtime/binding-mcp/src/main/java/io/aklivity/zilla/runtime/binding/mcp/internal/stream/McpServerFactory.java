@@ -24,10 +24,9 @@ import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import jakarta.json.Json;
-import jakarta.json.JsonPointer;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -125,16 +124,13 @@ public final class McpServerFactory implements McpStreamFactory
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
-    // JSON paths whose values McpServerFactory reads via getString(). Configured on the
-    // StreamingJson parser so non-included values (e.g. /params/arguments contents) are
-    // scanned without scratch accumulation. KEY_NAME tokens are always readable.
-    private static final List<JsonPointer> SERVER_JSON_PATH_INCLUDES = List.of(
-        Json.createPointer("/jsonrpc"),
-        Json.createPointer("/id"),
-        Json.createPointer("/method"),
-        Json.createPointer("/params/name"),
-        Json.createPointer("/params/uri"));
-    private final Map<String, ?> serverJsonConfig;
+    private static final List<String> SERVER_JSON_PATH_INCLUDES = List.of(
+        "/jsonrpc",
+        "/id",
+        "/method",
+        "/params/name",
+        "/params/uri");
+    private final JsonParserFactory jsonParserFactory;
 
     private final McpServerDecoder decodeJsonRpc = this::decodeJsonRpc;
     private final McpServerDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
@@ -176,9 +172,9 @@ public final class McpServerFactory implements McpStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.sessions = new Object2ObjectHashMap<>();
-        this.serverJsonConfig = Map.of(
+        this.jsonParserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, SERVER_JSON_PATH_INCLUDES,
-            StreamingJson.TOKEN_MAX_BYTES, decodeMax);
+            StreamingJson.TOKEN_MAX_BYTES, decodeMax));
     }
 
     @Override
@@ -325,7 +321,7 @@ public final class McpServerFactory implements McpStreamFactory
         server.decodedId = null;
         server.decodedMethod = null;
         server.decodedMethodParam = null;
-        server.decodableJson = StreamingJson.createParser(input, serverJsonConfig);
+        server.decodableJson = jsonParserFactory.createParser(input);
         server.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();

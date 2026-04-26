@@ -33,9 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
-import jakarta.json.Json;
-import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -1690,10 +1689,10 @@ public final class McpProxyFactory implements McpStreamFactory
             return;
         }
         final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
-        final JsonPointer idPath = Json.createPointer("/" + arrayKey + "/-/" + idKey);
-        final Map<String, ?> config = Map.of(
+        final String idPath = "/" + arrayKey + "/-/" + idKey;
+        final JsonParserFactory factory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, List.of(idPath),
-            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length);
+            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length));
         final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
 
         final ByteArrayOutputStream itemOut = new ByteArrayOutputStream(256);
@@ -1704,7 +1703,7 @@ public final class McpProxyFactory implements McpStreamFactory
         boolean awaitingIdValue = false;
 
         final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
-        try (JsonParser parser = StreamingJson.createParser(in, config))
+        try (JsonParser parser = factory.createParser(in))
         {
             while (true)
             {

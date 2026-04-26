@@ -26,9 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.JsonPointer;
-import jakarta.json.JsonStructure;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
@@ -36,72 +33,51 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
-class StreamingJsonTokenizerPathTest
+public class StreamingJsonTokenizerPathTest
 {
     @Test
-    void shouldTrackPathThroughObjectsAndArrays() throws IOException
+    public void shouldTrackPathThroughObjectsAndArrays() throws IOException
     {
         final String json = "{\"tools\":[{\"name\":\"X\"},{\"name\":\"Y\"}],\"id\":7}";
         final StreamingJsonTokenizer tokenizer = new StreamingJsonTokenizer();
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
-        // Capture path observed at each event in the order they fire
         final List<String> pathAtEvent = new ArrayList<>();
         final List<JsonParser.Event> events = new ArrayList<>();
         while (tokenizer.advance(in))
         {
-            // path is recorded immediately after each successful event consumption
             events.add(tokenizer.event());
             pathAtEvent.add(tokenizer.currentPath());
             tokenizer.clearEvent();
         }
 
-        // Sanity check on event sequence
         assertEquals(15, events.size(), "events: " + events);
-
-        // Spot-check key paths:
-        // [0]  START_OBJECT outer  -> "/" (entered outer object; key null)
         assertEquals("/", pathAtEvent.get(0));
-        // [1]  KEY_NAME "tools" -> /tools
         assertEquals("/tools", pathAtEvent.get(1));
-        // [2]  START_ARRAY -> /tools/0 (entered array; index 0)
         assertEquals("/tools/0", pathAtEvent.get(2));
-        // [3]  START_OBJECT item 0 -> /tools/0/ (entered nested object)
         assertEquals("/tools/0/", pathAtEvent.get(3));
-        // [4]  KEY_NAME "name" -> /tools/0/name
         assertEquals("/tools/0/name", pathAtEvent.get(4));
-        // [5]  VALUE_STRING "X" -> still /tools/0/name
         assertEquals("/tools/0/name", pathAtEvent.get(5));
-        // [6]  END_OBJECT closing item 0 -> /tools/1 (popped; index incremented)
         assertEquals("/tools/1", pathAtEvent.get(6));
-        // [7]  START_OBJECT item 1 -> /tools/1/
         assertEquals("/tools/1/", pathAtEvent.get(7));
-        // [8]  KEY_NAME "name"
         assertEquals("/tools/1/name", pathAtEvent.get(8));
-        // [9]  VALUE_STRING "Y"
         assertEquals("/tools/1/name", pathAtEvent.get(9));
-        // [10] END_OBJECT closing item 1 -> /tools/2 (popped; index incremented)
         assertEquals("/tools/2", pathAtEvent.get(10));
-        // [11] END_ARRAY closing tools -> /tools (popped array; outer object's most-recent key remains "tools")
         assertEquals("/tools", pathAtEvent.get(11));
-        // [12] KEY_NAME "id" -> /id
         assertEquals("/id", pathAtEvent.get(12));
-        // [13] VALUE_NUMBER 7 -> still /id
         assertEquals("/id", pathAtEvent.get(13));
-        // [14] END_OBJECT outer -> "" (popped; back at root)
         assertEquals("", pathAtEvent.get(14));
     }
 
     @Test
-    void shouldExposeFullPathForNestedObject() throws IOException
+    public void shouldExposeFullPathForNestedObject() throws IOException
     {
         final String json = "{\"a\":{\"b\":{\"c\":42}}}";
         final StreamingJsonTokenizer tokenizer = new StreamingJsonTokenizer();
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
-        // Walk to the VALUE_NUMBER event and check path
         String pathAtNumber = null;
         while (tokenizer.advance(in))
         {
@@ -115,14 +91,14 @@ class StreamingJsonTokenizerPathTest
     }
 
     @Test
-    void shouldCompilePathsAndMatchExpectedValues() throws IOException
+    public void shouldCompilePathsAndMatchExpectedValues() throws IOException
     {
-        final List<JsonPointer> includes = List.of(
-            stubPointer(""),                       // root
-            stubPointer("/tools/-/name"),          // wildcard array index
-            stubPointer("/tools/-/title"));
-        final List<JsonPointer> excludes = List.of(
-            stubPointer("/tools/-/title"));        // excludes win for title
+        final List<String> includes = List.of(
+            "",                       // root
+            "/tools/-/name",          // wildcard array index
+            "/tools/-/title");
+        final List<String> excludes = List.of(
+            "/tools/-/title");        // excludes win for title
 
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(includes, excludes, 1024);
@@ -131,25 +107,21 @@ class StreamingJsonTokenizerPathTest
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
-        // Walk all events; the parser must drive currentPathReadable() at every value
-        // entry, which exercises compilePaths + pathMatchesAny across both lists.
         int eventCount = 0;
         while (tokenizer.advance(in))
         {
             eventCount++;
             tokenizer.clearEvent();
         }
-        // Sanity: parser still emits the same event sequence under config
-        // ({, "tools", [, {, "name", "X", "title", "T", }, {, "name", "Y", }, ], })
         assertEquals(15, eventCount);
     }
 
     @Test
-    void shouldMatchPathSegmentWithEscapedSlashAndTilde() throws IOException
+    public void shouldMatchPathSegmentWithEscapedSlashAndTilde() throws IOException
     {
         // RFC 6901 escapes: "~1" decodes to "/", "~0" decodes to "~"
-        final List<JsonPointer> includes = List.of(
-            stubPointer("/a~1b/c~0d"));            // path of "/a/b" then "c~d"
+        final List<String> includes = List.of(
+            "/a~1b/c~0d");            // path of "/a/b" then "c~d"
 
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
@@ -167,15 +139,13 @@ class StreamingJsonTokenizerPathTest
             }
             tokenizer.clearEvent();
         }
-        // currentPath() re-encodes per RFC 6901, so "/" becomes "~1" and "~" becomes "~0"
         assertEquals("/a~1b/c~0d", observedPathAtNumber);
     }
 
     @Test
-    void shouldSuppressScratchForNonReadableValues() throws IOException
+    public void shouldSuppressScratchForNonReadableValues() throws IOException
     {
-        // Only /tools/-/name is readable; everything else is non-readable.
-        final List<JsonPointer> includes = List.of(stubPointer("/tools/-/name"));
+        final List<String> includes = List.of("/tools/-/name");
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(includes, List.of(), Integer.MAX_VALUE);
 
@@ -183,8 +153,6 @@ class StreamingJsonTokenizerPathTest
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
-        // Walk events; stringValue() is non-null only for KEY_NAME (always readable) and
-        // for the readable VALUE_STRING at /tools/0/name.
         final List<String> readableValues = new ArrayList<>();
         final List<JsonParser.Event> nonReadableValueEvents = new ArrayList<>();
         while (tokenizer.advance(in))
@@ -208,32 +176,27 @@ class StreamingJsonTokenizerPathTest
             }
             tokenizer.clearEvent();
         }
-        // Only "X" is readable; "a quite long description" is non-readable
         assertEquals(List.of("X"), readableValues);
         assertEquals(1, nonReadableValueEvents.size());
     }
 
     @Test
-    void shouldThrowFromGetStringForNonReadableValueAtParserLevel() throws IOException
+    public void shouldThrowFromGetStringForNonReadableValueAtParserLevel() throws IOException
     {
-        // Use the parser-level API with PATH_INCLUDES configured so that /tools/-/name is the
-        // only readable value path; everything else throws when getString() is called.
         final String json = "{\"tools\":[{\"name\":\"X\",\"description\":\"a long description\"}]}";
         final BufferedInputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
         final Map<String, Object> config = Map.of(
-            StreamingJson.PATH_INCLUDES, List.of(stubPointer("/tools/-/name")));
+            StreamingJson.PATH_INCLUDES, List.of("/tools/-/name"));
         final JsonParser parser = StreamingJson.createParser(in, config);
 
-        // Walk to the description value (non-readable) and verify getString throws.
         boolean sawNonReadableValue = false;
         while (parser.hasNext())
         {
             final JsonParser.Event ev = parser.next();
             if (ev == JsonParser.Event.KEY_NAME && "description".equals(parser.getString()))
             {
-                // The next VALUE_STRING event is at /tools/0/description (non-readable).
                 final JsonParser.Event next = parser.next();
                 assertEquals(JsonParser.Event.VALUE_STRING, next);
                 assertThrows(IllegalStateException.class, parser::getString);
@@ -248,11 +211,9 @@ class StreamingJsonTokenizerPathTest
     }
 
     @Test
-    void shouldThrowWhenReadableValueExceedsTokenMaxBytes() throws IOException
+    public void shouldThrowWhenReadableValueExceedsTokenMaxBytes() throws IOException
     {
-        // Configure PATH_INCLUDES to /payload and TOKEN_MAX_BYTES = 8.
-        // The "payload" string is 20 chars long, so the parser must throw before completing.
-        final List<JsonPointer> includes = List.of(stubPointer("/payload"));
+        final List<String> includes = List.of("/payload");
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(includes, List.of(), 8);
 
@@ -270,11 +231,9 @@ class StreamingJsonTokenizerPathTest
     }
 
     @Test
-    void shouldNotThrowWhenExcludedValueExceedsTokenMaxBytes() throws IOException
+    public void shouldNotThrowWhenExcludedValueExceedsTokenMaxBytes() throws IOException
     {
-        // Same large value but the path is now excluded, so scratch is never populated
-        // and TOKEN_MAX_BYTES does not apply.
-        final List<JsonPointer> excludes = List.of(stubPointer("/payload"));
+        final List<String> excludes = List.of("/payload");
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(List.of(), excludes, 8);
 
@@ -282,7 +241,6 @@ class StreamingJsonTokenizerPathTest
         final InputStream in = new BufferedInputStream(
             new ByteArrayInputStream(json.getBytes(UTF_8)));
 
-        // Walk the entire document without throwing; "id" value should still be readable.
         Long observedId = null;
         while (tokenizer.advance(in))
         {
@@ -296,7 +254,7 @@ class StreamingJsonTokenizerPathTest
     }
 
     @Test
-    void shouldHandleEmptyConfigAsLegacyBehavior() throws IOException
+    public void shouldHandleEmptyConfigAsLegacyBehavior() throws IOException
     {
         final StreamingJsonTokenizer tokenizer =
             new StreamingJsonTokenizer(List.of(), List.of(), Integer.MAX_VALUE);
@@ -312,60 +270,5 @@ class StreamingJsonTokenizerPathTest
             tokenizer.clearEvent();
         }
         assertEquals(5, events); // [, 1, 2, 3, ]
-    }
-
-    /**
-     * The tokenizer only consults JsonPointer.toString() to compile its match table; we
-     * stub the rest of the interface so tests do not need a JSON-Provider runtime impl
-     * (parsson, joy, etc.) on the test classpath.
-     */
-    private static JsonPointer stubPointer(
-        String s)
-    {
-        return new JsonPointer()
-        {
-            @Override
-            public String toString()
-            {
-                return s;
-            }
-
-            @Override
-            public <T extends JsonStructure> T add(
-                T target,
-                JsonValue value)
-            {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public <T extends JsonStructure> T remove(
-                T target)
-            {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public <T extends JsonStructure> T replace(
-                T target,
-                JsonValue value)
-            {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean containsValue(
-                JsonStructure target)
-            {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public JsonValue getValue(
-                JsonStructure target)
-            {
-                throw new UnsupportedOperationException();
-            }
-        };
     }
 }

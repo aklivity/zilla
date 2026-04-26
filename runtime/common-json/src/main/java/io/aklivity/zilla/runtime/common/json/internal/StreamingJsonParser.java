@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -56,12 +55,12 @@ public final class StreamingJsonParser implements JsonParser
     }
 
     @SuppressWarnings("unchecked")
-    private static List<JsonPointer> pathList(
+    private static List<String> pathList(
         Map<String, ?> config,
         String key)
     {
         final Object raw = config.get(key);
-        return raw == null ? List.of() : (List<JsonPointer>) raw;
+        return raw == null ? List.of() : (List<String>) raw;
     }
 
     private static int tokenMaxBytes(

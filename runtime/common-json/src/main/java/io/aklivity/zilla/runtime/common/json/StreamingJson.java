@@ -18,16 +18,19 @@ import java.io.InputStream;
 import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
 import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParser;
+import io.aklivity.zilla.runtime.common.json.internal.StreamingJsonParserFactory;
 
 public final class StreamingJson
 {
     /**
-     * Config key whose value is a {@code List<JsonPointer>} identifying document paths
-     * whose values must be readable via {@link JsonParser#getString()} after the
-     * corresponding event. The convention {@code -} as an array-index segment is treated
-     * as a wildcard matching any index (parser-internal extension to RFC 6901).
+     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
+     * identifying document paths whose values must be readable via {@link
+     * JsonParser#getString()} after the corresponding event. The convention {@code -} as an
+     * array-index segment is treated as a wildcard matching any index (parser-internal
+     * extension to RFC 6901).
      * <p>
      * Defaults to "every path included" when absent. When specified, only listed paths
      * (minus any matched by {@link #PATH_EXCLUDES}) are readable; values at all other
@@ -36,9 +39,9 @@ public final class StreamingJson
     public static final String PATH_INCLUDES = "io.aklivity.zilla.runtime.common.json.path.includes";
 
     /**
-     * Config key whose value is a {@code List<JsonPointer>} identifying document paths
-     * whose values are NOT required to be readable, even if matched by
-     * {@link #PATH_INCLUDES}. Excludes have final veto.
+     * Config key whose value is a {@code List<String>} of JSON Pointer (RFC 6901) syntax
+     * identifying document paths whose values are NOT required to be readable, even if
+     * matched by {@link #PATH_INCLUDES}. Excludes have final veto.
      */
     public static final String PATH_EXCLUDES = "io.aklivity.zilla.runtime.common.json.path.excludes";
 
@@ -67,5 +70,16 @@ public final class StreamingJson
         Map<String, ?> config)
     {
         return new StreamingJsonParser(in, config);
+    }
+
+    /**
+     * Mirrors {@link jakarta.json.Json#createParserFactory(Map)}. Construct once per
+     * factory class and reuse for the lifetime of the binding to avoid repeating config
+     * resolution on every stream.
+     */
+    public static JsonParserFactory createParserFactory(
+        Map<String, ?> config)
+    {
+        return new StreamingJsonParserFactory(config);
     }
 }

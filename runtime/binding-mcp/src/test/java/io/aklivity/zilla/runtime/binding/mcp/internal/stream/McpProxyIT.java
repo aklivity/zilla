@@ -47,6 +47,8 @@ public class McpProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    // lifecycle ----------------------------------------------------------------
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -76,6 +78,8 @@ public class McpProxyIT
         k3po.finish();
     }
 
+    // tools --------------------------------------------------------------------
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -83,6 +87,17 @@ public class McpProxyIT
         "${app}/tools.call/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.aborted/client",
+        "${app}/tools.call.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortCallTool() throws Exception
     {
         k3po.finish();
     }
@@ -100,13 +115,35 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${app}/tools.call.aborted/client",
-        "${app}/tools.call.aborted/server" })
+        "${app}/tools.list/client",
+        "${app}/tools.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldAbortCallTool() throws Exception
+    public void shouldListTools() throws Exception
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit/client",
+        "${app}/tools.list.toolkit/server" })
+    public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/tools.list.toolkit.multi/client",
+        "${app}/tools.list.toolkit.multi/server" })
+    public void shouldListToolsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // prompts ------------------------------------------------------------------
 
     @Test
     @Configuration("proxy.yaml")
@@ -115,17 +152,6 @@ public class McpProxyIT
         "${app}/prompts.get/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldGetPrompt() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${app}/resources.read/client",
-        "${app}/resources.read/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReadResource() throws Exception
     {
         k3po.finish();
     }
@@ -141,33 +167,55 @@ public class McpProxyIT
     }
 
     @Test
-    @Configuration("proxy.toolkit.yaml")
-    @Specification({
-        "${app}/resources.read.toolkit/client",
-        "${app}/resources.read.toolkit/server" })
-    public void shouldReadResourceWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${app}/tools.list/client",
-        "${app}/tools.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldListTools() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/prompts.list/client",
         "${app}/prompts.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/prompts.list.toolkit/client",
+        "${app}/prompts.list.toolkit/server" })
+    public void shouldListPromptsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/prompts.list.toolkit.multi/client",
+        "${app}/prompts.list.toolkit.multi/server" })
+    public void shouldListPromptsWithToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // resources ----------------------------------------------------------------
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read/client",
+        "${app}/resources.read/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/resources.read.toolkit/client",
+        "${app}/resources.read.toolkit/server" })
+    public void shouldReadResourceWithToolkit() throws Exception
     {
         k3po.finish();
     }
@@ -186,49 +234,9 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
-        "${app}/tools.list.toolkit/client",
-        "${app}/tools.list.toolkit/server" })
-    public void shouldListToolsWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.toolkit.yaml")
-    @Specification({
-        "${app}/prompts.list.toolkit/client",
-        "${app}/prompts.list.toolkit/server" })
-    public void shouldListPromptsWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.toolkit.yaml")
-    @Specification({
         "${app}/resources.list.toolkit/client",
         "${app}/resources.list.toolkit/server" })
     public void shouldListResourcesWithToolkit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.toolkit.multi.yaml")
-    @Specification({
-        "${app}/tools.list.toolkit.multi/client",
-        "${app}/tools.list.toolkit.multi/server" })
-    public void shouldListToolsWithToolkitMulti() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.toolkit.multi.yaml")
-    @Specification({
-        "${app}/prompts.list.toolkit.multi/client",
-        "${app}/prompts.list.toolkit.multi/server" })
-    public void shouldListPromptsWithToolkitMulti() throws Exception
     {
         k3po.finish();
     }

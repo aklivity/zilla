@@ -21,7 +21,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
@@ -86,8 +85,8 @@ public final class StreamingJsonTokenizer
     }
 
     public StreamingJsonTokenizer(
-        List<JsonPointer> pathIncludes,
-        List<JsonPointer> pathExcludes,
+        List<String> pathIncludes,
+        List<String> pathExcludes,
         int tokenMaxBytes)
     {
         this.pathIncludes = compilePaths(pathIncludes);
@@ -96,16 +95,15 @@ public final class StreamingJsonTokenizer
     }
 
     private static List<String[]> compilePaths(
-        List<JsonPointer> paths)
+        List<String> paths)
     {
         if (paths.isEmpty())
         {
             return List.of();
         }
         final List<String[]> compiled = new java.util.ArrayList<>(paths.size());
-        for (JsonPointer p : paths)
+        for (String s : paths)
         {
-            final String s = p.toString();
             if (s.isEmpty())
             {
                 compiled.add(new String[0]);

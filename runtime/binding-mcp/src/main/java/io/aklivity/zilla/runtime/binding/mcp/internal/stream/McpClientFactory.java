@@ -32,9 +32,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
-import jakarta.json.Json;
-import jakarta.json.JsonPointer;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -72,7 +71,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class McpClientFactory implements McpStreamFactory
 {
     private static final int SERVER_CAPABILITIES =
-        SERVER_TOOLS.value() | SERVER_PROMPTS.value() | SERVER_RESOURCES.value();
+        SERVER_TOOLS.value() |
+        SERVER_PROMPTS.value() |
+        SERVER_RESOURCES.value();
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -130,14 +131,10 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
-    // JSON paths whose values McpClientFactory reads via getString(). Configured on the
-    // StreamingJson parser so non-included values (notably /result subtree contents which
-    // pass through verbatim) scan without scratch accumulation. KEY_NAME tokens are
-    // always readable.
-    private static final List<JsonPointer> CLIENT_JSON_PATH_INCLUDES = List.of(
-        Json.createPointer("/jsonrpc"),
-        Json.createPointer("/id"));
-    private final Map<String, ?> clientJsonConfig;
+    private static final List<String> CLIENT_JSON_PATH_INCLUDES = List.of(
+        "/jsonrpc",
+        "/id");
+    private final JsonParserFactory jsonParserFactory;
 
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
@@ -166,9 +163,9 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
-        this.clientJsonConfig = Map.of(
+        this.jsonParserFactory = StreamingJson.createParserFactory(Map.of(
             StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
-            StreamingJson.TOKEN_MAX_BYTES, decodeMax);
+            StreamingJson.TOKEN_MAX_BYTES, decodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -261,7 +258,7 @@ public final class McpClientFactory implements McpStreamFactory
         DirectBufferInputStreamEx input = inputRO;
         input.wrap(buffer, offset, limit - offset);
 
-        http.decodableJson = StreamingJson.createParser(input, clientJsonConfig);
+        http.decodableJson = jsonParserFactory.createParser(input);
         http.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();
