@@ -23,7 +23,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -37,8 +39,10 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonPointer;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -59,6 +63,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -1721,37 +1726,85 @@ public final class McpProxyFactory implements McpStreamFactory
         case KIND_RESOURCES_LIST -> "resources";
         default -> null;
         };
-        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
-
-        byte[] result = jsonBytes;
-        if (arrayKey != null)
+        if (prefix.isEmpty() || arrayKey == null)
         {
-            try (JsonReader reader = Json.createReader(new ByteArrayInputStream(jsonBytes)))
+            return jsonBytes;
+        }
+        final String idKey = beginKind == KIND_RESOURCES_LIST ? "uri" : "name";
+        final JsonPointer idPath = Json.createPointer("/" + arrayKey + "/-/" + idKey);
+        final Map<String, ?> config = Map.of(
+            StreamingJson.PATH_INCLUDES, List.of(idPath),
+            StreamingJson.TOKEN_MAX_BYTES, jsonBytes.length);
+
+        final ByteArrayOutputStream out = new ByteArrayOutputStream(jsonBytes.length + 64);
+        final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
+        int lastEmitted = 0;
+        boolean awaitingIdValue = false;
+        int depth = 0;
+        int targetItemDepth = -1;
+
+        final BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(jsonBytes));
+        try (JsonParser parser = StreamingJson.createParser(in, config))
+        {
+            while (true)
             {
-                final JsonObject root = reader.readObject();
-                final JsonArray items = root.getJsonArray(arrayKey);
-                if (items != null)
+                final long beforeOffset = parser.getLocation().getStreamOffset();
+                if (!parser.hasNext())
                 {
-                    final JsonArrayBuilder transformed = Json.createArrayBuilder();
-                    for (JsonValue item : items)
+                    break;
+                }
+                final long afterOffset = parser.getLocation().getStreamOffset();
+                final JsonParser.Event ev = parser.next();
+                switch (ev)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    final String key = parser.getString();
+                    if (depth == 1 && arrayKey.equals(key))
                     {
-                        final JsonObject obj = item.asJsonObject();
-                        final JsonObjectBuilder builder = Json.createObjectBuilder(obj);
-                        final String oldId = obj.containsKey(idKey) ? obj.getString(idKey) : null;
-                        if (oldId != null)
-                        {
-                            builder.add(idKey, prefix + oldId);
-                        }
-                        transformed.add(builder.build());
+                        // next event will be START_ARRAY of the items array; items live at depth == 3
+                        targetItemDepth = 3;
                     }
-                    final JsonObjectBuilder rootBuilder = Json.createObjectBuilder(root);
-                    rootBuilder.add(arrayKey, transformed.build());
-                    result = rootBuilder.build().toString().getBytes(StandardCharsets.UTF_8);
+                    else if (depth == targetItemDepth && idKey.equals(key))
+                    {
+                        awaitingIdValue = true;
+                    }
+                    break;
+                case VALUE_STRING:
+                    if (awaitingIdValue)
+                    {
+                        awaitingIdValue = false;
+                        // bytes [beforeOffset..afterOffset) span ":<ws>\"<content>\"" — find opening quote
+                        int openingQuote = (int) beforeOffset;
+                        while (openingQuote < (int) afterOffset && jsonBytes[openingQuote] != '"')
+                        {
+                            openingQuote++;
+                        }
+                        final int contentStart = openingQuote + 1;
+                        // emit verbatim up to and including opening quote
+                        out.write(jsonBytes, lastEmitted, contentStart - lastEmitted);
+                        // splice prefix
+                        out.write(prefixBytes, 0, prefixBytes.length);
+                        // continue with original content + closing quote
+                        out.write(jsonBytes, contentStart, (int) afterOffset - contentStart);
+                        lastEmitted = (int) afterOffset;
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }
-
-        return result;
+        // emit any trailing bytes (typically empty for well-formed JSON)
+        out.write(jsonBytes, lastEmitted, jsonBytes.length - lastEmitted);
+        return out.toByteArray();
     }
 
     private static byte[] mergeListReplies(
