@@ -43,6 +43,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
@@ -74,6 +75,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final ResetFW resetRO = new ResetFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private final UnsafeBuffer itemRO = new UnsafeBuffer(0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -177,19 +179,17 @@ public final class McpProxyFactory implements McpStreamFactory
                 {
                     if (isListKind(kind))
                     {
-                        final List<McpRouteConfig> routes = binding.resolveAll(beginEx, authorization);
-                        final McpListServer server = new McpListServer(
-                            sender,
-                            originId,
-                            routedId,
+                        final List<McpRoutePrefix> prefixes = binding.resolveAll(beginEx, authorization)
+                            .stream()
+                            .map(r -> new McpRoutePrefix(r.id, r.prefix(kind)))
+                            .toList();
+                        newStream = new McpListServer(
+                            lifecycle,
+                            kind,
                             initialId,
                             affinity,
                             authorization,
-                            kind,
-                            lifecycle,
-                            routes,
-                            beginEx);
-                        newStream = server::onServerMessage;
+                            prefixes)::onServerMessage;
                     }
                     else
                     {
@@ -200,6 +200,8 @@ public final class McpProxyFactory implements McpStreamFactory
                             final String prefix = route.prefix(beginEx);
 
                             newStream = new McpServer(
+                                lifecycle,
+                                kind,
                                 sender,
                                 originId,
                                 routedId,
@@ -207,11 +209,8 @@ public final class McpProxyFactory implements McpStreamFactory
                                 route.id,
                                 affinity,
                                 authorization,
-                                kind,
                                 identifier,
-                                prefix,
-                                0,
-                                lifecycle)::onServerMessage;
+                                prefix)::onServerMessage;
                         }
                     }
                 }
@@ -223,6 +222,8 @@ public final class McpProxyFactory implements McpStreamFactory
 
     private final class McpServer
     {
+        private final McpLifecycleServer lifecycle;
+        private final int kind;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -230,17 +231,15 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final long resolvedId;
-        private final int kind;
-        private McpClient client;
         private final String identifier;
         private final String prefix;
-        private final int capabilities;
-        private final McpLifecycleServer lifecycle;
+        private final McpClient client;
 
         private int state;
 
         private McpServer(
+            McpLifecycleServer lifecycle,
+            int kind,
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -248,25 +247,21 @@ public final class McpProxyFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             long authorization,
-            int kind,
             String identifier,
-            String prefix,
-            int capabilities,
-            McpLifecycleServer lifecycle)
+            String prefix)
         {
+            this.lifecycle = lifecycle;
+            this.kind = kind;
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.resolvedId = resolvedId;
             this.affinity = affinity;
             this.authorization = authorization;
-            this.kind = kind;
             this.identifier = identifier;
             this.prefix = prefix;
-            this.capabilities = capabilities;
-            this.lifecycle = lifecycle;
+            this.client = new McpClient(this, resolvedId);
         }
 
         private String sessionId()
@@ -322,7 +317,6 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openingInitial(state);
 
-            this.client = new McpClient(this, resolvedId);
             client.doClientBegin(traceId);
 
             doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
@@ -350,11 +344,6 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
 
             client.doClientEnd(traceId);
-
-            if (kind == KIND_LIFECYCLE)
-            {
-                sessions.remove(lifecycle.sessionId);
-            }
         }
 
         private void onServerAbort(
@@ -365,11 +354,6 @@ public final class McpProxyFactory implements McpStreamFactory
             state = McpState.closedInitial(state);
 
             client.doClientAbort(traceId);
-
-            if (kind == KIND_LIFECYCLE)
-            {
-                sessions.remove(lifecycle.sessionId);
-            }
         }
 
         private void onServerFlush(
@@ -489,36 +473,26 @@ public final class McpProxyFactory implements McpStreamFactory
             lifecycle.doClientBegin(traceId);
 
             final String identifier = server.identifier;
-            final int capabilities = server.capabilities;
-            final boolean lifecycleKind = server.kind == KIND_LIFECYCLE;
             final String upstreamSessionId = lifecycle.sessionId;
-            final String outboundSessionId = lifecycleKind || upstreamSessionId == null
-                ? server.sessionId()
-                : upstreamSessionId;
+            final String outboundSessionId = upstreamSessionId != null
+                ? upstreamSessionId
+                : server.sessionId();
             final McpBeginExFW.Builder builder = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
             switch (server.kind)
             {
-            case KIND_LIFECYCLE -> builder
-                .lifecycle(l -> l.sessionId(outboundSessionId).capabilities(capabilities));
-            case KIND_TOOLS_LIST -> builder
-                .toolsList(t -> t.sessionId(outboundSessionId));
             case KIND_TOOLS_CALL -> builder
                 .toolsCall(t -> t.sessionId(outboundSessionId).name(identifier));
-            case KIND_PROMPTS_LIST -> builder
-                .promptsList(p -> p.sessionId(outboundSessionId));
             case KIND_PROMPTS_GET -> builder
                 .promptsGet(p -> p.sessionId(outboundSessionId).name(identifier));
-            case KIND_RESOURCES_LIST -> builder
-                .resourcesList(r -> r.sessionId(outboundSessionId));
             case KIND_RESOURCES_READ -> builder
                 .resourcesRead(r -> r.sessionId(outboundSessionId).uri(identifier));
             default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.kind);
             }
             final McpBeginExFW beginEx = builder.build();
 
-            sender = newStream(this::onClientMessage, server.originId, resolvedId, initialId,
+            sender = newStream(this::onClientMessage, server.lifecycle.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
         }
@@ -534,7 +508,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.closed(state))
             {
-                doData(sender, server.originId, resolvedId, initialId,
+                doData(sender, server.lifecycle.originId, resolvedId, initialId,
                     traceId, server.authorization, budgetId, flags, reserved, payload, offset, length);
             }
         }
@@ -544,7 +518,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                doEnd(sender, server.originId, resolvedId, initialId,
+                doEnd(sender, server.lifecycle.originId, resolvedId, initialId,
                     traceId, server.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -555,7 +529,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                doAbort(sender, server.originId, resolvedId, initialId,
+                doAbort(sender, server.lifecycle.originId, resolvedId, initialId,
                     traceId, server.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -567,7 +541,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int credit,
             int padding)
         {
-            doWindow(sender, server.originId, resolvedId, replyId,
+            doWindow(sender, server.lifecycle.originId, resolvedId, replyId,
                 traceId, server.authorization, budgetId, credit, padding);
         }
 
@@ -576,7 +550,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                doReset(sender, server.originId, resolvedId, replyId,
+                doReset(sender, server.lifecycle.originId, resolvedId, replyId,
                     traceId, server.authorization);
                 state = McpState.closedReply(state);
             }
@@ -645,26 +619,13 @@ public final class McpProxyFactory implements McpStreamFactory
 
             switch (beginEx.kind())
             {
-            case KIND_LIFECYCLE:
-                final int caps = beginEx.lifecycle().capabilities();
-                builder.lifecycle(l -> l.sessionId(sid).capabilities(caps));
-                break;
-            case KIND_TOOLS_LIST:
-                builder.toolsList(t -> t.sessionId(sid));
-                break;
             case KIND_TOOLS_CALL:
                 final String toolName = beginEx.toolsCall().name().asString();
                 builder.toolsCall(t -> t.sessionId(sid).name(toolName));
                 break;
-            case KIND_PROMPTS_LIST:
-                builder.promptsList(p -> p.sessionId(sid));
-                break;
             case KIND_PROMPTS_GET:
                 final String promptName = beginEx.promptsGet().name().asString();
                 builder.promptsGet(p -> p.sessionId(sid).name(promptName));
-                break;
-            case KIND_RESOURCES_LIST:
-                builder.resourcesList(r -> r.sessionId(sid));
                 break;
             case KIND_RESOURCES_READ:
                 final String uri = beginEx.resourcesRead().uri().asString();
@@ -885,7 +846,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final class McpLifecycleClient
     {
         private final McpLifecycleServer server;
-        private final long exitId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
 
@@ -895,11 +856,11 @@ public final class McpProxyFactory implements McpStreamFactory
 
         private McpLifecycleClient(
             McpLifecycleServer server,
-            long exitId)
+            long routedId)
         {
             this.server = server;
-            this.exitId = exitId;
-            this.initialId = supplyInitialId.applyAsLong(exitId);
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -908,6 +869,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialOpening(state))
             {
+                final long originId = server.routedId;
                 final String sid = server.sessionId;
                 final int clientCapabilities = server.clientCapabilities;
                 final McpBeginExFW beginEx = mcpBeginExRW
@@ -916,7 +878,7 @@ public final class McpProxyFactory implements McpStreamFactory
                     .lifecycle(l -> l.sessionId(sid).capabilities(clientCapabilities))
                     .build();
 
-                sender = newStream(this::onClientMessage, server.originId, exitId, initialId,
+                sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     traceId, server.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
             }
@@ -927,8 +889,31 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                doEnd(sender, server.originId, exitId, initialId, traceId, server.authorization);
+                final long originId = server.routedId;
+                doEnd(sender, originId, routedId, initialId, traceId, server.authorization);
                 state = McpState.closedInitial(state);
+            }
+        }
+
+        private void doClientAbort(
+            long traceId)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                final long originId = server.routedId;
+                doAbort(sender, originId, routedId, initialId, traceId, server.authorization);
+                state = McpState.closedInitial(state);
+            }
+        }
+
+        private void doClientReset(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                final long originId = server.routedId;
+                doReset(sender, originId, routedId, replyId, traceId, server.authorization);
+                state = McpState.closedReply(state);
             }
         }
 
@@ -970,6 +955,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onClientBegin(
             BeginFW begin)
         {
+            final long originId = server.routedId;
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
@@ -985,7 +971,7 @@ public final class McpProxyFactory implements McpStreamFactory
                 }
             }
 
-            doWindow(sender, server.originId, exitId, replyId, traceId, server.authorization, 0,
+            doWindow(sender, originId, routedId, replyId, traceId, server.authorization, 0,
                 writeBuffer.capacity(), 0);
 
             state = McpState.openedReply(state);
@@ -994,19 +980,28 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onClientEnd(
             EndFW end)
         {
+            final long traceId = end.traceId();
             state = McpState.closedReply(state);
+            doClientEnd(traceId);
+            server.clients.remove(routedId, this);
         }
 
         private void onClientAbort(
             AbortFW abort)
         {
+            final long traceId = abort.traceId();
             state = McpState.closedReply(state);
+            doClientAbort(traceId);
+            server.clients.remove(routedId, this);
         }
 
         private void onClientReset(
             ResetFW reset)
         {
+            final long traceId = reset.traceId();
             state = McpState.closedInitial(state);
+            doClientReset(traceId);
+            server.clients.remove(routedId, this);
         }
     }
 
@@ -1074,7 +1069,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             final McpBeginExFW beginEx = builder.build();
 
-            sender = newStream(this::onClientMessage, server.originId, resolvedId, initialId,
+            sender = newStream(this::onClientMessage, server.lifecycle.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
             state = McpState.openingInitial(state);
         }
@@ -1084,7 +1079,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                doEnd(sender, server.originId, resolvedId, initialId,
+                doEnd(sender, server.lifecycle.originId, resolvedId, initialId,
                     traceId, server.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -1095,7 +1090,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                doAbort(sender, server.originId, resolvedId, initialId,
+                doAbort(sender, server.lifecycle.originId, resolvedId, initialId,
                     traceId, server.authorization);
                 state = McpState.closedInitial(state);
             }
@@ -1106,7 +1101,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                doReset(sender, server.originId, resolvedId, replyId,
+                doReset(sender, server.lifecycle.originId, resolvedId, replyId,
                     traceId, server.authorization);
                 state = McpState.closedReply(state);
             }
@@ -1152,7 +1147,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long traceId = begin.traceId();
             state = McpState.openedInitial(state);
-            doWindow(sender, server.originId, resolvedId, replyId, traceId,
+            doWindow(sender, server.lifecycle.originId, resolvedId, replyId, traceId,
                 server.authorization, 0, writeBuffer.capacity(), 0);
         }
 
@@ -1165,7 +1160,7 @@ public final class McpProxyFactory implements McpStreamFactory
             if (!appended)
             {
                 state = McpState.closedReply(state);
-                server.onClientError(this, traceId);
+                server.onClientError(traceId);
                 return;
             }
             streamItems(traceId);
@@ -1179,7 +1174,7 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 state = McpState.closedReply(state);
                 cleanupClientSlot();
-                server.onClientClosed(this, traceId);
+                server.onClientClosed(traceId);
             }
         }
 
@@ -1191,7 +1186,7 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 state = McpState.closedReply(state);
                 cleanupClientSlot();
-                server.onClientError(this, traceId);
+                server.onClientError(traceId);
             }
         }
 
@@ -1203,7 +1198,7 @@ public final class McpProxyFactory implements McpStreamFactory
             if (!McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
-                server.onClientError(this, traceId);
+                server.onClientError(traceId);
             }
         }
 
@@ -1441,61 +1436,46 @@ public final class McpProxyFactory implements McpStreamFactory
     private static final JsonParserFactory RESOURCES_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
         Map.of(StreamingJson.PATH_INCLUDES, List.of("/resources/-/uri")));
 
-    private static final byte[] LIST_REPLY_TOOLS_OPEN = "{\"tools\":[".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] LIST_REPLY_PROMPTS_OPEN = "{\"prompts\":[".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] LIST_REPLY_RESOURCES_OPEN = "{\"resources\":[".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] LIST_REPLY_CLOSE = "]}".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] LIST_REPLY_SEPARATOR = ",".getBytes(StandardCharsets.UTF_8);
-
-    private record PendingRoute(
-        long resolvedId,
-        String prefix)
-    {
-    }
+    private static final DirectBuffer LIST_REPLY_TOOLS_OPEN_RO =
+        new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
+    private static final DirectBuffer LIST_REPLY_PROMPTS_OPEN_RO =
+        new UnsafeBuffer("{\"prompts\":[".getBytes(StandardCharsets.UTF_8));
+    private static final DirectBuffer LIST_REPLY_RESOURCES_OPEN_RO =
+        new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
+    private static final DirectBuffer LIST_REPLY_CLOSE_RO =
+        new UnsafeBuffer("]}".getBytes(StandardCharsets.UTF_8));
+    private static final DirectBuffer LIST_REPLY_SEPARATOR_RO =
+        new UnsafeBuffer(",".getBytes(StandardCharsets.UTF_8));
 
     private final class McpListServer
     {
-        private final MessageConsumer sender;
-        private final long originId;
-        private final long routedId;
+        private final McpLifecycleServer lifecycle;
+        private final int kind;
         private final long initialId;
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final int kind;
-        private final McpLifecycleServer lifecycle;
-        private final Deque<PendingRoute> remaining;
+        private final Deque<McpRoutePrefix> remaining;
 
         private int state;
         private int itemsEmitted;
-        private McpListClient currentClient;
+        private McpListClient client;
 
         private McpListServer(
-            MessageConsumer sender,
-            long originId,
-            long routedId,
+            McpLifecycleServer lifecycle,
+            int kind,
             long initialId,
             long affinity,
             long authorization,
-            int kind,
-            McpLifecycleServer lifecycle,
-            List<McpRouteConfig> routes,
-            McpBeginExFW beginEx)
+            List<McpRoutePrefix> prefixes)
         {
-            this.sender = sender;
-            this.originId = originId;
-            this.routedId = routedId;
+            this.lifecycle = lifecycle;
+            this.kind = kind;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.kind = kind;
-            this.lifecycle = lifecycle;
-            this.remaining = new ArrayDeque<>(routes.size());
-            for (final McpRouteConfig route : routes)
-            {
-                remaining.add(new PendingRoute(route.id, route.prefix(beginEx)));
-            }
+            this.remaining = new ArrayDeque<>(prefixes);
         }
 
         private void onServerMessage(
@@ -1535,11 +1515,11 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = begin.traceId();
             state = McpState.openingInitial(state);
 
-            doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
+            doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, traceId, authorization, 0,
                 writeBuffer.capacity(), 0);
 
             doServerBegin(traceId);
-            emitPrelude(traceId);
+            doEncodeBeginItems(traceId);
             onNextClient(traceId);
         }
 
@@ -1549,9 +1529,9 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = end.traceId();
             state = McpState.closedInitial(state);
 
-            if (currentClient != null)
+            if (client != null)
             {
-                currentClient.doClientEnd(traceId);
+                client.doClientEnd(traceId);
             }
         }
 
@@ -1561,9 +1541,9 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = abort.traceId();
             state = McpState.closedInitial(state);
 
-            if (currentClient != null)
+            if (client != null)
             {
-                currentClient.doClientAbort(traceId);
+                client.doClientAbort(traceId);
             }
             remaining.clear();
         }
@@ -1574,26 +1554,24 @@ public final class McpProxyFactory implements McpStreamFactory
             final long traceId = reset.traceId();
             state = McpState.closedReply(state);
 
-            if (currentClient != null)
+            if (client != null)
             {
-                currentClient.doClientReset(traceId);
+                client.doClientReset(traceId);
             }
             remaining.clear();
         }
 
         private void onClientClosed(
-            McpListClient client,
             long traceId)
         {
-            currentClient = null;
+            client = null;
             onNextClient(traceId);
         }
 
         private void onClientError(
-            McpListClient client,
             long traceId)
         {
-            currentClient = null;
+            client = null;
             remaining.clear();
             doServerAbort(traceId);
         }
@@ -1601,17 +1579,17 @@ public final class McpProxyFactory implements McpStreamFactory
         private void onNextClient(
             long traceId)
         {
-            final PendingRoute route = remaining.poll();
+            final McpRoutePrefix route = remaining.poll();
             if (route == null)
             {
-                closeReply(traceId);
+                doEncodeEndItems(traceId);
                 return;
             }
-            currentClient = new McpListClient(this, route.resolvedId(), route.prefix());
-            currentClient.doClientBegin(traceId);
+            client = new McpListClient(this, route.resolvedId(), route.prefix());
+            client.doClientBegin(traceId);
             if (McpState.initialClosed(state))
             {
-                currentClient.doClientEnd(traceId);
+                client.doClientEnd(traceId);
             }
         }
 
@@ -1623,33 +1601,32 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (itemsEmitted > 0)
             {
-                final UnsafeBuffer sep = new UnsafeBuffer(LIST_REPLY_SEPARATOR);
-                doServerData(traceId, 0L, 0x03, sep.capacity(), sep, 0, sep.capacity());
+                doServerData(traceId, 0L, 0x03, LIST_REPLY_SEPARATOR_RO.capacity(),
+                    LIST_REPLY_SEPARATOR_RO, 0, LIST_REPLY_SEPARATOR_RO.capacity());
             }
-            final UnsafeBuffer itemBuffer = new UnsafeBuffer(item, offset, length);
-            doServerData(traceId, 0L, 0x03, length, itemBuffer, 0, length);
+            itemRO.wrap(item, offset, length);
+            doServerData(traceId, 0L, 0x03, length, itemRO, 0, length);
             itemsEmitted++;
         }
 
-        private void emitPrelude(
+        private void doEncodeBeginItems(
             long traceId)
         {
-            final byte[] preludeBytes = switch (kind)
+            final DirectBuffer prelude = switch (kind)
             {
-            case KIND_TOOLS_LIST -> LIST_REPLY_TOOLS_OPEN;
-            case KIND_PROMPTS_LIST -> LIST_REPLY_PROMPTS_OPEN;
-            case KIND_RESOURCES_LIST -> LIST_REPLY_RESOURCES_OPEN;
+            case KIND_TOOLS_LIST -> LIST_REPLY_TOOLS_OPEN_RO;
+            case KIND_PROMPTS_LIST -> LIST_REPLY_PROMPTS_OPEN_RO;
+            case KIND_RESOURCES_LIST -> LIST_REPLY_RESOURCES_OPEN_RO;
             default -> throw new IllegalStateException("unexpected list kind: " + kind);
             };
-            final UnsafeBuffer buf = new UnsafeBuffer(preludeBytes);
-            doServerData(traceId, 0L, 0x03, preludeBytes.length, buf, 0, preludeBytes.length);
+            doServerData(traceId, 0L, 0x03, prelude.capacity(), prelude, 0, prelude.capacity());
         }
 
-        private void closeReply(
+        private void doEncodeEndItems(
             long traceId)
         {
-            final UnsafeBuffer buf = new UnsafeBuffer(LIST_REPLY_CLOSE);
-            doServerData(traceId, 0L, 0x03, buf.capacity(), buf, 0, buf.capacity());
+            doServerData(traceId, 0L, 0x03, LIST_REPLY_CLOSE_RO.capacity(),
+                LIST_REPLY_CLOSE_RO, 0, LIST_REPLY_CLOSE_RO.capacity());
             doServerEnd(traceId);
         }
 
@@ -1669,7 +1646,8 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             final McpBeginExFW beginEx = builder.build();
 
-            doBegin(sender, originId, routedId, replyId, traceId, authorization, affinity, beginEx);
+            doBegin(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, traceId, authorization,
+                affinity, beginEx);
             state = McpState.openedReply(state);
         }
 
@@ -1682,7 +1660,7 @@ public final class McpProxyFactory implements McpStreamFactory
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, traceId, authorization,
+            doData(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, traceId, authorization,
                 budgetId, flags, reserved, payload, offset, length);
         }
 
@@ -1691,7 +1669,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, traceId, authorization);
+                doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, traceId, authorization);
                 state = McpState.closedReply(state);
             }
         }
@@ -1701,7 +1679,7 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, traceId, authorization);
+                doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, traceId, authorization);
                 state = McpState.closedReply(state);
             }
         }

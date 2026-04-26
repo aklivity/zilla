@@ -113,7 +113,18 @@ public final class McpRouteConfig
     public String prefix(
         McpBeginExFW beginEx)
     {
-        final String capability = capabilityOf(beginEx);
+        return prefix(capabilityOf(beginEx));
+    }
+
+    public String prefix(
+        int kind)
+    {
+        return prefix(capabilityOf(kind));
+    }
+
+    private String prefix(
+        String capability)
+    {
         String result = "";
 
         if (capability != null && !matchers.isEmpty())
@@ -176,7 +187,13 @@ public final class McpRouteConfig
     static String capabilityOf(
         McpBeginExFW beginEx)
     {
-        return switch (beginEx.kind())
+        return capabilityOf(beginEx.kind());
+    }
+
+    static String capabilityOf(
+        int kind)
+    {
+        return switch (kind)
         {
         case KIND_TOOLS_LIST, KIND_TOOLS_CALL -> CAPABILITY_TOOLS;
         case KIND_PROMPTS_LIST, KIND_PROMPTS_GET -> CAPABILITY_PROMPTS;
