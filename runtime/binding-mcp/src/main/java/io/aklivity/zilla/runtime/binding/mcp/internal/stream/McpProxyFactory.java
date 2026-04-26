@@ -284,8 +284,9 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long authorization;
-        private final McpClient client;
+        private final long resolvedId;
         private final int kind;
+        private McpClient client;
         private final String sessionId;
         private final String identifier;
         private final String prefix;
@@ -316,6 +317,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.resolvedId = resolvedId;
             this.affinity = affinity;
             this.authorization = authorization;
             this.kind = kind;
@@ -325,7 +327,6 @@ public final class McpProxyFactory implements McpStreamFactory
             this.capabilities = capabilities;
             this.session = session;
             this.exit = exit;
-            this.client = new McpClient(this, resolvedId);
         }
 
         private void onServerMessage(
@@ -395,7 +396,7 @@ public final class McpProxyFactory implements McpStreamFactory
         public void proceed(
             long traceId)
         {
-            client.doClientBegin(traceId);
+            this.client = new McpClient(this, resolvedId, traceId);
 
             doWindow(sender, originId, routedId, initialId, traceId, authorization, 0,
                 writeBuffer.capacity(), 0);
@@ -537,25 +538,21 @@ public final class McpProxyFactory implements McpStreamFactory
         private final McpServer server;
         private final long resolvedId;
 
-        private long initialId;
-        private long replyId;
-        private MessageConsumer sender;
+        private final long initialId;
+        private final long replyId;
+        private final MessageConsumer sender;
 
         private int state;
 
         private McpClient(
             McpServer server,
-            long resolvedId)
+            long resolvedId,
+            long traceId)
         {
             this.server = server;
             this.resolvedId = resolvedId;
-        }
-
-        private void doClientBegin(
-            long traceId)
-        {
-            initialId = supplyInitialId.applyAsLong(resolvedId);
-            replyId = supplyReplyId.applyAsLong(initialId);
+            this.initialId = supplyInitialId.applyAsLong(resolvedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
 
             final String identifier = server.identifier;
             final int capabilities = server.capabilities;
@@ -586,9 +583,9 @@ public final class McpProxyFactory implements McpStreamFactory
             }
             final McpBeginExFW beginEx = builder.build();
 
-            sender = newStream(this::onClientMessage, server.originId, resolvedId, initialId,
+            this.sender = newStream(this::onClientMessage, server.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
-            state = McpState.openingInitial(state);
+            this.state = McpState.openingInitial(0);
         }
 
         private void doClientData(
@@ -711,39 +708,37 @@ public final class McpProxyFactory implements McpStreamFactory
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId);
 
-            return switch (beginEx.kind())
+            switch (beginEx.kind())
             {
-            case KIND_LIFECYCLE ->
-            {
+            case KIND_LIFECYCLE:
                 final int caps = beginEx.lifecycle().capabilities();
-                yield builder.lifecycle(l -> l.sessionId(sid).capabilities(caps)).build();
-            }
-            case KIND_TOOLS_LIST -> builder
-                .toolsList(t -> t.sessionId(sid))
-                .build();
-            case KIND_TOOLS_CALL ->
-            {
-                final String name = beginEx.toolsCall().name().asString();
-                yield builder.toolsCall(t -> t.sessionId(sid).name(name)).build();
-            }
-            case KIND_PROMPTS_LIST -> builder
-                .promptsList(p -> p.sessionId(sid))
-                .build();
-            case KIND_PROMPTS_GET ->
-            {
-                final String name = beginEx.promptsGet().name().asString();
-                yield builder.promptsGet(p -> p.sessionId(sid).name(name)).build();
-            }
-            case KIND_RESOURCES_LIST -> builder
-                .resourcesList(r -> r.sessionId(sid))
-                .build();
-            case KIND_RESOURCES_READ ->
-            {
+                builder.lifecycle(l -> l.sessionId(sid).capabilities(caps));
+                break;
+            case KIND_TOOLS_LIST:
+                builder.toolsList(t -> t.sessionId(sid));
+                break;
+            case KIND_TOOLS_CALL:
+                final String toolName = beginEx.toolsCall().name().asString();
+                builder.toolsCall(t -> t.sessionId(sid).name(toolName));
+                break;
+            case KIND_PROMPTS_LIST:
+                builder.promptsList(p -> p.sessionId(sid));
+                break;
+            case KIND_PROMPTS_GET:
+                final String promptName = beginEx.promptsGet().name().asString();
+                builder.promptsGet(p -> p.sessionId(sid).name(promptName));
+                break;
+            case KIND_RESOURCES_LIST:
+                builder.resourcesList(r -> r.sessionId(sid));
+                break;
+            case KIND_RESOURCES_READ:
                 final String uri = beginEx.resourcesRead().uri().asString();
-                yield builder.resourcesRead(r -> r.sessionId(sid).uri(uri)).build();
+                builder.resourcesRead(r -> r.sessionId(sid).uri(uri));
+                break;
+            default:
+                return beginEx;
             }
-            default -> beginEx;
-            };
+            return builder.build();
         }
 
         private void onClientData(
