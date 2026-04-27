@@ -478,20 +478,20 @@ public final class McpProxyFactory implements McpStreamFactory
             final String outboundSessionId = upstreamSessionId != null
                 ? upstreamSessionId
                 : server.sessionId();
-            final McpBeginExFW.Builder builder = mcpBeginExRW
+            final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId);
-            switch (server.kind)
-            {
-            case KIND_TOOLS_CALL -> builder
-                .toolsCall(t -> t.sessionId(outboundSessionId).name(identifier));
-            case KIND_PROMPTS_GET -> builder
-                .promptsGet(p -> p.sessionId(outboundSessionId).name(identifier));
-            case KIND_RESOURCES_READ -> builder
-                .resourcesRead(r -> r.sessionId(outboundSessionId).uri(identifier));
-            default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.kind);
-            }
-            final McpBeginExFW beginEx = builder.build();
+                .typeId(mcpTypeId)
+                .inject(b ->
+                {
+                    switch (server.kind)
+                    {
+                    case KIND_TOOLS_CALL -> b.toolsCall(t -> t.sessionId(outboundSessionId).name(identifier));
+                    case KIND_PROMPTS_GET -> b.promptsGet(p -> p.sessionId(outboundSessionId).name(identifier));
+                    case KIND_RESOURCES_READ -> b.resourcesRead(r -> r.sessionId(outboundSessionId).uri(identifier));
+                    default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + server.kind);
+                    }
+                })
+                .build();
 
             sender = newStream(this::onClientMessage, server.lifecycle.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
@@ -613,29 +613,30 @@ public final class McpProxyFactory implements McpStreamFactory
         private Flyweight rewriteReplyBeginEx(
             McpBeginExFW beginEx)
         {
-            final String sid = server.sessionId();
-            final McpBeginExFW.Builder builder = mcpBeginExRW
-                .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId);
-
-            switch (beginEx.kind())
+            final int kind = beginEx.kind();
+            if (kind != KIND_TOOLS_CALL && kind != KIND_PROMPTS_GET && kind != KIND_RESOURCES_READ)
             {
-            case KIND_TOOLS_CALL:
-                final String toolName = beginEx.toolsCall().name().asString();
-                builder.toolsCall(t -> t.sessionId(sid).name(toolName));
-                break;
-            case KIND_PROMPTS_GET:
-                final String promptName = beginEx.promptsGet().name().asString();
-                builder.promptsGet(p -> p.sessionId(sid).name(promptName));
-                break;
-            case KIND_RESOURCES_READ:
-                final String uri = beginEx.resourcesRead().uri().asString();
-                builder.resourcesRead(r -> r.sessionId(sid).uri(uri));
-                break;
-            default:
                 return beginEx;
             }
-            return builder.build();
+
+            final String sid = server.sessionId();
+            return mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .inject(b ->
+                {
+                    switch (kind)
+                    {
+                    case KIND_TOOLS_CALL ->
+                        b.toolsCall(t -> t.sessionId(sid).name(beginEx.toolsCall().name().asString()));
+                    case KIND_PROMPTS_GET ->
+                        b.promptsGet(p -> p.sessionId(sid).name(beginEx.promptsGet().name().asString()));
+                    case KIND_RESOURCES_READ ->
+                        b.resourcesRead(r -> r.sessionId(sid).uri(beginEx.resourcesRead().uri().asString()));
+                    default -> throw new IllegalStateException("unexpected McpBeginEx kind: " + kind);
+                    }
+                })
+                .build();
         }
 
         private void onClientData(
@@ -1057,17 +1058,20 @@ public final class McpProxyFactory implements McpStreamFactory
 
             final String upstreamSessionId = lifecycle.sessionId;
             final String sid = upstreamSessionId != null ? upstreamSessionId : server.lifecycle.sessionId;
-            final McpBeginExFW.Builder builder = mcpBeginExRW
+            final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId);
-            switch (server.kind)
-            {
-            case KIND_TOOLS_LIST -> builder.toolsList(t -> t.sessionId(sid));
-            case KIND_PROMPTS_LIST -> builder.promptsList(p -> p.sessionId(sid));
-            case KIND_RESOURCES_LIST -> builder.resourcesList(r -> r.sessionId(sid));
-            default -> throw new IllegalStateException("unexpected list kind: " + server.kind);
-            }
-            final McpBeginExFW beginEx = builder.build();
+                .typeId(mcpTypeId)
+                .inject(b ->
+                {
+                    switch (server.kind)
+                    {
+                    case KIND_TOOLS_LIST -> b.toolsList(t -> t.sessionId(sid));
+                    case KIND_PROMPTS_LIST -> b.promptsList(p -> p.sessionId(sid));
+                    case KIND_RESOURCES_LIST -> b.resourcesList(r -> r.sessionId(sid));
+                    default -> throw new IllegalStateException("unexpected list kind: " + server.kind);
+                    }
+                })
+                .build();
 
             sender = newStream(this::onClientMessage, server.lifecycle.originId, resolvedId, initialId,
                 traceId, server.authorization, server.affinity, beginEx);
@@ -1820,17 +1824,20 @@ public final class McpProxyFactory implements McpStreamFactory
             long traceId)
         {
             final String sid = lifecycle.sessionId;
-            final McpBeginExFW.Builder builder = mcpBeginExRW
+            final McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
-                .typeId(mcpTypeId);
-            switch (kind)
-            {
-            case KIND_TOOLS_LIST -> builder.toolsList(t -> t.sessionId(sid));
-            case KIND_PROMPTS_LIST -> builder.promptsList(p -> p.sessionId(sid));
-            case KIND_RESOURCES_LIST -> builder.resourcesList(r -> r.sessionId(sid));
-            default -> throw new IllegalStateException("unexpected list kind: " + kind);
-            }
-            final McpBeginExFW beginEx = builder.build();
+                .typeId(mcpTypeId)
+                .inject(b ->
+                {
+                    switch (kind)
+                    {
+                    case KIND_TOOLS_LIST -> b.toolsList(t -> t.sessionId(sid));
+                    case KIND_PROMPTS_LIST -> b.promptsList(p -> p.sessionId(sid));
+                    case KIND_RESOURCES_LIST -> b.resourcesList(r -> r.sessionId(sid));
+                    default -> throw new IllegalStateException("unexpected list kind: " + kind);
+                    }
+                })
+                .build();
 
             doBegin(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, traceId, authorization,
                 affinity, beginEx);
