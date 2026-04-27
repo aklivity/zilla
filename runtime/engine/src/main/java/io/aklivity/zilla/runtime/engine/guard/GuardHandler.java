@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import java.util.Set;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -135,4 +137,47 @@ public interface GuardHandler
     boolean challenge(
         long sessionId,
         long now);
+
+    /**
+     * If this guard requires user interaction to acquire credentials (e.g. an interactive
+     * OAuth consent flow), returns the URL the user must visit. Returns {@code null} for
+     * guards that never require user interaction; the default implementation returns
+     * {@code null}.
+     * <p>
+     * A caller may invoke this after {@link #reauthorize} returns {@link #NOT_AUTHORIZED}
+     * to recover an authorization URL to surface upstream.
+     * </p>
+     *
+     * @param traceId    the trace identifier for diagnostics
+     * @param bindingId  the binding identifier requesting authorization
+     * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
+     * @param credentials  the raw credential string associated with the request
+     * @return the URL the user must visit, or {@code null} if not applicable
+     */
+    default String elicitation(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials)
+    {
+        return null;
+    }
+
+    /**
+     * Roles this authorization context currently holds on this guard, in upstream-native
+     * unprefixed form. Read-only — never triggers a token exchange or other side effect.
+     * <p>
+     * Returns an empty set if no stored authorization exists for the resolved subject.
+     * Intended for filter-time evaluation (e.g. {@code mcp · cache} listing operations)
+     * where running an exchange would be incorrect.
+     * </p>
+     *
+     * @param sessionId  the session identifier
+     * @return the set of roles held by the session, or an empty set
+     */
+    default Set<String> roles(
+        long sessionId)
+    {
+        return Set.of();
+    }
 }

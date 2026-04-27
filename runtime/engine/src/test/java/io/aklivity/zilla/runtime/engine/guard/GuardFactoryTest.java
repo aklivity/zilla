@@ -15,13 +15,20 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.util.Set;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardHandler;
 
 public final class GuardFactoryTest
 {
@@ -33,5 +40,23 @@ public final class GuardFactoryTest
         Guard guard = factory.create("test", config);
 
         assertThat(guard, instanceOf(TestGuard.class));
+    }
+
+    @Test
+    public void shouldReturnNullElicitationByDefault()
+    {
+        GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+
+        assertThat(handler.elicitation(0L, 0L, 0L, null), nullValue());
+    }
+
+    @Test
+    public void shouldReturnEmptyRolesByDefault()
+    {
+        GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+
+        assertThat(handler.roles(0L), equalTo(Set.of()));
     }
 }
