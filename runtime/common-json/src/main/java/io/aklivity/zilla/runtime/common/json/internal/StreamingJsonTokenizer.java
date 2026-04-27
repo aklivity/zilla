@@ -374,9 +374,9 @@ public final class StreamingJsonTokenizer
 
     private String takeScratch()
     {
-        String s = scratch.toString();
+        String path = scratch.toString();
         scratch.setLength(0);
-        return s;
+        return path;
     }
 
     private void consumeValue(
