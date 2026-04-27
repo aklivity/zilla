@@ -442,4 +442,32 @@ public class FlatFWTest
         assertEquals("", flatRO.string4().asString());
     }
 
+    @Test
+    public void shouldChainViaInjectPreservingBuilderType() throws Exception
+    {
+        final boolean withFixed4 = true;
+        int limit = flatRW.wrap(buffer, 0, buffer.capacity())
+            .fixed1(10)
+            .fixed2(20)
+            .string1("value1")
+            .fixed3(30)
+            .string2("value2")
+            .inject(b -> b.fixed4(withFixed4 ? 40 : 0))
+            .string3("value3")
+            .fixed5((byte) 50)
+            .string4("value4")
+            .build()
+            .limit();
+        flatRO.wrap(buffer, 0, limit);
+        assertEquals(10, flatRO.fixed1());
+        assertEquals(20, flatRO.fixed2());
+        assertEquals("value1", flatRO.string1().asString());
+        assertEquals(30, flatRO.fixed3());
+        assertEquals("value2", flatRO.string2().asString());
+        assertEquals(40, flatRO.fixed4());
+        assertEquals("value3", flatRO.string3().asString());
+        assertEquals(50, flatRO.fixed5());
+        assertEquals("value4", flatRO.string4().asString());
+    }
+
 }
