@@ -111,6 +111,7 @@ public final class McpFunctions
         public final class McpLifecycleBeginExBuilder
         {
             private String sessionId;
+            private int capabilities;
 
             public McpLifecycleBeginExBuilder sessionId(
                 String sessionId)
@@ -119,9 +120,16 @@ public final class McpFunctions
                 return this;
             }
 
+            public McpLifecycleBeginExBuilder capabilities(
+                int capabilities)
+            {
+                this.capabilities = capabilities;
+                return this;
+            }
+
             public McpBeginExBuilder build()
             {
-                beginExRW.lifecycle(b -> b.sessionId(sessionId));
+                beginExRW.lifecycle(b -> b.sessionId(sessionId).capabilities(capabilities));
                 return McpBeginExBuilder.this;
             }
         }
@@ -380,11 +388,19 @@ public final class McpFunctions
         public final class McpLifecycleBeginExMatcherBuilder
         {
             private String16FW sessionId;
+            private Integer capabilities;
 
             public McpLifecycleBeginExMatcherBuilder sessionId(
                 String sessionId)
             {
                 this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpLifecycleBeginExMatcherBuilder capabilities(
+                int capabilities)
+            {
+                this.capabilities = capabilities;
                 return this;
             }
 
@@ -397,13 +413,19 @@ public final class McpFunctions
                 McpBeginExFW beginEx)
             {
                 final McpLifecycleBeginExFW lifecycle = beginEx.lifecycle();
-                return matchSessionId(lifecycle);
+                return matchSessionId(lifecycle) && matchCapabilities(lifecycle);
             }
 
             private boolean matchSessionId(
                 McpLifecycleBeginExFW lifecycle)
             {
                 return sessionId == null || sessionId.equals(lifecycle.sessionId());
+            }
+
+            private boolean matchCapabilities(
+                McpLifecycleBeginExFW lifecycle)
+            {
+                return capabilities == null || capabilities == lifecycle.capabilities();
             }
         }
 

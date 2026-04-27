@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,46 +40,20 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .promptsGet()
                               .sessionId("session-1")
+                              .name("weather_prompt")
                               .build()
                           .build()}
 
 connected
 
-write flush
-
+read  '{"name":"bluesky__weather_prompt"}'
 read closed
 
-write '{"tools":'
-        '['
-          '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '},'
-            '"icons": ['
-              '{'
-                '"src": "https://example.com/weather-icon.png",'
-                '"mimeType": "image/png",'
-                '"sizes": ["48x48"]'
-              '}'
-            '],'
-            '"execution": {'
-              '"taskSupport": "optional"'
-            '}'
-          '}'
-        ']'
-      '}'
+write flush
+
+write '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
 write flush
 
 write close

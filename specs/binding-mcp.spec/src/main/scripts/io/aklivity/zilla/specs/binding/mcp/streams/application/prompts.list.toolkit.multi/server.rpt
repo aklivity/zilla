@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,7 +40,7 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .promptsList()
                               .sessionId("session-1")
                               .build()
                           .build()}
@@ -53,35 +51,51 @@ write flush
 
 read closed
 
-write '{"tools":'
-        '['
-          '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '},'
-            '"icons": ['
-              '{'
-                '"src": "https://example.com/weather-icon.png",'
-                '"mimeType": "image/png",'
-                '"sizes": ["48x48"]'
-              '}'
-            '],'
-            '"execution": {'
-              '"taskSupport": "optional"'
-            '}'
-          '}'
-        ']'
-      '}'
+write '{"prompts":[{"name":"weather_prompt"}]}'
+write flush
+
+write close
+
+
+accept "zilla://streams/app2"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .promptsList()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read closed
+
+write '{"prompts":[{"name":"current_time_prompt"}]}'
 write flush
 
 write close

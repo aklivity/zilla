@@ -13,13 +13,18 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
 
-accepted
+connected
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
@@ -28,32 +33,25 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-connected
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .lifecycle()
+                           .resourcesRead()
                                .sessionId("session-1")
+                               .uri("bluesky+file:///data/readme.txt")
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesList()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
 
 connected
 
-write flush
-
-read closed
-
-write '{"resources":[]}'
-write flush
-
+write '{"uri":"bluesky+file:///data/readme.txt"}'
 write close
+
+read  '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
+read closed

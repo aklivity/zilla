@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,45 +40,34 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .toolsCall()
                               .sessionId("session-1")
+                              .name("get_weather")
                               .build()
                           .build()}
 
 connected
 
-write flush
-
+read  '{'
+        '"name":"bluesky__get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '}'
+      '}'
 read closed
 
-write '{"tools":'
+write flush
+
+write '{'
+        '"content":'
         '['
           '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '},'
-            '"icons": ['
-              '{'
-                '"src": "https://example.com/weather-icon.png",'
-                '"mimeType": "image/png",'
-                '"sizes": ["48x48"]'
-              '}'
-            '],'
-            '"execution": {'
-              '"taskSupport": "optional"'
-            '}'
+            '"type": "text",'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
           '}'
-        ']'
+        '],'
+        '"isError": false'
       '}'
 write flush
 

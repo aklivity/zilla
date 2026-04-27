@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_PROMPTS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
@@ -24,11 +27,13 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -65,6 +70,11 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpClientFactory implements McpStreamFactory
 {
+    private static final int SERVER_CAPABILITIES =
+        SERVER_TOOLS.value() |
+        SERVER_PROMPTS.value() |
+        SERVER_RESOURCES.value();
+
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
 
@@ -121,6 +131,11 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
+    private static final List<String> CLIENT_JSON_PATH_INCLUDES = List.of(
+        "/jsonrpc",
+        "/id");
+    private final JsonParserFactory parserFactory;
+
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
     private final Int2ObjectHashMap<McpSessionIdResolver> resolvers;
@@ -148,6 +163,9 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
+        this.parserFactory = StreamingJson.createParserFactory(Map.of(
+            StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
+            StreamingJson.TOKEN_MAX_BYTES, decodeMax));
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -240,7 +258,7 @@ public final class McpClientFactory implements McpStreamFactory
         DirectBufferInputStreamEx input = inputRO;
         input.wrap(buffer, offset, limit - offset);
 
-        http.decodableJson = StreamingJson.createParser(input);
+        http.decodableJson = parserFactory.createParser(input);
         http.decoder = decodeJsonRpcStart;
 
         progress = limit - input.available();
@@ -1179,7 +1197,9 @@ public final class McpClientFactory implements McpStreamFactory
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .lifecycle(b -> b.sessionId(sid))
+                    .lifecycle(b -> b
+                        .sessionId(sid)
+                        .capabilities(SERVER_CAPABILITIES))
                     .build());
                 touch();
                 scheduleKeepalive(traceId);
