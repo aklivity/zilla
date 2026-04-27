@@ -408,6 +408,20 @@ public interface EngineContext
         long guardId);
 
     /**
+     * Resolves a qualified guard name ({@code "namespace:name"}) to its namespaced guard id.
+     * Used by guards that reference other guards in their configuration (e.g. an OAuth guard
+     * with a {@code via} expression that names a peer guard).
+     *
+     * @param qname  the qualified guard name
+     * @return the resolved guard id, or {@code 0L} if the name does not resolve to a guard
+     */
+    default long supplyGuardId(
+        String qname)
+    {
+        return 0L;
+    }
+
+    /**
      * Returns the {@link StoreHandler} for the given store id, previously registered via
      * the store's {@link io.aklivity.zilla.runtime.engine.store.StoreContext}.
      *

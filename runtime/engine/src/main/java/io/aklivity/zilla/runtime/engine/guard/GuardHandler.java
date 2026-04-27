@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import java.util.Set;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -159,5 +161,23 @@ public interface GuardHandler
         String credentials)
     {
         return null;
+    }
+
+    /**
+     * Roles this authorization context currently holds on this guard, in upstream-native
+     * unprefixed form. Read-only — never triggers a token exchange or other side effect.
+     * <p>
+     * Returns an empty set if no stored authorization exists for the resolved subject.
+     * Intended for filter-time evaluation (e.g. {@code mcp · cache} listing operations)
+     * where running an exchange would be incorrect.
+     * </p>
+     *
+     * @param sessionId  the session identifier
+     * @return the set of roles held by the session, or an empty set
+     */
+    default Set<String> roles(
+        long sessionId)
+    {
+        return Set.of();
     }
 }
