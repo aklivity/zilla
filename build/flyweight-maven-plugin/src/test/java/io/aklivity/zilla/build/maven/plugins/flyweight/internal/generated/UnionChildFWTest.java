@@ -209,4 +209,18 @@ public class UnionChildFWTest
         flyweightRW.wrap(buffer, 0, buffer.capacity())
             .build();
     }
+
+    @Test
+    public void shouldChainViaInjectPreservingBuilderType()
+    {
+        final boolean wide = true;
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .fixed1(10)
+            .inject(b -> b.width16((short) (wide ? 16 : 8)))
+            .build()
+            .limit();
+        UnionChildFW unionChild = flyweightRO.wrap(buffer, 0, limit);
+        assertEquals(16, unionChild.width16());
+        assertEquals(KIND_WIDTH16, unionChild.kind());
+    }
 }

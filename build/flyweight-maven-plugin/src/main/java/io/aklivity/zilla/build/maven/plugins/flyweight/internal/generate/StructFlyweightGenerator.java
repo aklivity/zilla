@@ -1575,6 +1575,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                           .addMethod(wrapMethodWithArray.generate())
                           .addMethod(rewrapMethod())
                           .addMethod(setMethod())
+                          .addMethod(injectMethod())
                           .addMethod(buildMethod())
                           .build();
         }
@@ -1629,6 +1630,18 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                 .addStatement("lastFieldSet = FIELD_COUNT - 1")
                 .addStatement("return this")
                 .build();
+        }
+
+        private MethodSpec injectMethod()
+        {
+            ClassName consumerType = ClassName.get(Consumer.class);
+            return methodBuilder("inject")
+                    .addModifiers(PUBLIC)
+                    .returns(thisName)
+                    .addParameter(ParameterizedTypeName.get(consumerType, thisName), "injector")
+                    .addStatement("injector.accept(this)")
+                    .addStatement("return this")
+                    .build();
         }
 
         private static String appendMethodName(
