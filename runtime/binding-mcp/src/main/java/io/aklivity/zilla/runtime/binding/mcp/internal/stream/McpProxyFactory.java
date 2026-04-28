@@ -1499,8 +1499,27 @@ public final class McpProxyFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedReply(state);
             doWindow(sender, server.lifecycle.originId, resolvedId, replyId,
                 replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+        }
+
+        private void flushClientWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minReplyNoAck,
+            int minReplyMax)
+        {
+            final long newReplyAck = Math.max(replyAck, replySeq - minReplyNoAck);
+            final int newReplyMax = Math.max(replyMax, minReplyMax);
+
+            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                replyMax = newReplyMax;
+                doClientWindow(traceId, budgetId, padding);
+            }
         }
 
         private void onClientMessage(
@@ -1552,8 +1571,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            replyMax = writeBuffer.capacity();
-            doClientWindow(traceId, 0L, 0);
+            flushClientWindow(traceId, 0L, 0, 0L, 0);
         }
 
         private void onClientData(
@@ -1650,6 +1668,8 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
             final int maximum = window.maximum();
             final int padding = window.padding();
 
@@ -1663,6 +1683,8 @@ public final class McpProxyFactory implements McpStreamFactory
             initialPad = padding;
 
             assert initialAck <= initialSeq;
+
+            server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
         }
 
         private void onClientReset(
@@ -2182,7 +2204,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openingInitial(state);
 
-            doServerWindow(traceId, 0L, 0);
+            flushServerWindow(traceId, 0L, 0, 0L, 0);
 
             doServerBegin(traceId);
             doEncodeBeginItems(traceId);
@@ -2241,6 +2263,8 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
             final int maximum = window.maximum();
             final int padding = window.padding();
 
@@ -2254,6 +2278,11 @@ public final class McpProxyFactory implements McpStreamFactory
             replyPad = padding;
 
             assert replyAck <= replySeq;
+
+            if (client != null)
+            {
+                client.flushClientWindow(traceId, budgetId, padding, replySeq - replyAck, replyMax);
+            }
         }
 
         private void onServerReset(
@@ -2423,8 +2452,27 @@ public final class McpProxyFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedInitial(state);
             doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
+        }
+
+        private void flushServerWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minInitialNoAck,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
+            final int newInitialMax = Math.max(initialMax, minInitialMax);
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                doServerWindow(traceId, budgetId, padding);
+            }
         }
     }
 
