@@ -160,19 +160,17 @@ public interface GuardHandler
      * <p>
      * A caller may invoke this after {@link #reauthorize} returns
      * {@link #NEEDS_PREAUTHORIZE} to recover an authorization URL to surface upstream.
-     * The returned URL must contain whatever {@code state} parameter the guard intends to
-     * receive back at the {@code callback}; downstream bindings may decorate that
-     * {@code state} as it propagates upstream and strip the decoration on the way back
-     * before invoking {@link #reauthorize} again with the resulting callback URL.
+     * Once the user completes the step and {@code callback} is invoked, the caller
+     * passes the resulting URL back to {@link #reauthorize} as the credentials.
      * </p>
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
-     * @param callback   the URL the upstream authorization server should redirect the user
-     *                   back to once consent is granted; the guard treats this as opaque
-     *                   and embeds it on the returned URL in whatever form the upstream
-     *                   protocol requires
+     * @param callback   the URL the upstream should redirect the user back to once the
+     *                   pre-authorization step is complete; the guard treats this as
+     *                   opaque and embeds it on the returned URL in whatever form the
+     *                   upstream protocol requires
      * @return the URL the user must visit, or {@code null} if not applicable
      */
     default String preauthorize(
@@ -189,17 +187,17 @@ public interface GuardHandler
      * unprefixed form. Read-only — never triggers credential acquisition or any other
      * side effect.
      * <p>
-     * Returns an empty set if no stored authorization exists for the resolved subject.
+     * Returns {@code null} if no stored authorization exists for the resolved subject.
      * Intended for filter-time evaluation (e.g. listing operations) where causing a
      * credential acquisition would be incorrect.
      * </p>
      *
      * @param sessionId  the session identifier
-     * @return the set of roles held by the session, or an empty set
+     * @return the set of roles held by the session, or {@code null} if none
      */
     default Set<String> roles(
         long sessionId)
     {
-        return Set.of();
+        return null;
     }
 }

@@ -15,12 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.util.Set;
 
 import org.junit.Test;
 
@@ -52,11 +49,11 @@ public final class GuardFactoryTest
     }
 
     @Test
-    public void shouldReturnEmptyRolesByDefault()
+    public void shouldReturnNullRolesByDefault()
     {
         GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
         GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
-        assertThat(handler.roles(0L), equalTo(Set.of()));
+        assertThat(handler.roles(0L), nullValue());
     }
 }
