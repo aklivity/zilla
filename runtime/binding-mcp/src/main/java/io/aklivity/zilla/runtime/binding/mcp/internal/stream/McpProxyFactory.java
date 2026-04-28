@@ -23,7 +23,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -79,7 +78,6 @@ public final class McpProxyFactory implements McpStreamFactory
     private final ResetFW resetRO = new ResetFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
-    private final UnsafeBuffer itemRO = new UnsafeBuffer(0, 0);
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final DirectBuffer listReplyToolsOpenRO =
         new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
@@ -1389,6 +1387,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private final long resolvedId;
         private final String prefix;
         private final byte[] prefixBytes;
+        private final DirectBuffer prefixBufferRO;
         private final McpLifecycleClient lifecycle;
         private final long initialId;
         private final long replyId;
@@ -1408,18 +1407,15 @@ public final class McpProxyFactory implements McpStreamFactory
         private int replyMax;
         private int replyPad;
 
-        // streaming JSON state — built lazily on first DATA frame
         private JsonParser decodableJson;
-        private ByteArrayOutputStream itemOut;
-        private byte[] itemTransferBuffer;
-        private long parserBaseOffset;            // absolute streamOffset of buffer[offset] passed to decode
+        private long decodedParserProgress;       // absolute streamOffset of buffer[offset] passed to decode
         private int decodeDepth;                  // JSON nesting depth in the reply envelope
         private int decodeItemDepth;              // JSON nesting depth within the current item
         private int decodeSkipDepth;              // JSON nesting depth within a skipped value
         private boolean awaitingIdValue;
         private long itemStartStreamOffset = -1;
-        private long itemLastEmittedStreamOffset = -1;
-        private McpListClientDecoder decoder;
+        private long itemEmittedStreamOffset = -1;
+        private McpListClientDecoder decoder = decodeInit;
         private String arrayKey;
         private String idKey;
 
@@ -1432,6 +1428,7 @@ public final class McpProxyFactory implements McpStreamFactory
             this.resolvedId = resolvedId;
             this.prefix = prefix;
             this.prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
+            this.prefixBufferRO = new UnsafeBuffer(prefixBytes);
             this.lifecycle = server.lifecycle.supplyClient(resolvedId);
             this.initialId = supplyInitialId.applyAsLong(resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -1700,35 +1697,11 @@ public final class McpProxyFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            if (decodableJson == null)
+            if (decodableJson != null)
             {
-                final JsonParserFactory parserFactory = switch (server.kind)
-                {
-                case KIND_TOOLS_LIST -> toolsListItemParserFactory;
-                case KIND_PROMPTS_LIST -> promptsListItemParserFactory;
-                case KIND_RESOURCES_LIST -> resourcesListItemParserFactory;
-                default -> null;
-                };
-                if (parserFactory == null)
-                {
-                    return;
-                }
-                decodableJson = parserFactory.createParser(inputRO);
-                itemOut = new ByteArrayOutputStream(256);
-                itemTransferBuffer = new byte[bufferPool.slotCapacity()];
-                arrayKey = switch (server.kind)
-                {
-                case KIND_TOOLS_LIST -> "tools";
-                case KIND_PROMPTS_LIST -> "prompts";
-                case KIND_RESOURCES_LIST -> "resources";
-                default -> null;
-                };
-                idKey = server.kind == KIND_RESOURCES_LIST ? "uri" : "name";
-                decoder = decodeReply;
+                final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
+                inputRO.wrap(buffer, offset + delta, limit - offset - delta);
             }
-
-            final int delta = (int) (decodableJson.getLocation().getStreamOffset() - parserBaseOffset);
-            inputRO.wrap(buffer, offset + delta, limit - offset - delta);
 
             McpListClientDecoder previous = null;
             int progress = offset;
@@ -1742,11 +1715,11 @@ public final class McpProxyFactory implements McpStreamFactory
             final int compactBoundaryInBuf;
             if (itemStartStreamOffset >= 0)
             {
-                compactBoundaryInBuf = offset + (int) (itemStartStreamOffset - parserBaseOffset);
+                compactBoundaryInBuf = offset + (int) (itemEmittedStreamOffset - decodedParserProgress);
             }
             else
             {
-                compactBoundaryInBuf = offset + (int) (decodableJson.getLocation().getStreamOffset() - parserBaseOffset);
+                compactBoundaryInBuf = offset + (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
             }
 
             if (compactBoundaryInBuf < limit)
@@ -1771,12 +1744,12 @@ public final class McpProxyFactory implements McpStreamFactory
                 }
                 slot.putBytes(0, buffer, compactBoundaryInBuf, retained);
                 replySlotOffset = retained;
-                parserBaseOffset += compactBoundaryInBuf - offset;
+                decodedParserProgress += compactBoundaryInBuf - offset;
             }
             else
             {
                 cleanupClientSlot();
-                parserBaseOffset += compactBoundaryInBuf - offset;
+                decodedParserProgress += compactBoundaryInBuf - offset;
             }
         }
 
@@ -1806,12 +1779,53 @@ public final class McpProxyFactory implements McpStreamFactory
             int limit);
     }
 
+    private final McpListClientDecoder decodeInit = this::decodeInit;
     private final McpListClientDecoder decodeReply = this::decodeReply;
     private final McpListClientDecoder decodeItemsKey = this::decodeItemsKey;
     private final McpListClientDecoder decodeSkipObject = this::decodeSkipObject;
     private final McpListClientDecoder decodeItems = this::decodeItems;
     private final McpListClientDecoder decodeItem = this::decodeItem;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
+
+    private int decodeInit(
+        McpListClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserFactory parserFactory = switch (client.server.kind)
+        {
+        case KIND_TOOLS_LIST -> toolsListItemParserFactory;
+        case KIND_PROMPTS_LIST -> promptsListItemParserFactory;
+        case KIND_RESOURCES_LIST -> resourcesListItemParserFactory;
+        default -> null;
+        };
+
+        if (parserFactory == null)
+        {
+            client.decoder = decodeIgnore;
+            return limit;
+        }
+
+        inputRO.wrap(buffer, progress, limit - progress);
+        client.decodableJson = parserFactory.createParser(inputRO);
+        client.arrayKey = switch (client.server.kind)
+        {
+        case KIND_TOOLS_LIST -> "tools";
+        case KIND_PROMPTS_LIST -> "prompts";
+        case KIND_RESOURCES_LIST -> "resources";
+        default -> null;
+        };
+        client.idKey = client.server.kind == KIND_RESOURCES_LIST ? "uri" : "name";
+        client.decoder = decodeReply;
+
+        return progress;
+    }
 
     private int decodeReply(
         McpListClient client,
@@ -1838,7 +1852,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        return offset + (int) (parser.getLocation().getStreamOffset() - client.parserBaseOffset);
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
     }
 
     private int decodeItemsKey(
@@ -1889,7 +1903,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        return offset + (int) (parser.getLocation().getStreamOffset() - client.parserBaseOffset);
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
     }
 
     private int decodeSkipObject(
@@ -1940,7 +1954,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        return offset + (int) (parser.getLocation().getStreamOffset() - client.parserBaseOffset);
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
     }
 
     private int decodeItems(
@@ -1968,7 +1982,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        return offset + (int) (parser.getLocation().getStreamOffset() - client.parserBaseOffset);
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
     }
 
     private int decodeItem(
@@ -2000,8 +2014,8 @@ public final class McpProxyFactory implements McpStreamFactory
                 if (client.decodeItemDepth == 0)
                 {
                     client.itemStartStreamOffset = afterStreamOffset - 1;
-                    client.itemLastEmittedStreamOffset = client.itemStartStreamOffset;
-                    client.itemOut.reset();
+                    client.itemEmittedStreamOffset = client.itemStartStreamOffset;
+                    client.server.streamItemBegin(traceId);
                 }
                 client.decodeItemDepth++;
                 break;
@@ -2012,15 +2026,13 @@ public final class McpProxyFactory implements McpStreamFactory
                 client.decodeItemDepth--;
                 if (client.decodeItemDepth == 0 && client.itemStartStreamOffset >= 0)
                 {
-                    final int afterInBuf = offset + (int) (afterStreamOffset - client.parserBaseOffset);
-                    final int lastEmittedInBuf =
-                        offset + (int) (client.itemLastEmittedStreamOffset - client.parserBaseOffset);
-                    final int len = afterInBuf - lastEmittedInBuf;
-                    buffer.getBytes(lastEmittedInBuf, client.itemTransferBuffer, 0, len);
-                    client.itemOut.write(client.itemTransferBuffer, 0, len);
-                    client.server.streamItem(client.itemOut.toByteArray(), 0, client.itemOut.size(), traceId);
+                    final int afterInBuf = offset + (int) (afterStreamOffset - client.decodedParserProgress);
+                    final int emittedInBuf =
+                        offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+                    client.server.streamItemChunk(buffer, emittedInBuf, afterInBuf - emittedInBuf, traceId);
+                    client.server.streamItemEnd(traceId);
                     client.itemStartStreamOffset = -1;
-                    client.itemLastEmittedStreamOffset = -1;
+                    client.itemEmittedStreamOffset = -1;
                 }
                 break;
             case END_ARRAY:
@@ -2042,22 +2054,20 @@ public final class McpProxyFactory implements McpStreamFactory
                 if (client.awaitingIdValue && client.itemStartStreamOffset >= 0 && client.prefixBytes.length > 0)
                 {
                     client.awaitingIdValue = false;
-                    final int beforeInBuf = offset + (int) (beforeStreamOffset - client.parserBaseOffset);
-                    final int afterInBuf = offset + (int) (afterStreamOffset - client.parserBaseOffset);
+                    final int beforeInBuf = offset + (int) (beforeStreamOffset - client.decodedParserProgress);
+                    final int afterInBuf = offset + (int) (afterStreamOffset - client.decodedParserProgress);
                     int openingQuote = beforeInBuf;
                     while (openingQuote < afterInBuf && buffer.getByte(openingQuote) != (byte) '"')
                     {
                         openingQuote++;
                     }
                     final int contentStart = openingQuote + 1;
-                    final int lastEmittedInBuf =
-                        offset + (int) (client.itemLastEmittedStreamOffset - client.parserBaseOffset);
-                    final int len = contentStart - lastEmittedInBuf;
-                    buffer.getBytes(lastEmittedInBuf, client.itemTransferBuffer, 0, len);
-                    client.itemOut.write(client.itemTransferBuffer, 0, len);
-                    client.itemOut.write(client.prefixBytes, 0, client.prefixBytes.length);
-                    client.itemLastEmittedStreamOffset =
-                        client.parserBaseOffset + (long) (contentStart - offset);
+                    final int emittedInBuf =
+                        offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+                    client.server.streamItemChunk(buffer, emittedInBuf, contentStart - emittedInBuf, traceId);
+                    client.server.streamItemChunk(client.prefixBufferRO, 0, client.prefixBytes.length, traceId);
+                    client.itemEmittedStreamOffset =
+                        client.decodedParserProgress + (long) (contentStart - offset);
                 }
                 else if (client.awaitingIdValue)
                 {
@@ -2069,7 +2079,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        return offset + (int) (parser.getLocation().getStreamOffset() - client.parserBaseOffset);
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
     }
 
     private int decodeIgnore(
@@ -2302,10 +2312,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        private void streamItem(
-            byte[] item,
-            int offset,
-            int length,
+        private void streamItemBegin(
             long traceId)
         {
             if (itemsEmitted > 0)
@@ -2313,9 +2320,21 @@ public final class McpProxyFactory implements McpStreamFactory
                 doServerData(traceId, 0L, 0x03, listReplySeparatorRO.capacity(),
                     listReplySeparatorRO, 0, listReplySeparatorRO.capacity());
             }
-            itemRO.wrap(item, offset, length);
-            doServerData(traceId, 0L, 0x03, length, itemRO, 0, length);
             itemsEmitted++;
+        }
+
+        private void streamItemChunk(
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            long traceId)
+        {
+            doServerData(traceId, 0L, 0x03, length, buffer, offset, length);
+        }
+
+        private void streamItemEnd(
+            long traceId)
+        {
         }
 
         private void doEncodeBeginItems(
