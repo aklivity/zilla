@@ -81,6 +81,16 @@ public final class McpProxyFactory implements McpStreamFactory
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
     private final UnsafeBuffer itemRO = new UnsafeBuffer(0, 0);
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
+    private final DirectBuffer listReplyToolsOpenRO =
+        new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
+    private final DirectBuffer listReplyPromptsOpenRO =
+        new UnsafeBuffer("{\"prompts\":[".getBytes(StandardCharsets.UTF_8));
+    private final DirectBuffer listReplyResourcesOpenRO =
+        new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
+    private final DirectBuffer listReplyCloseRO =
+        new UnsafeBuffer("]}".getBytes(StandardCharsets.UTF_8));
+    private final DirectBuffer listReplySeparatorRO =
+        new UnsafeBuffer(",".getBytes(StandardCharsets.UTF_8));
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -2076,17 +2086,6 @@ public final class McpProxyFactory implements McpStreamFactory
         return limit;
     }
 
-    private static final DirectBuffer LIST_REPLY_TOOLS_OPEN_RO =
-        new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
-    private static final DirectBuffer LIST_REPLY_PROMPTS_OPEN_RO =
-        new UnsafeBuffer("{\"prompts\":[".getBytes(StandardCharsets.UTF_8));
-    private static final DirectBuffer LIST_REPLY_RESOURCES_OPEN_RO =
-        new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
-    private static final DirectBuffer LIST_REPLY_CLOSE_RO =
-        new UnsafeBuffer("]}".getBytes(StandardCharsets.UTF_8));
-    private static final DirectBuffer LIST_REPLY_SEPARATOR_RO =
-        new UnsafeBuffer(",".getBytes(StandardCharsets.UTF_8));
-
     private final class McpListServer
     {
         private final McpLifecycleServer lifecycle;
@@ -2311,8 +2310,8 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             if (itemsEmitted > 0)
             {
-                doServerData(traceId, 0L, 0x03, LIST_REPLY_SEPARATOR_RO.capacity(),
-                    LIST_REPLY_SEPARATOR_RO, 0, LIST_REPLY_SEPARATOR_RO.capacity());
+                doServerData(traceId, 0L, 0x03, listReplySeparatorRO.capacity(),
+                    listReplySeparatorRO, 0, listReplySeparatorRO.capacity());
             }
             itemRO.wrap(item, offset, length);
             doServerData(traceId, 0L, 0x03, length, itemRO, 0, length);
@@ -2324,9 +2323,9 @@ public final class McpProxyFactory implements McpStreamFactory
         {
             final DirectBuffer prelude = switch (kind)
             {
-            case KIND_TOOLS_LIST -> LIST_REPLY_TOOLS_OPEN_RO;
-            case KIND_PROMPTS_LIST -> LIST_REPLY_PROMPTS_OPEN_RO;
-            case KIND_RESOURCES_LIST -> LIST_REPLY_RESOURCES_OPEN_RO;
+            case KIND_TOOLS_LIST -> listReplyToolsOpenRO;
+            case KIND_PROMPTS_LIST -> listReplyPromptsOpenRO;
+            case KIND_RESOURCES_LIST -> listReplyResourcesOpenRO;
             default -> throw new IllegalStateException("unexpected list kind: " + kind);
             };
             doServerData(traceId, 0L, 0x03, prelude.capacity(), prelude, 0, prelude.capacity());
@@ -2335,8 +2334,8 @@ public final class McpProxyFactory implements McpStreamFactory
         private void doEncodeEndItems(
             long traceId)
         {
-            doServerData(traceId, 0L, 0x03, LIST_REPLY_CLOSE_RO.capacity(),
-                LIST_REPLY_CLOSE_RO, 0, LIST_REPLY_CLOSE_RO.capacity());
+            doServerData(traceId, 0L, 0x03, listReplyCloseRO.capacity(),
+                listReplyCloseRO, 0, listReplyCloseRO.capacity());
             doServerEnd(traceId);
         }
 
