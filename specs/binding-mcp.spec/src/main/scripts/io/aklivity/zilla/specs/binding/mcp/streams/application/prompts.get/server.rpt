@@ -51,6 +51,8 @@ connected
 read  '{"name":"weather_prompt"}'
 read closed
 
+write flush
+
 write '{"messages":[{"role":"user","content":{"type":"text","text":"What is the weather like today?"}}]}'
 write flush
 

@@ -1,0 +1,10 @@
+[
+  {
+    "op": "add",
+    "path": "/bindings/tcp_client",
+    "value": {
+      "type": "tcp",
+      "kind": "client"
+    }
+  }
+]

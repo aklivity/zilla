@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server" ]
+                        "enum": [ "server", "client" ]
                     },
                     "options":
                     {
@@ -89,6 +89,28 @@
                                         },
                                         "additionalProperties": false
                                     }
+                                },
+                                "with":
+                                {
+                                    "title": "With",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "headers":
+                                        {
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^(?!(:method|content-type|mcp-))[A-Za-z0-9:-]+$":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             }
                         }

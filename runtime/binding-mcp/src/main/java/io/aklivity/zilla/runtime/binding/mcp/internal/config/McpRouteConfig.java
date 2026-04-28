@@ -18,17 +18,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class McpRouteConfig
 {
     public final long id;
+    public final McpWithConfig with;
     private final List<McpConditionConfig> when;
 
     public McpRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
+        this.with = McpWithConfig.class.cast(route.with);
         this.when = route.when.stream()
             .map(McpConditionConfig.class::cast)
             .collect(Collectors.toList());

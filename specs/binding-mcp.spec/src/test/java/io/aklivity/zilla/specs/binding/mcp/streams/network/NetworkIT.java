@@ -74,6 +74,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.timeout.rejected/client",
+        "${net}/lifecycle.timeout.rejected/server"})
+    public void shouldTimeoutLifecycleRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.request.method.before.id/client",
         "${net}/reject.request.method.before.id/server"})
     public void shouldRejectRequestMethodBeforeId() throws Exception
@@ -158,6 +167,69 @@ public class NetworkIT
         "${net}/tools.list/client",
         "${net}/tools.list/server"})
     public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.list.aborted/client",
+        "${net}/tools.list.aborted/server"})
+    public void shouldAbortToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.aborted/client",
+        "${net}/tools.call.aborted/server"})
+    public void shouldAbortCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/prompts.list.aborted/client",
+        "${net}/prompts.list.aborted/server"})
+    public void shouldAbortListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/prompts.get.aborted/client",
+        "${net}/prompts.get.aborted/server"})
+    public void shouldAbortGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.list.aborted/client",
+        "${net}/resources.list.aborted/server"})
+    public void shouldAbortListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.read.aborted/client",
+        "${net}/resources.read.aborted/server"})
+    public void shouldAbortReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.aborted/client",
+        "${net}/lifecycle.initialize.aborted/server"})
+    public void shouldAbortInitializeLifecycle() throws Exception
     {
         k3po.finish();
     }

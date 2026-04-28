@@ -219,10 +219,15 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
 
-        final Collection<URL> systemConfigs = exporters.stream()
+        final Collection<URL> systemConfigs = new ArrayList<>();
+        bindings.stream()
+            .map(Binding::system)
+            .filter(Objects::nonNull)
+            .forEach(systemConfigs::add);
+        exporters.stream()
             .map(Exporter::system)
             .filter(Objects::nonNull)
-            .toList();
+            .forEach(systemConfigs::add);
 
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));

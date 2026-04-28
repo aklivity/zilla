@@ -46,6 +46,12 @@ public final class TlsBinding implements Binding
     }
 
     @Override
+    public URL system()
+    {
+        return getClass().getResource("system/tls.system.patch.json");
+    }
+
+    @Override
     public String originType(
         KindConfig kind)
     {

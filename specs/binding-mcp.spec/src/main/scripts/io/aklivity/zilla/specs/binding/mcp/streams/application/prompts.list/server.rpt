@@ -47,6 +47,8 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
+write flush
+
 read closed
 
 write '{"prompts":[]}'

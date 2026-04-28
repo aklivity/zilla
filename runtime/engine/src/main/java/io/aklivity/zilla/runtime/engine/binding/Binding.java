@@ -89,6 +89,18 @@ public interface Binding
     }
 
     /**
+     * Returns a URL pointing to a JSON Patch document contributing to the built-in {@code sys:}
+     * namespace when this binding is active (e.g. adding a default client binding). Returns
+     * {@code null} by default for bindings that have no system-level contribution.
+     *
+     * @return the system patch URL, or {@code null}
+     */
+    default URL system()
+    {
+        return null;
+    }
+
+    /**
      * Returns the origin (inbound) protocol type name for the given binding kind.
      * <p>
      * Used by the engine to wire compatible bindings together — the origin type of a downstream

@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
@@ -128,6 +129,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final Pattern VERSION_PATTERN = Pattern.compile("HTTP/1\\.\\d");
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile("(?<name>[^\\s:]+):\\s*(?<value>[^\r\n]*)\r\n");
     private static final Pattern CONNECTION_CLOSE_PATTERN = Pattern.compile("(^|\\s*,\\s*)close(\\s*,\\s*|$)");
+    private static final Pattern AUTHORITY_PATTERN = Pattern.compile("(?<host>[^:]+):(?<port>\\d+)");
     private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
     private static final byte[] HOST_BYTES = "Host".getBytes(US_ASCII);
@@ -151,6 +153,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final ProxyBeginExFW beginProxyExRO = new ProxyBeginExFW();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private static final Array32FW<HttpHeaderFW> HEADERS_431_REQUEST_TOO_LARGE =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                     .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
@@ -335,6 +338,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
+    private final Matcher authorityPart;
     private final int httpTypeId;
     private final int proxyTypeId;
     private final int encodeMax;
@@ -374,6 +378,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
+        this.authorityPart = AUTHORITY_PATTERN.matcher("");
         this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
@@ -2606,14 +2611,37 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void doNetworkBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            String authority)
         {
             if (!HttpState.initialOpening(state))
             {
                 state = HttpState.openingInitial(state);
 
+                final Flyweight extension;
+
+                if (authority != null && authorityPart.reset(authority).matches())
+                {
+                    final String host = authorityPart.group("host");
+                    final int port = parseInt(authorityPart.group("port"));
+
+                    extension = proxyBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                   .source("0.0.0.0")
+                                                   .destination(host)
+                                                   .sourcePort(0)
+                                                   .destinationPort(port)))
+                        .infos(ii -> ii.item(i -> i.authority(host)))
+                        .build();
+                }
+                else
+                {
+                    extension = EMPTY_OCTETS;
+                }
+
                 network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck,
-                    initialMax, traceId, authorization, affinity, EMPTY_OCTETS);
+                    initialMax, traceId, authorization, affinity, extension);
             }
         }
 
@@ -4636,7 +4664,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) :
                     isBodilessMethod ? 0 : NO_CONTENT_LENGTH;
 
-                client.doNetworkBegin(traceId, authorization, 0);
+                final HttpHeaderFW authorityHeader = headers.matchFirst(header ->
+                    HEADER_AUTHORITY.equals(header.name()));
+                final String authority = authorityHeader != null ? authorityHeader.value().asString() : null;
+
+                client.doNetworkBegin(traceId, authorization, 0, authority);
 
                 if (HttpState.replyOpened(client.state))
                 {

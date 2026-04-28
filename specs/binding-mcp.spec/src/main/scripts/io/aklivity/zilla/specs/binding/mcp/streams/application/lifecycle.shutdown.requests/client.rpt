@@ -60,6 +60,7 @@ connected
 write '{"name":"weather_prompt"}'
 write close
 
+read zilla:begin.ext
 read notify REQUEST_PENDING
 read await LIFECYCLE_SHUTDOWN
 read abort

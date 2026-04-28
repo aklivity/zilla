@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>1.1.9</version>
+    <version>1.2.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -27,6 +27,7 @@
     <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
     <module>binding-grpc.spec</module>
+    <module>binding-mcp.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -36,7 +37,6 @@
     <module>binding-http-filesystem.spec</module>
     <module>binding-http-kafka.spec</module>
     <module>binding-grpc-kafka.spec</module>
-    <module>binding-mcp.spec</module>
     <module>binding-mqtt-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>

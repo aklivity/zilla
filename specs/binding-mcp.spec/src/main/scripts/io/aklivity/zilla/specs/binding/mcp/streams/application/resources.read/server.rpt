@@ -51,6 +51,8 @@ connected
 read  '{"uri":"file:///data/readme.txt"}'
 read closed
 
+write flush
+
 write '{"contents":[{"uri":"file:///data/readme.txt","mimeType":"text/plain","text":"Hello World"}]}'
 write flush
 

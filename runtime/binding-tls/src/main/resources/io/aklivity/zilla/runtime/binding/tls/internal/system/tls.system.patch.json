@@ -1,0 +1,11 @@
+[
+  {
+    "op": "add",
+    "path": "/bindings/tls_client",
+    "value": {
+      "type": "tls",
+      "kind": "client",
+      "exit": "tcp_client"
+    }
+  }
+]

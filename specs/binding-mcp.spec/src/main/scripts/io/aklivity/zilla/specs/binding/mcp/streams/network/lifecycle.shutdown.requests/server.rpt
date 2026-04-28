@@ -85,6 +85,7 @@ connected
 read '{"jsonrpc":"2.0","id":2,"method":"prompts/get","params":{"name":"weather_prompt"}}'
 read closed
 
+write flush
 write await LIFECYCLE_SHUTDOWN
 write abort
 

@@ -201,6 +201,66 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/tools.list.aborted/client",
+        "${app}/tools.list.aborted/server"})
+    public void shouldAbortToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/tools.call.aborted/client",
+        "${app}/tools.call.aborted/server"})
+    public void shouldAbortCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/prompts.list.aborted/client",
+        "${app}/prompts.list.aborted/server"})
+    public void shouldAbortListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/prompts.get.aborted/client",
+        "${app}/prompts.get.aborted/server"})
+    public void shouldAbortGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.list.aborted/client",
+        "${app}/resources.list.aborted/server"})
+    public void shouldAbortListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.read.aborted/client",
+        "${app}/resources.read.aborted/server"})
+    public void shouldAbortReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.list.canceled/client",
         "${app}/tools.list.canceled/server"})
     public void shouldListToolsThenCancel() throws Exception
