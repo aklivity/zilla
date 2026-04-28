@@ -1143,7 +1143,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            error = guard != null && exchangeAuth == NOT_AUTHORIZED
+                            error = guard != null && exchangeAuth <= NOT_AUTHORIZED
                                 ? credentialsMatch != null ? response403 : response401
                                 : response404;
                         }
@@ -5102,7 +5102,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (route == null)
                         {
                             Array32FW<HttpHeaderFW> headers40x =
-                                guard != null && exchangeAuth == NOT_AUTHORIZED
+                                guard != null && exchangeAuth <= NOT_AUTHORIZED
                                     ? credentialsMatch != null ? headers403 : headers401
                                     : headers404;
                             doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
@@ -6107,7 +6107,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void deauthorizeIfNecessary()
             {
-                if (HttpState.closed(state) && sessionId != 0L && guard != null)
+                if (HttpState.closed(state) && sessionId > NOT_AUTHORIZED && guard != null)
                 {
                     guard.deauthorize(sessionId);
                 }
@@ -7233,7 +7233,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int contextId)
     {
         long expiringId = NO_CANCEL_ID;
-        if (sessionId != NOT_AUTHORIZED)
+        if (sessionId > NOT_AUTHORIZED)
         {
             final long expiringAt = guard.expiringAt(sessionId);
             if (expiringAt != EXPIRES_NEVER)
