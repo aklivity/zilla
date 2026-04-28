@@ -39,8 +39,8 @@ public interface GuardHandler
     /**
      * Sentinel session id indicating the credentials are recognized but require an
      * out-of-band pre-authorization step before a session can be created — for example,
-     * an interactive OAuth consent flow. The caller should then invoke
-     * {@link #preauthorize} to obtain the URL the user must visit.
+     * an interactive consent flow. The caller should then invoke {@link #preauthorize}
+     * to obtain the URL the user must visit.
      */
     long NEEDS_PREAUTHORIZE = -1L;
 
@@ -63,8 +63,7 @@ public interface GuardHandler
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
-     * @param credentials  the raw credential string (e.g., a JWT bearer token, or a
-     *                     callback URL containing {@code code} and {@code state})
+     * @param credentials  the raw credential string; the format is guard-specific
      * @return a positive session id if authorized, {@link #NOT_AUTHORIZED} on failure,
      *         or {@link #NEEDS_PREAUTHORIZE} if pre-authorization is required first
      */
@@ -172,8 +171,8 @@ public interface GuardHandler
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
      * @param callback   the URL the upstream authorization server should redirect the user
      *                   back to once consent is granted; the guard treats this as opaque
-     *                   and embeds it as the {@code redirect_uri} (or equivalent) on the
-     *                   returned URL
+     *                   and embeds it on the returned URL in whatever form the upstream
+     *                   protocol requires
      * @return the URL the user must visit, or {@code null} if not applicable
      */
     default String preauthorize(
@@ -187,11 +186,12 @@ public interface GuardHandler
 
     /**
      * Roles this authorization context currently holds on this guard, in upstream-native
-     * unprefixed form. Read-only — never triggers a token exchange or other side effect.
+     * unprefixed form. Read-only — never triggers credential acquisition or any other
+     * side effect.
      * <p>
      * Returns an empty set if no stored authorization exists for the resolved subject.
-     * Intended for filter-time evaluation (e.g. {@code mcp · cache} listing operations)
-     * where running an exchange would be incorrect.
+     * Intended for filter-time evaluation (e.g. listing operations) where causing a
+     * credential acquisition would be incorrect.
      * </p>
      *
      * @param sessionId  the session identifier
