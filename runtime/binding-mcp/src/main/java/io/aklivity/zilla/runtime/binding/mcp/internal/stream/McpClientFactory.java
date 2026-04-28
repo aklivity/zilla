@@ -896,16 +896,18 @@ public final class McpClientFactory implements McpStreamFactory
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
             final long budgetId = window.budgetId();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
+            assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert maximum + acknowledge >= replyMax + replyAck;
 
             state = McpState.openedReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
-            replyBud = window.budgetId();
-            replyPad = window.padding();
+            replyBud = budgetId;
+            replyPad = padding;
 
             assert replyAck <= replySeq;
 
@@ -1512,6 +1514,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
@@ -1818,12 +1821,19 @@ public final class McpClientFactory implements McpStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
+            assert sequence <= initialSeq;
+            assert acknowledge >= initialAck;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             state = McpState.openedInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
+            initialPad = padding;
+
+            assert initialAck <= initialSeq;
 
             if (encodeSlot != NO_SLOT)
             {
