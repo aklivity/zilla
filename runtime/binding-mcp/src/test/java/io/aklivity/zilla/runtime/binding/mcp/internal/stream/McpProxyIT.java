@@ -242,4 +242,70 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.list.aborted/client",
+        "${app}/tools.list.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortToolsList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.list.canceled/client",
+        "${app}/tools.list.canceled/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListToolsThenCancel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.list.aborted/client",
+        "${app}/prompts.list.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortListPrompts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/prompts.get.aborted/client",
+        "${app}/prompts.get.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortGetPrompt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.list.aborted/client",
+        "${app}/resources.list.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read.aborted/client",
+        "${app}/resources.read.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortReadResource() throws Exception
+    {
+        k3po.finish();
+    }
 }
