@@ -36,21 +36,37 @@ public interface GuardHandler
     /** Sentinel session id indicating that authorization failed or is not valid. */
     long NOT_AUTHORIZED = 0L;
 
+    /**
+     * Sentinel session id indicating the credentials are recognized but require an
+     * out-of-band pre-authorization step before a session can be created — for example,
+     * an interactive OAuth consent flow. The caller should then invoke
+     * {@link #preauthorize} to obtain the URL the user must visit.
+     */
+    long NEEDS_PREAUTHORIZE = -1L;
+
     /** Sentinel expiry time indicating a session that never expires. */
     long EXPIRES_NEVER = Long.MAX_VALUE;
 
     /**
      * Validates the given credentials and returns a session id for the authorized session.
      * <p>
-     * If the credentials are valid, returns a positive session id that can be used to query
-     * session state. If authorization fails, returns {@link #NOT_AUTHORIZED}.
+     * Possible outcomes:
+     * <ul>
+     *   <li>positive session id — credentials accepted, session created</li>
+     *   <li>{@link #NOT_AUTHORIZED} — credentials rejected</li>
+     *   <li>{@link #NEEDS_PREAUTHORIZE} — credentials recognized but the upstream has no
+     *       prior consent for this subject; the caller should invoke {@link #preauthorize}
+     *       to obtain a URL for the user to visit</li>
+     * </ul>
      * </p>
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
-     * @param credentials  the raw credential string (e.g., a JWT bearer token)
-     * @return a positive session id if authorized, or {@link #NOT_AUTHORIZED} on failure
+     * @param credentials  the raw credential string (e.g., a JWT bearer token, or a
+     *                     callback URL containing {@code code} and {@code state})
+     * @return a positive session id if authorized, {@link #NOT_AUTHORIZED} on failure,
+     *         or {@link #NEEDS_PREAUTHORIZE} if pre-authorization is required first
      */
     long reauthorize(
         long traceId,
@@ -139,26 +155,32 @@ public interface GuardHandler
         long now);
 
     /**
-     * If this guard requires user interaction to acquire credentials (e.g. an interactive
-     * OAuth consent flow), returns the URL the user must visit. Returns {@code null} for
-     * guards that never require user interaction; the default implementation returns
-     * {@code null}.
+     * Begins the out-of-band pre-authorization step for the in-flight request and returns
+     * the URL the user must visit to complete it. Returns {@code null} for guards that
+     * never require pre-authorization; the default implementation returns {@code null}.
      * <p>
-     * A caller may invoke this after {@link #reauthorize} returns {@link #NOT_AUTHORIZED}
-     * to recover an authorization URL to surface upstream.
+     * A caller may invoke this after {@link #reauthorize} returns
+     * {@link #NEEDS_PREAUTHORIZE} to recover an authorization URL to surface upstream.
+     * The returned URL must contain whatever {@code state} parameter the guard intends to
+     * receive back at the {@code callback}; downstream bindings may decorate that
+     * {@code state} as it propagates upstream and strip the decoration on the way back
+     * before invoking {@link #reauthorize} again with the resulting callback URL.
      * </p>
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
-     * @param credentials  the raw credential string associated with the request
+     * @param callback   the URL the upstream authorization server should redirect the user
+     *                   back to once consent is granted; the guard treats this as opaque
+     *                   and embeds it as the {@code redirect_uri} (or equivalent) on the
+     *                   returned URL
      * @return the URL the user must visit, or {@code null} if not applicable
      */
-    default String elicitation(
+    default String preauthorize(
         long traceId,
         long bindingId,
         long contextId,
-        String credentials)
+        String callback)
     {
         return null;
     }

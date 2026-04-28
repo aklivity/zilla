@@ -43,12 +43,12 @@ public final class GuardFactoryTest
     }
 
     @Test
-    public void shouldReturnNullElicitationByDefault()
+    public void shouldReturnNullPreauthorizeByDefault()
     {
         GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
         GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
-        assertThat(handler.elicitation(0L, 0L, 0L, null), nullValue());
+        assertThat(handler.preauthorize(0L, 0L, 0L, null), nullValue());
     }
 
     @Test
