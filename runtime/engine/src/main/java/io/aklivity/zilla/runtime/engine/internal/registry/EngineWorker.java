@@ -766,28 +766,6 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public long supplyGuardId(
-        String qname)
-    {
-        long resolved = 0L;
-        if (qname != null)
-        {
-            int separatorAt = qname.indexOf(':');
-            if (separatorAt > 0 && separatorAt < qname.length() - 1)
-            {
-                int namespaceId = labels.supplyLabelId(qname.substring(0, separatorAt));
-                int localId = labels.supplyLabelId(qname.substring(separatorAt + 1));
-                long candidate = NamespacedId.id(namespaceId, localId);
-                if (registry.resolveGuard(candidate) != null)
-                {
-                    resolved = candidate;
-                }
-            }
-        }
-        return resolved;
-    }
-
-    @Override
     public StoreHandler supplyStore(
         long storeId)
     {
