@@ -984,7 +984,6 @@ public final class McpProxyFactory implements McpStreamFactory
 
             doServerBegin(traceId, beginEx);
 
-            initialMax = writeBuffer.capacity();
             doServerWindow(traceId, 0L, 0);
         }
 
@@ -1274,7 +1273,6 @@ public final class McpProxyFactory implements McpStreamFactory
                 sessionId = beginEx.lifecycle().sessionId().asString();
             }
 
-            replyMax = writeBuffer.capacity();
             doClientWindow(traceId, 0L, 0);
 
             state = McpState.openedReply(state);
@@ -2168,7 +2166,6 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openingInitial(state);
 
-            initialMax = writeBuffer.capacity();
             doServerWindow(traceId, 0L, 0);
 
             doServerBegin(traceId);
