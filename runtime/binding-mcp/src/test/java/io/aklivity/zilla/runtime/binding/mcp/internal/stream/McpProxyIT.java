@@ -308,4 +308,48 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.10k/client",
+        "${app}/tools.call.10k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.100k/client",
+        "${app}/tools.call.100k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read.10k/client",
+        "${app}/resources.read.10k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResourceWith10kContents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.read.100k/client",
+        "${app}/resources.read.100k/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReadResourceWith100kContents() throws Exception
+    {
+        k3po.finish();
+    }
 }

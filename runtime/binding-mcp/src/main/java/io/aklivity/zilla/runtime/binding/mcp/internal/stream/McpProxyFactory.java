@@ -336,8 +336,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             client.doClientBegin(traceId);
 
-            initialMax = writeBuffer.capacity();
-            doServerWindow(traceId, 0L, 0);
+            flushServerWindow(traceId, 0L, 0, 0L, 0);
         }
 
         private void onServerData(
@@ -430,7 +429,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
-            client.doClientWindow(traceId, budgetId, padding);
+            client.flushClientWindow(traceId, budgetId, padding, replySeq - replyAck, replyMax);
         }
 
         private void onServerReset(
@@ -501,8 +500,27 @@ public final class McpProxyFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedInitial(state);
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                 budgetId, padding);
+        }
+
+        private void flushServerWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minInitialNoAck,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
+            final int newInitialMax = Math.max(initialMax, minInitialMax);
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                doServerWindow(traceId, budgetId, padding);
+            }
         }
 
         private void doServerReset(
@@ -625,8 +643,27 @@ public final class McpProxyFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openedReply(state);
             doWindow(sender, server.lifecycle.originId, resolvedId, replyId,
                 replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+        }
+
+        private void flushClientWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minReplyNoAck,
+            int minReplyMax)
+        {
+            final long newReplyAck = Math.max(replyAck, replySeq - minReplyNoAck);
+            final int newReplyMax = Math.max(replyMax, minReplyMax);
+
+            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                replyMax = newReplyMax;
+                doClientWindow(traceId, budgetId, padding);
+            }
         }
 
         private void doClientReset(
@@ -697,8 +734,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             server.doServerBegin(traceId, replyExtension);
 
-            replyMax = writeBuffer.capacity();
-            doClientWindow(traceId, 0L, 0);
+            flushClientWindow(traceId, 0L, 0, 0L, 0);
         }
 
         private Flyweight rewriteReplyBeginEx(
@@ -812,7 +848,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            server.doServerWindow(traceId, budgetId, padding);
+            server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
         }
 
         private void onClientReset(
