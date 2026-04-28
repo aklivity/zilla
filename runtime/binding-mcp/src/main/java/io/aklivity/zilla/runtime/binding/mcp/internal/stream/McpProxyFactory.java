@@ -154,10 +154,10 @@ public final class McpProxyFactory implements McpStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && extension.sizeof() > 0)
+        final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
+
+        if (binding != null && beginEx != null)
         {
-            final McpBeginExFW beginEx = mcpBeginExRO.wrap(
-                extension.buffer(), extension.offset(), extension.limit());
             final int kind = beginEx.kind();
             final String sessionId = sessionId(beginEx);
 
@@ -727,9 +727,9 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            final Flyweight replyExtension = extension.sizeof() > 0
-                ? rewriteReplyBeginEx(mcpBeginExRO.wrap(
-                    extension.buffer(), extension.offset(), extension.limit()))
+            final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
+            final Flyweight replyExtension = beginEx != null
+                ? rewriteReplyBeginEx(beginEx)
                 : emptyRO;
 
             server.doServerBegin(traceId, replyExtension);
@@ -1268,14 +1268,10 @@ public final class McpProxyFactory implements McpStreamFactory
 
             state = McpState.openedInitial(state);
 
-            if (extension.sizeof() > 0)
+            final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
+            if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
             {
-                final McpBeginExFW beginEx = mcpBeginExRO.wrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-                if (beginEx.kind() == KIND_LIFECYCLE)
-                {
-                    sessionId = beginEx.lifecycle().sessionId().asString();
-                }
+                sessionId = beginEx.lifecycle().sessionId().asString();
             }
 
             replyMax = writeBuffer.capacity();
