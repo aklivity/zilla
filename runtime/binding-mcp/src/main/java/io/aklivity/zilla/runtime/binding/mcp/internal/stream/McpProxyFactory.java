@@ -66,6 +66,10 @@ public final class McpProxyFactory implements McpStreamFactory
 {
     private static final String MCP_TYPE_NAME = "mcp";
 
+    private static final List<String> TOOLS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/tools/-/name");
+    private static final List<String> PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/prompts/-/name");
+    private static final List<String> RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES = List.of("/resources/-/uri");
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -98,6 +102,10 @@ public final class McpProxyFactory implements McpStreamFactory
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpLifecycleServer> sessions;
 
+    private final JsonParserFactory toolsListItemParserFactory;
+    private final JsonParserFactory promptsListItemParserFactory;
+    private final JsonParserFactory resourcesListItemParserFactory;
+
     public McpProxyFactory(
         McpConfiguration config,
         EngineContext context)
@@ -111,6 +119,12 @@ public final class McpProxyFactory implements McpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
+        this.toolsListItemParserFactory = StreamingJson.createParserFactory(
+            Map.of(StreamingJson.PATH_INCLUDES, TOOLS_LIST_ITEM_JSON_PATH_INCLUDES));
+        this.promptsListItemParserFactory = StreamingJson.createParserFactory(
+            Map.of(StreamingJson.PATH_INCLUDES, PROMPTS_LIST_ITEM_JSON_PATH_INCLUDES));
+        this.resourcesListItemParserFactory = StreamingJson.createParserFactory(
+            Map.of(StreamingJson.PATH_INCLUDES, RESOURCES_LIST_ITEM_JSON_PATH_INCLUDES));
     }
 
     @Override
@@ -1680,9 +1694,9 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 final JsonParserFactory parserFactory = switch (server.kind)
                 {
-                case KIND_TOOLS_LIST -> TOOLS_LIST_ITEM_PARSER_FACTORY;
-                case KIND_PROMPTS_LIST -> PROMPTS_LIST_ITEM_PARSER_FACTORY;
-                case KIND_RESOURCES_LIST -> RESOURCES_LIST_ITEM_PARSER_FACTORY;
+                case KIND_TOOLS_LIST -> toolsListItemParserFactory;
+                case KIND_PROMPTS_LIST -> promptsListItemParserFactory;
+                case KIND_RESOURCES_LIST -> resourcesListItemParserFactory;
                 default -> null;
                 };
                 if (parserFactory == null)
@@ -2061,13 +2075,6 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         return limit;
     }
-
-    private static final JsonParserFactory TOOLS_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
-        Map.of(StreamingJson.PATH_INCLUDES, List.of("/tools/-/name")));
-    private static final JsonParserFactory PROMPTS_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
-        Map.of(StreamingJson.PATH_INCLUDES, List.of("/prompts/-/name")));
-    private static final JsonParserFactory RESOURCES_LIST_ITEM_PARSER_FACTORY = StreamingJson.createParserFactory(
-        Map.of(StreamingJson.PATH_INCLUDES, List.of("/resources/-/uri")));
 
     private static final DirectBuffer LIST_REPLY_TOOLS_OPEN_RO =
         new UnsafeBuffer("{\"tools\":[".getBytes(StandardCharsets.UTF_8));
