@@ -242,10 +242,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private McpServer(
             McpLifecycleServer lifecycle,
@@ -420,10 +422,11 @@ public final class McpProxyFactory implements McpStreamFactory
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert maximum + acknowledge >= replyMax + replyAck;
 
             replyAck = acknowledge;
             replyMax = maximum;
+            replyPad = padding;
 
             assert replyAck <= replySeq;
 
@@ -529,10 +532,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private McpClient(
             McpServer server,
@@ -799,10 +804,11 @@ public final class McpProxyFactory implements McpStreamFactory
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialPad = padding;
 
             assert initialAck <= initialSeq;
 
@@ -848,10 +854,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private McpLifecycleServer(
             MessageConsumer sender,
@@ -994,14 +1002,16 @@ public final class McpProxyFactory implements McpStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert maximum + acknowledge >= replyMax + replyAck;
 
             replyAck = acknowledge;
             replyMax = maximum;
+            replyPad = padding;
 
             assert replyAck <= replySeq;
         }
@@ -1090,10 +1100,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private McpLifecycleClient(
             McpLifecycleServer server,
@@ -1282,14 +1294,16 @@ public final class McpProxyFactory implements McpStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialPad = padding;
 
             assert initialAck <= initialSeq;
         }
@@ -1333,10 +1347,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         // streaming JSON state — built lazily on first DATA frame
         private JsonParser decodableJson;
@@ -1584,14 +1600,16 @@ public final class McpProxyFactory implements McpStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialPad = padding;
 
             assert initialAck <= initialSeq;
         }
@@ -2049,10 +2067,12 @@ public final class McpProxyFactory implements McpStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private McpListServer(
             McpLifecycleServer lifecycle,
@@ -2177,14 +2197,16 @@ public final class McpProxyFactory implements McpStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final int padding = window.padding();
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert maximum + acknowledge >= replyMax + replyAck;
 
             replyAck = acknowledge;
             replyMax = maximum;
+            replyPad = padding;
 
             assert replyAck <= replySeq;
         }
