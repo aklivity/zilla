@@ -2051,7 +2051,14 @@ public final class McpProxyFactory implements McpStreamFactory
                     final int afterInBuf = offset + (int) (afterStreamOffset - client.decodedParserProgress);
                     final int emittedInBuf =
                         offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-                    client.server.streamItemChunk(buffer, emittedInBuf, afterInBuf - emittedInBuf, traceId);
+                    final int chunkLen = afterInBuf - emittedInBuf;
+                    final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
+                    client.itemEmittedStreamOffset += emitted;
+                    if (emitted < chunkLen)
+                    {
+                        client.decodeItemDepth++;
+                        break decode;
+                    }
                     client.server.streamItemEnd(traceId);
                     client.itemStartStreamOffset = -1;
                     client.itemEmittedStreamOffset = -1;
@@ -2352,13 +2359,19 @@ public final class McpProxyFactory implements McpStreamFactory
             itemsEmitted++;
         }
 
-        private void streamItemChunk(
+        private int streamItemChunk(
             DirectBuffer buffer,
             int offset,
             int length,
             long traceId)
         {
-            doServerData(traceId, 0L, 0x03, length, buffer, offset, length);
+            final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
+            final int emit = Math.min(Math.max(replyWin, 0), length);
+            if (emit > 0)
+            {
+                doServerData(traceId, 0L, 0x03, emit, buffer, offset, emit);
+            }
+            return emit;
         }
 
         private void streamItemEnd(
