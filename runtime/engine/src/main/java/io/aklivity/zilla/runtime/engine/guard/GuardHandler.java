@@ -36,11 +36,24 @@ public interface GuardHandler
 
     /**
      * Sentinel session id indicating the credentials are recognized but require an
-     * out-of-band pre-authorization step before a session can be created — for example,
-     * an interactive consent flow. The caller should then invoke {@link #preauthorize}
-     * to obtain the URL the user must visit.
+     * out-of-band pre-authorization step before a session can be created. The caller
+     * should then invoke {@link #preauthorize} to obtain the URL the user must visit.
+     * <p>
+     * The value is encoded with the high bit set and {@link #MASK_AUTHORIZED} bits zero,
+     * so callers can use {@code (sessionId & MASK_AUTHORIZED) != 0} to test for a valid
+     * session and {@code (sessionId & MASK_AUTHORIZED) == 0} to test for any
+     * unauthorized result without enumerating the individual sentinel values.
+     * </p>
      */
-    long NEEDS_PREAUTHORIZE = -1L;
+    long NEED_PREAUTHORIZE = 0x8000_0000_0000_0000L;
+
+    /**
+     * Bitmask isolating the bits that hold a valid session id. Used by callers to test
+     * a return value from {@link #reauthorize}: {@code (sessionId & MASK_AUTHORIZED) != 0}
+     * if the session id is valid (i.e. neither {@link #NOT_AUTHORIZED} nor
+     * {@link #NEED_PREAUTHORIZE}).
+     */
+    long MASK_AUTHORIZED = 0x7fff_ffff_ffff_ffffL;
 
     /** Sentinel expiry time indicating a session that never expires. */
     long EXPIRES_NEVER = Long.MAX_VALUE;
@@ -52,7 +65,7 @@ public interface GuardHandler
      * <ul>
      *   <li>positive session id — credentials accepted, session created</li>
      *   <li>{@link #NOT_AUTHORIZED} — credentials rejected</li>
-     *   <li>{@link #NEEDS_PREAUTHORIZE} — credentials recognized but the upstream has no
+     *   <li>{@link #NEED_PREAUTHORIZE} — credentials recognized but the upstream has no
      *       prior consent for this subject; the caller should invoke {@link #preauthorize}
      *       to obtain a URL for the user to visit</li>
      * </ul>
@@ -63,7 +76,7 @@ public interface GuardHandler
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
      * @param credentials  the raw credential string; the format is guard-specific
      * @return a positive session id if authorized, {@link #NOT_AUTHORIZED} on failure,
-     *         or {@link #NEEDS_PREAUTHORIZE} if pre-authorization is required first
+     *         or {@link #NEED_PREAUTHORIZE} if pre-authorization is required first
      */
     long reauthorize(
         long traceId,
@@ -157,7 +170,7 @@ public interface GuardHandler
      * never require pre-authorization; the default implementation returns {@code null}.
      * <p>
      * A caller may invoke this after {@link #reauthorize} returns
-     * {@link #NEEDS_PREAUTHORIZE} to recover an authorization URL to surface upstream.
+     * {@link #NEED_PREAUTHORIZE} to recover an authorization URL to surface upstream.
      * Once the user completes the step and {@code callback} is invoked, the caller
      * passes the resulting URL back to {@link #reauthorize} as the credentials.
      * </p>
