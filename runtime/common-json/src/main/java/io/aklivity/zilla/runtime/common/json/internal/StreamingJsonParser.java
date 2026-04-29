@@ -17,10 +17,14 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
+
+import io.aklivity.zilla.runtime.common.json.StreamingJson;
 
 public final class StreamingJsonParser implements JsonParser
 {
@@ -31,12 +35,22 @@ public final class StreamingJsonParser implements JsonParser
     public StreamingJsonParser(
         InputStream in)
     {
+        this(in, Map.of());
+    }
+
+    public StreamingJsonParser(
+        InputStream in,
+        Map<String, ?> config)
+    {
         if (!in.markSupported())
         {
             throw new IllegalArgumentException("InputStream must support mark/reset");
         }
         this.in = in;
-        this.tokenizer = new StreamingJsonTokenizer();
+        this.tokenizer = new StreamingJsonTokenizer(
+            pathList(config, StreamingJson.PATH_INCLUDES),
+            pathList(config, StreamingJson.PATH_EXCLUDES),
+            tokenMaxBytes(config));
         this.location = new StreamingJsonLocation(tokenizer);
     }
 
@@ -72,7 +86,13 @@ public final class StreamingJsonParser implements JsonParser
     @Override
     public String getString()
     {
-        return tokenizer.stringValue();
+        final String value = tokenizer.stringValue();
+        if (value == null && !tokenizer.valueReadable())
+        {
+            throw new IllegalStateException("value not readable; configure path via " +
+                "StreamingJson.PATH_INCLUDES (or remove from PATH_EXCLUDES)");
+        }
+        return value;
     }
 
     @Override
@@ -171,5 +191,21 @@ public final class StreamingJsonParser implements JsonParser
     {
         throw new UnsupportedOperationException("skipArray not yet supported; " +
             "use event-by-event consumption instead");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> pathList(
+        Map<String, ?> config,
+        String key)
+    {
+        final Object raw = config.get(key);
+        return raw == null ? List.of() : (List<String>) raw;
+    }
+
+    private static int tokenMaxBytes(
+        Map<String, ?> config)
+    {
+        final Object raw = config.get(StreamingJson.TOKEN_MAX_BYTES);
+        return raw == null ? Integer.MAX_VALUE : ((Number) raw).intValue();
     }
 }

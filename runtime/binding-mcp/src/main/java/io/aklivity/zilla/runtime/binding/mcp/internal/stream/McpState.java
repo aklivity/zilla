@@ -37,6 +37,12 @@ public final class McpState
         return state | INITIAL_OPENED;
     }
 
+    static boolean initialOpening(
+        int state)
+    {
+        return (state & INITIAL_OPENING) != 0;
+    }
+
     static boolean initialOpened(
         int state)
     {
