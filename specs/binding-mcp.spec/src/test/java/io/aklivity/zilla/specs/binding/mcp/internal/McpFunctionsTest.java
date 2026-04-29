@@ -28,6 +28,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpElicitStatus;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 
 public class McpFunctionsTest
@@ -766,5 +767,148 @@ public class McpFunctionsTest
             .build();
 
         assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitCreateChallengeUrlMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchChallengeEx()
+            .typeId(0)
+            .elicitCreate()
+                .id("elicit-1")
+                .url("https://provider.example/authorize?state=expected")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpChallengeExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCreate(b -> b
+                .id("elicit-1")
+                .url("https://provider.example/authorize?state=actual"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateElicitCallbackFlushEx()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .elicitCallback()
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchElicitCallbackFlushEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitCallback()
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitCallback(b -> b
+                .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateElicitCompleteFlushEx()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .elicitComplete()
+                .id("elicit-1")
+                .status("COMPLETED")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchElicitCompleteFlushEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitComplete()
+                .id("elicit-1")
+                .status("COMPLETED")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitComplete(b -> b
+                .id("elicit-1")
+                .status(s -> s.set(McpElicitStatus.COMPLETED)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenFlushExCaseMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitCallback()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitComplete(b -> b
+                .id("elicit-1")
+                .status(s -> s.set(McpElicitStatus.COMPLETED)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenElicitCompleteStatusMismatch() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .elicitComplete()
+                .id("elicit-1")
+                .status("COMPLETED")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .elicitComplete(b -> b
+                .id("elicit-1")
+                .status(s -> s.set(McpElicitStatus.DECLINED)))
+            .build();
+
+        matcher.match(byteBuf);
     }
 }
