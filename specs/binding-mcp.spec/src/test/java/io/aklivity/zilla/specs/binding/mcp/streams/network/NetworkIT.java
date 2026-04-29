@@ -323,4 +323,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.keepalive/client",
+        "${net}/lifecycle.events.keepalive/server"})
+    public void shouldKeepaliveLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.evict/client",
+        "${net}/lifecycle.events.evict/server"})
+    public void shouldEvictLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.shutdown/client",
+        "${net}/lifecycle.events.shutdown/server"})
+    public void shouldShutdownLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.timeout/client",
+        "${net}/lifecycle.events.timeout/server"})
+    public void shouldTimeoutLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
 }

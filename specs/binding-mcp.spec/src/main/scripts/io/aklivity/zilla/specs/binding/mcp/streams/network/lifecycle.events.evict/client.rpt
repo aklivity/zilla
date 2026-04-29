@@ -76,71 +76,51 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "POST")
+                            .header(":method", "GET")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
-                            .header("content-type", "application/json")
-                            .header("accept", "application/json, text/event-stream")
+                            .header("accept", "text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
                             .header("mcp-session-id", "session-1")
                             .build()}
 
 connected
-
-write '{"jsonrpc":"2.0","id":2,"method":"ping"}'
-write close
-
-read aborted
-read notify PING_1_REJECTED
-
-connect await PING_1_REJECTED
-        "zilla://streams/net0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "POST")
-                            .header(":scheme", "http")
-                            .header(":authority", "localhost:8080")
-                            .header(":path", "/mcp")
-                            .header("content-type", "application/json")
-                            .header("accept", "application/json, text/event-stream")
-                            .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "session-1")
-                            .build()}
-
-connected
-
-write '{"jsonrpc":"2.0","id":3,"method":"ping"}'
-write close
-
-read aborted
-read notify PING_2_REJECTED
-
-connect await PING_2_REJECTED
-        "zilla://streams/net0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "DELETE")
-                            .header(":scheme", "http")
-                            .header(":authority", "localhost:8080")
-                            .header(":path", "/mcp")
-                            .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "session-1")
-                            .build()}
-
-connected
-
-write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
+                           .header("content-type", "text/event-stream")
+                           .header("mcp-session-id", "session-1")
                            .build()}
 
+read notify FIRST_GET_OPEN
+read closed
+
+connect await FIRST_GET_OPEN
+        "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "GET")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/mcp")
+                            .header("accept", "text/event-stream")
+                            .header("mcp-protocol-version", "2025-11-25")
+                            .header("mcp-session-id", "session-1")
+                            .build()}
+
+connected
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "text/event-stream")
+                           .header("mcp-session-id", "session-1")
+                           .build()}
+
+write close
 read closed

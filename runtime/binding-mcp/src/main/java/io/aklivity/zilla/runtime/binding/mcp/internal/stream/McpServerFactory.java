@@ -93,6 +93,9 @@ public final class McpServerFactory implements McpStreamFactory
     private static final byte[] SSE_DATA_NEWLINE_BYTES = "\ndata: ".getBytes();
     private static final byte[] SSE_MESSAGE_TERMINATOR_BYTES = "\n\n".getBytes();
 
+    private static final int DATA_FLAG_FIN = 0x01;
+    private static final int DATA_FLAG_INIT = 0x02;
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -272,7 +275,7 @@ public final class McpServerFactory implements McpStreamFactory
             switch (method)
             {
             case "POST":
-                if (!acceptIncludesJsonOrEventStream(accept))
+                if (!acceptRequiresJsonAndEventStream(accept))
                 {
                     rejectStatus = STATUS_406;
                 }
@@ -298,7 +301,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 else
                 {
-                    newStream = new McpListenStream(
+                    newStream = new McpEventStream(
                         sender,
                         originId,
                         routedId,
@@ -1749,7 +1752,15 @@ public final class McpServerFactory implements McpStreamFactory
             DirectBuffer payload)
         {
             doEncodeResponsePreamble(traceId, authorization);
-            doNetData(traceId, authorization, payload);
+            if (sseUpgrade)
+            {
+                final int length = rewriteSseDataLines(codecBuffer, 0, payload, 0, payload.capacity());
+                doNetData(traceId, authorization, codecBuffer, 0, length);
+            }
+            else
+            {
+                doNetData(traceId, authorization, payload);
+            }
         }
 
         private void doEncodeResponsePostamble(
@@ -2128,7 +2139,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private long lastActiveAt;
         private long inactiveId = Signaler.NO_CANCEL_ID;
-        private McpListenStream eventStream;
+        private McpEventStream eventStream;
 
         private McpLifecycleStream(
             McpServer server)
@@ -2432,7 +2443,7 @@ public final class McpServerFactory implements McpStreamFactory
         }
     }
 
-    private final class McpListenStream
+    private final class McpEventStream
     {
         private final MessageConsumer net;
         private final long originId;
@@ -2459,7 +2470,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private long keepaliveCancelId = Signaler.NO_CANCEL_ID;
 
-        private McpListenStream(
+        private McpEventStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -2631,19 +2642,20 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
-        private void pushEvent(
+        private void doEncodeEventData(
             long traceId,
             long authorization,
             DirectBuffer payload,
             int payloadOffset,
-            int payloadLength)
+            int payloadLength,
+            int flags)
         {
             if (McpState.replyClosed(state))
             {
                 return;
             }
 
-            final int length = encodeSseMessage(codecBuffer, 0, payload, payloadOffset, payloadLength);
+            final int length = encodeSseEvent(codecBuffer, 0, payload, payloadOffset, payloadLength, flags);
             doNetData(traceId, authorization, codecBuffer, 0, length);
         }
 
@@ -3506,23 +3518,30 @@ public final class McpServerFactory implements McpStreamFactory
         return -1;
     }
 
-    private static boolean acceptIncludesJsonOrEventStream(
+    private static boolean acceptRequiresJsonAndEventStream(
         String accept)
     {
-        return accept == null ||
-            accept.contains(CONTENT_TYPE_JSON) ||
-            accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
-            accept.contains("*/*") ||
-            accept.contains("application/*");
+        if (accept == null)
+        {
+            return false;
+        }
+
+        final boolean jsonOk = accept.contains(CONTENT_TYPE_JSON) ||
+            accept.contains("application/*") ||
+            accept.contains("*/*");
+        final boolean sseOk = accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
+            accept.contains("text/*") ||
+            accept.contains("*/*");
+        return jsonOk && sseOk;
     }
 
     private static boolean acceptIncludesEventStream(
         String accept)
     {
-        return accept == null ||
-            accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
-            accept.contains("*/*") ||
-            accept.contains("text/*");
+        return accept != null &&
+            (accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
+             accept.contains("*/*") ||
+             accept.contains("text/*"));
     }
 
     private int encodeSseKeepAlive(
@@ -3533,7 +3552,34 @@ public final class McpServerFactory implements McpStreamFactory
         return SSE_KEEPALIVE_BYTES.length;
     }
 
-    private int encodeSseMessage(
+    private int encodeSseEvent(
+        MutableDirectBuffer out,
+        int offset,
+        DirectBuffer payload,
+        int payloadOffset,
+        int payloadLength,
+        int flags)
+    {
+        int progress = offset;
+
+        if ((flags & DATA_FLAG_INIT) != 0)
+        {
+            out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
+            progress += SSE_DATA_PREFIX_BYTES.length;
+        }
+
+        progress += rewriteSseDataLines(out, progress, payload, payloadOffset, payloadLength);
+
+        if ((flags & DATA_FLAG_FIN) != 0)
+        {
+            out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
+            progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
+        }
+
+        return progress - offset;
+    }
+
+    private static int rewriteSseDataLines(
         MutableDirectBuffer out,
         int offset,
         DirectBuffer payload,
@@ -3541,10 +3587,6 @@ public final class McpServerFactory implements McpStreamFactory
         int payloadLength)
     {
         int progress = offset;
-
-        out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
-        progress += SSE_DATA_PREFIX_BYTES.length;
-
         int chunkStart = payloadOffset;
         final int payloadLimit = payloadOffset + payloadLength;
         for (int cursor = payloadOffset; cursor < payloadLimit; cursor++)
@@ -3569,9 +3611,6 @@ public final class McpServerFactory implements McpStreamFactory
             out.putBytes(progress, payload, chunkStart, tailLen);
             progress += tailLen;
         }
-
-        out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
-        progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
 
         return progress - offset;
     }

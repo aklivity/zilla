@@ -24,6 +24,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("content-type", "application/json")
+                            .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
                             .build()}
 
@@ -55,6 +56,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("content-type", "application/json")
+                            .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
                             .header("mcp-session-id", "session-1")
                             .build()}
@@ -79,6 +81,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "localhost:8080")
                             .header(":path", "/mcp")
                             .header("content-type", "application/json")
+                            .header("accept", "application/json, text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
                             .header("mcp-session-id", "session-1")
                             .build()}

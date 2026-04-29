@@ -75,58 +75,47 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "POST")
+                           .header(":method", "GET")
                            .header(":path", "/mcp")
-                           .header("content-type", "application/json")
-                           .header("accept", "application/json, text/event-stream")
+                           .header("accept", "text/event-stream")
                            .header("mcp-protocol-version", "2025-11-25")
                            .header("mcp-session-id", "session-1")
                            .build()}
 
 connected
-
-read '{"jsonrpc":"2.0","id":2,"method":"ping"}'
-read closed
-
-write abort
-
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "POST")
-                           .header(":path", "/mcp")
-                           .header("content-type", "application/json")
-                           .header("accept", "application/json, text/event-stream")
-                           .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
-                           .build()}
-
-connected
-
-read '{"jsonrpc":"2.0","id":3,"method":"ping"}'
-read closed
-
-write abort
-
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "DELETE")
-                           .header(":path", "/mcp")
-                           .header("mcp-protocol-version", "2025-11-25")
-                           .header("mcp-session-id", "session-1")
-                           .build()}
-
-connected
-
-read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .header("mcp-session-id", "session-1")
                             .build()}
 write flush
 
+write await EVENT_STREAM_EVICTED
+write close
+
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "GET")
+                           .header(":path", "/mcp")
+                           .header("accept", "text/event-stream")
+                           .header("mcp-protocol-version", "2025-11-25")
+                           .header("mcp-session-id", "session-1")
+                           .build()}
+
+connected
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .header("mcp-session-id", "session-1")
+                            .build()}
+write flush
+write notify EVENT_STREAM_EVICTED
+
+read closed
 write close
