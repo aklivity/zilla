@@ -2176,12 +2176,8 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 final int decodedKeyOffset = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
                 final int decodedValueOffset = offset + (int) (decodedValueProgress - client.decodedParserProgress);
-                int openingQuote = decodedKeyOffset;
-                while (openingQuote < decodedValueOffset && buffer.getByte(openingQuote) != (byte) '"')
-                {
-                    openingQuote++;
-                }
-                final int decodedContent = openingQuote + 1;
+                final int openingQuote = indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
+                final int decodedContent = (openingQuote != -1 ? openingQuote : decodedValueOffset) + 1;
                 final int decodedOffset =
                     offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
                 client.server.streamItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
@@ -2613,6 +2609,23 @@ public final class McpProxyFactory implements McpStreamFactory
         int kind)
     {
         return kind == KIND_TOOLS_LIST || kind == KIND_PROMPTS_LIST || kind == KIND_RESOURCES_LIST;
+    }
+
+    private static int indexOfByte(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        byte value)
+    {
+        for (int cursor = offset; cursor < limit; cursor++)
+        {
+            if (buffer.getByte(cursor) == value)
+            {
+                return cursor;
+            }
+        }
+
+        return -1;
     }
 
     private static String sessionId(
