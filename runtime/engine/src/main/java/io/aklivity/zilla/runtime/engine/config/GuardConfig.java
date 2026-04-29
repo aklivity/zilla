@@ -21,11 +21,14 @@ import static java.util.function.Function.identity;
 public class GuardConfig
 {
     public transient long id;
+    public transient long storeId;
+    public transient String qstore;
 
     public final String namespace;
     public final String name;
     public final String qname;
     public final String type;
+    public final String store;
     public final OptionsConfig options;
 
     public static final GuardConfigBuilder<GuardConfig> builder()
@@ -37,12 +40,14 @@ public class GuardConfig
         String namespace,
         String name,
         String type,
+        String store,
         OptionsConfig options)
     {
         this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
+        this.store = store;
         this.options = options;
     }
 }

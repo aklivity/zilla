@@ -374,6 +374,11 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
+            if (guard.store != null)
+            {
+                guard.storeId = resolver.resolve(guard.store);
+                guard.qstore = resolver.format(guard.storeId);
+            }
         }
 
         for (StoreConfig store : namespace.stores)
