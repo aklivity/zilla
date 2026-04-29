@@ -2176,8 +2176,8 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 final int decodedKeyOffset = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
                 final int decodedValueOffset = offset + (int) (decodedValueProgress - client.decodedParserProgress);
-                final int openingQuote = indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
-                final int decodedContent = (openingQuote != -1 ? openingQuote : decodedValueOffset) + 1;
+                final int decodedOpenQuote = indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
+                final int decodedContent = (decodedOpenQuote != -1 ? decodedOpenQuote : decodedValueOffset) + 1;
                 final int decodedOffset =
                     offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
                 client.server.streamItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
