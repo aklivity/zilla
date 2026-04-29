@@ -32,6 +32,7 @@
                         "enum": [ "server", "client", "proxy" ]
                     },
                     "catalog": false,
+                    "entry": false,
                     "options":
                     {
                         "properties":

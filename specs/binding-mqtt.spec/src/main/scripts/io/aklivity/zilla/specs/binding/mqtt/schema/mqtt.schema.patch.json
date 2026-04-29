@@ -33,6 +33,7 @@
                     },
                     "catalog": false,
                     "vault": false,
+                    "entry": false,
                     "routes":
                     {
                         "title": "Routes",

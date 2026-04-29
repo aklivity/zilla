@@ -32,6 +32,7 @@
                         "enum": [ "proxy"]
                     },
                     "vault": false,
+                    "entry": false,
                     "options":
                     {
                         "properties":

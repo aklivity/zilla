@@ -33,6 +33,7 @@
                     },
                     "catalog": false,
                     "vault": false,
+                    "entry": false,
                     "options":
                     {
                         "properties":
