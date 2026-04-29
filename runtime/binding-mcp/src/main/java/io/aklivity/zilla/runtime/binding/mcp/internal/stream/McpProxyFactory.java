@@ -1415,6 +1415,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private boolean awaitingIdValue;
         private long itemStartStreamOffset = -1;
         private long itemEmittedStreamOffset = -1;
+        private boolean pendingFinalize;
         private McpListClientDecoder decoder = decodeInit;
         private String arrayKey;
         private String idKey;
@@ -2033,6 +2034,32 @@ public final class McpProxyFactory implements McpStreamFactory
         decode:
         while (true)
         {
+            if (client.itemStartStreamOffset >= 0)
+            {
+                final long parserStreamOffset = parser.getLocation().getStreamOffset();
+                if (client.itemEmittedStreamOffset < parserStreamOffset)
+                {
+                    final int emittedInBuf =
+                        offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+                    final int parserInBuf = offset + (int) (parserStreamOffset - client.decodedParserProgress);
+                    final int chunkLen = parserInBuf - emittedInBuf;
+                    final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
+                    client.itemEmittedStreamOffset += emitted;
+                    if (emitted < chunkLen)
+                    {
+                        break decode;
+                    }
+                }
+
+                if (client.pendingFinalize)
+                {
+                    client.server.streamItemEnd(traceId);
+                    client.itemStartStreamOffset = -1;
+                    client.itemEmittedStreamOffset = -1;
+                    client.pendingFinalize = false;
+                }
+            }
+
             final long beforeStreamOffset = parser.getLocation().getStreamOffset();
             if (!parser.hasNext())
             {
@@ -2066,7 +2093,7 @@ public final class McpProxyFactory implements McpStreamFactory
                     client.itemEmittedStreamOffset += emitted;
                     if (emitted < chunkLen)
                     {
-                        client.decodeItemDepth++;
+                        client.pendingFinalize = true;
                         break decode;
                     }
                     client.server.streamItemEnd(traceId);
