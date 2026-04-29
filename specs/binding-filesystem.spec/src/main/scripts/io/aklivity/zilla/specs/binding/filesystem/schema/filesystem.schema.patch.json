@@ -53,6 +53,7 @@
                         "additionalProperties": false
                     },
                     "routes": false,
+                    "entry": false,
                     "exit": false
                 }
             }

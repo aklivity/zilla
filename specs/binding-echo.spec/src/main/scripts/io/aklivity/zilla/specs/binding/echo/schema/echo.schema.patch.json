@@ -35,6 +35,7 @@
                     "vault": false,
                     "options": false,
                     "routes": false,
+                    "entry": false,
                     "exit": false
                 }
             }

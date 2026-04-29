@@ -34,6 +34,7 @@
                     "vault": false,
                     "options": false,
                     "routes": false,
+                    "entry": false,
                     "required":
                     [
                         "catalog",

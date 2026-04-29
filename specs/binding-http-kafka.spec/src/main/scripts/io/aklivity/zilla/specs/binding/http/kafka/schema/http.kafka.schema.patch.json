@@ -93,6 +93,7 @@
                         },
                         "additionalProperties": false
                     },
+                    "entry": false,
                     "routes":
                     {
                         "title": "Routes",
