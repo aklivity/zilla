@@ -1415,7 +1415,6 @@ public final class McpProxyFactory implements McpStreamFactory
         private boolean awaitingIdValue;
         private long itemStartStreamOffset = -1;
         private long itemEmittedStreamOffset = -1;
-        private boolean pendingFinalize;
         private McpListClientDecoder decoder = decodeInit;
         private String arrayKey;
         private String idKey;
@@ -1776,7 +1775,7 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
-        private void decodeFromSlot(
+        private void decode(
             long traceId)
         {
             if (replySlot != NO_SLOT)
@@ -1818,6 +1817,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final McpListClientDecoder decodeSkipObject = this::decodeSkipObject;
     private final McpListClientDecoder decodeItems = this::decodeItems;
     private final McpListClientDecoder decodeItem = this::decodeItem;
+    private final McpListClientDecoder decodeItemFinalize = this::decodeItemFinalize;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
 
     private int decodeInit(
@@ -2050,14 +2050,6 @@ public final class McpProxyFactory implements McpStreamFactory
                         break decode;
                     }
                 }
-
-                if (client.pendingFinalize)
-                {
-                    client.server.streamItemEnd(traceId);
-                    client.itemStartStreamOffset = -1;
-                    client.itemEmittedStreamOffset = -1;
-                    client.pendingFinalize = false;
-                }
             }
 
             final long beforeStreamOffset = parser.getLocation().getStreamOffset();
@@ -2093,7 +2085,7 @@ public final class McpProxyFactory implements McpStreamFactory
                     client.itemEmittedStreamOffset += emitted;
                     if (emitted < chunkLen)
                     {
-                        client.pendingFinalize = true;
+                        client.decoder = decodeItemFinalize;
                         break decode;
                     }
                     client.server.streamItemEnd(traceId);
@@ -2146,6 +2138,42 @@ public final class McpProxyFactory implements McpStreamFactory
         }
 
         return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
+    }
+
+    private int decodeItemFinalize(
+        McpListClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParser parser = client.decodableJson;
+        final long parserStreamOffset = parser.getLocation().getStreamOffset();
+
+        if (client.itemEmittedStreamOffset < parserStreamOffset)
+        {
+            final int emittedInBuf =
+                offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+            final int parserInBuf = offset + (int) (parserStreamOffset - client.decodedParserProgress);
+            final int chunkLen = parserInBuf - emittedInBuf;
+            final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
+            client.itemEmittedStreamOffset += emitted;
+            if (emitted < chunkLen)
+            {
+                return offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+            }
+        }
+
+        client.server.streamItemEnd(traceId);
+        client.itemStartStreamOffset = -1;
+        client.itemEmittedStreamOffset = -1;
+        client.decoder = decodeItem;
+
+        return offset + (int) (parserStreamOffset - client.decodedParserProgress);
     }
 
     private int decodeIgnore(
@@ -2325,7 +2353,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             if (client != null)
             {
-                client.decodeFromSlot(traceId);
+                client.decode(traceId);
                 client.flushClientWindow(traceId, budgetId, padding, replySeq - replyAck, replyMax);
             }
         }
