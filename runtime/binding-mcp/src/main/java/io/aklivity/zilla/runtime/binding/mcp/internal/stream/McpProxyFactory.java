@@ -1775,6 +1775,16 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
+        private void decodeFromSlot(
+            long traceId)
+        {
+            if (replySlot != NO_SLOT)
+            {
+                final MutableDirectBuffer slot = bufferPool.buffer(replySlot);
+                decode(traceId, server.authorization, 0L, 0, slot, 0, replySlotOffset);
+            }
+        }
+
         private void cleanupClientSlot()
         {
             if (replySlot != NO_SLOT)
@@ -2288,6 +2298,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
             if (client != null)
             {
+                client.decodeFromSlot(traceId);
                 client.flushClientWindow(traceId, budgetId, padding, replySeq - replyAck, replyMax);
             }
         }
