@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
@@ -77,11 +78,20 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
+    private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String STATUS_200 = "200";
     private static final String STATUS_202 = "202";
     private static final String STATUS_400 = "400";
     private static final String STATUS_405 = "405";
+    private static final String STATUS_406 = "406";
+
+    private static final int SSE_KEEPALIVE_SIGNAL_ID = 2;
+    private static final byte[] SSE_KEEPALIVE_BYTES = ":\n\n".getBytes();
+    private static final byte[] SSE_DATA_PREFIX_BYTES = "data: ".getBytes();
+    private static final byte[] SSE_DATA_NEWLINE_BYTES = "\ndata: ".getBytes();
+    private static final byte[] SSE_MESSAGE_TERMINATOR_BYTES = "\n\n".getBytes();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -91,6 +101,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
@@ -109,6 +120,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final String serverName;
     private final String serverVersion;
     private final long inactivityTimeoutMillis;
+    private final long sseKeepaliveIntervalMillis;
     private final Signaler signaler;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -158,6 +170,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
+        this.sseKeepaliveIntervalMillis = config.sseKeepaliveInterval().toMillis();
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -249,30 +262,72 @@ public final class McpServerFactory implements McpStreamFactory
 
             String method = methodHeader.value().asString();
 
-            newStream = switch (method)
+            final HttpHeaderFW acceptHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_ACCEPT.equals(h.name().asString()));
+            final String accept = acceptHeader != null ? acceptHeader.value().asString() : null;
+
+            final McpLifecycleStream resolvedSession = session;
+
+            String rejectStatus = null;
+            switch (method)
             {
-            case "POST" -> new McpServer(
+            case "POST":
+                if (!acceptIncludesJsonOrEventStream(accept))
+                {
+                    rejectStatus = STATUS_406;
+                }
+                else
+                {
+                    newStream = new McpServer(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        resolvedSession)::onNetMessage;
+                }
+                break;
+            case "GET":
+                if (!acceptIncludesEventStream(accept))
+                {
+                    rejectStatus = STATUS_406;
+                }
+                else if (resolvedSession == null)
+                {
+                    rejectStatus = STATUS_400;
+                }
+                else
+                {
+                    newStream = new McpListenStream(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedSession)::onNetMessage;
+                }
+                break;
+            case "DELETE":
+                newStream = new McpShutdownHandler(
                     sender,
                     originId,
                     routedId,
                     initialId,
                     resolvedId,
-                    session)::onNetMessage;
-            case "DELETE" -> new McpShutdownHandler(
-                    sender,
-                    originId,
-                    routedId,
-                    initialId,
-                    resolvedId,
-                    session)::onNetMessage;
-            default -> (t, b, o, l) ->
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck,
-                    0, traceId, authorization, httpResetExRW
-                        .wrap(codecBuffer, 0, codecBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_405))
-                        .build());
-            };
+                    resolvedSession)::onNetMessage;
+                break;
+            default:
+                rejectStatus = STATUS_405;
+                break;
+            }
+
+            if (rejectStatus != null)
+            {
+                doRejectNet(sender, originId, routedId, initialId, initialSeq, initialAck,
+                    traceId, authorization, rejectStatus);
+                newStream = (t, b, o, l) ->
+                {
+                };
+            }
         }
 
         return newStream;
@@ -919,6 +974,7 @@ public final class McpServerFactory implements McpStreamFactory
         private long encodeSlotTraceId;
 
         private McpServerDecoder decoder;
+        private boolean sseUpgrade;
 
         private JsonParser decodableJson;
         private String decodedMethod;
@@ -1652,6 +1708,20 @@ public final class McpServerFactory implements McpStreamFactory
                 "Invalid request");
         }
 
+        private void onAppChallenge(
+            long traceId,
+            long authorization)
+        {
+            sseUpgrade = true;
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
+                .build());
+        }
+
         private void doEncodeResponseBegin(
             long traceId,
             long authorization,
@@ -1666,8 +1736,9 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (replySeq == 0L)
             {
+                final String prefix = sseUpgrade ? "data: " : "";
                 final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                    "{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(decodedId));
+                    "%s{\"jsonrpc\":\"2.0\",\"id\":%s,\"result\":".formatted(prefix, decodedId));
                 doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
             }
         }
@@ -1685,7 +1756,8 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
-            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, "}");
+            final String suffix = sseUpgrade ? "}\n\n" : "}";
+            final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0, suffix);
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
         }
 
@@ -2056,6 +2128,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private long lastActiveAt;
         private long inactiveId = Signaler.NO_CANCEL_ID;
+        private McpListenStream eventStream;
 
         private McpLifecycleStream(
             McpServer server)
@@ -2240,6 +2313,11 @@ public final class McpServerFactory implements McpStreamFactory
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
+                if (eventStream != null)
+                {
+                    eventStream.doNetEnd(traceId, authorization);
+                    eventStream = null;
+                }
                 doAppEnd(traceId, authorization);
                 sessions.remove(sessionId);
             }
@@ -2343,9 +2421,415 @@ public final class McpServerFactory implements McpStreamFactory
                 requests.values().stream()
                     .forEach(r -> r.doAppCancel(traceId, authorization));
                 requests.clear();
+                if (eventStream != null)
+                {
+                    eventStream.doNetEnd(traceId, authorization);
+                    eventStream = null;
+                }
                 cancelInactivity();
                 sessions.remove(sessionId);
             }
+        }
+    }
+
+    private final class McpListenStream
+    {
+        private final MessageConsumer net;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final McpLifecycleStream session;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private long replyBud;
+        private int replyPad;
+
+        private int state;
+
+        private int encodeSlot = BufferPool.NO_SLOT;
+        private int encodeSlotOffset;
+        private long encodeSlotTraceId;
+
+        private long keepaliveCancelId = Signaler.NO_CANCEL_ID;
+
+        private McpListenStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            McpLifecycleStream session)
+        {
+            this.net = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.session = session;
+            this.initialMax = decodeMax;
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetClientEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetSignal(signal);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+
+            state = McpState.openedInitial(state);
+
+            if (session.eventStream != null)
+            {
+                session.eventStream.doNetEnd(traceId, authorization);
+            }
+            session.eventStream = this;
+
+            doNetBegin(traceId, authorization, httpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_EVENT_STREAM))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
+                .build());
+
+            doNetWindow(traceId, authorization, 0, 0);
+
+            scheduleKeepalive(traceId);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            cleanupNet(traceId, authorization);
+        }
+
+        private void onNetClientEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            state = McpState.closedInitial(state);
+
+            doNetEnd(traceId, authorization);
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            state = McpState.closedInitial(state);
+
+            doNetAbort(traceId, authorization);
+        }
+
+        private void onNetWindow(
+            WindowFW window)
+        {
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyBud = budgetId;
+            replyPad = padding;
+
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final int limit = encodeSlotOffset;
+                encodeNet(encodeSlotTraceId, authorization, buffer, 0, limit);
+            }
+        }
+
+        private void onNetReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+
+            cleanupNet(traceId, authorization);
+        }
+
+        private void onNetSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() != SSE_KEEPALIVE_SIGNAL_ID)
+            {
+                return;
+            }
+
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+
+            keepaliveCancelId = Signaler.NO_CANCEL_ID;
+
+            if (!McpState.replyClosed(state))
+            {
+                final int length = encodeSseKeepAlive(codecBuffer, 0);
+                doNetData(traceId, authorization, codecBuffer, 0, length);
+                scheduleKeepalive(traceId);
+            }
+        }
+
+        private void pushEvent(
+            long traceId,
+            long authorization,
+            DirectBuffer payload,
+            int payloadOffset,
+            int payloadLength)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            final int length = encodeSseMessage(codecBuffer, 0, payload, payloadOffset, payloadLength);
+            doNetData(traceId, authorization, codecBuffer, 0, length);
+        }
+
+        private void scheduleKeepalive(
+            long traceId)
+        {
+            if (sseKeepaliveIntervalMillis > 0L && keepaliveCancelId == Signaler.NO_CANCEL_ID)
+            {
+                final long at = System.currentTimeMillis() + sseKeepaliveIntervalMillis;
+                keepaliveCancelId = signaler.signalAt(at, originId, routedId, replyId,
+                    traceId, SSE_KEEPALIVE_SIGNAL_ID, 0);
+            }
+        }
+
+        private void cancelKeepalive()
+        {
+            if (keepaliveCancelId != Signaler.NO_CANCEL_ID)
+            {
+                signaler.cancel(keepaliveCancelId);
+                keepaliveCancelId = Signaler.NO_CANCEL_ID;
+            }
+        }
+
+        private void doNetBegin(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (!McpState.replyOpening(state))
+            {
+                doBegin(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization, 0,
+                    extension);
+                state = McpState.openingReply(state);
+            }
+        }
+
+        private void doNetData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+                encodeSlotTraceId = traceId;
+
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+            }
+
+            encodeNet(traceId, authorization, buffer, offset, limit);
+        }
+
+        private void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            cancelKeepalive();
+            if (session.eventStream == this)
+            {
+                session.eventStream = null;
+            }
+
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doEnd(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization);
+            }
+
+            cleanupEncodeSlot();
+        }
+
+        private void doNetAbort(
+            long traceId,
+            long authorization)
+        {
+            cancelKeepalive();
+            if (session.eventStream == this)
+            {
+                session.eventStream = null;
+            }
+
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doAbort(net, originId, routedId, replyId,
+                    replySeq, replyAck, replyMax, traceId, authorization);
+            }
+
+            cleanupEncodeSlot();
+        }
+
+        private void doNetReset(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doReset(net, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax, traceId, authorization, emptyRO);
+            }
+        }
+
+        private void doNetWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            doWindow(net, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization, budgetId, padding);
+        }
+
+        private void encodeNet(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int maxLength = limit - offset;
+            final int replyWin = replyMax - (int)(replySeq - replyAck);
+            final int length = Math.max(Math.min(replyWin - replyPad, maxLength), 0);
+
+            if (length > 0)
+            {
+                final int reserved = length + replyPad;
+
+                doData(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                       0x03, replyBud, reserved, buffer, offset, length);
+
+                replySeq += reserved;
+                assert replySeq <= replyAck + replyMax;
+            }
+
+            final int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(replyId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                    encodeSlotTraceId = traceId;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlot();
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != BufferPool.NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = BufferPool.NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupNet(
+            long traceId,
+            long authorization)
+        {
+            doNetReset(traceId, authorization);
+            doNetAbort(traceId, authorization);
         }
     }
 
@@ -2573,9 +3057,22 @@ public final class McpServerFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onAppChallenge(challenge);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onAppChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+
+            server.onAppChallenge(traceId, authorization);
         }
 
         private void onAppBegin(
@@ -2597,12 +3094,15 @@ public final class McpServerFactory implements McpStreamFactory
 
             session.touch();
 
-            server.doEncodeResponseBegin(traceId, authorization,
-                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
-                    .build());
+            if (!server.sseUpgrade)
+            {
+                server.doEncodeResponseBegin(traceId, authorization,
+                    httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                        .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                        .build());
+            }
         }
 
         private void onAppData(
@@ -2654,6 +3154,10 @@ public final class McpServerFactory implements McpStreamFactory
             assert replyAck <= replySeq;
 
             if (replySeq > replyAck + decodeMax)
+            {
+                cleanupApp(traceId, authorization);
+            }
+            else if (!server.sseUpgrade)
             {
                 cleanupApp(traceId, authorization);
             }
@@ -2964,6 +3468,27 @@ public final class McpServerFactory implements McpStreamFactory
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
+    private void doRejectNet(
+        MessageConsumer network,
+        long originId,
+        long routedId,
+        long initialId,
+        long sequence,
+        long acknowledge,
+        long traceId,
+        long authorization,
+        String status)
+    {
+        doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0,
+            traceId, 0L, 0, 0);
+        doReset(network, originId, routedId, initialId, sequence, acknowledge, 0,
+            traceId, authorization, httpResetExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                .build());
+    }
+
     private static int indexOfByte(
         DirectBuffer buffer,
         int offset,
@@ -2979,5 +3504,75 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         return -1;
+    }
+
+    private static boolean acceptIncludesJsonOrEventStream(
+        String accept)
+    {
+        return accept == null ||
+            accept.contains(CONTENT_TYPE_JSON) ||
+            accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
+            accept.contains("*/*") ||
+            accept.contains("application/*");
+    }
+
+    private static boolean acceptIncludesEventStream(
+        String accept)
+    {
+        return accept == null ||
+            accept.contains(CONTENT_TYPE_EVENT_STREAM) ||
+            accept.contains("*/*") ||
+            accept.contains("text/*");
+    }
+
+    private int encodeSseKeepAlive(
+        MutableDirectBuffer out,
+        int offset)
+    {
+        out.putBytes(offset, SSE_KEEPALIVE_BYTES);
+        return SSE_KEEPALIVE_BYTES.length;
+    }
+
+    private int encodeSseMessage(
+        MutableDirectBuffer out,
+        int offset,
+        DirectBuffer payload,
+        int payloadOffset,
+        int payloadLength)
+    {
+        int progress = offset;
+
+        out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
+        progress += SSE_DATA_PREFIX_BYTES.length;
+
+        int chunkStart = payloadOffset;
+        final int payloadLimit = payloadOffset + payloadLength;
+        for (int cursor = payloadOffset; cursor < payloadLimit; cursor++)
+        {
+            if (payload.getByte(cursor) == (byte) '\n')
+            {
+                final int chunkLen = cursor - chunkStart;
+                if (chunkLen > 0)
+                {
+                    out.putBytes(progress, payload, chunkStart, chunkLen);
+                    progress += chunkLen;
+                }
+                out.putBytes(progress, SSE_DATA_NEWLINE_BYTES);
+                progress += SSE_DATA_NEWLINE_BYTES.length;
+                chunkStart = cursor + 1;
+            }
+        }
+
+        final int tailLen = payloadLimit - chunkStart;
+        if (tailLen > 0)
+        {
+            out.putBytes(progress, payload, chunkStart, tailLen);
+            progress += tailLen;
+        }
+
+        out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
+        progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
+
+        return progress - offset;
     }
 }

@@ -278,4 +278,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.open/client",
+        "${net}/lifecycle.events.open/server"})
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.session.unknown/client",
+        "${net}/lifecycle.events.session.unknown/server"})
+    public void shouldRejectLifecycleEventsSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.session.missing/client",
+        "${net}/lifecycle.events.session.missing/server"})
+    public void shouldRejectLifecycleEventsSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.method.not.allowed/client",
+        "${net}/reject.method.not.allowed/server"})
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.accept.unsupported/client",
+        "${net}/reject.accept.unsupported/server"})
+    public void shouldRejectAcceptUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
 }

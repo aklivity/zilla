@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SSE_KEEPALIVE_INTERVAL_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -304,6 +305,53 @@ public class McpServerIT
         "${net}/resources.read/client",
         "${app}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.open/client",
+        "${app}/lifecycle.initialize/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.session.unknown/client"})
+    public void shouldRejectLifecycleEventsSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.events.session.missing/client"})
+    public void shouldRejectLifecycleEventsSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.method.not.allowed/client"})
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.accept.unsupported/client"})
+    public void shouldRejectAcceptUnsupported() throws Exception
     {
         k3po.finish();
     }
