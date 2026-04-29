@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import java.util.function.LongConsumer;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -83,6 +85,36 @@ public interface GuardHandler
         long bindingId,
         long contextId,
         String credentials);
+
+    /**
+     * Async variant of {@link #reauthorize} for guards whose authorization decision
+     * requires non-blocking I/O (for example, an upstream token exchange after an
+     * out-of-band consent step). The result is delivered to {@code onResult} on the
+     * same engine worker thread that invoked this method; implementations that do
+     * off-thread work must dispatch back via {@code EngineContext.signaler()} before
+     * invoking the callback.
+     * <p>
+     * The default implementation delegates to the synchronous {@link #reauthorize},
+     * so guards that always decide locally need no source change.
+     * </p>
+     *
+     * @param traceId      the trace identifier for diagnostics
+     * @param bindingId    the binding identifier requesting authorization
+     * @param contextId    a context identifier (e.g., connection id), or {@code 0} if none
+     * @param credentials  the raw credential string; the format is guard-specific
+     * @param onResult     callback invoked with a positive session id on success,
+     *                     {@link #NOT_AUTHORIZED} on failure, or {@link #NEEDS_PREAUTHORIZE}
+     *                     if pre-authorization is required first
+     */
+    default void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongConsumer onResult)
+    {
+        onResult.accept(reauthorize(traceId, bindingId, contextId, credentials));
+    }
 
     /**
      * Invalidates and releases the given session.

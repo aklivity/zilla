@@ -15,10 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -46,5 +48,17 @@ public final class GuardFactoryTest
         GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
         assertThat(handler.preauthorize(0L, 0L, 0L, null), nullValue());
+    }
+
+    @Test
+    public void shouldDelegateAsyncReauthorizeToSyncByDefault()
+    {
+        GuardConfig config = GuardConfig.builder().namespace("test").name("test").type("test").build();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+
+        MutableLong result = new MutableLong(Long.MIN_VALUE);
+        handler.reauthorize(0L, 0L, 0L, null, result::set);
+
+        assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 0L, null)));
     }
 }
