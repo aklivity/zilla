@@ -1412,8 +1412,7 @@ public final class McpProxyFactory implements McpStreamFactory
         private int decodeDepth;                  // JSON nesting depth in the reply envelope
         private int decodeItemDepth;              // JSON nesting depth within the current item
         private int decodeSkipDepth;              // JSON nesting depth within a skipped value
-        private long itemStartStreamOffset = -1;
-        private long itemEmittedStreamOffset = -1;
+        private long decodedItemProgress = -1;    // streamOffset of last byte emitted within the current item, -1 between items
         private McpListClientDecoder decoder = decodeInit;
         private String arrayKey;
         private String idKey;
@@ -1734,9 +1733,9 @@ public final class McpProxyFactory implements McpStreamFactory
             }
 
             final int compactBoundaryInBuf;
-            if (itemStartStreamOffset >= 0)
+            if (decodedItemProgress >= 0)
             {
-                compactBoundaryInBuf = offset + (int) (itemEmittedStreamOffset - decodedParserProgress);
+                compactBoundaryInBuf = offset + (int) (decodedItemProgress - decodedParserProgress);
             }
             else
             {
@@ -2035,13 +2034,12 @@ public final class McpProxyFactory implements McpStreamFactory
         decode:
         while (parser.hasNext())
         {
-            final long afterStreamOffset = parser.getLocation().getStreamOffset();
+            final long decodedItemProgress = parser.getLocation().getStreamOffset();
             final JsonParser.Event event = parser.next();
             switch (event)
             {
             case START_OBJECT:
-                client.itemStartStreamOffset = afterStreamOffset - 1;
-                client.itemEmittedStreamOffset = client.itemStartStreamOffset;
+                client.decodedItemProgress = decodedItemProgress - 1;
                 client.server.streamItemBegin(traceId);
                 client.decodeItemDepth = 1;
                 client.decoder = decodeItemBody;
@@ -2074,16 +2072,16 @@ public final class McpProxyFactory implements McpStreamFactory
         decode:
         while (true)
         {
-            final long parserStreamOffset = parser.getLocation().getStreamOffset();
-            if (client.itemEmittedStreamOffset < parserStreamOffset)
+            final long decodedItemProgress = parser.getLocation().getStreamOffset();
+            if (client.decodedItemProgress < decodedItemProgress)
             {
-                final int emittedInBuf =
-                    offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-                final int parserInBuf = offset + (int) (parserStreamOffset - client.decodedParserProgress);
-                final int chunkLen = parserInBuf - emittedInBuf;
-                final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
-                client.itemEmittedStreamOffset += emitted;
-                if (emitted < chunkLen)
+                final int decodedOffset =
+                    offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                final int decodedLimit = offset + (int) (decodedItemProgress - client.decodedParserProgress);
+                final int chunkLen = decodedLimit - decodedOffset;
+                final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+                client.decodedItemProgress += decodedProgress;
+                if (decodedProgress < chunkLen)
                 {
                     break decode;
                 }
@@ -2093,7 +2091,7 @@ public final class McpProxyFactory implements McpStreamFactory
             {
                 break decode;
             }
-            final long afterStreamOffset = parser.getLocation().getStreamOffset();
+            final long decodedEventProgress = parser.getLocation().getStreamOffset();
             final JsonParser.Event event = parser.next();
             switch (event)
             {
@@ -2105,20 +2103,19 @@ public final class McpProxyFactory implements McpStreamFactory
                 client.decodeItemDepth--;
                 if (client.decodeItemDepth == 0)
                 {
-                    final int afterInBuf = offset + (int) (afterStreamOffset - client.decodedParserProgress);
-                    final int emittedInBuf =
-                        offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-                    final int chunkLen = afterInBuf - emittedInBuf;
-                    final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
-                    client.itemEmittedStreamOffset += emitted;
-                    if (emitted < chunkLen)
+                    final int decodedLimit = offset + (int) (decodedEventProgress - client.decodedParserProgress);
+                    final int decodedOffset =
+                        offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                    final int chunkLen = decodedLimit - decodedOffset;
+                    final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+                    client.decodedItemProgress += decodedProgress;
+                    if (decodedProgress < chunkLen)
                     {
                         client.decoder = decodeItemFinalize;
                         break decode;
                     }
                     client.server.streamItemEnd(traceId);
-                    client.itemStartStreamOffset = -1;
-                    client.itemEmittedStreamOffset = -1;
+                    client.decodedItemProgress = -1;
                     client.decoder = decodeItemStart;
                     break decode;
                 }
@@ -2156,42 +2153,41 @@ public final class McpProxyFactory implements McpStreamFactory
     {
         final JsonParser parser = client.decodableJson;
 
-        final long parserStreamOffset = parser.getLocation().getStreamOffset();
-        if (client.itemEmittedStreamOffset < parserStreamOffset)
+        final long decodedKeyProgress = parser.getLocation().getStreamOffset();
+        if (client.decodedItemProgress < decodedKeyProgress)
         {
-            final int emittedInBuf =
-                offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-            final int parserInBuf = offset + (int) (parserStreamOffset - client.decodedParserProgress);
-            final int chunkLen = parserInBuf - emittedInBuf;
-            final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
-            client.itemEmittedStreamOffset += emitted;
-            if (emitted < chunkLen)
+            final int decodedOffset =
+                offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+            final int decodedLimit = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
+            final int chunkLen = decodedLimit - decodedOffset;
+            final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+            client.decodedItemProgress += decodedProgress;
+            if (decodedProgress < chunkLen)
             {
-                return offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+                return offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
             }
         }
 
-        final long beforeStreamOffset = parser.getLocation().getStreamOffset();
         if (parser.hasNext())
         {
-            final long afterStreamOffset = parser.getLocation().getStreamOffset();
+            final long decodedValueProgress = parser.getLocation().getStreamOffset();
             final JsonParser.Event event = parser.next();
             if (event == JsonParser.Event.VALUE_STRING)
             {
-                final int beforeInBuf = offset + (int) (beforeStreamOffset - client.decodedParserProgress);
-                final int afterInBuf = offset + (int) (afterStreamOffset - client.decodedParserProgress);
-                int openingQuote = beforeInBuf;
-                while (openingQuote < afterInBuf && buffer.getByte(openingQuote) != (byte) '"')
+                final int decodedKeyOffset = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
+                final int decodedValueOffset = offset + (int) (decodedValueProgress - client.decodedParserProgress);
+                int openingQuote = decodedKeyOffset;
+                while (openingQuote < decodedValueOffset && buffer.getByte(openingQuote) != (byte) '"')
                 {
                     openingQuote++;
                 }
-                final int contentStart = openingQuote + 1;
-                final int emittedInBuf =
-                    offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-                client.server.streamItemChunk(buffer, emittedInBuf, contentStart - emittedInBuf, traceId);
+                final int decodedContent = openingQuote + 1;
+                final int decodedOffset =
+                    offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                client.server.streamItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
                 client.server.streamItemChunk(client.prefixBufferRO, 0, client.prefixBytes.length, traceId);
-                client.itemEmittedStreamOffset =
-                    client.decodedParserProgress + (long) (contentStart - offset);
+                client.decodedItemProgress =
+                    client.decodedParserProgress + (long) (decodedContent - offset);
             }
             client.decoder = decodeItemBody;
         }
@@ -2211,28 +2207,27 @@ public final class McpProxyFactory implements McpStreamFactory
         int limit)
     {
         final JsonParser parser = client.decodableJson;
-        final long parserStreamOffset = parser.getLocation().getStreamOffset();
+        final long decodedItemProgress = parser.getLocation().getStreamOffset();
 
-        if (client.itemEmittedStreamOffset < parserStreamOffset)
+        if (client.decodedItemProgress < decodedItemProgress)
         {
-            final int emittedInBuf =
-                offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
-            final int parserInBuf = offset + (int) (parserStreamOffset - client.decodedParserProgress);
-            final int chunkLen = parserInBuf - emittedInBuf;
-            final int emitted = client.server.streamItemChunk(buffer, emittedInBuf, chunkLen, traceId);
-            client.itemEmittedStreamOffset += emitted;
-            if (emitted < chunkLen)
+            final int decodedOffset =
+                offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+            final int decodedLimit = offset + (int) (decodedItemProgress - client.decodedParserProgress);
+            final int chunkLen = decodedLimit - decodedOffset;
+            final int decodedProgress = client.server.streamItemChunk(buffer, decodedOffset, chunkLen, traceId);
+            client.decodedItemProgress += decodedProgress;
+            if (decodedProgress < chunkLen)
             {
-                return offset + (int) (client.itemEmittedStreamOffset - client.decodedParserProgress);
+                return offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
             }
         }
 
         client.server.streamItemEnd(traceId);
-        client.itemStartStreamOffset = -1;
-        client.itemEmittedStreamOffset = -1;
+        client.decodedItemProgress = -1;
         client.decoder = decodeItemStart;
 
-        return offset + (int) (parserStreamOffset - client.decodedParserProgress);
+        return offset + (int) (decodedItemProgress - client.decodedParserProgress);
     }
 
     private int decodeIgnore(
