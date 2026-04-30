@@ -91,7 +91,10 @@ write zilla:begin.ext ${http:beginEx()
                             .header("mcp-session-id", "session-1")
                             .build()}
 write flush
-write notify LISTENER_ATTACHED
+
+write 'id: :0\n'
+write '\n'
+write flush
 
 write 'id: :1\n'
 write 'data: {"jsonrpc":"2.0","method":"notifications/prompts/list_changed"}\n'

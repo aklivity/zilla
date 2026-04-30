@@ -36,7 +36,18 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-write await LISTENER_ATTACHED
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resume()
+                                   .build()
+                               .build()}
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .resume()
+                                  .id("0")
+                                  .build()
+                              .build()}
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))

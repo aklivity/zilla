@@ -13,7 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -42,16 +44,6 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .build()
                                .build()}
 
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .resume()
-                                  .id("0")
-                                  .build()
-                              .build()}
+read closed
 
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .resourcesListChanged()
-                                  .id("1")
-                                  .build()
-                              .build()}
+write close

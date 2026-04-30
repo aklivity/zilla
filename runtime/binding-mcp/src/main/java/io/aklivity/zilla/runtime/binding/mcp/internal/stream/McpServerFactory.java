@@ -130,6 +130,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final Supplier<String> supplySessionId;
     private final String serverName;
@@ -2215,6 +2216,20 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        private void doAppResume(
+            long traceId,
+            long authorization)
+        {
+            final McpFlushExFW resumeEx = mcpFlushExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resume(b -> b.id(""))
+                .build();
+            doFlush(app, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax,
+                traceId, authorization, 0L, 0, resumeEx);
+        }
+
         private void doAppAbort(
             long traceId,
             long authorization)
@@ -2391,6 +2406,10 @@ public final class McpServerFactory implements McpStreamFactory
         {
             switch (flushEx.kind())
             {
+            case McpFlushExFW.KIND_RESUME:
+                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                    flushEx.resume().id(), null);
+                break;
             case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
                 eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.toolsListChanged().id(), NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES);
@@ -2603,6 +2622,8 @@ public final class McpServerFactory implements McpStreamFactory
             doNetWindow(traceId, authorization, 0, 0);
 
             scheduleKeepalive(traceId);
+
+            session.doAppResume(traceId, authorization);
         }
 
         private void onNetData(
@@ -3470,6 +3491,24 @@ public final class McpServerFactory implements McpStreamFactory
         long budgetId,
         int reserved)
     {
+        doFlush(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, reserved, emptyRO);
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Flyweight extension)
+    {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -3481,6 +3520,7 @@ public final class McpServerFactory implements McpStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
@@ -3637,12 +3677,20 @@ public final class McpServerFactory implements McpStreamFactory
         out.putByte(progress, (byte) '\n');
         progress += 1;
 
-        out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
-        progress += SSE_DATA_PREFIX_BYTES.length;
-        out.putBytes(progress, body);
-        progress += body.length;
-        out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
-        progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
+        if (body != null)
+        {
+            out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
+            progress += SSE_DATA_PREFIX_BYTES.length;
+            out.putBytes(progress, body);
+            progress += body.length;
+            out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
+            progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
+        }
+        else
+        {
+            out.putByte(progress, (byte) '\n');
+            progress += 1;
+        }
 
         return progress - offset;
     }
