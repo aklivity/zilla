@@ -63,22 +63,22 @@ read closed
 write flush
 
 write advise zilla:flush ${mcp:flushEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .resume()
-                                      .id("request:0")
-                                      .build()
-                                  .build()}
+                              .typeId(zilla:id("mcp"))
+                              .resume()
+                                  .id("request:0")
+                                  .build()
+                              .build()}
 
 write advise zilla:flush ${mcp:flushEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .progress()
-                                      .id("request:1")
-                                      .progressToken("abc")
-                                      .progress(50)
-                                      .total(100)
-                                      .message("halfway")
-                                      .build()
-                                  .build()}
+                              .typeId(zilla:id("mcp"))
+                              .progress()
+                                  .id("request:1")
+                                  .progressToken("abc")
+                                  .progress(50)
+                                  .total(100)
+                                  .message("halfway")
+                                  .build()
+                              .build()}
 
 write '{'
         '"content":'

@@ -39,8 +39,8 @@ write flush
 write await LISTENER_ATTACHED
 
 write advise zilla:flush ${mcp:flushEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .toolsListChanged()
-                                      .id("lifecycle:1")
-                                      .build()
-                                  .build()}
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .id("lifecycle:1")
+                                  .build()
+                              .build()}
