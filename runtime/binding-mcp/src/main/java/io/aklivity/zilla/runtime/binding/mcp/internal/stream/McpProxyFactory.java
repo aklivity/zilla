@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
@@ -76,6 +77,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
@@ -97,6 +99,7 @@ public final class McpProxyFactory implements McpStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
@@ -339,9 +342,19 @@ public final class McpProxyFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onServerReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onServerChallenge(challenge);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onServerChallenge(
+            ChallengeFW challenge)
+        {
+            client.doClientChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 
         private void onServerBegin(
@@ -515,6 +528,17 @@ public final class McpProxyFactory implements McpStreamFactory
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = McpState.closedReply(state);
             }
+        }
+
+        private void doServerFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, reserved, extension);
         }
 
         private void doServerWindow(
@@ -699,6 +723,15 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
+        private void doClientChallenge(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            doChallenge(sender, server.lifecycle.originId, resolvedId, replyId,
+                replySeq, replyAck, replyMax, traceId, authorization, extension);
+        }
+
         private void onClientMessage(
             int msgTypeId,
             DirectBuffer buffer,
@@ -723,6 +756,10 @@ public final class McpProxyFactory implements McpStreamFactory
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onClientAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onClientFlush(flush);
+                break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onClientWindow(window);
@@ -734,6 +771,13 @@ public final class McpProxyFactory implements McpStreamFactory
             default:
                 break;
             }
+        }
+
+        private void onClientFlush(
+            FlushFW flush)
+        {
+            server.doServerFlush(flush.traceId(), flush.authorization(),
+                flush.budgetId(), flush.reserved(), flush.extension());
         }
 
         private void onClientBegin(
@@ -978,8 +1022,21 @@ public final class McpProxyFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onServerReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onServerChallenge(challenge);
+                break;
             default:
                 break;
+            }
+        }
+
+        private void onServerChallenge(
+            ChallengeFW challenge)
+        {
+            for (McpLifecycleClient client : clients.values())
+            {
+                client.doClientChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
             }
         }
 
@@ -1122,6 +1179,17 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
+        private void doServerFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, reserved, extension);
+        }
+
         private void doServerWindow(
             long traceId,
             long budgetId,
@@ -1230,6 +1298,16 @@ public final class McpProxyFactory implements McpStreamFactory
             }
         }
 
+        private void doClientChallenge(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            final long originId = server.routedId;
+            doChallenge(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, extension);
+        }
+
         private void doClientWindow(
             long traceId,
             long budgetId,
@@ -1263,6 +1341,10 @@ public final class McpProxyFactory implements McpStreamFactory
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onClientAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onClientFlush(flush);
+                break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onClientWindow(window);
@@ -1274,6 +1356,13 @@ public final class McpProxyFactory implements McpStreamFactory
             default:
                 break;
             }
+        }
+
+        private void onClientFlush(
+            FlushFW flush)
+        {
+            server.doServerFlush(flush.traceId(), flush.authorization(),
+                flush.budgetId(), flush.reserved(), flush.extension());
         }
 
         private void onClientBegin(
@@ -2806,6 +2895,24 @@ public final class McpProxyFactory implements McpStreamFactory
         long budgetId,
         int reserved)
     {
+        doFlush(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, reserved, emptyRO);
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        OctetsFW extension)
+    {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -2817,9 +2924,37 @@ public final class McpProxyFactory implements McpStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doChallenge(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 
     private void doReset(

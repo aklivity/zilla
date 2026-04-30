@@ -352,4 +352,15 @@ public class McpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/tools.call.with.progress/client",
+        "${app}/tools.call.with.progress/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }
