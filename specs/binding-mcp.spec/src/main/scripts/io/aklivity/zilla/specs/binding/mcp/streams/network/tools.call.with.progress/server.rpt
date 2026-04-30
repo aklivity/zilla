@@ -96,11 +96,11 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: request:0\n'
+write 'id: 2:0\n'
 write '\n'
 write flush
 
-write 'id: request:1\n'
+write 'id: 2:1\n'
 write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
 write '\n'
 write flush

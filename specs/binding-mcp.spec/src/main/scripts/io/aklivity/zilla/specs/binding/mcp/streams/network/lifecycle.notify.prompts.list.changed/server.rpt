@@ -93,7 +93,7 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 write notify LISTENER_ATTACHED
 
-write 'id: lifecycle:1\n'
+write 'id: :1\n'
 write 'data: {"jsonrpc":"2.0","method":"notifications/prompts/list_changed"}\n'
 write '\n'
 write flush

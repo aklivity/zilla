@@ -98,10 +98,10 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read 'id: request:0\n'
+read 'id: 2:0\n'
 read '\n'
 
-read 'id: request:1\n'
+read 'id: 2:1\n'
 read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
 read '\n'
 

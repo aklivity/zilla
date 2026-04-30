@@ -68,14 +68,14 @@ write flush
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .resume()
-                                  .id("request:0")
+                                  .id("0")
                                   .build()
                               .build()}
 
 write advise zilla:flush ${mcp:flushEx()
                               .typeId(zilla:id("mcp"))
                               .progress()
-                                  .id("request:1")
+                                  .id("1")
                                   .token("abc123")
                                   .progress(50)
                                   .total(100)
