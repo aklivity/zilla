@@ -27,6 +27,7 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpLifecycleBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpProgressFlushExFW;
@@ -36,7 +37,9 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListC
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeFlushExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpSuspendFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsCallBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpToolsListChangedFlushExFW;
@@ -721,6 +724,11 @@ public final class McpFunctions
             return new McpProgressFlushExBuilder();
         }
 
+        public McpSuspendFlushExBuilder suspend()
+        {
+            return new McpSuspendFlushExBuilder();
+        }
+
         public byte[] build()
         {
             final byte[] array = new byte[flushExRW.limit()];
@@ -854,6 +862,24 @@ public final class McpFunctions
                 return McpFlushExBuilder.this;
             }
         }
+
+        public final class McpSuspendFlushExBuilder
+        {
+            private long retry = -1L;
+
+            public McpSuspendFlushExBuilder retry(
+                long retry)
+            {
+                this.retry = retry;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.suspend(b -> b.retry(retry));
+                return McpFlushExBuilder.this;
+            }
+        }
     }
 
     public static final class McpFlushExMatcherBuilder
@@ -908,6 +934,14 @@ public final class McpFunctions
         {
             this.kind = McpFlushExFW.KIND_PROGRESS;
             final McpProgressFlushExMatcherBuilder matcher = new McpProgressFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpSuspendFlushExMatcherBuilder suspend()
+        {
+            this.kind = McpFlushExFW.KIND_SUSPEND;
+            final McpSuspendFlushExMatcherBuilder matcher = new McpSuspendFlushExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -1158,6 +1192,233 @@ public final class McpFunctions
                 McpProgressFlushExFW progress)
             {
                 return message == null || message.equals(progress.message());
+            }
+        }
+
+        public final class McpSuspendFlushExMatcherBuilder
+        {
+            private Long retry;
+
+            public McpSuspendFlushExMatcherBuilder retry(
+                long retry)
+            {
+                this.retry = retry;
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                return matchRetry(flushEx.suspend());
+            }
+
+            private boolean matchRetry(
+                McpSuspendFlushExFW suspend)
+            {
+                return retry == null || retry == suspend.retry();
+            }
+        }
+    }
+
+    @Function
+    public static McpChallengeExBuilder challengeEx()
+    {
+        return new McpChallengeExBuilder();
+    }
+
+    @Function
+    public static McpChallengeExMatcherBuilder matchChallengeEx()
+    {
+        return new McpChallengeExMatcherBuilder();
+    }
+
+    public static final class McpChallengeExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final McpChallengeExFW.Builder challengeExRW = new McpChallengeExFW.Builder();
+
+        private McpChallengeExBuilder()
+        {
+            challengeExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public McpChallengeExBuilder typeId(
+            int typeId)
+        {
+            challengeExRW.typeId(typeId);
+            return this;
+        }
+
+        public McpResumeChallengeExBuilder resume()
+        {
+            return new McpResumeChallengeExBuilder();
+        }
+
+        public McpSuspendedChallengeExBuilder suspended()
+        {
+            return new McpSuspendedChallengeExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[challengeExRW.limit()];
+            writeBuffer.getBytes(0, array);
+            return array;
+        }
+
+        public final class McpResumeChallengeExBuilder
+        {
+            private String id;
+
+            public McpResumeChallengeExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpChallengeExBuilder build()
+            {
+                challengeExRW.resume(b -> b.id(id));
+                return McpChallengeExBuilder.this;
+            }
+        }
+
+        public final class McpSuspendedChallengeExBuilder
+        {
+            public McpChallengeExBuilder build()
+            {
+                challengeExRW.suspended(b ->
+                {
+                });
+                return McpChallengeExBuilder.this;
+            }
+        }
+    }
+
+    public static final class McpChallengeExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final McpChallengeExFW challengeExRO = new McpChallengeExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<McpChallengeExFW> caseMatcher;
+
+        public McpChallengeExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public McpResumeChallengeExMatcherBuilder resume()
+        {
+            this.kind = McpChallengeExFW.KIND_RESUME;
+            final McpResumeChallengeExMatcherBuilder matcher = new McpResumeChallengeExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpSuspendedChallengeExMatcherBuilder suspended()
+        {
+            this.kind = McpChallengeExFW.KIND_SUSPENDED;
+            final McpSuspendedChallengeExMatcherBuilder matcher = new McpSuspendedChallengeExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private McpChallengeExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final McpChallengeExFW challengeEx = challengeExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (challengeEx != null &&
+                matchTypeId(challengeEx) &&
+                matchKind(challengeEx) &&
+                matchCase(challengeEx))
+            {
+                byteBuf.position(byteBuf.position() + challengeEx.sizeof());
+                return challengeEx;
+            }
+
+            throw new Exception(challengeEx != null ? challengeEx.toString() : "null");
+        }
+
+        private boolean matchTypeId(
+            McpChallengeExFW challengeEx)
+        {
+            return typeId == null || typeId == challengeEx.typeId();
+        }
+
+        private boolean matchKind(
+            McpChallengeExFW challengeEx)
+        {
+            return kind == null || kind == challengeEx.kind();
+        }
+
+        private boolean matchCase(
+            McpChallengeExFW challengeEx)
+        {
+            return caseMatcher == null || caseMatcher.test(challengeEx);
+        }
+
+        public final class McpResumeChallengeExMatcherBuilder
+        {
+            private String16FW id;
+
+            public McpResumeChallengeExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id);
+                return this;
+            }
+
+            public McpChallengeExMatcherBuilder build()
+            {
+                return McpChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpChallengeExFW challengeEx)
+            {
+                return matchId(challengeEx.resume());
+            }
+
+            private boolean matchId(
+                McpResumeChallengeExFW resume)
+            {
+                return id == null || id.equals(resume.id());
+            }
+        }
+
+        public final class McpSuspendedChallengeExMatcherBuilder
+        {
+            public McpChallengeExMatcherBuilder build()
+            {
+                return McpChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpChallengeExFW challengeEx)
+            {
+                return challengeEx.kind() == McpChallengeExFW.KIND_SUSPENDED;
             }
         }
     }
