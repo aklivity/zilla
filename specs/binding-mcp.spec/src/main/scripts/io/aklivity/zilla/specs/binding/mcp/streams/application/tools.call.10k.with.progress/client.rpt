@@ -73,4 +73,8 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .build()
                                .build()}
 
-read /[\s\S]+/
+read '{"content":[{"type":"text","text":"'
+read ${core:randomBase64(10000)}
+read '"}],"isError":false}'
+
+read closed
