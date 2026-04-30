@@ -269,4 +269,58 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.open/client",
+        "${app}/lifecycle.events.open/server"})
+    public void shouldOpenLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server"})
+    public void shouldLifecycleShutdownEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.timeout.events/client",
+        "${app}/lifecycle.timeout.events/server"})
+    public void shouldLifecycleTimeoutEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress/client",
+        "${app}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress.suspend/client",
+        "${app}/tools.call.with.progress.suspend/server"})
+    public void shouldCallToolWithProgressSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.with.progress.suspended/client",
+        "${app}/tools.call.with.progress.suspended/server"})
+    public void shouldCallToolWithProgressSuspended() throws Exception
+    {
+        k3po.finish();
+    }
 }
