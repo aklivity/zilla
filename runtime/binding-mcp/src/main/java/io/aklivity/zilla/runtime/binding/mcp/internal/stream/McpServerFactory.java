@@ -293,8 +293,7 @@ public final class McpServerFactory implements McpStreamFactory
             case "POST":
                 if (!acceptRequiresJsonAndEventStream(accept))
                 {
-                    newStream = rejectAcceptUnsupported(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, traceId, authorization);
+                    newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
                 }
                 else
                 {
@@ -310,13 +309,11 @@ public final class McpServerFactory implements McpStreamFactory
             case "GET":
                 if (!acceptIncludesEventStream(accept))
                 {
-                    newStream = rejectAcceptUnsupported(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, traceId, authorization);
+                    newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
                 }
                 else if (resolvedSession == null)
                 {
-                    newStream = rejectSessionNotFound(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, traceId, authorization);
+                    newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
                 }
                 else
                 {
@@ -338,8 +335,7 @@ public final class McpServerFactory implements McpStreamFactory
                     resolvedSession)::onNetMessage;
                 break;
             default:
-                newStream = rejectMethodNotAllowed(sender, originId, routedId, initialId,
-                    initialSeq, initialAck, traceId, authorization);
+                newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
                 break;
             }
         }
@@ -2285,6 +2281,42 @@ public final class McpServerFactory implements McpStreamFactory
         }
     }
 
+    private final class McpRejectHandler
+    {
+        private final MessageConsumer net;
+        private final String status;
+
+        private McpRejectHandler(
+            MessageConsumer sender,
+            String status)
+        {
+            this.net = sender;
+            this.status = status;
+        }
+
+        private void onNetBegin(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            if (msgTypeId == BeginFW.TYPE_ID)
+            {
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                doWindow(net, begin.originId(), begin.routedId(), begin.streamId(),
+                    begin.sequence(), begin.acknowledge(), 0,
+                    begin.traceId(), 0L, 0, 0);
+                doReset(net, begin.originId(), begin.routedId(), begin.streamId(),
+                    begin.sequence(), begin.acknowledge(), 0,
+                    begin.traceId(), begin.authorization(), httpResetExRW
+                        .wrap(codecBuffer, 0, codecBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(status))
+                        .build());
+            }
+        }
+    }
+
     private final class McpLifecycleStream
     {
         private final String sessionId;
@@ -3754,75 +3786,6 @@ public final class McpServerFactory implements McpStreamFactory
             .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-    }
-
-    private MessageConsumer rejectMethodNotAllowed(
-        MessageConsumer network,
-        long originId,
-        long routedId,
-        long initialId,
-        long sequence,
-        long acknowledge,
-        long traceId,
-        long authorization)
-    {
-        return (t, b, o, l) ->
-        {
-            doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, 0L, 0, 0);
-            doReset(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, authorization, httpResetExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_405))
-                    .build());
-        };
-    }
-
-    private MessageConsumer rejectAcceptUnsupported(
-        MessageConsumer network,
-        long originId,
-        long routedId,
-        long initialId,
-        long sequence,
-        long acknowledge,
-        long traceId,
-        long authorization)
-    {
-        return (t, b, o, l) ->
-        {
-            doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, 0L, 0, 0);
-            doReset(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, authorization, httpResetExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_406))
-                    .build());
-        };
-    }
-
-    private MessageConsumer rejectSessionNotFound(
-        MessageConsumer network,
-        long originId,
-        long routedId,
-        long initialId,
-        long sequence,
-        long acknowledge,
-        long traceId,
-        long authorization)
-    {
-        return (t, b, o, l) ->
-        {
-            doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, 0L, 0, 0);
-            doReset(network, originId, routedId, initialId, sequence, acknowledge, 0,
-                traceId, authorization, httpResetExRW
-                    .wrap(codecBuffer, 0, codecBuffer.capacity())
-                    .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
-                    .build());
-        };
     }
 
     private static int indexOfByte(
