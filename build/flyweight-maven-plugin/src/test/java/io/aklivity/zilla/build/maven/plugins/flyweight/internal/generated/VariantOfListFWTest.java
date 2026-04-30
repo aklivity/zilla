@@ -21,8 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.List8FW;
@@ -34,10 +32,13 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfUint32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantOfListFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class VariantOfListFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -50,7 +51,7 @@ public class VariantOfListFWTest
     private final int fieldCountSize = Integer.BYTES;
 
     private void setAllFields(
-        MutableDirectBuffer buffer)
+        MutableDirectBufferEx buffer)
     {
         int length = 43;
         int fieldCount = 4;
@@ -196,7 +197,7 @@ public class VariantOfListFWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithVisitor() throws Exception
     {
-        final MutableDirectBuffer listBuffer = new UnsafeBuffer(allocateDirect(100))
+        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -231,7 +232,7 @@ public class VariantOfListFWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithDirectBuffer() throws Exception
     {
-        final MutableDirectBuffer listBuffer = new UnsafeBuffer(allocateDirect(100))
+        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100))
         {
             {
                 // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -262,7 +263,7 @@ public class VariantOfListFWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

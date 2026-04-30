@@ -47,8 +47,8 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>org.agrona</groupId>
-      <artifactId>agrona</artifactId>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>common-agrona</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

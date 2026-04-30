@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -33,7 +32,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -44,7 +43,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

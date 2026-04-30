@@ -19,12 +19,12 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -67,7 +67,7 @@ public class InlineIT
     {
         InlineCatalogHandler catalog = new InlineCatalogHandler(config);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -87,7 +87,7 @@ public class InlineIT
     {
         InlineCatalogHandler catalog = new InlineCatalogHandler(config);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};

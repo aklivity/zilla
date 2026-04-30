@@ -35,8 +35,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.AsciiSequenceView;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
@@ -49,6 +47,8 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -77,7 +77,7 @@ public final class GrpcBindingConfig
 
     public GrpcBindingConfig(
         BindingConfig binding,
-        MutableDirectBuffer metadataBuffer,
+        MutableDirectBufferEx metadataBuffer,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.id = binding.id;
@@ -206,7 +206,7 @@ public final class GrpcBindingConfig
                 new String8FW("te"),
                 new String8FW("content-type"),
                 new String8FW("user-agent")));
-        private final MutableDirectBuffer metadataBuffer;
+        private final MutableDirectBufferEx metadataBuffer;
         private final Map<String8FW, Consumer<String16FW>> visitors;
         {
             Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
@@ -240,7 +240,7 @@ public final class GrpcBindingConfig
         public String16FW te;
 
         HttpGrpcHeaderHelper(
-            MutableDirectBuffer metadataBuffer)
+            MutableDirectBufferEx metadataBuffer)
         {
             this.metadataBuffer = metadataBuffer;
         }
@@ -289,7 +289,7 @@ public final class GrpcBindingConfig
         private void visitServiceName(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
+            final DirectBufferEx buffer = value.buffer();
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             serviceName = serviceNameRO.wrap(buffer, offset, length);
@@ -298,7 +298,7 @@ public final class GrpcBindingConfig
         private void visitPath(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
+            final DirectBufferEx buffer = value.buffer();
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             path = pathRO.wrap(buffer, offset, length);
@@ -307,7 +307,7 @@ public final class GrpcBindingConfig
         private void visitGrpcTimeout(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
+            final DirectBufferEx buffer = value.buffer();
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             grpcTimeoutText = grpcTimeoutRO.wrap(buffer, offset, length);

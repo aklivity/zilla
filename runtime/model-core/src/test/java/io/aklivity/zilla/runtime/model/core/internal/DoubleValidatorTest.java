@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -44,7 +44,7 @@ public class DoubleValidatorTest
             .format(BINARY)
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {-64, 0, 0, 0, 0, 0, 0, 0};
         data.wrap(bytes, 0, bytes.length);
@@ -57,7 +57,7 @@ public class DoubleValidatorTest
         DoubleModelConfig config = DoubleModelConfig.builder()
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "+10.1119998321";
         byte[] bytes = payload.getBytes();
@@ -71,7 +71,7 @@ public class DoubleValidatorTest
         DoubleModelConfig config = DoubleModelConfig.builder()
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-.11190092111111112";
         byte[] bytes = payload.getBytes();
@@ -87,7 +87,7 @@ public class DoubleValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-.11.19987654321";
         byte[] bytes = payload.getBytes();
@@ -105,7 +105,7 @@ public class DoubleValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "99.9987654321";
         byte[] bytes = payload.getBytes();
@@ -120,7 +120,7 @@ public class DoubleValidatorTest
             .max(99.9987654321)
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "99.9987654321";
         byte[] bytes = payload.getBytes();
@@ -134,7 +134,7 @@ public class DoubleValidatorTest
         DoubleModelConfig config = DoubleModelConfig.builder()
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-99.991";
         byte[] bytes = payload.getBytes();
@@ -157,7 +157,7 @@ public class DoubleValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         String payload = "-.99.991";
         byte[] bytes = payload.getBytes();
@@ -179,10 +179,9 @@ public class DoubleValidatorTest
             .format(BINARY)
             .build();
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {-1, -17, 94, -95, -120, 23, -78, 63};
-
 
         data.wrap(bytes, 0, 2);
         assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
@@ -203,7 +202,7 @@ public class DoubleValidatorTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         DoubleValidatorHandler handler = new DoubleValidatorHandler(config, context);
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);

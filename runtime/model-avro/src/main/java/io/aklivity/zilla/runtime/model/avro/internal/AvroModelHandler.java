@@ -23,9 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
@@ -41,6 +38,9 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -115,7 +115,7 @@ public abstract class AvroModelHandler
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
-        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBufferEx());
         this.in = new DirectBufferInputStream();
         this.event = new AvroModelEventContext(context);
         this.extracted = new HashMap<>();
@@ -132,7 +132,7 @@ public abstract class AvroModelHandler
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -173,7 +173,7 @@ public abstract class AvroModelHandler
     }
 
     protected void extractFields(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int limit,
         Schema schema)
     {
@@ -310,7 +310,7 @@ public abstract class AvroModelHandler
 
     private void extract(
         Schema schema,
-        DirectBuffer data,
+        DirectBufferEx data,
         int limit,
         AvroField field)
     {
@@ -337,7 +337,7 @@ public abstract class AvroModelHandler
             progress = int32.limit();
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 int length = text.putIntAscii(0, intValue);
                 field.value.wrap(text, 0, length);
             }
@@ -345,12 +345,12 @@ public abstract class AvroModelHandler
         case FLOAT:
             AvroFloatFW avroFloat = floatRO.wrap(data, progress, limit);
             int len = 0;
-            DirectBuffer buffer = avroFloat.value().value();
+            DirectBufferEx buffer = avroFloat.value().value();
             float floatValue = Float.intBitsToFloat(decodeNumberBytes(len, buffer));
             progress = avroFloat.limit();
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 int length = text.putStringWithoutLengthAscii(0, String.valueOf(floatValue));
                 field.value.wrap(text, 0, length);
             }
@@ -361,7 +361,7 @@ public abstract class AvroModelHandler
             progress = avroLong.limit();
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 int length = text.putLongAscii(0, longValue);
                 field.value.wrap(text, 0, length);
             }
@@ -380,7 +380,7 @@ public abstract class AvroModelHandler
             progress = avroDouble.limit();
             if (field != null)
             {
-                MutableDirectBuffer text = field.buffer;
+                MutableDirectBufferEx text = field.buffer;
                 int length = text.putStringWithoutLengthAscii(0, String.valueOf(doubleValue));
                 field.value.wrap(text, 0, length);
             }
@@ -428,7 +428,7 @@ public abstract class AvroModelHandler
 
     private static int decodeNumberBytes(
         int len,
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         return (buffer.getByte(len++) & 0xff) |
             ((buffer.getByte(len++) & 0xff) << 8) |

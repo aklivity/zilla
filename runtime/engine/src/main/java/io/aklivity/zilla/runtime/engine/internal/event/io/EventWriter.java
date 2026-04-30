@@ -28,8 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy;
 
@@ -55,7 +54,7 @@ public final class EventWriter implements AutoCloseable
 
     public void writeEvent(
         int msgTypeId,
-        DirectBuffer recordBuffer,
+        DirectBufferEx recordBuffer,
         int index,
         int length)
     {
@@ -112,7 +111,7 @@ public final class EventWriter implements AutoCloseable
 
         boolean writeEvent(
             int msgTypeId,
-            DirectBuffer recordBuffer,
+            DirectBufferEx recordBuffer,
             int index,
             int length)
         {

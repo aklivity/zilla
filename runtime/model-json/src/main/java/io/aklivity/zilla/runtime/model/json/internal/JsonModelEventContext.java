@@ -19,9 +19,9 @@ import static io.aklivity.zilla.runtime.model.json.internal.types.event.JsonMode
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
@@ -31,8 +31,8 @@ public class JsonModelEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBufferEx eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBufferEx extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final JsonModelEventExFW.Builder jsonModelEventExRW = new JsonModelEventExFW.Builder();
     private final int jsonModelTypeId;

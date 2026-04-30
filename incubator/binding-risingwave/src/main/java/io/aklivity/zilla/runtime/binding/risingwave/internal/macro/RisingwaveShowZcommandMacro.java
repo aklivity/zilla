@@ -16,11 +16,10 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class RisingwaveShowZcommandMacro
 {
@@ -65,7 +64,7 @@ public class RisingwaveShowZcommandMacro
             long traceId,
             long authorization,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             OctetsFW extension)

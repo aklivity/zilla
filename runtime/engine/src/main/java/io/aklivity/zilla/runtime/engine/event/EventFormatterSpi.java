@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.event;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Formats a structured engine event frame into a human-readable string.
@@ -47,7 +47,7 @@ public interface EventFormatterSpi
      *         frame type is not recognised by this formatter
      */
     String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 }

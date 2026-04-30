@@ -20,13 +20,14 @@ import java.text.MessageFormat;
 import java.util.function.Consumer;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Flyweight;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.OctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Varint32FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+
 
 public final class ListWithOctetsFW extends Flyweight
 {
@@ -147,7 +148,7 @@ public final class ListWithOctetsFW extends Flyweight
 
     @Override
     public ListWithOctetsFW wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -231,7 +232,7 @@ public final class ListWithOctetsFW extends Flyweight
 
     @Override
     public ListWithOctetsFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -472,7 +473,7 @@ public final class ListWithOctetsFW extends Flyweight
         }
 
         public Builder octets1(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -552,7 +553,7 @@ public final class ListWithOctetsFW extends Flyweight
         }
 
         public Builder octets2(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -597,7 +598,7 @@ public final class ListWithOctetsFW extends Flyweight
         }
 
         public Builder string1(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -671,7 +672,7 @@ public final class ListWithOctetsFW extends Flyweight
         }
 
         public Builder octets3(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -748,7 +749,7 @@ public final class ListWithOctetsFW extends Flyweight
         }
 
         public Builder octets4(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -765,7 +766,7 @@ public final class ListWithOctetsFW extends Flyweight
 
         @Override
         public Builder wrap(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int maxLimit)
         {

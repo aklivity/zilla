@@ -29,22 +29,23 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.PrimitiveIterator;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.IntegerVariableArraysFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class IntegerVariableArraysFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             setMemory(0, capacity(), (byte) 0xab);
@@ -54,7 +55,7 @@ public class IntegerVariableArraysFWTest
     private final IntegerVariableArraysFW flyweightRO = new IntegerVariableArraysFW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         buffer.putByte(offset + 0, (byte) 11); // fixed1

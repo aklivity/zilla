@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpRequestAcceptedExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -35,7 +34,7 @@ public final class HttpEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

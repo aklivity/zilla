@@ -22,16 +22,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithPhysicalAndLogicalLengthFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class ListWithPhysicalAndLogicalLengthFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -41,7 +42,7 @@ public class ListWithPhysicalAndLogicalLengthFWTest
     private final ListWithPhysicalAndLogicalLengthFW.Builder flyweightRW = new ListWithPhysicalAndLogicalLengthFW.Builder();
     private final ListWithPhysicalAndLogicalLengthFW flyweightRO = new ListWithPhysicalAndLogicalLengthFW();
     private final String8FW.Builder stringRW = new String8FW.Builder();
-    private final MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(100));
+    private final MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(100));
     private final int physicalLengthSize = Integer.BYTES;
     private final int logicalLengthSize = Integer.BYTES;
     private final int bitmaskSize = Long.BYTES;

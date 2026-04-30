@@ -19,15 +19,16 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.networkOrder.UnionStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class UnionStringFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -35,7 +36,7 @@ public class UnionStringFWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0

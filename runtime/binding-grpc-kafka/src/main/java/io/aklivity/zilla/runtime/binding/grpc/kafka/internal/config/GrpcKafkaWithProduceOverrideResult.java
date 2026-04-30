@@ -17,20 +17,19 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 public final class GrpcKafkaWithProduceOverrideResult
 {
-    public final DirectBuffer name;
-    public final Supplier<DirectBuffer> valueRef;
+    public final DirectBufferEx name;
+    public final Supplier<DirectBufferEx> valueRef;
 
-    private final Consumer<DirectBuffer> updateHash;
+    private final Consumer<DirectBufferEx> updateHash;
 
     GrpcKafkaWithProduceOverrideResult(
-        DirectBuffer name,
-        Supplier<DirectBuffer> valueRef,
-        Consumer<DirectBuffer> updateHash)
+        DirectBufferEx name,
+        Supplier<DirectBufferEx> valueRef,
+        Consumer<DirectBufferEx> updateHash)
     {
         this.name = name;
         this.valueRef = valueRef;
@@ -40,7 +39,7 @@ public final class GrpcKafkaWithProduceOverrideResult
     public void header(
         KafkaHeaderFW.Builder builder)
     {
-        final DirectBuffer value = valueRef.get();
+        final DirectBufferEx value = valueRef.get();
         builder.nameLen(name.capacity())
                .name(name, 0, name.capacity())
                .valueLen(value.capacity())

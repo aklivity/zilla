@@ -23,16 +23,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfInt8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class VariantEnumKindOfInt8FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -44,7 +45,7 @@ public class VariantEnumKindOfInt8FWTest
     private final VariantEnumKindOfInt8FW flyweightRO = new VariantEnumKindOfInt8FW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         int pos = offset;

@@ -28,7 +28,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.concurent;
+package io.aklivity.zilla.runtime.common.agrona.concurrent;
 
 import static org.agrona.BitUtil.align;
 import static org.agrona.concurrent.ControlledMessageHandler.Action.ABORT;
@@ -57,10 +57,13 @@ import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 /**
  * A ring-buffer that supports the exchange of messages from many producers to a single consumer.
  */
-public class ManyToOneRingBuffer implements RingBuffer
+public class ManyToOneRingBuffer implements RingBufferEx
 {
     /**
      * Minimal required capacity of the ring buffer excluding {@link RingBufferDescriptor#TRAILER_LENGTH}.
@@ -74,7 +77,7 @@ public class ManyToOneRingBuffer implements RingBuffer
     private final int headPositionIndex;
     private final int correlationIdCounterIndex;
     private final int consumerHeartbeatIndex;
-    private final AtomicBuffer buffer;
+    private final AtomicBufferEx buffer;
 
     /**
      * Construct a new {@link RingBuffer} based on an underlying {@link AtomicBuffer}.
@@ -85,7 +88,7 @@ public class ManyToOneRingBuffer implements RingBuffer
      * @throws IllegalStateException if the buffer capacity is not a power of 2
      *                               plus {@link RingBufferDescriptor#TRAILER_LENGTH} in capacity.
      */
-    public ManyToOneRingBuffer(final AtomicBuffer buffer)
+    public ManyToOneRingBuffer(final AtomicBufferEx buffer)
     {
         this.buffer = buffer;
         checkCapacity(buffer.capacity(), MIN_CAPACITY);
@@ -120,6 +123,32 @@ public class ManyToOneRingBuffer implements RingBuffer
         boolean isSuccessful = false;
 
         final AtomicBuffer buffer = this.buffer;
+        final int recordLength = length + HEADER_LENGTH;
+        final int recordIndex = claimCapacity(buffer, recordLength);
+
+        if (INSUFFICIENT_CAPACITY != recordIndex)
+        {
+            buffer.putBytes(encodedMsgOffset(recordIndex), srcBuffer, srcIndex, length);
+            buffer.putInt(typeOffset(recordIndex), msgTypeId);
+            buffer.putIntOrdered(lengthOffset(recordIndex), recordLength);
+
+            isSuccessful = true;
+        }
+
+        return isSuccessful;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public boolean write(final int msgTypeId, final DirectBufferEx srcBuffer, final int srcIndex, final int length)
+    {
+        checkTypeId(msgTypeId);
+        checkMsgLength(length);
+
+        boolean isSuccessful = false;
+
+        final AtomicBufferEx buffer = this.buffer;
         final int recordLength = length + HEADER_LENGTH;
         final int recordIndex = claimCapacity(buffer, recordLength);
 
@@ -200,6 +229,63 @@ public class ManyToOneRingBuffer implements RingBuffer
         int messagesRead = 0;
 
         final AtomicBuffer buffer = this.buffer;
+        final long head = buffer.getLong(headPositionIndex);
+
+        final int capacity = this.capacity;
+        final int headIndex = (int)head & (capacity - 1);
+        final int maxBlockLength = Math.min(capacity - headIndex, capacity >> 1);
+        int bytesRead = 0;
+
+        try
+        {
+            while (bytesRead < maxBlockLength && messagesRead < messageCountLimit)
+            {
+                final int recordIndex = headIndex + bytesRead;
+                final int recordLength = buffer.getIntVolatile(lengthOffset(recordIndex));
+                if (recordLength <= 0)
+                {
+                    break;
+                }
+
+                bytesRead += align(recordLength, ALIGNMENT);
+
+                final int messageTypeId = buffer.getInt(typeOffset(recordIndex));
+                if (PADDING_MSG_TYPE_ID == messageTypeId)
+                {
+                    continue;
+                }
+
+                ++messagesRead;
+                handler.onMessage(messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
+            }
+        }
+        finally
+        {
+            if (bytesRead != 0)
+            {
+                buffer.putLongOrdered(headPositionIndex, head + bytesRead);
+            }
+        }
+
+        return messagesRead;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int readEx(final MessageHandlerEx handler)
+    {
+        return readEx(handler, Integer.MAX_VALUE);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int readEx(final MessageHandlerEx handler, final int messageCountLimit)
+    {
+        int messagesRead = 0;
+
+        final AtomicBufferEx buffer = this.buffer;
         final long head = buffer.getLong(headPositionIndex);
 
         final int capacity = this.capacity;

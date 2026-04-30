@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import java.io.IOException;
 
-import org.agrona.DirectBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -24,6 +23,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.CanonicalJsonDecoder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -42,7 +42,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -53,7 +53,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -79,7 +79,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         ValueConsumer next)
@@ -113,7 +113,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
                         int position = expandable.position();
                         if (position > 0)
                         {
-                            next.accept(expandable.buffer(), 0, position);
+                            next.accept((DirectBufferEx) expandable.buffer(), 0, position);
                             valLength = position;
                         }
                     }

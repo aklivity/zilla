@@ -27,7 +27,13 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>common</artifactId>
+      <artifactId>common-feature</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common-agrona</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

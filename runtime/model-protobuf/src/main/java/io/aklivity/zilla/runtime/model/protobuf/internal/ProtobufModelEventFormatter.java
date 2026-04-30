@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.StringFW;
@@ -34,7 +33,7 @@ public final class ProtobufModelEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

@@ -18,8 +18,8 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 import java.nio.ByteOrder;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -29,7 +29,7 @@ public class TestCatalogHandler implements CatalogHandler
 {
     private final String schema;
     private final int id;
-    private final DirectBuffer prefix;
+    private final DirectBufferEx prefix;
     private final String url;
 
     public TestCatalogHandler(
@@ -68,7 +68,7 @@ public class TestCatalogHandler implements CatalogHandler
     public int decode(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -83,7 +83,7 @@ public class TestCatalogHandler implements CatalogHandler
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -109,7 +109,7 @@ public class TestCatalogHandler implements CatalogHandler
     public boolean validate(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,

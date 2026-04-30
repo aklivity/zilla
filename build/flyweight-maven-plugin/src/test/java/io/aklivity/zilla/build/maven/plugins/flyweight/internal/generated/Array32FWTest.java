@@ -26,8 +26,6 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array32FW;
@@ -35,10 +33,13 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Strin
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class Array32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(150000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(150000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -54,7 +55,7 @@ public class Array32FWTest
     private final int arrayItemKindSize = Byte.BYTES;
 
     private int setVariantItems(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         String item1 = String.format("%65535s", "0");
@@ -171,7 +172,6 @@ public class Array32FWTest
         assertAllTestValuesReadCaseVariantItems(array32, 10);
     }
 
-
     @Test
     public void shouldSetNonVariantItemsUsingItemMethod() throws Exception
     {
@@ -222,7 +222,7 @@ public class Array32FWTest
     private static StringFW asStringFW(
         String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
         return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

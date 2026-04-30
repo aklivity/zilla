@@ -24,10 +24,6 @@ import java.nio.ByteBuffer;
 import java.util.function.LongUnaryOperator;
 import java.util.zip.CRC32C;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
 import io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyBindingConfig;
@@ -54,6 +50,9 @@ import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -62,9 +61,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyServerFactory implements ProxyStreamFactory
 {
-    private static final DirectBuffer HEADER_V2 = new UnsafeBuffer("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
+    private static final DirectBufferEx HEADER_V2 = new UnsafeBufferEx("\r\n\r\n\0\r\nQUIT\n".getBytes(US_ASCII));
     private static final int HEADER_V2_SIZE = HEADER_V2.capacity();
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(0, 0);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(0, 0);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private static final int PROXY_ADDRESS_LENGTH_INET4 = 12;
@@ -134,13 +133,13 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     private final ProxyNetServerDecoder decodeData = this::decodeData;
 
     private final ProxyRouter router;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final BufferPool decodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
 
-    private final DirectBuffer headerRO = EMPTY_BUFFER;
+    private final DirectBufferEx headerRO = EMPTY_BUFFER;
 
     public ProxyServerFactory(
         ProxyConfiguration config,
@@ -172,7 +171,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -248,7 +247,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -307,7 +306,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 decodeSlot = decodePool.acquire(initialId);
                 assert decodeSlot != NO_SLOT;
 
-                final MutableDirectBuffer decodeBuf = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx decodeBuf = decodePool.buffer(decodeSlot);
                 decodeBuf.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
 
                 decodeOffset = beginEx.sizeof();
@@ -344,7 +343,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             else
             {
-                MutableDirectBuffer buffer = (MutableDirectBuffer) payload.buffer();
+                MutableDirectBufferEx buffer = (MutableDirectBufferEx) payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
@@ -353,7 +352,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 if (decodeLimit != decodeOffset)
                 {
                     assert decodeSlot != NO_SLOT;
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(decodeLimit, buffer, offset, limit - offset);
                     decodeLimit += limit - offset;
                     decodeFlags |= flags;
@@ -595,7 +594,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int offset = decodeOffset;
                 final int limit = decodeLimit;
                 final int reserved = decodeReserved;
@@ -611,7 +610,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int flags,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -637,7 +636,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeLimit = decodeOffset + limit - progress;
                     decodeReserved = (limit - progress) * reserved / (limit - offset);
@@ -658,7 +657,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            final DirectBuffer decodeBuffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : EMPTY_BUFFER;
+            final DirectBufferEx decodeBuffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : EMPTY_BUFFER;
 
             final ProxyBeginExFW beginEx = beginExRO.tryWrap(decodeBuffer, 0, decodeOffset);
 
@@ -738,7 +737,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1289,7 +1288,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1300,7 +1299,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length >= HEADER_V2_SIZE)
         {
             int anchor = progress;
-            DirectBuffer header = headerRO;
+            DirectBufferEx header = headerRO;
             header.wrap(buffer, progress, HEADER_V2_SIZE);
             if (!HEADER_V2.equals(header))
             {
@@ -1325,7 +1324,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1356,7 +1355,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1397,7 +1396,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1447,7 +1446,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1471,7 +1470,6 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         return progress;
     }
 
-
     private int decodeIgnoreAll(
         ProxyNetServer net,
         long traceId,
@@ -1479,7 +1477,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1494,7 +1492,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1567,7 +1565,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1596,7 +1594,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             assert net.decodeSlot != NO_SLOT;
 
-            final MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            final MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
             net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
@@ -1638,7 +1636,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1667,7 +1665,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             assert net.decodeSlot != NO_SLOT;
 
-            final MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            final MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
             net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
@@ -1709,7 +1707,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1736,7 +1734,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             assert net.decodeSlot != NO_SLOT;
 
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             decodeBuf.putLong(net.decodeOffset, NO_COMPOSITE_ID);
             net.decodeOffset += Long.BYTES;
             decodeBuf.putInt(net.decodeOffset, router.typeId());
@@ -1776,7 +1774,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1795,7 +1793,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             net.crc32c = null;
 
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             net.decodeOffset += size - Integer.BYTES;
             net.decodeLimit = net.decodeOffset;
@@ -1848,7 +1846,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1858,7 +1856,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -1893,7 +1891,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1903,7 +1901,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -1938,7 +1936,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1976,7 +1974,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2005,7 +2003,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2015,7 +2013,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2049,7 +2047,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2086,7 +2084,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2139,7 +2137,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2149,7 +2147,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2185,7 +2183,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2195,7 +2193,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2231,7 +2229,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2241,7 +2239,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2277,7 +2275,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2287,7 +2285,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2323,7 +2321,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2333,7 +2331,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2369,7 +2367,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2399,7 +2397,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2409,7 +2407,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         if (length > 0)
         {
             assert net.decodeSlot != NO_SLOT;
-            MutableDirectBuffer decodeBuf = decodePool.buffer(net.decodeSlot);
+            MutableDirectBufferEx decodeBuf = decodePool.buffer(net.decodeSlot);
             int size = decodeBuf.getInt(net.decodeOffset - Integer.BYTES - Integer.BYTES);
             int items = decodeBuf.getInt(net.decodeOffset - Integer.BYTES);
 
@@ -2444,7 +2442,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -2463,7 +2461,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
     private static void updateCRC32C(
         CRC32C crc32c,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -2485,7 +2483,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int flags,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);

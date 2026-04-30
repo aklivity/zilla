@@ -433,7 +433,7 @@ public final class EnumFlyweightGenerator extends ClassSpecGenerator
                         castType = "(int) (";
                     }
                 }
-                builder.addStatement("MutableDirectBuffer buffer = buffer()")
+                builder.addStatement("MutableDirectBufferEx buffer = buffer()")
                        .addStatement("int offset = offset()")
                        .addStatement("int newLimit = offset + FIELD_SIZE_VALUE")
                        .addStatement("checkLimit(newLimit, maxLimit())")

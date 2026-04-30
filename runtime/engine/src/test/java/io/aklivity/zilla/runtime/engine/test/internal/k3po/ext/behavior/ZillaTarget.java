@@ -49,11 +49,6 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
@@ -62,6 +57,11 @@ import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.channel.MessageEvent;
 
 import io.aklivity.k3po.runtime.driver.internal.netty.channel.CompositeChannelFuture;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.Layout;
@@ -91,7 +91,7 @@ final class ZillaTarget implements AutoCloseable
 
     private final OctetsFW octetsRO = new OctetsFW();
 
-    private final MutableDirectBuffer resetBuffer = new UnsafeBuffer(new byte[ResetFW.FIELD_OFFSET_EXTENSION]);
+    private final MutableDirectBufferEx resetBuffer = new UnsafeBufferEx(new byte[ResetFW.FIELD_OFFSET_EXTENSION]);
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
@@ -99,10 +99,10 @@ final class ZillaTarget implements AutoCloseable
     private final int scopeIndex;
     private final Path streamsPath;
     private final Layout layout;
-    private final RingBuffer streamsBuffer;
-    private final LongObjectBiConsumer<MessageHandler> registerThrottle;
+    private final RingBufferEx streamsBuffer;
+    private final LongObjectBiConsumer<MessageHandlerEx> registerThrottle;
     private final LongConsumer unregisterThrottle;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final LongObjectBiConsumer<ZillaCorrelation> correlateNew;
     private final LongSupplier supplyTraceId;
 
@@ -110,8 +110,8 @@ final class ZillaTarget implements AutoCloseable
         int scopeIndex,
         Path streamsPath,
         StreamsLayout layout,
-        MutableDirectBuffer writeBuffer,
-        LongObjectBiConsumer<MessageHandler> registerThrottle,
+        MutableDirectBufferEx writeBuffer,
+        LongObjectBiConsumer<MessageHandlerEx> registerThrottle,
         LongConsumer unregisterThrottle,
         LongObjectBiConsumer<ZillaCorrelation> correlateNew,
         LongSupplier supplyTraceId)
@@ -140,7 +140,7 @@ final class ZillaTarget implements AutoCloseable
         return String.format("%s [%s]", getClass().getSimpleName(), streamsPath);
     }
 
-    public RingBuffer streamsBuffer()
+    public RingBufferEx streamsBuffer()
     {
         return streamsBuffer;
     }
@@ -725,7 +725,7 @@ final class ZillaTarget implements AutoCloseable
                 // TODO: avoid allocation
                 byte[] writeCopyBytes = new byte[writableBytes];
                 writeBuf.getBytes(writeReaderIndex, writeCopyBytes);
-                writeCopy = octetsRO.wrap(new UnsafeBuffer(writeCopyBytes), 0, writableBytes);
+                writeCopy = octetsRO.wrap(new UnsafeBufferEx(writeCopyBytes), 0, writableBytes);
             }
 
             int optionFlags = channel.writeFlags();
@@ -968,7 +968,7 @@ final class ZillaTarget implements AutoCloseable
 
         private void handleThrottle(
             int msgTypeId,
-            DirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1002,7 +1002,7 @@ final class ZillaTarget implements AutoCloseable
             int challengeExtBytes = challengeExt.sizeof();
             if (challengeExtBytes != 0)
             {
-                final DirectBuffer buffer = challengeExt.buffer();
+                final DirectBufferEx buffer = challengeExt.buffer();
                 final int offset = challengeExt.offset();
 
                 // TODO: avoid allocation
@@ -1058,7 +1058,7 @@ final class ZillaTarget implements AutoCloseable
             int resetExtBytes = resetExt.sizeof();
             if (resetExtBytes != 0)
             {
-                final DirectBuffer buffer = resetExt.buffer();
+                final DirectBufferEx buffer = resetExt.buffer();
                 final int offset = resetExt.offset();
 
                 // TODO: avoid allocation

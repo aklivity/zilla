@@ -22,15 +22,15 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class RoutesLayout extends Layout
 {
-    private final DirectBuffer routesBuffer;
+    private final DirectBufferEx routesBuffer;
 
     private RoutesLayout(
-        DirectBuffer routesBuffer)
+        DirectBufferEx routesBuffer)
     {
         this.routesBuffer = routesBuffer;
     }
@@ -41,7 +41,7 @@ public final class RoutesLayout extends Layout
         unmap(routesBuffer.byteBuffer());
     }
 
-    public DirectBuffer routesBuffer()
+    public DirectBufferEx routesBuffer()
     {
         return routesBuffer;
     }
@@ -64,7 +64,7 @@ public final class RoutesLayout extends Layout
 
             final MappedByteBuffer mappedRoutes = mapExistingFile(routes, "routes");
 
-            final DirectBuffer routesBuffer = new UnsafeBuffer(mappedRoutes);
+            final DirectBufferEx routesBuffer = new UnsafeBufferEx(mappedRoutes);
 
             return new RoutesLayout(routesBuffer);
         }

@@ -35,12 +35,12 @@ import static org.jboss.netty.channel.Channels.fireMessageReceived;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.MessageHandler;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelFuture;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -108,7 +108,7 @@ public final class ZillaStreamFactory
         sender.doChallenge(channel, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
     }
 
-    public MessageHandler newStream(
+    public MessageHandlerEx newStream(
         ZillaChannel channel,
         ZillaTarget sender,
         ChannelFuture beginFuture)
@@ -135,7 +135,7 @@ public final class ZillaStreamFactory
 
         private void handleStream(
             int msgTypeId,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int index,
             int length)
         {
@@ -179,7 +179,7 @@ public final class ZillaStreamFactory
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {
-                final DirectBuffer buffer = beginExt.buffer();
+                final DirectBufferEx buffer = beginExt.buffer();
                 final int offset = beginExt.offset();
 
                 // TODO: avoid allocation
@@ -228,7 +228,7 @@ public final class ZillaStreamFactory
                 int dataExtBytes = dataExt.sizeof();
                 if (dataExtBytes != 0)
                 {
-                    final DirectBuffer buffer = dataExt.buffer();
+                    final DirectBufferEx buffer = dataExt.buffer();
                     final int offset = dataExt.offset();
 
                     // TODO: avoid allocation
@@ -314,7 +314,7 @@ public final class ZillaStreamFactory
             int endExtBytes = endExt.sizeof();
             if (endExtBytes != 0)
             {
-                final DirectBuffer buffer = endExt.buffer();
+                final DirectBufferEx buffer = endExt.buffer();
                 final int offset = endExt.offset();
 
                 // TODO: avoid allocation
@@ -357,7 +357,7 @@ public final class ZillaStreamFactory
             int abortExtBytes = abortExt.sizeof();
             if (abortExtBytes != 0)
             {
-                final DirectBuffer buffer = abortExt.buffer();
+                final DirectBufferEx buffer = abortExt.buffer();
                 final int offset = abortExt.offset();
 
                 // TODO: avoid allocation
@@ -401,7 +401,7 @@ public final class ZillaStreamFactory
             int flushExtBytes = flushExt.sizeof();
             if (flushExtBytes != 0)
             {
-                final DirectBuffer buffer = flushExt.buffer();
+                final DirectBufferEx buffer = flushExt.buffer();
                 final int offset = flushExt.offset();
 
                 // TODO: avoid allocation
@@ -432,7 +432,7 @@ public final class ZillaStreamFactory
         }
 
         private ChannelBuffer readBuffer(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int maxLimit)
         {

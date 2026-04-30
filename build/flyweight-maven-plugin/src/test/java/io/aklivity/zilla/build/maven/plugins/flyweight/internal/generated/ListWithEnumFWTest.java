@@ -23,8 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt64;
@@ -40,10 +38,13 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithEnumFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.Roll;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.RollFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class ListWithEnumFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -385,42 +386,42 @@ public class ListWithEnumFWTest
     private static RollFW asRollFW(
         Roll value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES));
         return new RollFW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
     private static EnumWithInt8FW asEnumWithInt8FW(
         EnumWithInt8 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES));
         return new EnumWithInt8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
     private static EnumWithInt64FW asEnumWithInt64FW(
         EnumWithInt64 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Long.BYTES));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Long.BYTES));
         return new EnumWithInt64FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
     private static EnumWithUint16FW asEnumWithUint16FW(
         EnumWithUint16 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Integer.BYTES));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES));
         return new EnumWithUint16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
     private static EnumWithUint32FW asEnumWithUint32FW(
         EnumWithUint32 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Long.BYTES));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Long.BYTES));
         return new EnumWithUint32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value).build();
     }
 
     private static EnumWithStringFW asEnumWithStringFW(
         EnumWithString value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.value().length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES + value.value().length()));
         return new EnumWithStringFW.Builder().wrap(buffer, 0, buffer.capacity())
             .set(value, StandardCharsets.UTF_8).build();
     }

@@ -20,10 +20,10 @@ import static org.junit.Assert.assertNull;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
@@ -62,7 +62,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b.sessionId("session-1"))
             .build();
@@ -96,7 +96,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsList(b -> b.sessionId("session-1"))
             .build();
@@ -132,7 +132,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsCall(b -> b
                 .sessionId("session-1")
@@ -168,7 +168,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsList(b -> b
                 .sessionId("session-1"))
@@ -205,7 +205,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsGet(b -> b
                 .sessionId("session-1")
@@ -241,7 +241,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesList(b -> b
                 .sessionId("session-1"))
@@ -278,7 +278,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesRead(b -> b
                 .sessionId("session-1")
@@ -300,7 +300,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsList(b -> b.sessionId("session-1"))
             .build();
@@ -340,7 +340,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("connection reset")
             .build();
@@ -368,7 +368,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("actual reason")
             .build();
@@ -383,7 +383,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(new String16FW("string-fw-reason"))
             .build();
@@ -398,7 +398,7 @@ public class McpFunctionsTest
         byteBuf.clear();
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(b -> b.set("consumer-reason", StandardCharsets.UTF_8))
             .build();
@@ -414,7 +414,7 @@ public class McpFunctionsTest
     public void shouldWrapAndReadAbortEx()
     {
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer buffer = new UnsafeBuffer(byteBuf);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(byteBuf);
 
         new McpAbortExFW.Builder()
             .wrap(buffer, 0, buffer.capacity())
@@ -432,7 +432,7 @@ public class McpFunctionsTest
     public void shouldCopyAbortEx()
     {
         ByteBuffer srcBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(srcBuf);
+        final UnsafeBufferEx srcBuffer = new UnsafeBufferEx(srcBuf);
 
         final McpAbortExFW source = new McpAbortExFW.Builder()
             .wrap(srcBuffer, 0, srcBuffer.capacity())
@@ -441,7 +441,7 @@ public class McpFunctionsTest
             .build();
 
         ByteBuffer dstBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer dstBuffer = new UnsafeBuffer(dstBuf);
+        final UnsafeBufferEx dstBuffer = new UnsafeBufferEx(dstBuf);
 
         final McpAbortExFW copy = new McpAbortExFW.Builder()
             .wrap(dstBuffer, 0, dstBuffer.capacity())

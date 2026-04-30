@@ -16,17 +16,16 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class HttpKafkaWithFetchFilterResult
 {
-    public final DirectBuffer key;
+    public final DirectBufferEx key;
     public final List<HttpKafkaWithFetchFilterHeaderResult> headers;
 
     HttpKafkaWithFetchFilterResult(
-        DirectBuffer key,
+        DirectBufferEx key,
         List<HttpKafkaWithFetchFilterHeaderResult> headers)
     {
         this.key = key;

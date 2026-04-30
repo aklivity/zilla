@@ -35,6 +35,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>io.aklivity.zilla</groupId>
+        <artifactId>common-agrona</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
         <version>${project.version}</version>

@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.binding.function;
 
 import static java.util.Objects.requireNonNull;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.MessageHandler;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
 
 /**
  * Receives typed frames from a {@link DirectBuffer} slice on the I/O hot path.
@@ -44,7 +44,7 @@ import org.agrona.concurrent.MessageHandler;
  * @see EngineContext#supplySender(long)
  */
 @FunctionalInterface
-public interface MessageConsumer extends MessageHandler, AutoCloseable
+public interface MessageConsumer extends MessageHandlerEx, AutoCloseable
 {
     /**
      * No-op consumer that discards all frames. Its {@link #andThen} and {@link #filter}
@@ -55,7 +55,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         @Override
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -91,17 +91,17 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
      */
     void accept(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 
     /**
-     * Bridges to the Agrona {@link MessageHandler} interface by delegating to {@link #accept}.
+     * Bridges to the {@link MessageHandlerEx} interface by delegating to {@link #accept}.
      */
     @Override
     default void onMessage(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -127,7 +127,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         MessageConsumer after)
     {
         requireNonNull(after);
-        return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
+        return (int msgTypeId, DirectBufferEx buffer, int index, int length) ->
         {
             accept(msgTypeId, buffer, index, length);
             after.accept(msgTypeId, buffer, index, length);
@@ -145,7 +145,7 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         MessagePredicate condition)
     {
         requireNonNull(condition);
-        return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
+        return (int msgTypeId, DirectBufferEx buffer, int index, int length) ->
         {
             if (condition.test(msgTypeId, buffer, index, length))
             {

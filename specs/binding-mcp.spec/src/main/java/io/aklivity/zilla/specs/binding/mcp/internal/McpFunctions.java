@@ -17,13 +17,12 @@ package io.aklivity.zilla.specs.binding.mcp.internal;
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpBeginExFW;
@@ -51,7 +50,7 @@ public final class McpFunctions
 
     public static final class McpBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final McpBeginExFW.Builder beginExRW = new McpBeginExFW.Builder();
 
         private McpBeginExBuilder()
@@ -269,7 +268,7 @@ public final class McpFunctions
 
     public static final class McpBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpBeginExFW beginExRO = new McpBeginExFW();
 
         private Integer typeId;
@@ -663,7 +662,7 @@ public final class McpFunctions
 
     public static final class McpAbortExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[256]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[256]);
         private final McpAbortExFW.Builder abortExRW = new McpAbortExFW.Builder();
 
         private McpAbortExBuilder()
@@ -696,7 +695,7 @@ public final class McpFunctions
 
     public static final class McpAbortExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpAbortExFW abortExRO = new McpAbortExFW();
 
         private Integer typeId;

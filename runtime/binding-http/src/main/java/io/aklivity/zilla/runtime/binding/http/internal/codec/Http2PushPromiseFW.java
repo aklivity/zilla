@@ -22,13 +22,12 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
 
@@ -104,7 +103,7 @@ public class Http2PushPromiseFW extends Http2FrameFW
     }
 
     @Override
-    public Http2PushPromiseFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public Http2PushPromiseFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
         int streamId = streamId();
@@ -136,7 +135,7 @@ public class Http2PushPromiseFW extends Http2FrameFW
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
 
@@ -185,7 +184,7 @@ public class Http2PushPromiseFW extends Http2FrameFW
             return this;
         }
 
-        public Builder headers(DirectBuffer headersBuf, int headersOffset, int headersLength)
+        public Builder headers(DirectBufferEx headersBuf, int headersOffset, int headersLength)
         {
             buffer().putBytes(offset() + PAYLOAD_OFFSET + 4, headersBuf, headersOffset, headersLength);
             payloadLength(headersLength + 4);

@@ -38,10 +38,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
@@ -49,6 +47,8 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaR
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.UnregisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -70,7 +70,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+        .wrap(new UnsafeBufferEx(new byte[5]), 0, 5);
 
     private final HttpClient client;
     private final String baseUrl;
@@ -360,7 +360,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     @Override
     public int resolve(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -376,7 +376,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public int decode(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -404,7 +404,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -427,7 +427,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public boolean validate(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
