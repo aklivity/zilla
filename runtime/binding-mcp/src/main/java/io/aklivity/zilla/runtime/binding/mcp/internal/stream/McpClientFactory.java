@@ -51,11 +51,13 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -88,7 +90,9 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_AND_EVENT_STREAM = "application/json, text/event-stream";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
+    private static final String HTTP_METHOD_GET = "GET";
     private static final String HTTP_METHOD_POST = "POST";
 
     private static final int DATA_FLAGS_COMPLETE = 0x03;
@@ -100,9 +104,11 @@ public final class McpClientFactory implements McpStreamFactory
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
     private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+    private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -758,6 +764,10 @@ public final class McpClientFactory implements McpStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onAppChallenge(challenge);
+                break;
             case SignalFW.TYPE_ID:
                 final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                 onAppSignal(signal);
@@ -765,6 +775,11 @@ public final class McpClientFactory implements McpStreamFactory
             default:
                 break;
             }
+        }
+
+        void onAppChallenge(
+            ChallengeFW challenge)
+        {
         }
 
         void onAppSignal(
@@ -1105,6 +1120,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long keepaliveId = Signaler.NO_CANCEL_ID;
         private long lastActiveAt;
         private int failedKeepalives;
+        HttpEventStream eventStream;
 
         McpLifecycleStream(
             MessageConsumer sender,
@@ -1150,6 +1166,27 @@ public final class McpClientFactory implements McpStreamFactory
             McpBeginExFW mcpBeginEx)
         {
             http.doEncodeRequestEnd(traceId, authorization);
+        }
+
+        @Override
+        void onAppChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final long authorization = challenge.authorization();
+            final OctetsFW extension = challenge.extension();
+
+            if (extension.sizeof() > 0)
+            {
+                final McpChallengeExFW challengeEx = mcpChallengeExRO.tryWrap(
+                    extension.buffer(), extension.offset(), extension.limit());
+                if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_RESUME &&
+                    eventStream == null)
+                {
+                    eventStream = new HttpEventStream(this);
+                    eventStream.doNetStart(traceId, authorization);
+                }
+            }
         }
 
         @Override
@@ -1323,6 +1360,13 @@ public final class McpClientFactory implements McpStreamFactory
             if (sessions.remove(sessionId) != null)
             {
                 cancelKeepalive();
+
+                if (eventStream != null)
+                {
+                    eventStream.doNetAbort(traceId, authorization);
+                    eventStream.doNetReset(traceId, authorization);
+                    eventStream = null;
+                }
 
                 for (Iterator<McpRequestStream> i = requests.values().iterator(); i.hasNext(); )
                 {
@@ -2209,6 +2253,198 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+    }
+
+    private final class HttpEventStream
+    {
+        private final McpLifecycleStream lifecycle;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+
+        private MessageConsumer net;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private int state;
+
+        HttpEventStream(
+            McpLifecycleStream lifecycle)
+        {
+            this.lifecycle = lifecycle;
+            this.originId = lifecycle.routedId;
+            this.routedId = lifecycle.resolvedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = lifecycle.affinity;
+            this.replyMax = decodeMax;
+        }
+
+        void doNetStart(
+            long traceId,
+            long authorization)
+        {
+            final String sid = lifecycle.responseSessionId;
+            final HttpBeginExFW.Builder builder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId);
+            if (lifecycle.with != null && lifecycle.with.headers != null)
+            {
+                lifecycle.with.headers.forEach((name, value) ->
+                    builder.headersItem(h -> h.name(name).value(value)));
+            }
+            final HttpBeginExFW httpBeginEx = builder
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_GET))
+                .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_EVENT_STREAM))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(MCP_PROTOCOL_VERSION))
+                .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid))
+                .build();
+
+            state = McpState.openingInitial(state);
+            net = newStream(this::onNetMessage,
+                originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, httpBeginEx);
+
+            assert net != null;
+
+            state = McpState.closedInitial(state);
+            doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization);
+        }
+
+        void doNetAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                state = McpState.closedInitial(state);
+                doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization);
+            }
+        }
+
+        void doNetReset(
+            long traceId,
+            long authorization)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                state = McpState.closedReply(state);
+                doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+            }
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            replySeq = begin.sequence();
+            replyAck = begin.acknowledge();
+            replyMax = decodeMax;
+            state = McpState.openedReply(state);
+
+            doNetWindow(traceId, authorization, 0L, 0);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            replySeq = data.sequence() + data.reserved();
+            doNetWindow(data.traceId(), data.authorization(), data.budgetId(), 0);
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            state = McpState.closedReply(state);
+            detach();
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            state = McpState.closedReply(state);
+            detach();
+        }
+
+        private void onNetReset(
+            ResetFW reset)
+        {
+            state = McpState.closedInitial(state);
+            detach();
+        }
+
+        private void onNetWindow(
+            WindowFW window)
+        {
+            state = McpState.openedInitial(state);
+        }
+
+        private void doNetWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void detach()
+        {
+            if (lifecycle.eventStream == this)
+            {
+                lifecycle.eventStream = null;
+            }
         }
     }
 
