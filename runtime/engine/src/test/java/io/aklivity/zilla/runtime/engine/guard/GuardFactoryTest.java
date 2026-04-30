@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardHandler;
@@ -57,8 +58,30 @@ public final class GuardFactoryTest
         GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
 
         MutableLong result = new MutableLong(Long.MIN_VALUE);
-        handler.reauthorize(0L, 0L, 0L, null, result::set);
+        MutableLong completedContextId = new MutableLong(Long.MIN_VALUE);
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                completedContextId.value = contextId;
+                result.value = sessionId;
+            }
 
-        assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 0L, null)));
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError("unexpected failure", ex);
+            }
+        };
+
+        handler.reauthorize(0L, 0L, 42L, null, completion);
+
+        assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 42L, null)));
+        assertThat(completedContextId.value, equalTo(42L));
     }
 }
