@@ -1006,6 +1006,12 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        void relaySuspended(
+            long traceId,
+            long authorization)
+        {
+        }
+
         private void onAppBegin(
             BeginFW begin)
         {
@@ -1456,6 +1462,7 @@ public final class McpClientFactory implements McpStreamFactory
             doAppFlush(traceId, authorization, flushEx);
         }
 
+        @Override
         void relaySuspended(
             long traceId,
             long authorization)
@@ -1835,6 +1842,37 @@ public final class McpClientFactory implements McpStreamFactory
                 .build();
             doAppFlush(traceId, authorization, flushEx);
         }
+
+        @Override
+        void relaySuspended(
+            long traceId,
+            long authorization)
+        {
+            final McpChallengeExFW challengeEx = mcpChallengeExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .suspended(b ->
+                {
+                })
+                .build();
+            doAppChallenge(traceId, authorization, challengeEx);
+        }
+
+        @Override
+        void onNetAbort(
+            HttpStream http,
+            long traceId,
+            long authorization)
+        {
+            if (http.sseMode)
+            {
+                relaySuspended(traceId, authorization);
+            }
+            else
+            {
+                doAppAbort(traceId, authorization);
+            }
+        }
     }
 
     private final class McpToolsListStream extends McpRequestStream
@@ -1975,6 +2013,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected HttpResponseDecoder decodedSkipObjectThen;
         protected int decodedSkipObjectDepth;
 
+        protected boolean sseMode;
         protected String sseEventId;
         protected final StringBuilder sseEventData = new StringBuilder();
         protected long sseEventRetry;
@@ -2065,6 +2104,7 @@ public final class McpClientFactory implements McpStreamFactory
                         CONTENT_TYPE_EVENT_STREAM.equals(contentType.value().asString()))
                     {
                         decoder = decodeSse;
+                        sseMode = true;
                     }
                 }
             }

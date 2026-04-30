@@ -105,4 +105,4 @@ write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progr
 write '\n'
 write flush
 
-write aborted
+write abort
