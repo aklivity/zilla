@@ -44,10 +44,10 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .build()
                                .build()}
 
-read advised zilla:challenge ${mcp:matchChallengeEx()
-                                   .typeId(zilla:id("mcp"))
-                                   .suspended()
-                                       .build()
-                                   .build()}
+read advise zilla:challenge ${mcp:matchChallengeEx()
+                                  .typeId(zilla:id("mcp"))
+                                  .suspended()
+                                      .build()
+                                  .build()}
 
 write close
