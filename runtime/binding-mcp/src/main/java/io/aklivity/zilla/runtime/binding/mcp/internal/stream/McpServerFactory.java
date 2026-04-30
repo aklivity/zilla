@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -92,6 +94,15 @@ public final class McpServerFactory implements McpStreamFactory
     private static final byte[] SSE_DATA_PREFIX_BYTES = "data: ".getBytes();
     private static final byte[] SSE_DATA_NEWLINE_BYTES = "\ndata: ".getBytes();
     private static final byte[] SSE_MESSAGE_TERMINATOR_BYTES = "\n\n".getBytes();
+    private static final byte[] SSE_ID_PREFIX_BYTES = "id: ".getBytes();
+    private static final String LIFECYCLE_STREAM_ID_PREFIX = "";
+
+    private static final byte[] NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}".getBytes();
+    private static final byte[] NOTIFICATIONS_PROMPTS_LIST_CHANGED_BYTES =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/prompts/list_changed\"}".getBytes();
+    private static final byte[] NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/list_changed\"}".getBytes();
 
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_INIT = 0x02;
@@ -106,6 +117,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final SignalFW signalRO = new SignalFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -2347,6 +2359,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = flush.traceId();
             final long authorization = flush.authorization();
             final int reserved = flush.reserved();
+            final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -2359,6 +2372,39 @@ public final class McpServerFactory implements McpStreamFactory
             if (replySeq > replyAck + decodeMax)
             {
                 cleanupApp(traceId, authorization);
+            }
+            else if (eventStream != null && extension.sizeof() > 0)
+            {
+                final McpFlushExFW flushEx =
+                    mcpFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                if (flushEx != null)
+                {
+                    onAppFlushEx(flushEx, traceId, authorization);
+                }
+            }
+        }
+
+        private void onAppFlushEx(
+            McpFlushExFW flushEx,
+            long traceId,
+            long authorization)
+        {
+            switch (flushEx.kind())
+            {
+            case McpFlushExFW.KIND_TOOLS_LIST_CHANGED:
+                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                    flushEx.toolsListChanged().id(), NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES);
+                break;
+            case McpFlushExFW.KIND_PROMPTS_LIST_CHANGED:
+                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                    flushEx.promptsListChanged().id(), NOTIFICATIONS_PROMPTS_LIST_CHANGED_BYTES);
+                break;
+            case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
+                eventStream.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                    flushEx.resourcesListChanged().id(), NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES);
+                break;
+            default:
+                break;
             }
         }
 
@@ -2656,6 +2702,22 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final int length = encodeSseEvent(codecBuffer, 0, payload, payloadOffset, payloadLength, flags);
+            doNetData(traceId, authorization, codecBuffer, 0, length);
+        }
+
+        private void doEncodeNotifyEvent(
+            long traceId,
+            long authorization,
+            String streamIdPrefix,
+            String16FW id,
+            byte[] body)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            final int length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix, id, body);
             doNetData(traceId, authorization, codecBuffer, 0, length);
         }
 
@@ -3550,6 +3612,39 @@ public final class McpServerFactory implements McpStreamFactory
     {
         out.putBytes(offset, SSE_KEEPALIVE_BYTES);
         return SSE_KEEPALIVE_BYTES.length;
+    }
+
+    private int encodeSseNotifyEvent(
+        MutableDirectBuffer out,
+        int offset,
+        String streamIdPrefix,
+        String16FW id,
+        byte[] body)
+    {
+        int progress = offset;
+
+        out.putBytes(progress, SSE_ID_PREFIX_BYTES);
+        progress += SSE_ID_PREFIX_BYTES.length;
+        progress += out.putStringWithoutLengthAscii(progress, streamIdPrefix);
+        out.putByte(progress, (byte) ':');
+        progress += 1;
+        final DirectBuffer idBuf = id.value();
+        if (idBuf != null && id.length() > 0)
+        {
+            out.putBytes(progress, idBuf, 0, id.length());
+            progress += id.length();
+        }
+        out.putByte(progress, (byte) '\n');
+        progress += 1;
+
+        out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
+        progress += SSE_DATA_PREFIX_BYTES.length;
+        out.putBytes(progress, body);
+        progress += body.length;
+        out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
+        progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
+
+        return progress - offset;
     }
 
     private int encodeSseEvent(

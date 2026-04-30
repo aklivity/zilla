@@ -401,6 +401,39 @@ public class McpServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.tools.list.changed/client",
+        "${app}/lifecycle.notify.tools.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.prompts.list.changed/client",
+        "${app}/lifecycle.notify.prompts.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.resources.list.changed/client",
+        "${app}/lifecycle.notify.resources.list.changed/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
