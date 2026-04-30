@@ -64,7 +64,7 @@ write flush
 
 write advise zilla:flush ${mcp:flushEx()
                                   .typeId(zilla:id("mcp"))
-                                  .resumable()
+                                  .resume()
                                       .eventId("request:0")
                                       .build()
                                   .build()}

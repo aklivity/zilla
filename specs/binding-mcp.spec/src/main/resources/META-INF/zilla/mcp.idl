@@ -43,7 +43,7 @@ scope mcp
             case 1: mcp::stream::McpPromptsListChangedFlushEx promptsListChanged;
             case 2: mcp::stream::McpResourcesListChangedFlushEx resourcesListChanged;
             case 3: mcp::stream::McpProgressFlushEx progress;
-            case 4: mcp::stream::McpResumableFlushEx resumable;
+            case 4: mcp::stream::McpResumeFlushEx resume;
         }
 
         struct McpToolsListChangedFlushEx
@@ -70,7 +70,7 @@ scope mcp
             string16 message = null;
         }
 
-        struct McpResumableFlushEx
+        struct McpResumeFlushEx
         {
             string16 eventId;
         }
