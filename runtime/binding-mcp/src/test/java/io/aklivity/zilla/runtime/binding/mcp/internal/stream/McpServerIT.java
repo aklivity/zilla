@@ -381,10 +381,10 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.events.shutdown/client",
-        "${app}/lifecycle.events.shutdown/server"})
+        "${net}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
-    public void shouldShutdownLifecycleEvents() throws Exception
+    public void shouldLifecycleShutdownEvents() throws Exception
     {
         k3po.finish();
     }
@@ -392,11 +392,11 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.events.timeout/client",
-        "${app}/lifecycle.events.timeout/server"})
+        "${net}/lifecycle.timeout.events/client",
+        "${app}/lifecycle.timeout.events/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT1S")
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
-    public void shouldTimeoutLifecycleEvents() throws Exception
+    public void shouldLifecycleTimeoutEvents() throws Exception
     {
         k3po.finish();
     }

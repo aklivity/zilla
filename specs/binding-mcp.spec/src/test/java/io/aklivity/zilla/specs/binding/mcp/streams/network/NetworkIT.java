@@ -344,18 +344,18 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.events.shutdown/client",
-        "${net}/lifecycle.events.shutdown/server"})
-    public void shouldShutdownLifecycleEvents() throws Exception
+        "${net}/lifecycle.shutdown.events/client",
+        "${net}/lifecycle.shutdown.events/server"})
+    public void shouldLifecycleShutdownEvents() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/lifecycle.events.timeout/client",
-        "${net}/lifecycle.events.timeout/server"})
-    public void shouldTimeoutLifecycleEvents() throws Exception
+        "${net}/lifecycle.timeout.events/client",
+        "${net}/lifecycle.timeout.events/server"})
+    public void shouldLifecycleTimeoutEvents() throws Exception
     {
         k3po.finish();
     }
