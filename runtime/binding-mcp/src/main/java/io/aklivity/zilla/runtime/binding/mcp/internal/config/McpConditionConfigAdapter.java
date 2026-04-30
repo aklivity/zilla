@@ -14,9 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
@@ -26,7 +33,8 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class McpConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final String KIND_NAME = "kind";
+    private static final String TOOLKIT_NAME = "toolkit";
+    private static final String CAPABILITY_NAME = "capability";
 
     @Override
     public String type()
@@ -42,9 +50,16 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mcpCondition.kind != null)
+        if (mcpCondition.toolkit != null)
         {
-            object.add(KIND_NAME, mcpCondition.kind);
+            object.add(TOOLKIT_NAME, mcpCondition.toolkit);
+        }
+
+        if (mcpCondition.capability != null)
+        {
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpCondition.capability.forEach(array::add);
+            object.add(CAPABILITY_NAME, array);
         }
 
         return object.build();
@@ -54,12 +69,23 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String kind = object.containsKey(KIND_NAME)
-            ? object.getString(KIND_NAME)
+        String toolkit = object.containsKey(TOOLKIT_NAME)
+            ? object.getString(TOOLKIT_NAME)
             : null;
 
+        List<String> capability = null;
+        if (object.containsKey(CAPABILITY_NAME))
+        {
+            JsonArray array = object.getJsonArray(CAPABILITY_NAME);
+            capability = array.stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .collect(toList());
+        }
+
         return McpConditionConfig.builder()
-            .kind(kind)
+            .toolkit(toolkit)
+            .capability(capability)
             .build();
     }
 }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
@@ -23,7 +24,8 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
 {
     private final Function<ConditionConfig, T> mapper;
 
-    private String kind;
+    private String toolkit;
+    private List<String> capability;
 
     public McpConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -31,10 +33,17 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
         this.mapper = mapper;
     }
 
-    public McpConditionConfigBuilder<T> kind(
-        String kind)
+    public McpConditionConfigBuilder<T> toolkit(
+        String toolkit)
     {
-        this.kind = kind;
+        this.toolkit = toolkit;
+        return this;
+    }
+
+    public McpConditionConfigBuilder<T> capability(
+        List<String> capability)
+    {
+        this.capability = capability;
         return this;
     }
 
@@ -48,6 +57,6 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
     @Override
     public T build()
     {
-        return mapper.apply(new McpConditionConfig(kind));
+        return mapper.apply(new McpConditionConfig(toolkit, capability));
     }
 }

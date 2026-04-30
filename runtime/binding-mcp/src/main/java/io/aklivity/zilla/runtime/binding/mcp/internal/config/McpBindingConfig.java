@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpBindingConfig
@@ -41,8 +43,83 @@ public final class McpBindingConfig
         long authorization)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(""))
+            .filter(r -> r.authorized(authorization))
             .findFirst()
             .orElse(null);
+    }
+
+    public int serverCapabilities(
+        long authorization)
+    {
+        int bits = 0;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization))
+            {
+                bits |= route.serverCapabilities();
+            }
+        }
+        return bits;
+    }
+
+    public McpRouteConfig resolve(
+        McpBeginExFW beginEx,
+        long authorization)
+    {
+        final String capability = McpRouteConfig.capabilityOf(beginEx);
+        final String identifier = McpRouteConfig.identifierOf(beginEx);
+
+        McpRouteConfig resolved = null;
+
+        if (capability == null)
+        {
+            resolved = resolve(authorization);
+        }
+        else if (identifier != null)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.matches(capability, identifier))
+                {
+                    resolved = route;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    resolved = route;
+                    break;
+                }
+            }
+        }
+
+        return resolved;
+    }
+
+    public List<McpRouteConfig> resolveAll(
+        McpBeginExFW beginEx,
+        long authorization)
+    {
+        final String capability = McpRouteConfig.capabilityOf(beginEx);
+        final String identifier = McpRouteConfig.identifierOf(beginEx);
+        final List<McpRouteConfig> result = new ArrayList<>();
+
+        if (capability != null && identifier == null)
+        {
+            for (McpRouteConfig route : routes)
+            {
+                if (route.authorized(authorization) && route.serves(capability))
+                {
+                    result.add(route);
+                }
+            }
+        }
+
+        return result;
     }
 }

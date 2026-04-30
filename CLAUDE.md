@@ -1059,6 +1059,32 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;        // v
 When adding a new import, insert it at the correct alphabetical position —
 do not append it at the end of the group.
 
+### Engine SPI conventions
+
+The engine SPI interfaces (`GuardHandler`, `BindingHandler`, `VaultHandler`,
+`StoreHandler`, etc.) are consumed by many independently-developed modules.
+Two conventions to follow when adding to or modifying them:
+
+- **Javadoc stays protocol-neutral.** Describe the contract — what the method
+  receives, what it returns, what callers can rely on — without referencing
+  specific upstream protocols or specific
+  bindings. Protocol-specific terminology (e.g. authorization-server `state`
+  parameters, `redirect_uri`, JWT `sub` claims) belongs in the implementing
+  module's source, not the engine SPI. When the parameter format depends on
+  the implementation, say "the format is guard-specific" (or
+  binding-/vault-/store-specific) and let the implementing module document
+  the specifics.
+- **Default methods return `null` for absent values, not empty collections.**
+  Matches the nullable convention already used by `identity`, `attribute`, and
+  `credentials` on `GuardHandler`. Even though the JDK collection factories
+  (`Set.of()`, `List.of()`) return cached singletons, the project convention
+  is `null` so callers learn one rule across the SPI rather than mixing styles.
+
+PR descriptions for engine SPI changes follow the same neutrality — describe
+the engine-level addition and the in-tree consumer that justifies it (e.g.
+"required by `binding-mcp` elicitation flow"); do not name downstream products
+or proprietary modules as motivation.
+
 ---
 
 ## Key dependencies

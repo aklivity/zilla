@@ -14,18 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class McpConditionConfig extends ConditionConfig
 {
-    public final String kind;
+    public final String toolkit;
+    public final List<String> capability;
 
-    public McpConditionConfig(
-        String kind)
+    McpConditionConfig(
+        String toolkit,
+        List<String> capability)
     {
-        this.kind = kind;
+        this.toolkit = toolkit;
+        this.capability = capability;
     }
 
     public static McpConditionConfigBuilder<McpConditionConfig> builder()

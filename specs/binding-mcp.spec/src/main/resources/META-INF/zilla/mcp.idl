@@ -14,6 +14,16 @@
  */
 scope mcp
 {
+    enum McpCapabilities (uint8)
+    {
+        SERVER_TOOLS(1),
+        SERVER_PROMPTS(2),
+        SERVER_RESOURCES(4),
+        CLIENT_ROOTS(8),
+        CLIENT_SAMPLING(16),
+        CLIENT_ELICITATION(32)
+    }
+
     scope stream
     {
         union McpBeginEx switch (uint8) extends core::stream::Extension
@@ -30,6 +40,7 @@ scope mcp
         struct McpLifecycleBeginEx
         {
             string16 sessionId;
+            uint8 capabilities = 0;
         }
 
         struct McpToolsListBeginEx

@@ -18,7 +18,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -50,13 +52,26 @@ public final class StreamingJsonTokenizer
         VALUE_NULL
     }
 
+    private static final int MAX_DEPTH = 64;
+    private static final String WILDCARD_INDEX = "-";
+
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
+    private final List<String[]> pathIncludes;
+    private final List<String[]> pathExcludes;
+    private final int tokenMaxBytes;
+
+    // path tracking — pre-allocated, no per-event allocation
+    private final boolean[] pathInArray = new boolean[MAX_DEPTH];
+    private final String[] pathKey = new String[MAX_DEPTH];
+    private final int[] pathIndex = new int[MAX_DEPTH];
+    private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
     private JsonParser.Event pendingEvent;
     private String pendingString;
     private long streamOffset;
+    private boolean valueReadable = true;
 
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
@@ -64,6 +79,49 @@ public final class StreamingJsonTokenizer
     private int resumeUnicodePending;   // hex digits remaining for backslash-u escape
     private int resumeUnicodeValue;
     private int resumeLiteralIndex;     // chars matched so far for true/false/null
+
+    public StreamingJsonTokenizer()
+    {
+        this(List.of(), List.of(), Integer.MAX_VALUE);
+    }
+
+    public StreamingJsonTokenizer(
+        List<String> pathIncludes,
+        List<String> pathExcludes,
+        int tokenMaxBytes)
+    {
+        this.pathIncludes = compilePaths(pathIncludes);
+        this.pathExcludes = compilePaths(pathExcludes);
+        this.tokenMaxBytes = tokenMaxBytes;
+    }
+
+    private static List<String[]> compilePaths(
+        List<String> paths)
+    {
+        if (paths.isEmpty())
+        {
+            return List.of();
+        }
+        final List<String[]> compiled = new ArrayList<>(paths.size());
+        for (String path : paths)
+        {
+            if (path.isEmpty())
+            {
+                compiled.add(new String[0]);
+            }
+            else
+            {
+                // RFC 6901: leading '/', segments separated by '/', '~1' decodes to '/', '~0' to '~'
+                final String[] parts = path.substring(1).split("/", -1);
+                for (int i = 0; i < parts.length; i++)
+                {
+                    parts[i] = parts[i].replace("~1", "/").replace("~0", "~");
+                }
+                compiled.add(parts);
+            }
+        }
+        return compiled;
+    }
 
     public boolean advance(
         InputStream in) throws IOException
@@ -76,9 +134,16 @@ public final class StreamingJsonTokenizer
         pendingEvent = null;
         pendingString = null;
 
-        try
+        while (pendingEvent == null && state != ParseState.DOC_DONE)
         {
-            while (pendingEvent == null && state != ParseState.DOC_DONE)
+            // Snapshot at the start of each iteration. On EOF mid-readable-scalar-scan we rewind
+            // to drop any partial scratch and let the caller retry once more bytes are appended.
+            // For other parse steps (KEY_NAME, structural separators, non-readable values) the
+            // existing internal-resume state carries across frames without needing rewind.
+            final long iterStart = streamOffset;
+            in.mark(tokenMaxBytes == Integer.MAX_VALUE ? Integer.MAX_VALUE : tokenMaxBytes);
+
+            try
             {
                 if (resumeOp != ResumeOp.NONE)
                 {
@@ -89,12 +154,28 @@ public final class StreamingJsonTokenizer
                     advanceOne(in);
                 }
             }
-            return true;
+            catch (EOFException ex)
+            {
+                if (pendingEvent != null)
+                {
+                    return true;
+                }
+                final boolean midReadableScalarScan =
+                    (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && valueReadable;
+                if (midReadableScalarScan)
+                {
+                    in.reset();
+                    streamOffset = iterStart;
+                    scratch.setLength(0);
+                    resumeOp = ResumeOp.NONE;
+                    resumeEscape = false;
+                    resumeUnicodePending = 0;
+                    resumeUnicodeValue = 0;
+                }
+                return false;
+            }
         }
-        catch (EOFException ex)
-        {
-            return pendingEvent != null;
-        }
+        return true;
     }
 
     public JsonParser.Event event()
@@ -115,6 +196,94 @@ public final class StreamingJsonTokenizer
     public long streamOffset()
     {
         return streamOffset;
+    }
+
+    public boolean valueReadable()
+    {
+        return valueReadable;
+    }
+
+    public String currentPath()
+    {
+        if (pathDepth == 0)
+        {
+            return "";
+        }
+        final StringBuilder path = new StringBuilder();
+        for (int i = 0; i < pathDepth; i++)
+        {
+            path.append('/');
+            if (pathInArray[i])
+            {
+                path.append(pathIndex[i]);
+            }
+            else if (pathKey[i] != null)
+            {
+                path.append(pathKey[i].replace("~", "~0").replace("/", "~1"));
+            }
+        }
+        return path.toString();
+    }
+
+    private boolean currentPathReadable()
+    {
+        // include is everything by default; if pathIncludes is specified, restrict to those
+        final boolean included = pathIncludes.isEmpty() || pathMatchesAny(pathIncludes);
+        // excludes have final veto
+        return included && !pathMatchesAny(pathExcludes);
+    }
+
+    private boolean pathMatchesAny(
+        List<String[]> paths)
+    {
+        outer:
+        for (String[] target : paths)
+        {
+            if (target.length != pathDepth)
+            {
+                continue;
+            }
+            for (int i = 0; i < pathDepth; i++)
+            {
+                final String segment = pathInArray[i]
+                    ? Integer.toString(pathIndex[i])
+                    : pathKey[i];
+                final String expected = target[i];
+                if (!WILDCARD_INDEX.equals(expected) && !expected.equals(segment))
+                {
+                    continue outer;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void pushPath(
+        boolean inArray)
+    {
+        if (pathDepth == MAX_DEPTH)
+        {
+            throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
+        }
+        pathInArray[pathDepth] = inArray;
+        pathKey[pathDepth] = null;
+        pathIndex[pathDepth] = 0;
+        pathDepth++;
+    }
+
+    private void popPath()
+    {
+        pathDepth--;
+        pathKey[pathDepth] = null;
+    }
+
+    private void markValueConsumed()
+    {
+        if (pathDepth > 0 && pathInArray[pathDepth - 1])
+        {
+            pathIndex[pathDepth - 1]++;
+        }
     }
 
     private void advanceOne(
@@ -169,14 +338,14 @@ public final class StreamingJsonTokenizer
         case VALUE_STRING:
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
         case VALUE_NUMBER:
             continueNumberContent(in);
             pendingEvent = JsonParser.Event.VALUE_NUMBER;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -205,9 +374,9 @@ public final class StreamingJsonTokenizer
 
     private String takeScratch()
     {
-        String s = scratch.toString();
+        String path = scratch.toString();
         scratch.setLength(0);
-        return s;
+        return path;
     }
 
     private void consumeValue(
@@ -286,15 +455,18 @@ public final class StreamingJsonTokenizer
         InputStream in,
         int c) throws IOException
     {
+        valueReadable = currentPathReadable();
         switch (c)
         {
         case '{':
             pendingEvent = JsonParser.Event.START_OBJECT;
             pushAndEnter(ParseState.OBJ_AFTER_OPEN);
+            pushPath(false);
             break;
         case '[':
             pendingEvent = JsonParser.Event.START_ARRAY;
             pushAndEnter(ParseState.ARR_AFTER_OPEN);
+            pushPath(true);
             break;
         case '"':
             scratch.setLength(0);
@@ -303,7 +475,7 @@ public final class StreamingJsonTokenizer
             resumeOp = ResumeOp.VALUE_STRING;
             continueStringContent(in);
             pendingEvent = JsonParser.Event.VALUE_STRING;
-            pendingString = takeScratch();
+            pendingString = valueReadable ? takeScratch() : null;
             resumeOp = ResumeOp.NONE;
             afterValueConsumed();
             break;
@@ -335,11 +507,14 @@ public final class StreamingJsonTokenizer
             if (c == '-' || c >= '0' && c <= '9')
             {
                 scratch.setLength(0);
-                scratch.append((char) c);
+                if (valueReadable)
+                {
+                    scratch.append((char) c);
+                }
                 resumeOp = ResumeOp.VALUE_NUMBER;
                 continueNumberContent(in);
                 pendingEvent = JsonParser.Event.VALUE_NUMBER;
-                pendingString = takeScratch();
+                pendingString = valueReadable ? takeScratch() : null;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -358,6 +533,8 @@ public final class StreamingJsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
+        // keys must always be readable so path matching can compare them
+        valueReadable = true;
         scratch.setLength(0);
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -367,6 +544,10 @@ public final class StreamingJsonTokenizer
         pendingString = takeScratch();
         resumeOp = ResumeOp.NONE;
         state = ParseState.OBJ_AFTER_KEY;
+        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
+        {
+            pathKey[pathDepth - 1] = pendingString;
+        }
     }
 
     private void pushAndEnter(
@@ -409,12 +590,14 @@ public final class StreamingJsonTokenizer
         default:
             throw new JsonParsingException("Unexpected state after value: " + state, null);
         }
+        markValueConsumed();
     }
 
     private void emitEnd(
         JsonParser.Event endEvent)
     {
         pendingEvent = endEvent;
+        popPath();
         if (stack.isEmpty())
         {
             state = ParseState.DOC_DONE;
@@ -423,6 +606,7 @@ public final class StreamingJsonTokenizer
         {
             state = stack.pop();
         }
+        markValueConsumed();
     }
 
     private int skipWhitespace(
@@ -464,7 +648,7 @@ public final class StreamingJsonTokenizer
                 resumeUnicodePending--;
                 if (resumeUnicodePending == 0)
                 {
-                    scratch.append((char) resumeUnicodeValue);
+                    appendScratch((char) resumeUnicodeValue);
                 }
                 continue;
             }
@@ -476,22 +660,22 @@ public final class StreamingJsonTokenizer
                 case '"':
                 case '\\':
                 case '/':
-                    scratch.append((char) c);
+                    appendScratch((char) c);
                     break;
                 case 'b':
-                    scratch.append('\b');
+                    appendScratch('\b');
                     break;
                 case 'f':
-                    scratch.append('\f');
+                    appendScratch('\f');
                     break;
                 case 'n':
-                    scratch.append('\n');
+                    appendScratch('\n');
                     break;
                 case 'r':
-                    scratch.append('\r');
+                    appendScratch('\r');
                     break;
                 case 't':
-                    scratch.append('\t');
+                    appendScratch('\t');
                     break;
                 case 'u':
                     resumeUnicodePending = 4;
@@ -516,13 +700,31 @@ public final class StreamingJsonTokenizer
             }
             else if (c < 0x80)
             {
-                scratch.append((char) c);
+                appendScratch((char) c);
             }
             else
             {
                 int codePoint = decodeUtf8(in, c);
-                scratch.appendCodePoint(codePoint);
+                appendCodePointScratch(codePoint);
             }
+        }
+    }
+
+    private void appendScratch(
+        char c)
+    {
+        if (valueReadable)
+        {
+            scratch.append(c);
+        }
+    }
+
+    private void appendCodePointScratch(
+        int codePoint)
+    {
+        if (valueReadable)
+        {
+            scratch.appendCodePoint(codePoint);
         }
     }
 
@@ -595,7 +797,7 @@ public final class StreamingJsonTokenizer
             if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
             {
                 streamOffset++;
-                scratch.append((char) c);
+                appendScratch((char) c);
             }
             else
             {
@@ -614,6 +816,14 @@ public final class StreamingJsonTokenizer
             throw new EOFException();
         }
         streamOffset++;
+        if (valueReadable &&
+            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) &&
+            scratch.length() >= tokenMaxBytes)
+        {
+            throw new JsonParsingException(
+                "value at " + currentPath() + " exceeds max " + tokenMaxBytes + " bytes",
+                null);
+        }
         return c;
     }
 
