@@ -299,4 +299,34 @@ public class McpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed/client",
+        "${net}/lifecycle.notify.tools.list.changed/server"})
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.prompts.list.changed/client",
+        "${net}/lifecycle.notify.prompts.list.changed/server"})
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.list.changed/client",
+        "${net}/lifecycle.notify.resources.list.changed/server"})
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
 }

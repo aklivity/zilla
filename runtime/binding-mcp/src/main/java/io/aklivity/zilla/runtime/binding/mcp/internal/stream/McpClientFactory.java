@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
@@ -114,10 +115,12 @@ public final class McpClientFactory implements McpStreamFactory
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
 
@@ -1045,6 +1048,16 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
+        void doAppFlush(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            doFlush(sender, originId, routedId, replyId,
+                replySeq, replyAck, replyMax,
+                traceId, authorization, replyBud, 0, extension);
+        }
+
         void doAppAbort(
             long traceId,
             long authorization)
@@ -1186,6 +1199,61 @@ public final class McpClientFactory implements McpStreamFactory
                     eventStream = new HttpEventStream(this);
                     eventStream.doNetStart(traceId, authorization);
                 }
+            }
+        }
+
+        void relayResume(
+            long traceId,
+            long authorization,
+            String id)
+        {
+            final McpFlushExFW flushEx = mcpFlushExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resume(b -> b.id(id))
+                .build();
+            doAppFlush(traceId, authorization, flushEx);
+        }
+
+        void relayNotification(
+            long traceId,
+            long authorization,
+            String id,
+            String data)
+        {
+            final McpFlushExFW flushEx;
+            if (data.contains("notifications/tools/list_changed"))
+            {
+                flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .toolsListChanged(b -> b.id(id))
+                    .build();
+            }
+            else if (data.contains("notifications/prompts/list_changed"))
+            {
+                flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .promptsListChanged(b -> b.id(id))
+                    .build();
+            }
+            else if (data.contains("notifications/resources/list_changed"))
+            {
+                flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .resourcesListChanged(b -> b.id(id))
+                    .build();
+            }
+            else
+            {
+                flushEx = null;
+            }
+
+            if (flushEx != null)
+            {
+                doAppFlush(traceId, authorization, flushEx);
             }
         }
 
@@ -2277,6 +2345,12 @@ public final class McpClientFactory implements McpStreamFactory
 
         private int state;
 
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+
+        private String currentEventId;
+        private final StringBuilder currentEventData = new StringBuilder();
+
         HttpEventStream(
             McpLifecycleStream lifecycle)
         {
@@ -2398,14 +2472,25 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetData(
             DataFW data)
         {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
             replySeq = data.sequence() + data.reserved();
-            doNetWindow(data.traceId(), data.authorization(), data.budgetId(), 0);
+
+            final OctetsFW payload = data.payload();
+            if (payload != null)
+            {
+                decodeSse(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+            }
+
+            doNetWindow(traceId, authorization, budgetId, 0);
         }
 
         private void onNetEnd(
             EndFW end)
         {
             state = McpState.closedReply(state);
+            cleanupDecodeSlot();
             detach();
         }
 
@@ -2413,6 +2498,7 @@ public final class McpClientFactory implements McpStreamFactory
             AbortFW abort)
         {
             state = McpState.closedReply(state);
+            cleanupDecodeSlot();
             detach();
         }
 
@@ -2420,6 +2506,7 @@ public final class McpClientFactory implements McpStreamFactory
             ResetFW reset)
         {
             state = McpState.closedInitial(state);
+            cleanupDecodeSlot();
             detach();
         }
 
@@ -2444,6 +2531,169 @@ public final class McpClientFactory implements McpStreamFactory
             if (lifecycle.eventStream == this)
             {
                 lifecycle.eventStream = null;
+            }
+        }
+
+        private void decodeSse(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(replyId);
+            }
+
+            if (decodeSlot == NO_SLOT)
+            {
+                return;
+            }
+
+            final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
+            slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
+            decodeSlotOffset += length;
+
+            int progress = 0;
+            int eventStart = 0;
+            while (progress < decodeSlotOffset - 1)
+            {
+                if (slotBuffer.getByte(progress) == (byte) '\n' &&
+                    slotBuffer.getByte(progress + 1) == (byte) '\n')
+                {
+                    decodeSseEvent(traceId, authorization, slotBuffer, eventStart, progress);
+                    progress += 2;
+                    eventStart = progress;
+                }
+                else
+                {
+                    progress++;
+                }
+            }
+
+            if (eventStart > 0)
+            {
+                final int remaining = decodeSlotOffset - eventStart;
+                if (remaining > 0)
+                {
+                    slotBuffer.putBytes(0, slotBuffer, eventStart, remaining);
+                }
+                decodeSlotOffset = remaining;
+            }
+
+            if (decodeSlotOffset == 0)
+            {
+                cleanupDecodeSlot();
+            }
+        }
+
+        private void decodeSseEvent(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int eventStart,
+            int eventEnd)
+        {
+            currentEventId = null;
+            currentEventData.setLength(0);
+
+            int lineStart = eventStart;
+            for (int i = eventStart; i < eventEnd; i++)
+            {
+                if (buffer.getByte(i) == (byte) '\n')
+                {
+                    decodeSseLine(buffer, lineStart, i);
+                    lineStart = i + 1;
+                }
+            }
+            if (lineStart < eventEnd)
+            {
+                decodeSseLine(buffer, lineStart, eventEnd);
+            }
+
+            if (currentEventId != null && currentEventData.length() == 0)
+            {
+                lifecycle.relayResume(traceId, authorization, stripEventIdPrefix(currentEventId));
+            }
+            else if (currentEventData.length() > 0)
+            {
+                lifecycle.relayNotification(traceId, authorization,
+                    stripEventIdPrefix(currentEventId), currentEventData.toString());
+            }
+        }
+
+        private void decodeSseLine(
+            DirectBuffer buffer,
+            int lineStart,
+            int lineEnd)
+        {
+            final int length = lineEnd - lineStart;
+            if (length == 0 || buffer.getByte(lineStart) == (byte) ':')
+            {
+                return;
+            }
+
+            int colon = -1;
+            for (int i = lineStart; i < lineEnd; i++)
+            {
+                if (buffer.getByte(i) == (byte) ':')
+                {
+                    colon = i;
+                    break;
+                }
+            }
+            if (colon < 0)
+            {
+                return;
+            }
+
+            int valueStart = colon + 1;
+            if (valueStart < lineEnd && buffer.getByte(valueStart) == (byte) ' ')
+            {
+                valueStart++;
+            }
+
+            final String fieldName = buffer.getStringWithoutLengthAscii(lineStart, colon - lineStart);
+            final String fieldValue = buffer.getStringWithoutLengthAscii(valueStart, lineEnd - valueStart);
+
+            switch (fieldName)
+            {
+            case "id":
+                currentEventId = fieldValue;
+                break;
+            case "data":
+                if (currentEventData.length() > 0)
+                {
+                    currentEventData.append('\n');
+                }
+                currentEventData.append(fieldValue);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private String stripEventIdPrefix(
+            String id)
+        {
+            if (id == null)
+            {
+                return "";
+            }
+            final int colon = id.lastIndexOf(':');
+            return colon < 0 ? id : id.substring(colon + 1);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
             }
         }
     }
@@ -3286,6 +3536,37 @@ public final class McpClientFactory implements McpStreamFactory
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Flyweight extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doWindow(
