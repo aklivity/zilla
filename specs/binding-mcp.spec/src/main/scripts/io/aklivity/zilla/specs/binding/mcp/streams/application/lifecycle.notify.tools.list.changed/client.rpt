@@ -52,7 +52,3 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                    .id("1")
                                    .build()
                                .build()}
-
-write close
-
-read closed

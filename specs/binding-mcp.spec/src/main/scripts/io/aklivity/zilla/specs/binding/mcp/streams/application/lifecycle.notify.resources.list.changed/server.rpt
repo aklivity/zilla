@@ -55,7 +55,3 @@ write advise zilla:flush ${mcp:flushEx()
                                   .id("1")
                                   .build()
                               .build()}
-
-read closed
-
-write close
